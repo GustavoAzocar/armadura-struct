@@ -120,26 +120,11 @@ svg {
   font-weight: 350;
   color: #b9c5e2;
 }
-.app-monogram {
-  font-size: 19px;
-  font-weight: 700;
-  border: 1px solid #5d6ee8;
-  background: #3448d1;
-  width: 29px;
-  height: 29px;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  position: relative;
-}
-.app-monogram > span {
-  position: absolute;
-  width: 9px;
-  height: 2px;
-  background: #aeb7ff;
-  bottom: 5px;
-  right: -3px;
-  transform: rotate(-45deg);
+.app-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  object-fit: cover;
 }
 .version-badge {
   font-size: 9px;

@@ -1,0 +1,31 @@
+name: Prepare release tag
+on:
+  push:
+    branches: [master]
+    paths: [.github/release-request.json]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag da versão, por exemplo v0.1.1'
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - run: node --test scripts/distribution/request-release.test.mjs
+      - id: version
+        run: node scripts/openstruct-release-request.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_INPUT_TAG: ${{ inputs.tag }}
+      - name: Publication route
+        run: echo 'Tag preparada. Execute Publish ArmaduraStruct no repositório launcher-struct com esta tag e o SHA imutável do código.'

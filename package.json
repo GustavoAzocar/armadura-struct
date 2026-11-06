@@ -1,6 +1,6 @@
 {
   "name": "armadura-struct",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
@@ -19,12 +19,13 @@
     "preview": "vite preview --host 127.0.0.1",
     "postinstall": "node scripts/prepare-wasm.mjs",
     "test": "vitest run",
-    "check": "tsc -b && vitest run",
+    "check": "tsc -b && vitest run && node --test scripts/distribution/request-release.test.mjs",
     "test:e2e": "playwright test",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
     "format": "prettier --write src tests scripts docs *.json *.ts *.md .github",
-    "format:check": "prettier --check src tests scripts docs *.json *.ts *.md .github"
+    "format:check": "prettier --check src tests scripts docs *.json *.ts *.md .github",
+    "release:version": "node scripts/openstruct-version.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",

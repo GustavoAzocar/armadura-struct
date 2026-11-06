@@ -670,13 +670,17 @@ export default function App() {
       />
       <header className="titlebar">
         <div className="app-brand">
-          <span className="app-monogram">
-            A<span />
-          </span>
+          <img
+            className="app-icon"
+            src="/brand/armadurastruct-hephaestus.webp"
+            alt=""
+            width="32"
+            height="32"
+          />
           <strong>
             Armadura<span>Struct</span>
           </strong>
-          <span className="version-badge">0.1</span>
+          <span className="version-badge">0.1.1</span>
         </div>
         <div className="quick-tools">
           <button
@@ -969,7 +973,7 @@ export default function App() {
             COTAS
           </button>
         </div>
-        <span className="version-footer">OpenStruct · 0.1.0</span>
+        <span className="version-footer">OpenStruct · 0.1.1</span>
       </footer>
       {toast && (
         <div className="toast" role="status">
