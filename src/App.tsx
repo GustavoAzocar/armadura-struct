@@ -15,6 +15,10 @@ import {
   Terminal,
   Undo2,
   X,
+  PanelRight,
+  Focus,
+  LockKeyhole,
+  RefreshCw,
 } from 'lucide-react';
 import Ribbon, { type Action } from './components/Ribbon';
 import CadCanvas, { type CadHandle } from './components/CadCanvas';
@@ -23,6 +27,7 @@ import {
   NumberField,
   ProjectTree,
   Schedule,
+  DraftInspector,
 } from './components/Panels';
 import {
   decodeProject,
@@ -30,6 +35,7 @@ import {
   emptyProject,
   newBar,
   nextMark,
+  scheduleChanged,
 } from './domain/model';
 import {
   add,
@@ -39,6 +45,7 @@ import {
   rotate,
   sub,
   vertices,
+  geometry,
 } from './domain/geometry';
 import {
   uid,
@@ -47,6 +54,7 @@ import {
   type Primitive,
   type Project,
   type Tool,
+  type Annotation,
 } from './domain/types';
 import {
   autosave,
@@ -56,8 +64,33 @@ import {
   safeName,
   saveFile,
 } from './lib/files';
+import {
+  transformBar,
+  splitBar,
+  joinBars,
+  quantityForSpacing,
+  renumber,
+} from './domain/editing';
+import { annotationError } from './domain/drafting';
+import { version as appVersion } from '../package.json';
 type History = { past: Project[]; present: Project; future: Project[] };
 const prompts: Record<Tool, string> = {
+  polyline:
+    'Indique os vértices da polilinha. Enter conclui; depois use Converter polilinha.',
+  convert:
+    'Clique em uma polilinha desenhada ou em uma entidade da máscara para converter em armadura.',
+  repeat:
+    'Selecione um estribo e indique o fim da repetição. O espaçamento máximo está na faixa de comandos.',
+  range:
+    'Indique o início e o fim da faixa ortogonal. A quantidade será vinculada ao espaçamento.',
+  'dimension-aligned':
+    'Indique os dois pontos medidos e a posição da linha de cota alinhada.',
+  'dimension-orthogonal':
+    'Indique os dois pontos medidos e a posição da cota horizontal ou vertical.',
+  leader:
+    'Indique o ponto de chamada, a dobra e o local do texto. A chamada acompanha a armadura selecionada.',
+  section: 'Indique os extremos do corte e a posição da chamada.',
+  'section-arc': 'Indique início, ponto intermediário e fim do arco de corte.',
   select: 'Selecione uma armadura para editar. Shift adiciona à seleção.',
   pan: 'Arraste para navegar. A roda do mouse aproxima e afasta.',
   bar: 'Indique os vértices da barra. Enter ou botão direito conclui.',
@@ -81,6 +114,15 @@ const tools: Tool[] = [
   'distribute',
   'follow',
   'measure',
+  'polyline',
+  'convert',
+  'repeat',
+  'range',
+  'dimension-aligned',
+  'dimension-orthogonal',
+  'leader',
+  'section',
+  'section-arc',
 ];
 export default function App() {
   const [history, setHistory] = useState<History>(() => ({
@@ -108,10 +150,40 @@ export default function App() {
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(''),
     [saveState, setSaveState] = useState('Salvo neste computador');
-  const [modal, setModal] = useState<'new' | 'help' | null>(null),
+  const [modal, setModal] = useState<'new' | 'help' | 'split' | null>(null),
     [newName, setNewName] = useState('Novo projeto'),
     [cover, setCover] = useState(30),
-    [newDiameter, setNewDiameter] = useState(8);
+    [newDiameter, setNewDiameter] = useState(8),
+    [newQuantity, setNewQuantity] = useState(1),
+    [newSpacing, setNewSpacing] = useState(150),
+    [splitAt, setSplitAt] = useState(500),
+    [lap, setLap] = useState(0);
+  const [sidebarTab, setSidebarTab] = useState<'project' | 'properties'>(
+    'project',
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => localStorage.getItem('armadurastruct.sidebar') !== 'closed',
+  );
+  const [ribbonCollapsed, setRibbonCollapsed] = useState(
+    () => localStorage.getItem('armadurastruct.ribbon') === 'collapsed',
+  );
+  const [focus, setFocus] = useState(false);
+  useEffect(
+    () =>
+      localStorage.setItem(
+        'armadurastruct.sidebar',
+        sidebarOpen ? 'open' : 'closed',
+      ),
+    [sidebarOpen],
+  );
+  useEffect(
+    () =>
+      localStorage.setItem(
+        'armadurastruct.ribbon',
+        ribbonCollapsed ? 'collapsed' : 'open',
+      ),
+    [ribbonCollapsed],
+  );
   const cad = useRef<CadHandle>(null),
     maskInput = useRef<HTMLInputElement>(null),
     projectInput = useRef<HTMLInputElement>(null),
@@ -123,6 +195,8 @@ export default function App() {
   }, []);
   const chosen = p.bars.find((b) => b.id === selected[0]),
     mask = p.masks.find((m) => m.id === maskId);
+  const annotation = p.annotations.find((a) => a.id === selected[0]);
+  const polyline = p.polylines.find((a) => a.id === selected[0]);
   const notify = (s: string) => {
     setToast(s);
     setMessage(s);
@@ -182,6 +256,7 @@ export default function App() {
   const select = (ids: string[]) => {
     setSelectedRaw(ids);
     setMaskId(null);
+    if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
     setToolRaw(t);
@@ -202,17 +277,37 @@ export default function App() {
       bars: p.bars.map((b) => (b.id === id ? { ...b, ...patch } : b)),
     }));
   };
-  const insertBar = (b: Bar) => {
-    commit((p) => ({ ...p, bars: [...p.bars, b] }));
+  const insertBar = (b: Bar, removePolyline?: string) => {
+    commit((p) => ({
+      ...p,
+      bars: [...p.bars, b],
+      polylines: removePolyline
+        ? p.polylines.filter((l) => l.id !== removePolyline)
+        : p.polylines,
+    }));
     select([b.id]);
     setDraft([]);
     setMessage(`${b.mark} criada. Continue desenhando ou pressione Esc.`);
   };
   const finish = () => {
+    if (tool === 'polyline' && draft.length >= 2) {
+      const id = uid();
+      commit((p) => ({
+        ...p,
+        polylines: [
+          ...p.polylines,
+          { id, points: draft, closed: false, color: '#a5adbd' },
+        ],
+      }));
+      select([id]);
+      setDraft([]);
+      return;
+    }
     if (tool === 'bar' && draft.length >= 2) {
       const origin = draft[0];
       insertBar({
         ...newBar(nextMark(p)),
+        quantity: newQuantity,
         diameter: newDiameter,
         mandrel: newDiameter * 5,
         origin,
@@ -221,7 +316,7 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
-    if (tool === 'bar') {
+    if (tool === 'bar' || tool === 'polyline') {
       if (!draft.length || distance(draft.at(-1)!, point) > 0.01)
         setDraft([...draft, point]);
       return;
@@ -241,6 +336,7 @@ export default function App() {
       insertBar({
         ...newBar(nextMark(p)),
         kind: 'stirrup',
+        quantity: newQuantity,
         diameter: newDiameter,
         mandrel: newDiameter * 5,
         origin: { x: Math.min(a.x, point.x), y: Math.min(a.y, point.y) },
@@ -260,7 +356,191 @@ export default function App() {
       setDraft([]);
       return;
     }
-    if (!chosen) return;
+    if (
+      [
+        'dimension-aligned',
+        'dimension-orthogonal',
+        'leader',
+        'section',
+        'section-arc',
+      ].includes(tool)
+    ) {
+      if (draft.length < 2) {
+        if (!draft.length || distance(draft[0], point) > 0.01)
+          setDraft([...draft, point]);
+        return;
+      }
+      const points = [...draft, point];
+      const a: Annotation = {
+        id: uid(),
+        kind: tool as Annotation['kind'],
+        points,
+        barId: chosen?.id,
+        label: '',
+        textHeight: 50,
+        color: '#7c91b7',
+      };
+      const error = annotationError(a);
+      if (error) {
+        notify(error);
+        return;
+      }
+      commit((p) => ({ ...p, annotations: [...p.annotations, a] }));
+      select([a.id]);
+      setTool('select');
+      notify('Anotação criada. Edite texto e vínculo nas propriedades.');
+      return;
+    }
+    if (tool === 'move' || tool === 'copy') {
+      if (!selected.length) return;
+      if (!draft.length) {
+        setDraft([point]);
+        return;
+      }
+      const delta = sub(point, draft[0]);
+      let next = p;
+      const selectedIds: string[] = [];
+      const copies = new Map<string, string>();
+      if (tool === 'copy') {
+        for (const b of p.bars.filter((b) => selected.includes(b.id))) {
+          const id = uid();
+          copies.set(b.id, id);
+          selectedIds.push(id);
+          next = {
+            ...next,
+            bars: [
+              ...next.bars,
+              {
+                ...b,
+                id,
+                mark: nextMark(next),
+                origin: add(b.origin, delta),
+                distribution: b.distribution
+                  ? {
+                      ...b.distribution,
+                      start: b.distribution.start
+                        ? add(b.distribution.start, delta)
+                        : undefined,
+                      end: add(b.distribution.end, delta),
+                    }
+                  : undefined,
+              },
+            ],
+          };
+        }
+        next = {
+          ...next,
+          annotations: [
+            ...next.annotations,
+            ...p.annotations
+              .filter((a) => selected.includes(a.id))
+              .map((a) => {
+                const id = uid();
+                selectedIds.push(id);
+                return {
+                  ...a,
+                  id,
+                  barId: copies.get(a.barId ?? '') ?? a.barId,
+                  points: a.points.map((v) => add(v, delta)),
+                };
+              }),
+          ],
+          polylines: [
+            ...next.polylines,
+            ...p.polylines
+              .filter((a) => selected.includes(a.id))
+              .map((a) => {
+                const id = uid();
+                selectedIds.push(id);
+                return { ...a, id, points: a.points.map((v) => add(v, delta)) };
+              }),
+          ],
+        };
+      } else
+        next = {
+          ...p,
+          bars: p.bars.map((b) =>
+            selected.includes(b.id)
+              ? {
+                  ...b,
+                  origin: add(b.origin, delta),
+                  distribution: b.distribution
+                    ? {
+                        ...b.distribution,
+                        start: b.distribution.start
+                          ? add(b.distribution.start, delta)
+                          : undefined,
+                        end: add(b.distribution.end, delta),
+                      }
+                    : undefined,
+                }
+              : b,
+          ),
+          annotations: p.annotations.map((a) =>
+            selected.includes(a.id)
+              ? { ...a, points: a.points.map((v) => add(v, delta)) }
+              : a,
+          ),
+          polylines: p.polylines.map((a) =>
+            selected.includes(a.id)
+              ? { ...a, points: a.points.map((v) => add(v, delta)) }
+              : a,
+          ),
+        };
+      commit(() => next);
+      if (tool === 'copy') select(selectedIds);
+      setTool('select');
+      return;
+    }
+    if (!chosen) {
+      if (['detail', 'distribute', 'range', 'repeat'].includes(tool))
+        notify('Selecione uma armadura antes de usar este comando.');
+      return;
+    }
+    if (tool === 'repeat') {
+      if (chosen.kind !== 'stirrup') {
+        notify('Repetir estribo exige uma posição do tipo estribo.');
+        return;
+      }
+      try {
+        editBar(chosen.id, {
+          distribution: { end: point, render: 'bars' },
+          quantity: quantityForSpacing(
+            distance(chosen.origin, point),
+            newSpacing,
+          ),
+        });
+        setTool('select');
+      } catch (e) {
+        notify((e as Error).message);
+      }
+      return;
+    }
+    if (tool === 'range') {
+      if (!draft.length) {
+        setDraft([point]);
+        return;
+      }
+      const start = draft[0],
+        delta = sub(point, start);
+      const end =
+        Math.abs(delta.x) >= Math.abs(delta.y)
+          ? { x: point.x, y: start.y }
+          : { x: start.x, y: point.y };
+      try {
+        editBar(chosen.id, {
+          distribution: { start, end, render: 'ticks' },
+          quantity: quantityForSpacing(distance(start, end), newSpacing),
+        });
+        setTool('select');
+        notify(
+          'Faixa vinculada à posição; a quantidade inclui as duas extremidades.',
+        );
+      } catch (e) {
+        notify((e as Error).message);
+      }
+      return;
+    }
     if (tool === 'detail') {
       commit((p) => ({
         ...p,
@@ -282,81 +562,107 @@ export default function App() {
       );
       return;
     }
-    if (tool === 'move' || tool === 'copy') {
-      if (!draft.length) {
-        setDraft([point]);
-        return;
-      }
-      const delta = sub(point, draft[0]);
-      if (tool === 'move')
-        commit((p) => ({
-          ...p,
-          bars: p.bars.map((b) =>
-            selected.includes(b.id)
-              ? {
-                  ...b,
-                  origin: add(b.origin, delta),
-                  distribution: b.distribution
-                    ? { end: add(b.distribution.end, delta) }
-                    : undefined,
-                }
-              : b,
-          ),
-        }));
-      else {
-        const copies: Bar[] = [];
-        let temp = { ...p };
-        for (const b of p.bars.filter((b) => selected.includes(b.id))) {
-          const copy = {
-            ...b,
-            id: uid(),
-            mark: nextMark(temp),
-            origin: add(b.origin, delta),
-            distribution: b.distribution
-              ? { end: add(b.distribution.end, delta) }
-              : undefined,
-          };
-          copies.push(copy);
-          temp = { ...temp, bars: [...temp.bars, copy] };
-        }
-        commit((p) => ({ ...p, bars: [...p.bars, ...copies] }));
-        select(copies.map((b) => b.id));
-      }
-      setTool('select');
-    }
   };
-  const follow = (primitive: Primitive) => {
+  const follow = (primitive: Primitive, polylineId?: string) => {
     try {
-      const points = offsetChain(
-        primitive.points,
-        cover + newDiameter / 2,
-        !!primitive.closed,
-      );
+      const points =
+        tool === 'convert'
+          ? primitive.closed &&
+            distance(primitive.points[0], primitive.points.at(-1)!) > 0.001
+            ? [...primitive.points, primitive.points[0]]
+            : primitive.points
+          : offsetChain(
+              primitive.points,
+              cover + newDiameter / 2,
+              !!primitive.closed,
+            );
       const origin = points[0];
       if (points.length > 500)
         throw new Error(
           'Use um contorno com até 500 vértices para criar a armadura.',
         );
-      insertBar({
-        ...newBar(nextMark(p)),
-        origin,
-        diameter: newDiameter,
-        mandrel: newDiameter * 5,
-        points: points.map((v) => sub(v, origin)),
-      });
+      insertBar(
+        {
+          ...newBar(nextMark(p)),
+          origin,
+          quantity: newQuantity,
+          diameter: newDiameter,
+          mandrel: newDiameter * 5,
+          points: points.map((v) => sub(v, origin)),
+        },
+        polylineId,
+      );
       notify(
-        'Barra criada a partir da fôrma. Confira as dobras e defina as terminações.',
+        tool === 'convert'
+          ? 'Polilinha convertida em armadura; confira as dobras.'
+          : 'Barra criada a partir da fôrma. Confira as dobras e defina as terminações.',
       );
     } catch (e) {
       notify((e as Error).message);
     }
   };
   const action = async (a: Action) => {
+    if (a === 'convert' && polyline) {
+      setTool('convert');
+      return;
+    }
     if (tools.includes(a as Tool)) {
       setTool(a as Tool);
       return;
     }
     try {
+      if (a === 'sidebar') {
+        setSidebarOpen(!sidebarOpen);
+        setFocus(false);
+      }
+      if (a === 'focus') setFocus(!focus);
+      if (a === 'refresh-schedule') {
+        commit((p) =>
+          p.scheduleLock
+            ? {
+                ...p,
+                scheduleLock: {
+                  at: new Date().toISOString(),
+                  bars: structuredClone(p.bars),
+                },
+              }
+            : { ...p },
+        );
+        notify('Relação de aço atualizada a partir das armaduras.');
+      }
+      if (a === 'lock-schedule') {
+        commit((p) => ({
+          ...p,
+          scheduleLock: p.scheduleLock
+            ? undefined
+            : { at: new Date().toISOString(), bars: structuredClone(p.bars) },
+        }));
+        notify(
+          p.scheduleLock
+            ? 'Relação de aço em atualização automática.'
+            : 'Relação de aço bloqueada. Use Atualizar RA após editar as barras.',
+        );
+      }
+      if (a === 'renumber') {
+        commit(renumber);
+        notify(
+          'Posições renumeradas; chamadas e rebatimentos mantiveram os vínculos.',
+        );
+      }
+      if (a === 'join') {
+        const next = joinBars(p, selected);
+        commit(() => next);
+        select([next.bars.find((b) => selected.includes(b.id))!.id]);
+        notify(
+          'Poligonais emendadas em uma única barra. Para emendas com traspasse, use Dividir barra.',
+        );
+      }
+      if (a === 'split') {
+        if (!chosen || selected.length !== 1 || chosen.kind !== 'free')
+          throw new Error('Selecione uma barra livre para dividir.');
+        setSplitAt(geometry(chosen).length / 2);
+        setModal('split');
+      }
       if (a === 'undo') {
         setDraft([]);
         setHistory((h) =>
@@ -407,42 +713,36 @@ export default function App() {
           ...p,
           bars: p.bars.filter((b) => !selected.includes(b.id)),
           details: p.details.filter((d) => !selected.includes(d.barId)),
+          annotations: p.annotations.filter(
+            (a) =>
+              !selected.includes(a.id) && !selected.includes(a.barId ?? ''),
+          ),
+          polylines: p.polylines.filter((a) => !selected.includes(a.id)),
         }));
         select([]);
       }
-      if (a === 'rotate')
+      if (a === 'rotate' || a === 'mirror') {
+        const transform = (points: Point[]) =>
+          points.map((v) => {
+            const d = sub(v, points[0]);
+            return add(
+              points[0],
+              a === 'rotate' ? rotate(d, 90) : { x: -d.x, y: d.y },
+            );
+          });
         commit((p) => ({
           ...p,
           bars: p.bars.map((b) =>
-            selected.includes(b.id)
-              ? {
-                  ...b,
-                  rotation: (b.rotation + 90) % 360,
-                  distribution: b.distribution
-                    ? {
-                        end: add(
-                          b.origin,
-                          rotate(sub(b.distribution.end, b.origin), 90),
-                        ),
-                      }
-                    : undefined,
-                }
-              : b,
+            selected.includes(b.id) ? transformBar(b, a) : b,
+          ),
+          annotations: p.annotations.map((n) =>
+            selected.includes(n.id) ? { ...n, points: transform(n.points) } : n,
+          ),
+          polylines: p.polylines.map((n) =>
+            selected.includes(n.id) ? { ...n, points: transform(n.points) } : n,
           ),
         }));
-      if (a === 'mirror')
-        commit((p) => ({
-          ...p,
-          bars: p.bars.map((b) =>
-            selected.includes(b.id)
-              ? {
-                  ...b,
-                  kind: 'free',
-                  points: vertices(b).map((v) => ({ x: -v.x, y: v.y })),
-                }
-              : b,
-          ),
-        }));
+      }
       if (a === 'fit') {
         setPage('drawing');
         setTimeout(() => cad.current?.fit(), 0);
@@ -487,6 +787,8 @@ export default function App() {
       commit((p) => ({ ...p, masks: [...p.masks, mask] }));
       select([]);
       setMaskId(mask.id);
+      setSidebarOpen(true);
+      setSidebarTab('properties');
       setPage('drawing');
       notify(
         `${mask.format} importado: ${mask.primitives.length} entidades.${mask.warnings.length ? ' Confira o relatório de importação.' : ' Confira a unidade e a escala no painel.'}`,
@@ -520,7 +822,20 @@ export default function App() {
       B: 'bar',
       BARRA: 'bar',
       L: 'bar',
-      PL: 'bar',
+      PL: 'polyline',
+      POLILINHA: 'polyline',
+      CONVERTER: 'convert',
+      REPETIR: 'repeat',
+      FAIXA: 'range',
+      COTA: 'dimension-orthogonal',
+      ALINHADA: 'dimension-aligned',
+      CHAMADA: 'leader',
+      CORTE: 'section',
+      ARCO: 'section-arc',
+      DIVIDIR: 'split',
+      EMENDAR: 'join',
+      RA: 'refresh-schedule',
+      BLOQUEARRA: 'lock-schedule',
       E: 'stirrup',
       ESTRIBO: 'stirrup',
       V: 'select',
@@ -570,7 +885,7 @@ export default function App() {
       return;
     }
     notify(
-      'Comando desconhecido. Use B, E, M, C, R, F, DIST ou coordenadas X,Y.',
+      'Comando desconhecido. Use B, E, PL, COTA, CHAMADA, F, DIST ou consulte o Guia de uso.',
     );
   };
   useEffect(() => {
@@ -585,6 +900,22 @@ export default function App() {
         return;
       }
       if (typing) return;
+      if (e.key === 'F4') {
+        e.preventDefault();
+        setSidebarOpen((v) => !v);
+        setFocus(false);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'F1') {
+        e.preventDefault();
+        setRibbonCollapsed((v) => !v);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        setFocus((v) => !v);
+        return;
+      }
       if (e.ctrlKey || e.metaKey) {
         if (e.key.toLowerCase() === 's') {
           e.preventDefault();
@@ -643,7 +974,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   });
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${focus ? 'focus-mode' : ''}`}>
       <input
         ref={maskInput}
         type="file"
@@ -680,7 +1011,7 @@ export default function App() {
           <strong>
             Armadura<span>Struct</span>
           </strong>
-          <span className="version-badge">0.1.1</span>
+          <span className="version-badge">{appVersion}</span>
         </div>
         <div className="quick-tools">
           <button
@@ -752,44 +1083,37 @@ export default function App() {
         tab={tab}
         setTab={setTab}
         onAction={action}
-        active={{ [tool]: true, grid, snap, ortho, dimensions }}
-        selected={!!chosen}
+        active={{
+          [tool]: true,
+          grid,
+          snap,
+          ortho,
+          dimensions,
+          'lock-schedule': !!p.scheduleLock,
+          sidebar: sidebarOpen,
+          focus,
+        }}
+        selected={selected.length}
         canUndo={!!history.past.length}
         canRedo={!!history.future.length}
+        collapsed={ribbonCollapsed || focus}
+        setCollapsed={(v) => {
+          setRibbonCollapsed(v);
+          setFocus(false);
+        }}
+        settings={{
+          diameter: newDiameter,
+          quantity: newQuantity,
+          spacing: newSpacing,
+          cover,
+        }}
+        onSettings={(patch) => {
+          if (patch.diameter !== undefined) setNewDiameter(patch.diameter);
+          if (patch.quantity !== undefined) setNewQuantity(patch.quantity);
+          if (patch.spacing !== undefined) setNewSpacing(patch.spacing);
+        }}
       />
       <div className="workspace">
-        <ProjectTree
-          project={p}
-          selected={selected}
-          maskId={maskId}
-          onSelect={select}
-          onMask={(id) => {
-            select([]);
-            setMaskId(id);
-          }}
-          onToggleMask={(id) =>
-            commit((p) => ({
-              ...p,
-              masks: p.masks.map((m) =>
-                m.id === id ? { ...m, visible: !m.visible } : m,
-              ),
-            }))
-          }
-          onRemoveMask={(id) => {
-            commit((p) => ({
-              ...p,
-              masks: p.masks.filter((m) => m.id !== id),
-            }));
-            if (id === maskId) setMaskId(null);
-          }}
-          onImport={() => action('import')}
-          onDemo={() => {
-            commit(() => demoProject());
-            select([]);
-            setTool('select');
-            setTimeout(() => cad.current?.fit(), 50);
-          }}
-        />
         <main className="main-workspace">
           <div className="document-tabs">
             <button
@@ -807,6 +1131,23 @@ export default function App() {
             </button>
             <div className="document-toolbar">
               <button
+                aria-label="Foco no CAD"
+                title="Foco no CAD · Ctrl+0"
+                onClick={() => setFocus(!focus)}
+              >
+                <Focus size={14} />
+              </button>
+              <button
+                aria-label="Alternar painel lateral"
+                title="Painel lateral · F4"
+                onClick={() => {
+                  setSidebarOpen(!sidebarOpen);
+                  setFocus(false);
+                }}
+              >
+                <PanelRight size={14} />
+              </button>
+              <button
                 onClick={() => action('pdf')}
                 title="Exportar prancha PDF"
               >
@@ -817,51 +1158,21 @@ export default function App() {
           </div>
           {page === 'drawing' ? (
             <>
-              <div className="context-bar">
-                <span className="command-mode">
-                  {tool === 'select'
-                    ? 'SELEÇÃO'
-                    : tool === 'bar'
-                      ? 'BARRA LIVRE'
-                      : tool === 'stirrup'
-                        ? 'ESTRIBO'
-                        : tool.toUpperCase()}
-                </span>
-                <span>
-                  {selected.length
-                    ? `${selected.length} posição selecionada`
-                    : 'Clique ou desenhe uma janela para selecionar'}
-                </span>
-                {['bar', 'stirrup', 'follow'].includes(tool) && (
-                  <label>
-                    Ø{' '}
-                    <select
-                      aria-label="Bitola de criação"
-                      value={newDiameter}
-                      onChange={(e) => setNewDiameter(Number(e.target.value))}
-                    >
-                      {[5, 6.3, 8, 10, 12.5, 16, 20, 25, 32].map((d) => (
-                        <option key={d}>{d}</option>
-                      ))}
-                    </select>{' '}
-                    mm
-                  </label>
-                )}
-                {tool === 'follow' && (
-                  <div className="cover-field">
-                    <NumberField
-                      label="Cobrimento"
-                      value={cover}
-                      min={0}
-                      onChange={setCover}
-                      suffix="mm"
-                    />
-                  </div>
-                )}
-                <span className="context-right">
-                  {snap ? 'OSNAP ATIVO' : 'OSNAP DESLIGADO'}
-                </span>
-              </div>
+              {tool === 'follow' && (
+                <div className="context-bar">
+                  <span>SEGUIR FÔRMA</span>
+                  <NumberField
+                    label="Cobrimento"
+                    value={cover}
+                    min={0}
+                    onChange={setCover}
+                    suffix="mm"
+                  />
+                  <span>
+                    Ø {newDiameter} mm · clique no contorno da máscara
+                  </span>
+                </div>
+              )}
               <CadCanvas
                 ref={cad}
                 project={p}
@@ -912,30 +1223,141 @@ export default function App() {
               </div>
             </>
           ) : (
-            <Schedule project={p} onSelect={(id) => select([id])} />
+            <>
+              <div
+                className={`schedule-control ${scheduleChanged(p) ? 'stale' : ''}`}
+              >
+                <span>
+                  {p.scheduleLock
+                    ? scheduleChanged(p)
+                      ? 'RA bloqueada · há alterações pendentes'
+                      : 'RA bloqueada · valores conferidos'
+                    : 'RA automática · vinculada ao desenho'}
+                </span>
+                <button onClick={() => action('refresh-schedule')}>
+                  <RefreshCw size={14} />
+                  Atualizar RA
+                </button>
+                <button onClick={() => action('lock-schedule')}>
+                  <LockKeyhole size={14} />
+                  {p.scheduleLock ? 'Desbloquear RA' : 'Bloquear RA'}
+                </button>
+              </div>
+              <Schedule project={p} onSelect={(id) => select([id])} />
+            </>
           )}
         </main>
-        <Inspector
-          project={p}
-          bar={chosen}
-          mask={mask}
-          onBar={(patch) => chosen && editBar(chosen.id, patch)}
-          onMask={(patch) =>
-            commit((p) => ({
-              ...p,
-              masks: p.masks.map((m) =>
-                m.id === maskId ? { ...m, ...patch } : m,
-              ),
-            }))
-          }
-          onProject={(patch) => commit((p) => ({ ...p, ...patch }))}
-          onRemoveDetails={() =>
-            commit((p) => ({
-              ...p,
-              details: p.details.filter((d) => d.barId !== chosen?.id),
-            }))
-          }
-        />
+        {sidebarOpen && !focus && (
+          <aside className="sidebar-dock" aria-label="Painel lateral">
+            <div
+              className="sidebar-tabs"
+              role="tablist"
+              aria-label="Painel lateral"
+            >
+              <button
+                role="tab"
+                aria-selected={sidebarTab === 'project'}
+                onClick={() => setSidebarTab('project')}
+              >
+                Projeto
+              </button>
+              <button
+                role="tab"
+                aria-selected={sidebarTab === 'properties'}
+                onClick={() => setSidebarTab('properties')}
+              >
+                Propriedades
+              </button>
+              <button
+                className="dock-close"
+                aria-label="Recolher painel lateral"
+                title="Recolher painel · F4"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            {sidebarTab === 'project' ? (
+              <ProjectTree
+                project={p}
+                selected={selected}
+                maskId={maskId}
+                onSelect={select}
+                onMask={(id) => {
+                  select([]);
+                  setMaskId(id);
+                  setSidebarTab('properties');
+                }}
+                onToggleMask={(id) =>
+                  commit((p) => ({
+                    ...p,
+                    masks: p.masks.map((m) =>
+                      m.id === id ? { ...m, visible: !m.visible } : m,
+                    ),
+                  }))
+                }
+                onRemoveMask={(id) => {
+                  commit((p) => ({
+                    ...p,
+                    masks: p.masks.filter((m) => m.id !== id),
+                  }));
+                  if (id === maskId) setMaskId(null);
+                }}
+                onImport={() => action('import')}
+                onDemo={() => {
+                  commit(() => demoProject());
+                  select([]);
+                  setTool('select');
+                  setTimeout(() => cad.current?.fit(), 50);
+                }}
+              />
+            ) : annotation || polyline ? (
+              <DraftInspector
+                annotation={annotation}
+                polyline={polyline}
+                project={p}
+                onAnnotation={(patch) =>
+                  commit((p) => ({
+                    ...p,
+                    annotations: p.annotations.map((n) =>
+                      n.id === annotation?.id ? { ...n, ...patch } : n,
+                    ),
+                  }))
+                }
+                onPolyline={(patch) =>
+                  commit((p) => ({
+                    ...p,
+                    polylines: p.polylines.map((n) =>
+                      n.id === polyline?.id ? { ...n, ...patch } : n,
+                    ),
+                  }))
+                }
+              />
+            ) : (
+              <Inspector
+                project={p}
+                bar={chosen}
+                mask={mask}
+                onBar={(patch) => chosen && editBar(chosen.id, patch)}
+                onMask={(patch) =>
+                  commit((p) => ({
+                    ...p,
+                    masks: p.masks.map((m) =>
+                      m.id === maskId ? { ...m, ...patch } : m,
+                    ),
+                  }))
+                }
+                onProject={(patch) => commit((p) => ({ ...p, ...patch }))}
+                onRemoveDetails={() =>
+                  commit((p) => ({
+                    ...p,
+                    details: p.details.filter((d) => d.barId !== chosen?.id),
+                  }))
+                }
+              />
+            )}
+          </aside>
+        )}
       </div>
       <footer className="statusbar">
         <span
@@ -973,7 +1395,7 @@ export default function App() {
             COTAS
           </button>
         </div>
-        <span className="version-footer">OpenStruct · 0.1.1</span>
+        <span className="version-footer">OpenStruct · {appVersion}</span>
       </footer>
       {toast && (
         <div className="toast" role="status">
@@ -1001,7 +1423,13 @@ export default function App() {
             className="modal"
             role="dialog"
             aria-modal="true"
-            aria-label={modal === 'new' ? 'Novo projeto' : 'Guia de uso'}
+            aria-label={
+              modal === 'new'
+                ? 'Novo projeto'
+                : modal === 'split'
+                  ? 'Dividir barra'
+                  : 'Guia de uso'
+            }
           >
             <button
               className="modal-close"
@@ -1010,7 +1438,56 @@ export default function App() {
             >
               <X size={19} />
             </button>
-            {modal === 'new' ? (
+            {modal === 'split' && chosen ? (
+              <>
+                <span className="eyebrow">{chosen.mark} · EDIÇÃO DA BARRA</span>
+                <h2>Dividir barra</h2>
+                <p>
+                  Cria duas posições e mantém a quantidade de peças. O traspasse
+                  é um comprimento informado pelo projetista; não há cálculo
+                  automático de ancoragem.
+                </p>
+                <NumberField
+                  label="Comprimento até o corte"
+                  value={splitAt / 10}
+                  onChange={(v) => setSplitAt(v * 10)}
+                  min={0.01}
+                  suffix="cm"
+                />
+                <NumberField
+                  label="Traspasse informado"
+                  value={lap / 10}
+                  onChange={(v) => setLap(v * 10)}
+                  min={0}
+                  suffix="cm"
+                />
+                <p className="field-help">
+                  O corte é medido pelo eixo da barra, incluindo as dobras. Toda
+                  a sobreposição precisa caber em um trecho reto. Comprimento
+                  atual: {format(geometry(chosen).length / 10)} cm.
+                </p>
+                <div className="modal-actions">
+                  <button onClick={() => setModal(null)}>Cancelar</button>
+                  <button
+                    className="primary"
+                    onClick={() => {
+                      try {
+                        const next = splitBar(p, chosen.id, splitAt, lap);
+                        commit(() => next);
+                        setModal(null);
+                        notify(
+                          'Barra dividida. As duas posições e o traspasse já entram no quantitativo.',
+                        );
+                      } catch (e) {
+                        notify((e as Error).message);
+                      }
+                    }}
+                  >
+                    Aplicar divisão
+                  </button>
+                </div>
+              </>
+            ) : modal === 'new' ? (
               <>
                 <span className="eyebrow">ARMADURASTRUCT</span>
                 <h2>Novo projeto</h2>
@@ -1064,14 +1541,15 @@ export default function App() {
                     ganchos definidos para o projeto.
                   </p>
                   <p>
-                    <b>03 · Detalhe e distribua</b>Selecione uma barra. R cria
-                    seu rebatimento; D define uma distribuição. As propriedades
-                    atualizam o quadro automaticamente.
+                    <b>03 · Detalhe e distribua</b>Crie rebatimentos, faixas,
+                    cotas e chamadas vinculadas. Divida barras com traspasse
+                    informado e confira os quantitativos na relação de aço.
                   </p>
                   <p>
                     <b>04 · Entregue o desenho</b>Salve o projeto completo e
-                    exporte DXF, prancha PDF e CSV. O PDF ajusta a vista à
-                    folha; o DXF preserva a escala real em mm.
+                    exporte DXF, prancha PDF e CSV. Escolha a escala do PDF nas
+                    propriedades do projeto; o DXF preserva a geometria em mm.
+                    Atualize a RA se estiver bloqueada e desatualizada.
                   </p>
                 </div>
                 <div className="shortcut-grid">
@@ -1092,6 +1570,18 @@ export default function App() {
                   </span>
                   <span>
                     <kbd>F8</kbd> Ortogonal
+                  </span>
+                  <span>
+                    <kbd>F4</kbd> Painel lateral
+                  </span>
+                  <span>
+                    <kbd>Ctrl F1</kbd> Faixa de comandos
+                  </span>
+                  <span>
+                    <kbd>Ctrl 0</kbd> Foco no CAD
+                  </span>
+                  <span>
+                    <kbd>PL</kbd> Polilinha CAD
                   </span>
                   <span>
                     <kbd>@500,0</kbd> Relativo em mm

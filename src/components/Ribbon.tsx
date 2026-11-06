@@ -23,9 +23,21 @@ import {
   Table2,
   Trash2,
   Undo2,
+  Scissors,
+  Combine,
+  Spline,
+  ArrowUpRight,
+  LockKeyhole,
+  RefreshCw,
+  ListOrdered,
+  PanelRight,
+  ChevronUp,
+  ChevronDown,
+  Focus,
   type LucideIcon,
 } from 'lucide-react';
 import type { Tool } from '../domain/types';
+import { NumberField } from './Panels';
 export type Action =
   | Tool
   | 'new'
@@ -46,19 +58,32 @@ export type Action =
   | 'dxf'
   | 'csv'
   | 'schedule'
-  | 'help';
+  | 'help'
+  | 'join'
+  | 'split'
+  | 'refresh-schedule'
+  | 'lock-schedule'
+  | 'renumber'
+  | 'sidebar'
+  | 'focus';
 type Item = {
   action: Action;
   label: string;
   icon: LucideIcon;
-  large?: boolean;
+  selection?: number;
 };
 const item = (
   action: Action,
   label: string,
   icon: LucideIcon,
-  large = false,
-): Item => ({ action, label, icon, large });
+  selection = 0,
+): Item => ({ action, label, icon, selection });
+export type CreationSettings = {
+  diameter: number;
+  quantity: number;
+  spacing: number;
+  cover: number;
+};
 export default function Ribbon({
   tab,
   setTab,
@@ -67,131 +92,164 @@ export default function Ribbon({
   selected,
   canUndo,
   canRedo,
+  collapsed,
+  setCollapsed,
+  settings,
+  onSettings,
 }: {
   tab: string;
   setTab: (s: string) => void;
   onAction: (a: Action) => void;
   active: Partial<Record<Action, boolean>>;
-  selected: boolean;
+  selected: number;
   canUndo: boolean;
   canRedo: boolean;
+  collapsed: boolean;
+  setCollapsed: (v: boolean) => void;
+  settings: CreationSettings;
+  onSettings: (p: Partial<CreationSettings>) => void;
 }) {
-  const groups: Record<string, { name: string; items: Item[] }[]> = {
-    Armaduras: [
-      {
-        name: 'Navegação',
-        items: [
-          item('select', 'Selecionar', MousePointer2, true),
-          item('pan', 'Pan', Hand),
-        ],
-      },
-      {
-        name: 'Criar armadura',
-        items: [
-          item('bar', 'Barra livre', PencilRuler, true),
-          item('stirrup', 'Estribo', SquareDashed, true),
-          item('follow', 'Seguir fôrma', ScanLine, true),
-        ],
-      },
-      {
-        name: 'Detalhamento',
-        items: [
-          item('detail', 'Rebatimento', Shapes, true),
-          item('distribute', 'Distribuir', Layers, true),
-          item('measure', 'Medir', Ruler),
-        ],
-      },
-      {
-        name: 'Referências',
-        items: [item('import', 'Importar máscara', FolderOpen, true)],
-      },
-      {
-        name: 'Documentação',
-        items: [
-          item('schedule', 'Quadro de aço', Table2, true),
-          item('pdf', 'PDF', FileText),
-          item('dxf', 'DXF', Download),
-        ],
-      },
-    ],
-    Editar: [
-      {
-        name: 'Histórico',
-        items: [
-          item('undo', 'Desfazer', Undo2, true),
-          item('redo', 'Refazer', Redo2, true),
-        ],
-      },
-      {
-        name: 'Transformar seleção',
-        items: [
-          item('move', 'Mover', Move, true),
-          item('copy', 'Copiar', Copy, true),
-          item('rotate', 'Girar 90°', RotateCw, true),
-          item('mirror', 'Espelhar', FlipHorizontal2, true),
-          item('delete', 'Excluir', Trash2, true),
-        ],
-      },
-      {
-        name: 'Desenho',
-        items: [
-          item('bar', 'Barra livre', PencilRuler, true),
-          item('stirrup', 'Estribo', SquareDashed, true),
-        ],
-      },
-    ],
-    Exibir: [
-      {
-        name: 'Navegação',
-        items: [
-          item('select', 'Selecionar', MousePointer2, true),
-          item('pan', 'Pan', Hand, true),
-          item('fit', 'Enquadrar', Maximize2, true),
-        ],
-      },
-      {
-        name: 'Precisão',
-        items: [
-          item('grid', 'Grade', Grid2X2, true),
-          item('snap', 'Encaixes', ScanLine, true),
-          item('ortho', 'Ortogonal', SquareDashed, true),
-          item('dimensions', 'Cotas', Ruler, true),
-        ],
-      },
-      {
-        name: 'Documentos',
-        items: [
-          item('schedule', 'Quadro de aço', Table2, true),
-          item('help', 'Guia de uso', HelpCircle, true),
-        ],
-      },
-    ],
+  const groups: Record<
+    string,
+    { name: string; items: Item[]; creation?: boolean }[]
+  > = {
     Arquivo: [
       {
         name: 'Projeto',
         items: [
-          item('new', 'Novo projeto', FilePlus2, true),
-          item('open', 'Abrir projeto', FolderOpen, true),
-          item('save', 'Salvar projeto', Save, true),
+          item('new', 'Novo projeto', FilePlus2),
+          item('open', 'Abrir projeto', FolderOpen),
+          item('save', 'Salvar projeto', Save),
         ],
       },
       {
-        name: 'Importar',
-        items: [item('import', 'Máscara DXF / DWG', Layers, true)],
+        name: 'Referências',
+        items: [item('import', 'Máscara DXF / DWG', Layers)],
       },
       {
         name: 'Exportar',
         items: [
-          item('pdf', 'Prancha PDF', FileText, true),
-          item('dxf', 'Desenho DXF', Download, true),
-          item('csv', 'Quadro CSV', Table2, true),
+          item('pdf', 'Prancha PDF', FileText),
+          item('dxf', 'Desenho DXF', Download),
+          item('csv', 'Quadro CSV', Table2),
         ],
       },
-      { name: 'Ajuda', items: [item('help', 'Guia de uso', HelpCircle, true)] },
+      { name: 'Ajuda', items: [item('help', 'Guia de uso', HelpCircle)] },
+    ],
+    Desenho: [
+      {
+        name: 'Desenhar',
+        items: [
+          item('polyline', 'Polilinha', Spline),
+          item('bar', 'Barra livre', PencilRuler),
+          item('stirrup', 'Estribo', SquareDashed),
+        ],
+      },
+      {
+        name: 'Anotar',
+        items: [
+          item('dimension-orthogonal', 'Cota ortogonal', Ruler),
+          item('dimension-aligned', 'Cota alinhada', Ruler),
+          item('leader', 'Chamada', ArrowUpRight),
+          item('measure', 'Medir', Ruler),
+        ],
+      },
+      {
+        name: 'Visualização',
+        items: [
+          item('fit', 'Enquadrar', Maximize2),
+          item('grid', 'Grade', Grid2X2),
+          item('snap', 'Encaixes', ScanLine),
+          item('ortho', 'Ortogonal', SquareDashed),
+          item('dimensions', 'Cotas', Ruler),
+        ],
+      },
+      {
+        name: 'Espaço de trabalho',
+        items: [
+          item('sidebar', 'Painel lateral', PanelRight),
+          item('focus', 'Foco no CAD', Focus),
+        ],
+      },
+    ],
+    Elementos: [
+      {
+        name: 'Selecionar',
+        items: [
+          item('select', 'Selecionar', MousePointer2),
+          item('pan', 'Pan', Hand),
+        ],
+      },
+      {
+        name: 'Editar',
+        items: [
+          item('move', 'Mover', Move, 1),
+          item('copy', 'Copiar', Copy, 1),
+          item('rotate', 'Girar 90°', RotateCw, 1),
+          item('mirror', 'Espelhar', FlipHorizontal2, 1),
+          item('delete', 'Excluir', Trash2, 1),
+        ],
+      },
+      {
+        name: 'Histórico',
+        items: [
+          item('undo', 'Desfazer', Undo2),
+          item('redo', 'Refazer', Redo2),
+        ],
+      },
+      {
+        name: 'Acessar',
+        items: [
+          item('sidebar', 'Painel lateral', PanelRight),
+          item('import', 'Importar máscara', FolderOpen),
+          item('fit', 'Enquadrar', Maximize2),
+        ],
+      },
+    ],
+    Armaduras: [
+      {
+        name: 'Armaduras',
+        creation: true,
+        items: [
+          item('bar', 'Barra livre', PencilRuler),
+          item('stirrup', 'Estribo', SquareDashed),
+          item('repeat', 'Repetir estribo', Copy, 1),
+          item('detail', 'Rebater armadura', Shapes, 1),
+          item('convert', 'Converter polilinha', Spline),
+          item('follow', 'Seguir fôrma', ScanLine),
+        ],
+      },
+      {
+        name: 'Poligonais / traspasse',
+        items: [
+          item('join', 'Emendar poligonais', Combine, 2),
+          item('split', 'Dividir barra', Scissors, 1),
+        ],
+      },
+      {
+        name: 'Faixas e chamadas',
+        items: [
+          item('range', 'Faixa ortogonal', Layers, 1),
+          item('section-arc', 'Corte em arco', Spline),
+          item('section', 'Corte e chamada', ScanLine),
+          item('dimension-orthogonal', 'Corte e cota ortogonal', Ruler),
+          item('dimension-aligned', 'Corte e cota alinhada', Ruler),
+          item('leader', 'Chamada', ArrowUpRight),
+        ],
+      },
+      {
+        name: 'Relação do aço',
+        items: [
+          item('refresh-schedule', 'Atualizar RA', RefreshCw),
+          item('lock-schedule', 'Bloquear RA', LockKeyhole),
+          item('schedule', 'Quadro de aço', Table2),
+          item('renumber', 'Renumerar', ListOrdered),
+        ],
+      },
     ],
   };
   return (
-    <div className="ribbon">
+    <div className={`ribbon ${collapsed ? 'collapsed' : ''}`}>
       <div className="ribbon-tabs" role="tablist" aria-label="Ferramentas">
         {Object.keys(groups).map((t) => (
           <button
@@ -199,49 +257,108 @@ export default function Ribbon({
             aria-selected={t === tab}
             key={t}
             className={t === tab ? 'active' : ''}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setTab(t);
+              setCollapsed(false);
+            }}
+            onDoubleClick={() => setCollapsed(!collapsed)}
           >
             {t}
           </button>
         ))}
-        <div className="ribbon-tag">
-          <span /> DETALHAMENTO INTELIGENTE
-        </div>
+        <span className="ribbon-spacer" />
+        <button
+          className="collapse-ribbon"
+          title="Recolher / expandir comandos · Ctrl+F1"
+          aria-label={
+            collapsed
+              ? 'Expandir faixa de comandos'
+              : 'Recolher faixa de comandos'
+          }
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
       </div>
-      <div className="ribbon-content">
-        {groups[tab].map((g) => (
-          <div key={g.name} className="ribbon-group">
-            <div className="ribbon-group-tools">
-              {g.items.map((t) => (
-                <button
-                  key={t.action}
-                  className={`ribbon-tool ${t.large ? 'large' : ''} ${active[t.action] ? 'active' : ''}`}
-                  onClick={() => onAction(t.action)}
-                  title={t.label}
-                  disabled={
-                    ([
-                      'move',
-                      'copy',
-                      'detail',
-                      'distribute',
-                      'rotate',
-                      'mirror',
-                      'delete',
-                    ].includes(t.action) &&
-                      !selected) ||
-                    (t.action === 'undo' && !canUndo) ||
-                    (t.action === 'redo' && !canRedo)
-                  }
-                >
-                  <t.icon size={t.large ? 25 : 17} strokeWidth={1.6} />
-                  <span>{t.label}</span>
-                </button>
-              ))}
+      {!collapsed && (
+        <div className="ribbon-content">
+          {(groups[tab] ?? groups.Armaduras).map((g) => (
+            <div key={g.name} className="ribbon-group">
+              <div className="ribbon-group-tools">
+                {g.items.map((entry, i) => {
+                  const t =
+                    entry.action === 'lock-schedule' && active['lock-schedule']
+                      ? { ...entry, label: 'Desbloquear RA' }
+                      : entry;
+                  return (
+                    <span className="ribbon-item-slot" key={t.action}>
+                      <button
+                        className={`ribbon-tool ${active[t.action] ? 'active' : ''}`}
+                        onClick={() => onAction(t.action)}
+                        title={t.label}
+                        aria-label={t.label}
+                        aria-pressed={!!active[t.action]}
+                        disabled={
+                          (!!t.selection && selected < t.selection) ||
+                          (t.action === 'undo' && !canUndo) ||
+                          (t.action === 'redo' && !canRedo)
+                        }
+                      >
+                        <t.icon size={23} strokeWidth={1.5} />
+                        <span>{t.label}</span>
+                      </button>
+                      {g.creation && i === 1 && (
+                        <div
+                          className="creation-fields"
+                          title="Parâmetros das próximas armaduras"
+                        >
+                          <NumberField
+                            label="Quantidade de criação"
+                            compactLabel="Qtd."
+                            value={settings.quantity}
+                            min={1}
+                            max={100000}
+                            step={1}
+                            onChange={(quantity) => onSettings({ quantity })}
+                          />
+                          <label className="field">
+                            <span>Bitola</span>
+                            <select
+                              aria-label="Bitola de criação"
+                              value={settings.diameter}
+                              onChange={(e) =>
+                                onSettings({ diameter: Number(e.target.value) })
+                              }
+                            >
+                              {[
+                                4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32,
+                                40,
+                              ].map((d) => (
+                                <option key={d} value={d}>
+                                  {d}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <NumberField
+                            label="Espaçamento de criação"
+                            compactLabel="Espaç."
+                            value={settings.spacing}
+                            min={1}
+                            onChange={(spacing) => onSettings({ spacing })}
+                            suffix="mm"
+                          />
+                        </div>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+              <span className="ribbon-group-label">{g.name}</span>
             </div>
-            <span className="ribbon-group-label">{g.name}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

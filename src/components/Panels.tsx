@@ -1,3 +1,4 @@
+import { annotationError } from '../domain/drafting';
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -15,10 +16,17 @@ import {
   Unlink,
 } from 'lucide-react';
 import { distance, format, geometry, path, bounds } from '../domain/geometry';
-import { schedule } from '../domain/model';
-import type { Bar, Mask, Project } from '../domain/types';
+import { schedule, scheduleChanged } from '../domain/model';
+import type {
+  Annotation,
+  DraftPolyline,
+  Bar,
+  Mask,
+  Project,
+} from '../domain/types';
 export function NumberField({
   label,
+  compactLabel,
   value,
   onChange,
   min = -1e9,
@@ -27,6 +35,7 @@ export function NumberField({
   suffix,
 }: {
   label: string;
+  compactLabel?: string;
   value: number;
   onChange: (n: number) => void;
   min?: number;
@@ -56,7 +65,7 @@ export function NumberField({
   };
   return (
     <label className="field">
-      <span>{label}</span>
+      <span>{compactLabel ?? label}</span>
       <div className="input-suffix">
         <input
           aria-label={label}
@@ -367,11 +376,32 @@ export function Inspector({
             </Section>
             {bar.distribution && (
               <Section title="Distribuição vinculada">
+                <label className="field">
+                  <span>Representação</span>
+                  <select
+                    aria-label="Representação da faixa"
+                    value={bar.distribution.render ?? 'ticks'}
+                    onChange={(e) =>
+                      onBar({
+                        distribution: {
+                          ...bar.distribution!,
+                          render: e.target.value as 'ticks' | 'bars',
+                        },
+                      })
+                    }
+                  >
+                    <option value="ticks">Faixa por traços</option>
+                    <option value="bars">Geometria repetida</option>
+                  </select>
+                </label>
                 <NumberField
                   label="Espaçamento máximo"
                   min={1}
                   value={
-                    distance(bar.origin, bar.distribution.end) /
+                    distance(
+                      bar.distribution.start ?? bar.origin,
+                      bar.distribution.end,
+                    ) /
                     (bar.quantity - 1)
                   }
                   suffix="mm"
@@ -382,7 +412,10 @@ export function Inspector({
                         Math.max(
                           2,
                           Math.ceil(
-                            distance(bar.origin, bar.distribution!.end) / s,
+                            distance(
+                              bar.distribution!.start ?? bar.origin,
+                              bar.distribution!.end,
+                            ) / s,
                           ) + 1,
                         ),
                       ),
@@ -424,15 +457,51 @@ export function Inspector({
               />
             </Section>
             {project.details.some((d) => d.barId === bar.id) && (
-              <div className="detail-info">
-                <Layers size={15} />
-                <span>
-                  Rebatimento vinculado à posição.
-                  <button onClick={onRemoveDetails}>
-                    Remover rebatimentos
-                  </button>
-                </span>
-              </div>
+              <Section title="Rebatimentos">
+                {project.details
+                  .filter((d) => d.barId === bar.id)
+                  .map((d, i) => (
+                    <div className="fields-2" key={d.id}>
+                      <NumberField
+                        label={`X do rebatimento ${i + 1}`}
+                        value={d.origin.x}
+                        suffix="mm"
+                        onChange={(x) =>
+                          onProject({
+                            details: project.details.map((v) =>
+                              v.id === d.id
+                                ? { ...v, origin: { ...v.origin, x } }
+                                : v,
+                            ),
+                          })
+                        }
+                      />
+                      <NumberField
+                        label={`Y do rebatimento ${i + 1}`}
+                        value={d.origin.y}
+                        suffix="mm"
+                        onChange={(y) =>
+                          onProject({
+                            details: project.details.map((v) =>
+                              v.id === d.id
+                                ? { ...v, origin: { ...v.origin, y } }
+                                : v,
+                            ),
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
+                <div className="detail-info">
+                  <Layers size={15} />
+                  <span>
+                    Rebatimento vinculado à posição.
+                    <button onClick={onRemoveDetails}>
+                      Remover rebatimentos
+                    </button>
+                  </span>
+                </div>
+              </Section>
             )}
           </>
         ) : mask ? (
@@ -561,6 +630,60 @@ export function Inspector({
                 onChange={(author) => onProject({ author })}
               />
             </Section>
+            <Section title="Desenho / prancha">
+              <TextField
+                label="Pavimento"
+                value={project.drawing.floor}
+                allowEmpty
+                onChange={(floor) =>
+                  onProject({ drawing: { ...project.drawing, floor } })
+                }
+              />
+              <TextField
+                label="Revisão"
+                value={project.drawing.revision}
+                allowEmpty
+                maxLength={40}
+                onChange={(revision) =>
+                  onProject({ drawing: { ...project.drawing, revision } })
+                }
+              />
+              <label className="field">
+                <span>Escala da prancha PDF</span>
+                <select
+                  aria-label="Escala da prancha PDF"
+                  value={project.drawing.scale}
+                  onChange={(e) =>
+                    onProject({
+                      drawing: {
+                        ...project.drawing,
+                        scale: Number(e.target.value),
+                      },
+                    })
+                  }
+                >
+                  {[0, 10, 20, 25, 50, 75, 100, 200].map((n) => (
+                    <option key={n} value={n}>
+                      {n ? `1:${n}` : 'Ajustar à folha'}
+                    </option>
+                  ))}
+                  {![0, 10, 20, 25, 50, 75, 100, 200].includes(
+                    project.drawing.scale,
+                  ) && (
+                    <option value={project.drawing.scale}>
+                      1:{project.drawing.scale}
+                    </option>
+                  )}
+                </select>
+              </label>
+              <TextField
+                label="Comentários"
+                value={project.notes}
+                allowEmpty
+                maxLength={5000}
+                onChange={(notes) => onProject({ notes })}
+              />
+            </Section>
             <div className="help-card">
               <b>Precisão desde o primeiro ponto</b>
               <p>
@@ -670,7 +793,15 @@ export function ProjectTree({
               <button
                 key={b.id}
                 className={`bar-row ${selected.includes(b.id) ? 'selected' : ''}`}
-                onClick={() => onSelect([b.id])}
+                onClick={(e) =>
+                  onSelect(
+                    e.shiftKey
+                      ? selected.includes(b.id)
+                        ? selected.filter((id) => id !== b.id)
+                        : [...selected, b.id]
+                      : [b.id],
+                  )
+                }
               >
                 <span
                   className="bar-mark"
@@ -692,6 +823,38 @@ export function ProjectTree({
               <p className="tree-empty">Suas posições aparecerão aqui.</p>
             )}
           </div>
+        )}
+        {(project.polylines.length > 0 || project.annotations.length > 0) && (
+          <>
+            <div className="tree-section">
+              <Shapes size={14} />
+              Desenho e anotações
+              <em>{project.polylines.length + project.annotations.length}</em>
+            </div>
+            <div className="draft-object-list">
+              {project.polylines.map((l, i) => (
+                <button
+                  key={l.id}
+                  className={selected.includes(l.id) ? 'selected' : ''}
+                  onClick={() => onSelect([l.id])}
+                >
+                  Polilinha {i + 1} · {l.points.length} vértices
+                </button>
+              ))}
+              {project.annotations.map((a, i) => (
+                <button
+                  key={a.id}
+                  className={selected.includes(a.id) ? 'selected' : ''}
+                  onClick={() => onSelect([a.id])}
+                >
+                  {annotationNames[a.kind]} {i + 1}
+                  {a.barId
+                    ? ` · ${project.bars.find((b) => b.id === a.barId)?.mark}`
+                    : ''}
+                </button>
+              ))}
+            </div>
+          </>
         )}
         <div className="tree-note">
           <LockKeyhole size={13} />
@@ -747,7 +910,14 @@ export function Schedule({
       <div className="document-intro">
         <span className="eyebrow">DOCUMENTAÇÃO / QUANTITATIVOS</span>
         <h1>
-          Quadro de aço<span>Atualização automática</span>
+          Quadro de aço
+          <span>
+            {project.scheduleLock
+              ? scheduleChanged(project)
+                ? 'Atualização pendente'
+                : 'Bloqueado'
+              : 'Atualização automática'}
+          </span>
         </h1>
         <p>
           Cada posição contabilizada uma vez. Rebatimentos compartilham os
@@ -847,6 +1017,129 @@ export function Schedule({
           projetista.
         </p>
       </div>
+    </div>
+  );
+}
+
+const annotationNames: Record<Annotation['kind'], string> = {
+  'dimension-aligned': 'Cota alinhada',
+  'dimension-orthogonal': 'Cota ortogonal',
+  leader: 'Chamada',
+  section: 'Corte e chamada',
+  'section-arc': 'Corte em arco',
+};
+export function DraftInspector({
+  annotation,
+  polyline,
+  project,
+  onAnnotation,
+  onPolyline,
+}: {
+  annotation?: Annotation;
+  polyline?: DraftPolyline;
+  project: Project;
+  onAnnotation: (patch: Partial<Annotation>) => void;
+  onPolyline: (patch: Partial<DraftPolyline>) => void;
+}) {
+  const object = annotation ?? polyline!;
+  const updatePoints = (points: typeof object.points) =>
+    annotation ? onAnnotation({ points }) : onPolyline({ points });
+  return (
+    <div className="inspector">
+      <div className="panel-heading">
+        <Settings2 size={14} />
+        <b>{annotation ? annotationNames[annotation.kind] : 'Polilinha CAD'}</b>
+      </div>
+      <div className="panel-scroll">
+        {annotation && annotationError(annotation) && (
+          <p className="geometry-warning" role="alert">
+            {annotationError(annotation)}
+          </p>
+        )}
+        {annotation && (
+          <Section title="Texto e vínculo">
+            <TextField
+              label="Texto da anotação"
+              value={annotation.label}
+              allowEmpty
+              maxLength={200}
+              onChange={(label) => onAnnotation({ label })}
+            />
+            <p className="field-help">
+              Deixe vazio para usar a medida ou a identificação automática da
+              armadura.
+            </p>
+            <NumberField
+              label="Altura do texto"
+              value={annotation.textHeight}
+              min={1}
+              max={10000}
+              suffix="mm"
+              onChange={(textHeight) => onAnnotation({ textHeight })}
+            />
+            {
+              <label className="field">
+                <span>Armadura vinculada</span>
+                <select
+                  aria-label="Armadura vinculada"
+                  value={annotation.barId ?? ''}
+                  onChange={(e) =>
+                    onAnnotation({ barId: e.target.value || undefined })
+                  }
+                >
+                  <option value="">Sem vínculo</option>
+                  {project.bars.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.mark} · {b.element}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            }
+          </Section>
+        )}
+        {polyline && (
+          <Section title="Polilinha">
+            <label className="layer-toggle">
+              <input
+                type="checkbox"
+                checked={polyline.closed}
+                onChange={(e) => onPolyline({ closed: e.target.checked })}
+              />
+              Fechar contorno
+            </label>
+            <p className="field-help">
+              Esta geometria não entra no quadro de aço. Use Converter polilinha
+              e clique nela para criar uma armadura.
+            </p>
+          </Section>
+        )}
+        <Section title="Vértices">
+          {object.points.map((v, i) => (
+            <div className="fields-2" key={i}>
+              <NumberField
+                label={`X do ponto ${i + 1}`}
+                value={v.x}
+                onChange={(x) =>
+                  updatePoints(
+                    object.points.map((p, j) => (j === i ? { ...p, x } : p)),
+                  )
+                }
+              />
+              <NumberField
+                label={`Y do ponto ${i + 1}`}
+                value={v.y}
+                onChange={(y) =>
+                  updatePoints(
+                    object.points.map((p, j) => (j === i ? { ...p, y } : p)),
+                  )
+                }
+              />
+            </div>
+          ))}
+        </Section>
+      </div>
+      <div className="panel-foot">MOVER · COPIAR · GIRAR · EXCLUIR</div>
     </div>
   );
 }

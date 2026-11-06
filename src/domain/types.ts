@@ -14,7 +14,7 @@ export type Bar = {
   mandrel: number;
   steel: 'CA-50' | 'CA-60';
   quantity: number;
-  distribution?: { end: Point };
+  distribution?: { start?: Point; end: Point; render?: 'ticks' | 'bars' };
   color: string;
 };
 export type Detail = { id: string; barId: string; origin: Point };
@@ -40,14 +40,39 @@ export type Mask = {
   sourceUnit: string;
   warnings: string[];
 };
+export type AnnotationKind =
+  | 'dimension-aligned'
+  | 'dimension-orthogonal'
+  | 'leader'
+  | 'section'
+  | 'section-arc';
+export type Annotation = {
+  id: string;
+  kind: AnnotationKind;
+  points: Point[];
+  barId?: string;
+  label: string;
+  textHeight: number;
+  color: string;
+};
+export type DraftPolyline = {
+  id: string;
+  points: Point[];
+  closed: boolean;
+  color: string;
+};
 export type Project = {
-  schema: 'armadurastruct/1';
+  schema: 'armadurastruct/2';
   name: string;
   author: string;
   notes: string;
   bars: Bar[];
   details: Detail[];
   masks: Mask[];
+  annotations: Annotation[];
+  polylines: DraftPolyline[];
+  drawing: { floor: string; revision: string; scale: number };
+  scheduleLock?: { at: string; bars: Bar[] };
 };
 export type Tool =
   | 'select'
@@ -59,7 +84,12 @@ export type Tool =
   | 'detail'
   | 'distribute'
   | 'follow'
-  | 'measure';
+  | 'measure'
+  | 'polyline'
+  | 'convert'
+  | 'repeat'
+  | 'range'
+  | AnnotationKind;
 export type Segment =
   | { type: 'line'; a: Point; b: Point }
   | {

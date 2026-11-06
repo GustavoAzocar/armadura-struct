@@ -18,15 +18,62 @@ const barSchema = z.object({
   mandrel: number.positive().max(2000),
   steel: z.enum(['CA-50', 'CA-60']),
   quantity: z.number().int().min(1).max(100000),
-  distribution: z.object({ end: point }).optional(),
+  distribution: z
+    .object({
+      start: point.optional(),
+      end: point,
+      render: z.enum(['ticks', 'bars']).optional(),
+    })
+    .optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 const schema = z.object({
-  schema: z.literal('armadurastruct/1'),
+  schema: z.enum(['armadurastruct/1', 'armadurastruct/2']),
   name: z.string().min(1).max(150),
   author: z.string().max(150),
   notes: z.string().max(5000),
   bars: z.array(barSchema).max(10000),
+  polylines: z
+    .array(
+      z.object({
+        id: z.string(),
+        points: z.array(point).min(2).max(500),
+        closed: z.boolean(),
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      }),
+    )
+    .max(10000)
+    .default([]),
+  annotations: z
+    .array(
+      z.object({
+        id: z.string(),
+        kind: z.enum([
+          'dimension-aligned',
+          'dimension-orthogonal',
+          'leader',
+          'section',
+          'section-arc',
+        ]),
+        points: z.array(point).length(3),
+        barId: z.string().optional(),
+        label: z.string().max(200),
+        textHeight: number.positive().max(10000),
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      }),
+    )
+    .max(10000)
+    .default([]),
+  drawing: z
+    .object({
+      floor: z.string().max(150),
+      revision: z.string().max(40),
+      scale: number.min(0).max(10000),
+    })
+    .default({ floor: '', revision: '00', scale: 0 }),
+  scheduleLock: z
+    .object({ at: z.string(), bars: z.array(barSchema).max(10000) })
+    .optional(),
   details: z
     .array(z.object({ id: z.string(), barId: z.string(), origin: point }))
     .max(10000),
@@ -61,7 +108,10 @@ const schema = z.object({
     .max(20),
 });
 export function decodeProject(raw: string): Project {
-  const p = schema.parse(JSON.parse(raw));
+  const p = {
+    ...schema.parse(JSON.parse(raw)),
+    schema: 'armadurastruct/2' as const,
+  };
   const ids = p.bars.map((b) => b.id);
   if (new Set(ids).size !== ids.length)
     throw new Error('IDs de armadura duplicados.');
@@ -76,6 +126,17 @@ export function decodeProject(raw: string): Project {
     throw new Error('Identificadores duplicados em detalhes ou máscaras.');
   if (p.bars.some((b) => b.distribution && b.quantity < 2))
     throw new Error('Uma distribuição precisa de pelo menos duas peças.');
+  const allIds = [
+    ...p.bars,
+    ...p.details,
+    ...p.masks,
+    ...p.annotations,
+    ...p.polylines,
+  ].map((o) => o.id);
+  if (new Set(allIds).size !== allIds.length)
+    throw new Error('Identificadores de objetos duplicados.');
+  if (p.annotations.some((a) => a.barId && !ids.includes(a.barId)))
+    throw new Error('Chamada sem armadura correspondente.');
   return p;
 }
 export function newBar(mark: string): Bar {
@@ -106,16 +167,19 @@ export function nextMark(p: Project) {
   return `N${i}`;
 }
 export const emptyProject = (): Project => ({
-  schema: 'armadurastruct/1',
+  schema: 'armadurastruct/2',
   name: 'Novo projeto',
   author: '',
   notes: '',
   bars: [],
   details: [],
   masks: [],
+  annotations: [],
+  polylines: [],
+  drawing: { floor: '', revision: '00', scale: 0 },
 });
 export function schedule(p: Project): ScheduleRow[] {
-  return p.bars.map((bar) => {
+  return (p.scheduleLock?.bars ?? p.bars).map((bar) => {
     const g = geometry(bar),
       totalLength = (g.length * bar.quantity) / 1000;
     return {
@@ -132,6 +196,28 @@ export function schedule(p: Project): ScheduleRow[] {
     };
   });
 }
+export function scheduleChanged(p: Project) {
+  const fingerprint = (bars: Bar[]) =>
+    JSON.stringify(
+      bars.map((b) => ({
+        id: b.id,
+        mark: b.mark,
+        element: b.element,
+        steel: b.steel,
+        diameter: b.diameter,
+        quantity: b.quantity,
+        kind: b.kind,
+        points: b.points,
+        width: b.width,
+        height: b.height,
+        hook: b.hook,
+        mandrel: b.mandrel,
+      })),
+    );
+  return (
+    !!p.scheduleLock && fingerprint(p.bars) !== fingerprint(p.scheduleLock.bars)
+  );
+}
 export function projectPoints(p: Project) {
   const out = p.bars.flatMap((b) => vertices(b).map((v) => world(v, b)));
   for (const d of p.details) {
@@ -144,7 +230,18 @@ export function projectPoints(p: Project) {
         })),
       );
   }
-  for (const b of p.bars) if (b.distribution) out.push(b.distribution.end);
+  for (const b of p.bars)
+    if (b.distribution) {
+      for (const origin of [
+        b.distribution.start ?? b.origin,
+        b.distribution.end,
+      ])
+        out.push(...vertices(b).map((v) => world(v, { ...b, origin })));
+    }
+  out.push(
+    ...p.annotations.flatMap((a) => a.points),
+    ...p.polylines.flatMap((l) => l.points),
+  );
   return out;
 }
 export function demoProject(): Project {
@@ -247,6 +344,35 @@ export function demoProject(): Project {
           ],
         })),
       ],
+    },
+  ];
+  p.drawing.floor = 'Pavimento tipo';
+  p.annotations = [
+    {
+      id: uid(),
+      kind: 'dimension-orthogonal',
+      barId: c.id,
+      points: [
+        { x: 100, y: 0 },
+        { x: 4900, y: 0 },
+        { x: 2500, y: -300 },
+      ],
+      label: '',
+      textHeight: 50,
+      color: '#8c9bb3',
+    },
+    {
+      id: uid(),
+      kind: 'leader',
+      barId: c.id,
+      points: [
+        { x: 5820, y: 540 },
+        { x: 6050, y: 800 },
+        { x: 6250, y: 800 },
+      ],
+      label: '',
+      textHeight: 50,
+      color: '#c89a4d',
     },
   ];
   return p;

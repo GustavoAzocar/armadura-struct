@@ -30,6 +30,12 @@ import {
   world,
 } from '../domain/geometry';
 import { maskPrimitives } from '../cad/import';
+import {
+  annotationPrimitives,
+  primitiveBounds,
+  distributionOrigins,
+  distributionPrimitives,
+} from '../domain/drafting';
 import { projectPoints } from '../domain/model';
 import type { Bar, Point, Primitive, Project, Tool } from '../domain/types';
 export type CadHandle = { fit: () => void; zoom: (factor: number) => void };
@@ -39,7 +45,7 @@ type Props = {
   selected: string[];
   setSelected: (ids: string[]) => void;
   onPoint: (p: Point) => void;
-  onPrimitive: (p: Primitive) => void;
+  onPrimitive: (p: Primitive, polylineId?: string) => void;
   onFinish: () => void;
   onBarChange: (id: string, patch: Partial<Bar>) => void;
   draft: Point[];
@@ -129,12 +135,25 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       }),
     [project.masks],
   );
+  const annotations = useMemo(
+    () =>
+      project.annotations.map((a) => ({
+        annotation: a,
+        items: annotationPrimitives(a, project),
+      })),
+    [project],
+  );
+  const barGeometries = useMemo(
+    () => new Map(project.bars.map((b) => [b.id, geometry(b)])),
+    [project.bars],
+  );
   const allPoints = useMemo(
     () => [
       ...projectPoints(project),
-      ...masks.flatMap((m) => m.items.flatMap((i) => i.points)),
+      ...annotations.flatMap((a) => a.items.flatMap(primitiveBounds)),
+      ...masks.flatMap((m) => m.items.flatMap(primitiveBounds)),
     ],
-    [project, masks],
+    [project, masks, annotations],
   );
   const fit = () => {
     const b = bounds(allPoints);
@@ -142,12 +161,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       0.00001,
       Math.min(
         2,
-        (size.w - 360) / Math.max(b.width, 500),
-        (size.h - 170) / Math.max(b.height, 500),
+        Math.max(80, size.w - 180) / Math.max(b.width, 500),
+        Math.max(80, size.h - 120) / Math.max(b.height, 500),
       ),
     );
     setView({
-      x: b.x + b.width / 2 + 60 / s,
+      x: b.x + b.width / 2,
       y: b.y + b.height / 2,
       s,
     });
@@ -175,11 +194,16 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const linework = useMemo(
     () => [
       ...masks.flatMap((m) => m.items.filter((p) => !p.text)),
+      ...project.polylines.map((p) => ({
+        ...p,
+        points: p.closed ? [...p.points, p.points[0]] : p.points,
+      })),
+      ...annotations.flatMap((a) => a.items.filter((p) => !p.text)),
       ...project.bars.map((b) => ({
         points: sampled(geometry(b).segments).map((v) => world(v, b)),
       })),
     ],
-    [masks, project.bars],
+    [masks, project.bars, project.polylines, annotations],
   );
   const snapAt = (raw: Point) => {
     let target: Point | undefined,
@@ -238,12 +262,53 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       let hit: string | undefined,
         best = 9 / view.s;
       for (const b of project.bars) {
-        const ps = sampled(geometry(b).segments).map((v) => world(v, b));
-        for (let i = 1; i < ps.length; i++) {
-          const d = distance(p, nearest(p, ps[i - 1], ps[i]));
-          if (d < best) {
-            best = d;
-            hit = b.id;
+        const origins =
+          b.distribution?.render === 'bars'
+            ? distributionOrigins(b)
+            : [b.origin];
+        for (const origin of origins) {
+          const ps = sampled(barGeometries.get(b.id)!.segments).map((v) =>
+            world(v, { ...b, origin }),
+          );
+          for (let i = 1; i < ps.length; i++) {
+            const d = distance(p, nearest(p, ps[i - 1], ps[i]));
+            if (d < best) {
+              best = d;
+              hit = b.id;
+            }
+          }
+        }
+      }
+      for (const object of [
+        ...project.polylines.map((l) => ({
+          id: l.id,
+          items: [
+            {
+              ...l,
+              layer: 'DESENHO',
+              points: l.closed ? [...l.points, l.points[0]] : l.points,
+            },
+          ],
+        })),
+        ...annotations.map((a) => ({ id: a.annotation.id, items: a.items })),
+      ]) {
+        for (const item of object.items) {
+          if ('text' in item && item.text) {
+            if (distance(p, item.points[0]) < 14 / view.s) {
+              hit = object.id;
+              best = 0;
+            }
+            continue;
+          }
+          for (let i = 1; i < item.points.length; i++) {
+            const d = distance(
+              p,
+              nearest(p, item.points[i - 1], item.points[i]),
+            );
+            if (d < best) {
+              best = d;
+              hit = object.id;
+            }
           }
         }
       }
@@ -273,9 +338,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         if (!e.shiftKey) setSelected([]);
         setMarquee({ start: p, end: p });
       }
-    } else if (tool === 'follow') {
+    } else if (tool === 'follow' || tool === 'convert') {
       let best = 16 / view.s,
-        hit: Primitive | undefined;
+        hit: Primitive | undefined,
+        polylineId: string | undefined;
       for (const m of masks)
         for (const item of m.items) {
           if (item.text) continue;
@@ -290,7 +356,21 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             }
           }
         }
-      if (hit) props.onPrimitive(hit);
+      if (tool === 'convert')
+        for (const item of project.polylines) {
+          const pts = item.closed
+            ? [...item.points, item.points[0]]
+            : item.points;
+          for (let i = 1; i < pts.length; i++) {
+            const d = distance(p, nearest(p, pts[i - 1], pts[i]));
+            if (d < best) {
+              best = d;
+              hit = { ...item, layer: 'DESENHO' };
+              polylineId = item.id;
+            }
+          }
+        }
+      if (hit) props.onPrimitive(hit, polylineId);
     } else onPoint(p);
   };
   const move = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -329,15 +409,22 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           p.x <= box.x + box.width &&
           p.y >= box.y &&
           p.y <= box.y + box.height;
-        setSelected(
-          project.bars
+        const ids = [
+          ...project.bars
             .filter((b) =>
               vertices(b)
                 .map((p) => world(p, b))
                 .every(inside),
             )
             .map((b) => b.id),
-        );
+          ...project.polylines
+            .filter((l) => l.points.every(inside))
+            .map((l) => l.id),
+          ...project.annotations
+            .filter((a) => a.points.every(inside))
+            .map((a) => a.id),
+        ];
+        setSelected(e.shiftKey ? [...new Set([...selected, ...ids])] : ids);
       }
       setMarquee(null);
     }
@@ -345,7 +432,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   };
   const stroke = 1 / view.s;
   const textSize = 11 / view.s;
-  const renderBar = (b: Bar, origin = b.origin, isDetail = false) => {
+  const renderBar = (
+    b: Bar,
+    origin = b.origin,
+    isDetail = false,
+    showLabel = true,
+  ) => {
     const edited =
       grip?.id === b.id
         ? {
@@ -355,7 +447,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             ),
           }
         : b;
-    const g = geometry(edited),
+    const g = grip?.id === b.id ? geometry(edited) : barGeometries.get(b.id)!,
       active = selected.includes(b.id);
     const color = g.errors.length ? '#e76472' : b.color;
     const tr = `translate(${origin.x} ${origin.y}) rotate(${isDetail ? 0 : b.rotation})`;
@@ -380,23 +472,28 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           strokeWidth={(active ? 2.7 : 2) * stroke}
           strokeLinejoin="round"
         />
-        <g transform={`translate(0 ${-90}) scale(1 -1)`}>
-          <text
-            fill={color}
-            fontSize={textSize}
-            fontFamily="Inter, sans-serif"
-            fontWeight="600"
-          >
-            {b.mark}{' '}
-            <tspan fontWeight="400">
-              {b.quantity} Ø{format(b.diameter, b.diameter % 1 ? 1 : 0)} · C=
-              {format(g.length / 10)} cm
-            </tspan>
-            {isDetail && (
-              <tspan fill={light ? '#6a7283' : '#71829d'}> · rebatimento</tspan>
-            )}
-          </text>
-        </g>
+        {showLabel && (
+          <g transform={`translate(0 ${-90}) scale(1 -1)`}>
+            <text
+              fill={color}
+              fontSize={textSize}
+              fontFamily="Inter, sans-serif"
+              fontWeight="600"
+            >
+              {b.mark}{' '}
+              <tspan fontWeight="400">
+                {b.quantity} Ø{format(b.diameter, b.diameter % 1 ? 1 : 0)} · C=
+                {format(g.length / 10)} cm
+              </tspan>
+              {isDetail && (
+                <tspan fill={light ? '#6a7283' : '#71829d'}>
+                  {' '}
+                  · rebatimento
+                </tspan>
+              )}
+            </text>
+          </g>
+        )}
         {props.showDimensions &&
           (isDetail || b.kind === 'stirrup') &&
           g.vertices.slice(0, -1).map((p, i) => {
@@ -437,6 +534,43 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       </g>
     );
   };
+  const renderPrimitives = (
+    items: Primitive[],
+    color: string,
+    active = false,
+  ) =>
+    items.map((item, i) =>
+      item.text ? (
+        <g
+          key={i}
+          transform={`translate(${item.points[0].x} ${item.points[0].y}) rotate(${item.textRotation ?? 0}) scale(1 -1)`}
+        >
+          <text
+            fill={color}
+            fontSize={Math.max(item.textHeight ?? 40, 10 * stroke)}
+            textAnchor={
+              item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'
+                ? 'middle'
+                : 'start'
+            }
+          >
+            {item.text}
+          </text>
+        </g>
+      ) : (
+        <path
+          key={i}
+          d={
+            item.points
+              .map((v, j) => `${j ? 'L' : 'M'}${v.x},${v.y}`)
+              .join(' ') + (item.closed ? ' Z' : '')
+          }
+          fill="none"
+          stroke={color}
+          strokeWidth={(active ? 2.4 : 1) * stroke}
+        />
+      ),
+    );
   const gridStep = 10 ** Math.ceil(Math.log10(55 / view.s));
   const origin = scr({ x: 0, y: 0 });
   return (
@@ -516,63 +650,72 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 ))}
             </g>
           ))}
-          {project.bars.map((b) => renderBar(b))}
+          {project.polylines.map((l) => (
+            <g key={l.id} data-testid="cad-polyline">
+              {renderPrimitives(
+                [{ ...l, layer: 'DESENHO' }],
+                selected.includes(l.id) ? '#58bce8' : l.color,
+                selected.includes(l.id),
+              )}
+            </g>
+          ))}
+          {project.bars.flatMap((b) =>
+            b.distribution?.render === 'bars'
+              ? distributionOrigins(b).map((origin, i) =>
+                  renderBar(b, origin, false, i === 0),
+                )
+              : renderBar(b),
+          )}
+          {annotations.map(({ annotation: a, items }) => (
+            <g key={a.id} data-testid="cad-annotation" data-kind={a.kind}>
+              {renderPrimitives(
+                items,
+                selected.includes(a.id)
+                  ? '#58bce8'
+                  : light
+                    ? '#394861'
+                    : a.color,
+                selected.includes(a.id),
+              )}
+            </g>
+          ))}
           {project.details.map((d) => {
             const b = project.bars.find((b) => b.id === d.barId);
             return b ? renderBar(b, d.origin, true) : null;
           })}
           {project.bars
             .filter((b) => b.distribution)
-            .map((b) => {
-              const end = b.distribution!.end;
-              return (
-                <g key={b.id} stroke={b.color} strokeWidth={stroke}>
-                  <line
-                    x1={b.origin.x}
-                    y1={b.origin.y}
-                    x2={end.x}
-                    y2={end.y}
-                    strokeDasharray={`${4 * stroke} ${4 * stroke}`}
-                  />
-                  {Array.from({ length: Math.min(b.quantity, 150) }, (_, i) => {
-                    const p = add(
-                      b.origin,
-                      mul(
-                        sub(end, b.origin),
-                        i / Math.max(1, Math.min(b.quantity, 150) - 1),
-                      ),
-                    );
-                    return (
-                      <line
-                        key={i}
-                        x1={p.x}
-                        y1={p.y - 25}
-                        x2={p.x}
-                        y2={p.y + 25}
-                      />
-                    );
-                  })}
-                  <g
-                    transform={`translate(${(b.origin.x + end.x) / 2} ${(b.origin.y + end.y) / 2 + 65}) scale(1 -1)`}
-                  >
-                    <text
-                      fill={b.color}
-                      stroke="none"
-                      fontSize={textSize}
-                      textAnchor="middle"
-                    >
-                      {b.quantity} un. · c/
-                      {format(
-                        distance(b.origin, end) /
-                          Math.max(1, b.quantity - 1) /
-                          10,
-                      )}{' '}
-                      cm
-                    </text>
-                  </g>
-                </g>
-              );
-            })}
+            .map((b) => (
+              <g key={b.id} data-testid="cad-distribution">
+                {renderPrimitives(distributionPrimitives(b), b.color)}
+              </g>
+            ))}
+          {draft.length === 2 &&
+            cursor &&
+            [
+              'dimension-aligned',
+              'dimension-orthogonal',
+              'leader',
+              'section',
+              'section-arc',
+            ].includes(tool) && (
+              <g opacity=".65">
+                {renderPrimitives(
+                  annotationPrimitives(
+                    {
+                      id: 'preview',
+                      kind: tool as import('../domain/types').AnnotationKind,
+                      points: [...draft, cursor],
+                      label: '',
+                      textHeight: 50,
+                      color: '#50cddd',
+                    },
+                    project,
+                  ),
+                  '#50cddd',
+                )}
+              </g>
+            )}
           {draft.length > 0 && cursor && (
             <g
               stroke="#57d8de"
@@ -650,14 +793,17 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         <span>VISTA SUPERIOR</span>
         <b>XY</b>
       </div>
-      {project.bars.length === 0 && project.masks.length === 0 && (
-        <div className="canvas-empty">
-          <Crosshair size={40} />
-          <h2>Seu próximo detalhe começa aqui.</h2>
-          <p>Importe uma fôrma DXF/DWG ou desenhe sua primeira armadura.</p>
-          <button onClick={() => props.setTool('bar')}>Desenhar barra</button>
-        </div>
-      )}
+      {project.bars.length === 0 &&
+        project.masks.length === 0 &&
+        project.polylines.length === 0 &&
+        project.annotations.length === 0 && (
+          <div className="canvas-empty">
+            <Crosshair size={40} />
+            <h2>Seu próximo detalhe começa aqui.</h2>
+            <p>Importe uma fôrma DXF/DWG ou desenhe sua primeira armadura.</p>
+            <button onClick={() => props.setTool('bar')}>Desenhar barra</button>
+          </div>
+        )}
       <div className="axis-widget">
         <span className="axis-x">X</span>
         <span className="axis-y">Y</span>

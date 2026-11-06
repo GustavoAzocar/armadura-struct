@@ -116,9 +116,15 @@ test('DXF real, camadas, escala e arquivo inválido', async ({ page }) => {
 test('exports PDF/DXF/CSV e edição do quadro', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  await page.getByRole('tab', { name: 'Arquivo', exact: true }).click();
   for (const label of ['PDF', 'DXF']) {
     const event = page.waitForEvent('download');
-    await page.getByRole('button', { name: label, exact: true }).click();
+    await page
+      .getByRole('button', {
+        name: label === 'PDF' ? 'Prancha PDF' : 'Desenho DXF',
+        exact: true,
+      })
+      .click();
     const d = await event;
     const bytes = readFileSync((await d.path())!);
     expect(bytes.length).toBeGreaterThan(1000);
