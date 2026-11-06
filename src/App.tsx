@@ -744,8 +744,11 @@ export default function App() {
         }));
       }
       if (a === 'fit') {
-        setPage('drawing');
-        setTimeout(() => cad.current?.fit(), 0);
+        if (page === 'drawing') cad.current?.fit();
+        else {
+          setPage('drawing');
+          requestAnimationFrame(() => cad.current?.fit());
+        }
       }
       if (a === 'grid') setGrid(!grid);
       if (a === 'snap') setSnap(!snap);

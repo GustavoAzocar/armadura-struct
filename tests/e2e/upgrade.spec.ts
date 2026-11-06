@@ -4,6 +4,15 @@ async function command(page: Page, value: string) {
   const input = page.getByRole('textbox', { name: 'Comando CAD' });
   await input.fill(value);
   await input.press('Enter');
+  if (value === 'F') {
+    // Coordinates are read only after React and the browser paint the fitted view.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+  }
 }
 async function save(page: Page) {
   const event = page.waitForEvent('download');
@@ -35,6 +44,11 @@ async function point(page: Page, x: number, y: number, shift = false) {
     },
     { x, y },
   );
+  const viewport = page.viewportSize()!;
+  expect(xy.x).toBeGreaterThan(0);
+  expect(xy.x).toBeLessThan(viewport.width);
+  expect(xy.y).toBeGreaterThan(0);
+  expect(xy.y).toBeLessThan(viewport.height);
   if (shift) await page.keyboard.down('Shift');
   await page.mouse.click(xy.x, xy.y);
   if (shift) await page.keyboard.up('Shift');
