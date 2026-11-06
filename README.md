@@ -1,0 +1,116 @@
+# ArmaduraStruct
+
+**Desenhar. Detalhar. Quantificar.**
+
+CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com barras paramétricas, estribos, rebatimentos e quadro de aço automático. Desenvolvido por Ricardo Corsini e colaboradores.
+
+![Ambiente de edição do ArmaduraStruct](docs/preview.png)
+
+[![Validação e build](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml)
+
+**Versão 0.1.0 — primeira versão funcional.** Aplicação desktop Tauri para Linux e Windows, também executável no navegador para desenvolvimento. Os arquivos e os cálculos são processados localmente.
+
+## Recursos
+
+- Ambiente CAD com ribbon, árvore do projeto, painel de propriedades, fundo claro/escuro, pan, zoom, enquadramento e grade.
+- Barras livres por vértices; estribos retangulares com ganchos de 135°, bitola, mandril, quantidade e dimensões editáveis.
+- Comandos pelo mouse ou teclado, coordenadas absolutas/relativas/polares, ortogonal e encaixes em extremidades e pontos médios.
+- Seleção por clique ou janela, edição de vértices por alças, mover, copiar, girar, espelhar, excluir e desfazer/refazer.
+- Ferramenta **Seguir fôrma**: desloca uma linha/polilinha da máscara pelo cobrimento mais meio diâmetro; permite editar os vértices e conferir as terminações.
+- Rebatimentos vinculados à posição original, sem duplicar quantidades no quadro de aço.
+- Distribuição por intervalo, quantidade ou espaçamento máximo, com as duas extremidades incluídas.
+- Máscaras **DXF ASCII e DWG**, com escala, unidade, posição, rotação, opacidade, camadas e relatório de importação.
+- Quadro com posição, elemento, aço, bitola, quantidade, comprimento unitário/total e peso teórico.
+- Projeto `.armstruct.json` com máscaras incorporadas, recuperação automática local e exportação DXF, PDF A3 e CSV.
+
+## Executar
+
+Requer **Node.js 22 LTS**, npm e, para desktop, Rust estável e os [pré-requisitos do Tauri 2](https://v2.tauri.app/start/prerequisites/).
+
+```bash
+git clone https://github.com/ricardocorsini/armadura-struct.git
+cd armadura-struct
+npm ci
+npm run desktop:dev
+```
+
+No Ubuntu 22.04/24.04, os pacotes de desenvolvimento incluem:
+
+```bash
+sudo apt update
+sudo apt install build-essential libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
+
+No Windows, instale Visual Studio Build Tools com ferramentas C++, Rust MSVC e WebView2, conforme a documentação do Tauri.
+
+Para desenvolver somente a interface:
+
+```bash
+npm run dev
+```
+
+Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public/wasm`; não há download do leitor durante a utilização.
+
+## Primeiros passos
+
+1. Abra o exemplo incluído ou crie um projeto.
+2. Importe sua fôrma com **Importar máscara**. Confira a unidade no painel e uma distância conhecida com **Medir**.
+3. Use **Barra livre**, **Estribo** ou **Seguir fôrma**. As coordenadas e propriedades geométricas são em **mm**.
+4. Selecione a posição para editar aço, bitola, quantidade e geometria. Ajuste o mandril e os ganchos para o projeto.
+5. Crie rebatimentos e distribuições. O quadro é atualizado a cada alteração.
+6. Salve o projeto e exporte os desenhos e quantitativos.
+
+Veja [o guia de comandos e convenções](docs/GUIA.md).
+
+## Convenções e limites desta versão
+
+- É um editor de detalhamento. Não dimensiona estruturas nem verifica automaticamente normas, ancoragem, emendas, cobrimento ou diâmetros mínimos de dobra.
+- O comprimento usa o **eixo físico da barra**, com arcos de dobra: raio de eixo = (mandril + bitola)/2. Cotas gráficas entre vértices teóricos são em cm; comprimentos do quadro são em m. Confira a convenção de cotagem do seu processo de fabricação.
+- Ganchos dos estribos têm prolongamento reto configurável depois da curva. O desenho 2D pode sobrepor as duas pontas; não representa o afastamento em profundidade.
+- Fôrmas fechadas geram um contorno deslocado; ganchos, aberturas e ancoragens precisam ser definidos pelo projetista. A ferramenta não mantém um vínculo paramétrico com futuras alterações da máscara.
+- DWG é lido pelo LibreDWG. A compatibilidade depende da versão e das entidades do arquivo. Há suporte a entidades 2D comuns e blocos; **não é uma reprodução integral do AutoCAD**. Confira os avisos. Xrefs externas, objetos proxy, hachuras, splines, sólidos 3D, estilos e layouts de impressão não são integralmente reproduzidos. Apenas o espaço de modelo é usado.
+- Limites de importação: 30 MB por máscara, 100 mil entidades expandidas, até 20 máscaras. Projetos de até 100 MB; até 500 vértices por barra. Desenhos grandes devem ser simplificados para uso como referência.
+- DXF de saída contém entidades CAD simples e curvas discretizadas, sem os vínculos paramétricos próprios do `.armstruct.json`. Não há exportação DWG.
+- PDF A3 ajusta a vista à folha, com quadro em páginas seguintes; **não usa escala fixa de plotagem**. Use o DXF em seu fluxo CAD para montar pranchas com escala física controlada.
+- Distribuições com mais de 150 peças usam até 150 marcas gráficas representativas. A quantidade e o espaçamento informados permanecem exatos. Não há otimização de corte nem percentual automático de perdas.
+- O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
+
+## Verificar e compilar
+
+```bash
+npm run check
+npm run build
+npx playwright install chromium
+npm run test:e2e
+npm run format:check
+npm run desktop:build -- --bundles deb,appimage  # Linux
+npm run desktop:build -- --bundles nsis          # Windows
+```
+
+O workflow [Validate and build](.github/workflows/ci.yml) executa os testes e compila os instaladores Linux/Windows. Os pacotes ficam nos artefatos da execução do GitHub Actions. Nesta primeira etapa não há publicação automática no Launcher nem release estável assinada.
+
+Os testes cobrem comprimentos analíticos de dobras, estribos, pesos, offsets, validação do arquivo, exportação/reimportação DXF e fluxos reais de edição e leitura DWG em navegador. A execução do aplicativo nativo e o comportamento de cada arquivo de produção devem ser conferidos nos sistemas de destino.
+
+## Arquitetura
+
+| Camada              | Implementação                                                         |
+| ------------------- | --------------------------------------------------------------------- |
+| Interface           | React 19, TypeScript, Vite, Inter, Lucide                             |
+| Editor 2D           | SVG, coordenadas cartesianas em mm, comandos e histórico transacional |
+| Modelo de armaduras | TypeScript independente da interface; validação Zod                   |
+| Importação          | Worker, dxf-parser e LibreDWG Web/WASM                                |
+| Documentação        | DXF ASCII, jsPDF e CSV                                                |
+| Desktop             | Tauri 2, diálogos nativos e acesso a arquivos selecionados            |
+| Persistência        | JSON versionado + IndexedDB                                           |
+
+`src/domain` concentra geometria e quantitativos; `src/cad` normaliza as máscaras; `src/components` contém o editor; `src/lib` cuida de arquivos/exportações. O modelo pode evoluir para bibliotecas de peças, formas especiais e integração com ConsoloStruct/MolaStruct sem depender do renderizador.
+
+## Contribuir
+
+Abra uma issue descrevendo o caso de uso e, para problemas geométricos, inclua dimensões e resultado esperado. Para importação, anexe somente arquivos que você pode compartilhar. Antes de enviar um PR, execute formatação, verificações e testes. Alterações de comprimento ou quantitativos devem incluir uma referência analítica reproduzível.
+
+Próximas etapas: testes com desenhos reais do escritório, refinamento de comandos CAD, pranchas em escala, biblioteca de detalhes e integração ao Launcher. O ícone específico será criado posteriormente; o pacote usa provisoriamente o símbolo OpenStruct.
+
+## Licença
+
+GPL-3.0-or-later. Consulte [LICENSE](LICENSE) e [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), especialmente a dependência GPL usada para leitura de DWG.
