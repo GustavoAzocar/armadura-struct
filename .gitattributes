@@ -1,0 +1,7 @@
+* text=auto eol=lf
+# Preserve the original bytes and hashes of upstream CAD fixtures.
+*.dwg binary
+*.dxf binary
+*.png binary
+*.ico binary
+*.icns binary

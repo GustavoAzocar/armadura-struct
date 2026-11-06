@@ -1,0 +1,163 @@
+import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+async function command(page: Page, value: string) {
+  const input = page.getByRole('textbox', { name: 'Comando CAD' });
+  await input.fill(value);
+  await input.press('Enter');
+}
+async function saveProject(page: Page) {
+  const event = page.waitForEvent('download');
+  await page
+    .getByRole('button', { name: 'Salvar projeto', exact: true })
+    .click();
+  const download = await event;
+  return JSON.parse(readFileSync((await download.path())!, 'utf8'));
+}
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
+});
+test('CAD completo: desenhar, quantificar, rebater, distribuir, desfazer e reabrir', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.getByRole('button', { name: 'Novo projeto', exact: true }).click();
+  await page.getByRole('dialog').getByRole('textbox').fill('Teste da viga');
+  await page.getByRole('button', { name: 'Criar projeto' }).click();
+  await command(page, 'B');
+  await command(page, '0,0');
+  await command(page, '1000,0');
+  await command(page, '@0,500');
+  await command(page, '');
+  await page.keyboard.press('Escape');
+  await expect(page.getByLabel('Posição', { exact: true })).toHaveValue('N1');
+  await page.getByLabel('Quantidade', { exact: true }).fill('4');
+  await page.getByLabel('Quantidade', { exact: true }).press('Tab');
+  await command(page, 'R');
+  await command(page, '0,-700');
+  await command(page, 'D');
+  await command(page, '1000,0');
+  await page.keyboard.press('Escape');
+  let saved = await saveProject(page);
+  expect(saved.bars).toHaveLength(1);
+  expect(saved.bars[0].quantity).toBe(4);
+  expect(saved.details).toHaveLength(1);
+  expect(saved.bars[0].distribution.end.x).toBe(1000);
+  await page.getByRole('button', { name: 'Desfazer', exact: true }).click();
+  saved = await saveProject(page);
+  expect(saved.bars[0].distribution).toBeUndefined();
+  await page.getByRole('button', { name: 'Refazer', exact: true }).click();
+  await command(page, 'E');
+  await command(page, '1500,0');
+  await command(page, '1800,500');
+  await page.keyboard.press('Escape');
+  await expect(page.getByLabel('Largura no eixo')).toHaveValue('300');
+  const before = await saveProject(page);
+  expect(before.bars).toHaveLength(2);
+  await page.getByTestId('project-input').setInputFiles({
+    name: 'reaberto.armstruct.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(before)),
+  });
+  expect(await saveProject(page)).toEqual(before);
+  await page.waitForTimeout(700);
+  await page.reload();
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
+  expect((await saveProject(page)).bars).toHaveLength(2);
+  await page
+    .locator('.document-tabs')
+    .getByRole('button', { name: /Quadro de aço/ })
+    .click();
+  await expect(page.getByRole('table')).toBeVisible();
+  await expect(
+    page.getByRole('table').getByText('N2', { exact: true }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('DWG real carrega localmente e mantém máscara no projeto', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page
+    .getByTestId('mask-input')
+    .setInputFiles('tests/fixtures/entities-2d.dwg');
+  await expect(page.locator('.mask-heading')).toContainText('entities-2d.dwg', {
+    timeout: 65000,
+  });
+  const project = await saveProject(page);
+  const m = project.masks.at(-1);
+  expect(m.format).toBe('DWG');
+  expect(m.primitives.length).toBeGreaterThan(5);
+  expect(
+    m.primitives.every((p: any) =>
+      p.points.every((q: any) => Number.isFinite(q.x) && Number.isFinite(q.y)),
+    ),
+  ).toBe(true);
+  expect(errors).toEqual([]);
+});
+test('DXF real, camadas, escala e arquivo inválido', async ({ page }) => {
+  await page
+    .getByTestId('mask-input')
+    .setInputFiles('tests/fixtures/entities-2d.dxf');
+  await expect(page.locator('.mask-heading')).toContainText('entities-2d.dxf');
+  let project = await saveProject(page);
+  expect(project.masks).toHaveLength(2);
+  await page.getByTestId('mask-input').setInputFiles({
+    name: 'invalido.dwg',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from('não é DWG'),
+  });
+  await expect(page.getByRole('status')).toContainText('Cabeçalho DWG');
+  project = await saveProject(page);
+  expect(project.masks).toHaveLength(2);
+});
+test('exports PDF/DXF/CSV e edição do quadro', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  for (const label of ['PDF', 'DXF']) {
+    const event = page.waitForEvent('download');
+    await page.getByRole('button', { name: label, exact: true }).click();
+    const d = await event;
+    const bytes = readFileSync((await d.path())!);
+    expect(bytes.length).toBeGreaterThan(1000);
+    expect(bytes.toString('utf8', 0, 5)).toBe(
+      label === 'PDF' ? '%PDF-' : '0\r\nSE',
+    );
+  }
+  await page.getByRole('tab', { name: 'Arquivo', exact: true }).click();
+  const event = page.waitForEvent('download');
+  await page.getByRole('button', { name: /CSV/ }).click();
+  expect((await event).suggestedFilename()).toMatch(/\.csv$/);
+  expect(errors).toEqual([]);
+});
+test('seleção por mouse, alteração de seção e enquadramento sem cortes', async ({
+  page,
+}) => {
+  await page.locator('.bar-row').filter({ hasText: 'N3' }).click();
+  await page.getByLabel('Largura no eixo').fill('300');
+  await page.getByLabel('Largura no eixo').press('Tab');
+  expect((await saveProject(page)).bars[2].width).toBe(300);
+  await page.getByRole('button', { name: 'Alternar fundo do desenho' }).click();
+  await expect(page.locator('.cad-light')).toBeVisible();
+  await page.getByRole('button', { name: 'Alternar fundo do desenho' }).click();
+  await page.getByRole('button', { name: 'Fechar aviso' }).click();
+  await page.screenshot({ path: 'docs/preview.png' });
+});
+
+test('seguir fôrma por clique aplica cobrimento', async ({ page }) => {
+  await page.getByRole('button', { name: 'Seguir fôrma', exact: true }).click();
+  const location = await page.getByTestId('cad-canvas').evaluate((svg) => {
+    const g = svg.querySelector('g[transform]') as SVGGElement;
+    const p = new DOMPoint(2500, 600).matrixTransform(g.getScreenCTM()!);
+    return { x: p.x, y: p.y };
+  });
+  await page.mouse.click(location.x, location.y);
+  await expect(page.getByLabel('Posição', { exact: true })).toHaveValue('N4');
+  const saved = await saveProject(page),
+    bar = saved.bars.at(-1);
+  expect(bar.origin).toEqual({ x: 34, y: 34 });
+  expect(Math.max(...bar.points.map((p: any) => p.x))).toBe(4932);
+  expect(Math.max(...bar.points.map((p: any) => p.y))).toBe(532);
+});
