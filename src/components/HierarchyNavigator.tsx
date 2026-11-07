@@ -1,4 +1,4 @@
-import { detailTitle } from '../domain/detailQuantities';
+import { detailTitle, barSearchText } from '../domain/detailQuantities';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import type { Project } from '../domain/types';
@@ -164,7 +164,7 @@ export default function HierarchyNavigator({
   const query = normalize(search.trim());
   const match = (text: string) => normalize(text).includes(query);
   const objects = [
-    ...project.bars.map((b) => ({ id: b.id, text: `${b.mark} ${b.element}` })),
+    ...project.bars.map((b) => ({ id: b.id, text: barSearchText(b) })),
     ...project.masks.map((m) => ({ id: m.id, text: m.name })),
     ...project.annotations.map((a) => ({
       id: a.id,

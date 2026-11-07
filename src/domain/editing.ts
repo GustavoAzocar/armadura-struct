@@ -1,3 +1,4 @@
+export { quantityForSpacing } from './detailQuantities';
 import { fabricationPositions } from './fabrication';
 import {
   add,
@@ -139,10 +140,15 @@ export function joinBars(project: Project, ids: string[]): Project {
     a.diameter !== b.diameter ||
     a.steel !== b.steel ||
     a.quantity !== b.quantity ||
+    (a.multiplier ?? 1) !== (b.multiplier ?? 1) ||
+    (a.comment ?? '') !== (b.comment ?? '') ||
+    (a.ribbed ?? false) !== (b.ribbed ?? false) ||
+    (a.showRibbed ?? false) !== (b.showRibbed ?? false) ||
+    (a.columnLevel ?? '') !== (b.columnLevel ?? '') ||
     a.mandrel !== b.mandrel
   )
     throw new Error(
-      'As barras precisam ter a mesma bitola, aço, quantidade e mandril.',
+      'As barras precisam ter a mesma bitola, aço, quantidade base, multiplicador, dados de montagem e mandril.',
     );
   let best:
     | { first: typeof a.points; second: typeof b.points; gap: number }
@@ -184,20 +190,6 @@ export function joinBars(project: Project, ids: string[]): Project {
     },
     ownerA || project.hierarchy.details[0].id,
   );
-}
-
-export function quantityForSpacing(length: number, spacing: number) {
-  if (
-    !Number.isFinite(length) ||
-    !Number.isFinite(spacing) ||
-    length <= 0 ||
-    spacing <= 0
-  )
-    throw new Error('Defina um comprimento e espaçamento positivos.');
-  const quantity = Math.ceil(length / spacing) + 1;
-  if (quantity > 100000)
-    throw new Error('A faixa excede 100.000 peças. Aumente o espaçamento.');
-  return quantity;
 }
 
 /** A translation moves the physical occurrence and its linked range together. */

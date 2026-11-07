@@ -27,6 +27,13 @@ const knownBarFields = new Set([
   'distribution',
   'color',
   'manufacturing',
+  'multiplier',
+  'quantitySource',
+  'quantityDisplay',
+  'comment',
+  'ribbed',
+  'showRibbed',
+  'columnLevel',
 ]);
 /** Ordered edge lengths and signed turns preserve handedness; translation/rotation never enter. */
 export function fabricationSignature(

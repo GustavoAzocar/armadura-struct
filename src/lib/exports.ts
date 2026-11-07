@@ -1,3 +1,4 @@
+import { quantitySourceLabel } from '../domain/detailQuantities';
 import { jsPDF } from 'jspdf';
 import { bounds, format } from '../domain/geometry';
 import {
@@ -193,6 +194,13 @@ export function toCsv(p: Project) {
         'Fórmula da quantidade',
         'C. unit. mínimo (m)',
         'C. unit. máximo (m)',
+        'Multiplicador da armadura',
+        'Quantidade por detalhe',
+        'Origem da quantidade base',
+        'Observação',
+        'Por nervura',
+        'Mostrar C/NERV',
+        'Lance',
       ],
       ...schedule(p).map((r) => [
         r.mark,
@@ -212,6 +220,15 @@ export function toCsv(p: Project) {
         scheduleQuantityLabel(r),
         String(r.unitLengthRange[0]),
         String(r.unitLengthRange[1]),
+        r.multiplier ?? r.contributions.map((c) => c.multiplier).join('/'),
+        r.perDetailQuantity,
+        r.contributions
+          .map((c) => quantitySourceLabel(c.quantitySource))
+          .join(' / '),
+        r.contributions.map((c) => c.comment).join(' / '),
+        r.contributions.map((c) => (c.ribbed ? 'Sim' : 'Não')).join('/'),
+        r.contributions.map((c) => (c.showRibbed ? 'Sim' : 'Não')).join('/'),
+        r.contributions.map((c) => c.columnLevel).join(' / '),
       ]),
     ]
       .map((row) => row.map(safe).join(';'))

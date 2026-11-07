@@ -2,6 +2,10 @@ import {
   quantityLabel,
   barQuantities,
   detailTitle,
+  barSearchText,
+  assemblyLabel,
+  quantitySourceLabel,
+  quantityExpression,
 } from '../domain/detailQuantities';
 import { annotationError } from '../domain/drafting';
 import HierarchyNavigator from './HierarchyNavigator';
@@ -44,6 +48,7 @@ export function NumberField({
   max = 1e9,
   step = 'any',
   suffix,
+  disabled = false,
 }: {
   label: string;
   compactLabel?: string;
@@ -53,6 +58,7 @@ export function NumberField({
   max?: number;
   step?: number | 'any';
   suffix?: string;
+  disabled?: boolean;
 }) {
   const [text, setText] = useState(String(value));
   const cancelled = useRef(false);
@@ -80,6 +86,7 @@ export function NumberField({
       <div className="input-suffix">
         <input
           aria-label={label}
+          disabled={disabled}
           value={text}
           inputMode="decimal"
           onChange={(e) => setText(e.target.value)}
@@ -297,6 +304,11 @@ export function Inspector({
               <div className="fields-2">
                 <NumberField
                   label="Quantidade"
+                  compactLabel="Peças por grupo"
+                  disabled={
+                    bar.quantitySource?.kind === 'distribution' &&
+                    bar.quantitySource.mode === 'spacing'
+                  }
                   min={bar.distribution ? 2 : 1}
                   max={100000}
                   step={1}
@@ -314,11 +326,117 @@ export function Inspector({
                 </label>
               </div>
             </Section>
-            <p className="field-help" data-testid="bar-effective-quantity">
-              Quantidade base {bar.quantity} ×{' '}
-              {barQuantities(project, bar).repetitions} repetições ={' '}
-              {barQuantities(project, bar).quantity} peças efetivas.
-            </p>
+            <Section title="Composição da quantidade">
+              <div className="fields-2">
+                <NumberField
+                  label="Multiplicador da armadura"
+                  compactLabel="Grupos da armadura"
+                  value={bar.multiplier ?? 1}
+                  min={1}
+                  max={10000}
+                  step={1}
+                  onChange={(multiplier) => onBar({ multiplier })}
+                />
+                <label className="field">
+                  <span>Descrição da quantidade</span>
+                  <select
+                    aria-label="Descrição da quantidade"
+                    value={bar.quantityDisplay ?? 'factored'}
+                    onChange={(e) =>
+                      onBar({
+                        quantityDisplay: e.target.value as 'factored' | 'total',
+                      })
+                    }
+                  >
+                    <option value="factored">Fatorada</option>
+                    <option value="total">Total efetivo</option>
+                  </select>
+                </label>
+              </div>
+              <label className="field">
+                <span>Origem da quantidade base</span>
+                <select
+                  aria-label="Origem da quantidade base"
+                  value={
+                    bar.quantitySource?.kind === 'distribution'
+                      ? bar.quantitySource.mode
+                      : 'manual'
+                  }
+                  onChange={(e) =>
+                    onBar({
+                      quantitySource:
+                        e.target.value === 'manual'
+                          ? { kind: 'manual' }
+                          : e.target.value === 'quantity'
+                            ? { kind: 'distribution', mode: 'quantity' }
+                            : {
+                                kind: 'distribution',
+                                mode: 'spacing',
+                                spacing:
+                                  distance(
+                                    bar.distribution!.start ?? bar.origin,
+                                    bar.distribution!.end,
+                                  ) / Math.max(1, bar.quantity - 1),
+                              },
+                    })
+                  }
+                >
+                  <option value="manual">Manual</option>
+                  <option value="quantity" disabled={!bar.distribution}>
+                    Faixa · quantidade fixa
+                  </option>
+                  <option value="spacing" disabled={!bar.distribution}>
+                    Faixa · espaçamento máximo
+                  </option>
+                </select>
+              </label>
+              <p className="field-help" data-testid="bar-effective-quantity">
+                Base {bar.quantity} × {bar.multiplier ?? 1} grupos ×{' '}
+                {barQuantities(project, bar).repetitions} repetições do detalhe
+                = <b>{barQuantities(project, bar).quantity} peças efetivas</b>.
+                Por detalhe: {barQuantities(project, bar).perDetailQuantity}.
+                Origem: {quantitySourceLabel(bar.quantitySource)}.
+              </p>
+            </Section>
+            <details className="assembly-fields">
+              <summary>Montagem · nervura, observação e lance</summary>
+              <TextField
+                label="Observação da armadura"
+                value={bar.comment ?? ''}
+                maxLength={500}
+                allowEmpty
+                onChange={(comment) => onBar({ comment })}
+              />
+              <TextField
+                label="Referência ao lance"
+                value={bar.columnLevel ?? ''}
+                maxLength={100}
+                allowEmpty
+                onChange={(columnLevel) => onBar({ columnLevel })}
+              />
+              <label className="transfer-checkbox">
+                <input
+                  type="checkbox"
+                  aria-label="Armadura por nervura"
+                  checked={bar.ribbed ?? false}
+                  onChange={(e) => onBar({ ribbed: e.target.checked })}
+                />
+                Armadura por nervura
+              </label>
+              <label className="transfer-checkbox">
+                <input
+                  type="checkbox"
+                  aria-label="Mostrar indicação por nervura"
+                  checked={bar.showRibbed ?? false}
+                  onChange={(e) => onBar({ showRibbed: e.target.checked })}
+                />
+                Mostrar C/NERV na descrição
+              </label>
+              <p className="field-help">
+                Nervura, observação e lance identificam a montagem. Estes campos
+                não acrescentam peças nem verificam o dimensionamento.
+              </p>
+            </details>
             <details className="manufacturing-fields">
               <summary>Fabricação · terminações e variante</summary>
               <label className="field">
@@ -504,11 +622,14 @@ export function Inspector({
                   label="Espaçamento máximo"
                   min={1}
                   value={
-                    distance(
-                      bar.distribution.start ?? bar.origin,
-                      bar.distribution.end,
-                    ) /
-                    (bar.quantity - 1)
+                    bar.quantitySource?.kind === 'distribution' &&
+                    bar.quantitySource.mode === 'spacing'
+                      ? bar.quantitySource.spacing
+                      : distance(
+                          bar.distribution.start ?? bar.origin,
+                          bar.distribution.end,
+                        ) /
+                        (bar.quantity - 1)
                   }
                   suffix="mm"
                   onChange={onDistributionSpacing}
@@ -847,7 +968,7 @@ export function ProjectTree({
   const owns = (id: string) =>
     project.hierarchy.objectDetails[id] === activeDetailId;
   const bars = project.bars.filter(
-    (b) => owns(b.id) && (!search || match(`${b.mark} ${b.element}`)),
+    (b) => owns(b.id) && (!search || match(barSearchText(b))),
   );
   const masks = project.masks.filter(
     (m) => owns(m.id) && (!search || match(m.name)),
@@ -967,7 +1088,10 @@ export function ProjectTree({
                     {b.kind === 'stirrup' ? 'Estribo' : 'Barra'} Ø
                     {format(b.diameter, b.diameter % 1 ? 1 : 0)}
                   </b>
-                  <small>{b.element}</small>
+                  <small>
+                    {b.element}
+                    {assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}
+                  </small>
                 </span>
                 <em>{quantityLabel(project, b)}</em>
               </button>
@@ -1168,7 +1292,14 @@ export function Schedule({
                 </td>
                 <td>
                   {r.element}
-                  {r.contributions.length > 1 && (
+                  {(r.contributions.length > 1 ||
+                    r.contributions.some(
+                      (c) =>
+                        c.comment ||
+                        c.columnLevel ||
+                        c.ribbed ||
+                        c.multiplier > 1,
+                    )) && (
                     <details
                       className="fabrication-contributions"
                       onClick={(e) => e.stopPropagation()}
@@ -1185,9 +1316,11 @@ export function Schedule({
                           <br />
                           {c.origin}
                           <br />
-                          {c.baseQuantity} × {c.repetitions} = {c.quantity}{' '}
-                          peças · {format(c.unitLength, 6)} m ·{' '}
-                          {format(c.weight, 4)} kg
+                          {quantityExpression(c)} = {c.quantity} peças ·{' '}
+                          {format(c.unitLength, 6)} m · {format(c.weight, 4)} kg
+                          <br />
+                          {assemblyLabel(c)} ·{' '}
+                          {quantitySourceLabel(c.quantitySource)}
                         </p>
                       ))}
                     </details>
@@ -1196,7 +1329,7 @@ export function Schedule({
                 <td>
                   {r.steel} / {format(r.diameter, r.diameter % 1 ? 1 : 0)}
                 </td>
-                <td title="Quantidade base × repetições = quantidade efetiva">
+                <td title="Base × grupos da armadura × repetições do detalhe = quantidade efetiva">
                   {scheduleQuantityLabel(r)}
                 </td>
                 <td

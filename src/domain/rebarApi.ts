@@ -4,11 +4,12 @@ import {
   ungroupFabrication,
   validateFabrication,
 } from './fabrication';
-import { barQuantities } from './detailQuantities';
+import { barQuantities, validateBarQuantity } from './detailQuantities';
 import { z } from 'zod';
 import {
   detailContentSchema,
   manufacturingSchema,
+  quantitySourceSchema,
   newBar,
   nextMark,
   scheduleChanged,
@@ -57,6 +58,15 @@ export const REBAR_CAPABILITIES = Object.freeze({
     'representation.delete',
   ] as const),
   fabrication: FABRICATION_RULES,
+  armatureQuantities: Object.freeze({
+    maxMultiplier: 10000,
+    baseSources: Object.freeze([
+      'manual',
+      'distribution-quantity',
+      'distribution-spacing',
+    ] as const),
+    assemblyMetadataDoesNotAddSteel: true,
+  }),
   distributionsPerPosition: 1,
   maxBatchOperations: 10000,
   atomicBatches: true,
@@ -66,6 +76,13 @@ const number = z.number().finite();
 const point = z.object({ x: number, y: number }).strict();
 const id = z.string().min(1).max(200);
 const common = {
+  multiplier: z.number().int().min(1).max(10000).optional(),
+  quantitySource: quantitySourceSchema.optional(),
+  quantityDisplay: z.enum(['factored', 'total']).optional(),
+  comment: z.string().trim().max(500).optional(),
+  ribbed: z.boolean().optional(),
+  showRibbed: z.boolean().optional(),
+  columnLevel: z.string().trim().max(100).optional(),
   manufacturing: manufacturingSchema.optional(),
   mark: z.string().trim().min(1).max(40).optional(),
   element: z.string().max(100).optional(),
@@ -193,7 +210,7 @@ const commandSchema = z.discriminatedUnion('type', [
       count: z.discriminatedUnion('mode', [
         z
           .object({
-            mode: z.literal('quantity'),
+            mode: z.enum(['quantity', 'manual']),
             quantity: z.number().int().min(2).max(100000),
           })
           .strict(),
@@ -363,6 +380,13 @@ export function validateRebarChange(
     if (!valid.success) {
       errors.push(...fields(valid.error, b.id));
       continue;
+    }
+    try {
+      validateBarQuantity(b);
+    } catch (e) {
+      errors.push(
+        issue('INVALID_FIELD', (e as Error).message, 'quantitySource', b.id),
+      );
     }
     const g = geometry(b);
     for (const message of g.errors)
@@ -534,6 +558,25 @@ function perform(
     touched.push(id);
   } else if (c.type === 'bar.update') {
     const b = barById(p, c.id);
+    const source = c.patch.quantitySource ?? b.quantitySource;
+    if (source?.kind === 'distribution' && !b.distribution)
+      fail(
+        'INVALID_DISTRIBUTION',
+        'Vincule uma faixa antes de usar sua quantidade.',
+        'patch.quantitySource',
+        b.id,
+      );
+    if (
+      c.patch.quantity !== undefined &&
+      source?.kind === 'distribution' &&
+      source.mode === 'spacing'
+    )
+      fail(
+        'INVALID_FIELD',
+        'A quantidade base vem do espaçamento da faixa. Altere o espaçamento ou mude a origem para manual/quantidade fixa.',
+        'patch.quantity',
+        b.id,
+      );
     if (c.patch.kind !== b.kind)
       fail(
         'FAMILY_MISMATCH',
@@ -614,14 +657,33 @@ function perform(
     const b = barById(p, c.barId),
       length = distance(c.distribution.start ?? b.origin, c.distribution.end);
     const quantity =
-      c.count.mode === 'quantity'
-        ? c.count.quantity
-        : quantityForSpacing(length, c.count.spacing);
-    next = replace(p, { ...b, quantity, distribution: c.distribution });
+      c.count.mode === 'spacing'
+        ? quantityForSpacing(length, c.count.spacing)
+        : c.count.quantity;
+    const quantitySource =
+      c.count.mode === 'manual'
+        ? { kind: 'manual' as const }
+        : c.count.mode === 'spacing'
+          ? {
+              kind: 'distribution' as const,
+              mode: 'spacing' as const,
+              spacing: c.count.spacing,
+            }
+          : { kind: 'distribution' as const, mode: 'quantity' as const };
+    next = replace(p, {
+      ...b,
+      quantity,
+      quantitySource,
+      distribution: c.distribution,
+    });
     touched.push(b.id);
   } else if (c.type === 'distribution.remove') {
     const b = barById(p, c.barId);
-    next = replace(p, { ...b, distribution: undefined });
+    next = replace(p, {
+      ...b,
+      distribution: undefined,
+      quantitySource: { kind: 'manual' },
+    });
     touched.push(b.id);
   } else if (c.type === 'representation.create') {
     barById(p, c.barId);
@@ -895,6 +957,13 @@ export function rebarDefinition(bar: Bar): RebarDefinition {
     mandrel: bar.mandrel,
     steel: bar.steel,
     quantity: bar.quantity,
+    multiplier: bar.multiplier,
+    quantitySource: bar.quantitySource,
+    quantityDisplay: bar.quantityDisplay,
+    comment: bar.comment,
+    ribbed: bar.ribbed,
+    showRibbed: bar.showRibbed,
+    columnLevel: bar.columnLevel,
     color: bar.color,
   };
   return bar.kind === 'free'

@@ -1,3 +1,4 @@
+import { recalculateBarQuantity } from './detailQuantities';
 import { reconcileFabrication } from './fabrication';
 import { uid, type Project, type ProjectHierarchy } from './types';
 
@@ -91,8 +92,10 @@ export function completeOwnership(
   const objectOrigins = Object.fromEntries(
     Object.entries(h.objectOrigins).filter(([id]) => live.has(id)),
   );
+  const bars = project.bars.map(recalculateBarQuantity);
   return reconcileFabrication({
     ...project,
+    bars: bars.every((b, i) => b === project.bars[i]) ? project.bars : bars,
     hierarchy: { ...h, objectDetails: owners, objectOrigins },
   });
 }

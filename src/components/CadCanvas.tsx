@@ -1,4 +1,8 @@
-import { quantityLabel, detailTitle } from '../domain/detailQuantities';
+import {
+  quantityLabel,
+  detailTitle,
+  assemblyLabel,
+} from '../domain/detailQuantities';
 import {
   forwardRef,
   useEffect,
@@ -658,6 +662,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 {format(b.diameter, b.diameter % 1 ? 1 : 0)} · C=
                 {format(g.length / 10)} cm
               </tspan>
+              {assemblyLabel(b) && <tspan> · {assemblyLabel(b)}</tspan>}
               {isDetail && (
                 <tspan fill={light ? '#6a7283' : '#71829d'}>
                   {' '}

@@ -162,6 +162,7 @@ function physicalSignature(bars: Bar[]) {
         mandrel: b.mandrel,
         steel: b.steel,
         quantity: b.quantity,
+        multiplier: b.multiplier ?? 1,
       }))
       .sort((a, b) => a.id.localeCompare(b.id)),
   );
@@ -544,7 +545,7 @@ export function previewDetailTransfer(
         const label =
           object.label ||
           (old && !object.kind.startsWith('dimension-')
-            ? barCaption(old)
+            ? barCaption(old, side === 'incoming' ? source : target)
             : object.label);
         return { ...object, barId: undefined, label } as T;
       }

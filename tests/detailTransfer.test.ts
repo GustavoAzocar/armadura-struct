@@ -198,7 +198,7 @@ describe('selective detail insertion and revision', () => {
     raw.schema = 'armadurastruct/5';
     delete raw.hierarchy.objectOrigins;
     const migrated = decodeProject(JSON.stringify(raw));
-    expect(migrated.schema).toBe('armadurastruct/8');
+    expect(migrated.schema).toBe('armadurastruct/9');
     expect(migrated.bars).toEqual(p.bars);
     expect(migrated.annotations).toEqual(p.annotations);
     expect(migrated.details).toEqual(p.details);

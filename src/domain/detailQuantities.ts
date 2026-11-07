@@ -1,4 +1,10 @@
-import type { Bar, DetailRepetition, Project } from './types';
+import { distance } from './geometry';
+import type {
+  Bar,
+  BarQuantitySource,
+  DetailRepetition,
+  Project,
+} from './types';
 
 export function repetitionNames(
   p: Project,
@@ -42,17 +48,114 @@ export function quantityContext(p: Project, b: Bar) {
     detailTitle: d?.repetition ? detailTitle(p, owner) : '',
   };
 }
+/** This is the only composition of per-armature and per-detail factors. */
 export function barQuantities(p: Project, b: Bar) {
   const context = quantityContext(p, b);
   return {
     ...context,
-    baseQuantity: b.quantity,
-    quantity: b.quantity * context.repetitions,
+    ...localBarQuantities(b),
+    quantity: b.quantity * (b.multiplier ?? 1) * context.repetitions,
   };
 }
-export function quantityLabel(p: Project, b: Bar): string {
-  const q = barQuantities(p, b);
-  return q.repetitions > 1
-    ? `${q.baseQuantity} × ${q.repetitions} = ${q.quantity}`
+export function localBarQuantities(b: Bar) {
+  const multiplier = b.multiplier ?? 1;
+  return {
+    baseQuantity: b.quantity,
+    multiplier,
+    perDetailQuantity: b.quantity * multiplier,
+    quantitySource: b.quantitySource ?? { kind: 'manual' as const },
+  };
+}
+export function quantityExpression(
+  q: { baseQuantity: number; multiplier: number; repetitions: number },
+  spaced = true,
+) {
+  return [
+    q.baseQuantity,
+    ...(q.multiplier > 1 ? [q.multiplier] : []),
+    ...(q.repetitions > 1 ? [q.repetitions] : []),
+  ].join(spaced ? ' × ' : '×');
+}
+export function quantityLabel(p: Project | undefined, b: Bar): string {
+  const q = p
+    ? barQuantities(p, b)
+    : {
+        ...localBarQuantities(b),
+        repetitions: 1,
+        quantity: b.quantity * (b.multiplier ?? 1),
+      };
+  if (b.quantityDisplay === 'total') return String(q.quantity);
+  return q.multiplier > 1 || q.repetitions > 1
+    ? `${quantityExpression(q)} = ${q.quantity}`
     : String(q.baseQuantity);
+}
+export function assemblyLabel(
+  b: Pick<Bar, 'ribbed' | 'showRibbed' | 'columnLevel' | 'comment'>,
+): string {
+  return [
+    b.ribbed && b.showRibbed ? 'C/NERV' : '',
+    b.columnLevel ? `Lance ${b.columnLevel}` : '',
+    b.comment ?? '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+export function barSearchText(b: Bar) {
+  return `${b.id} ${b.mark} ${b.element} ${b.comment ?? ''} ${b.columnLevel ?? ''} ${b.ribbed ? 'nervura nervurada' : ''}`;
+}
+export function quantityForSpacing(length: number, spacing: number) {
+  if (
+    !Number.isFinite(length) ||
+    !Number.isFinite(spacing) ||
+    length <= 0 ||
+    spacing <= 0
+  )
+    throw new Error('Defina um comprimento e espaçamento positivos.');
+  // Relative epsilon prevents ceil(3.0000000000000004) after unit conversion.
+  const intervals = length / spacing;
+  const quantity = Math.ceil(intervals - 1e-12 * Math.max(1, intervals)) + 1;
+  if (quantity > 100000)
+    throw new Error('A faixa excede 100.000 peças. Aumente o espaçamento.');
+  return Math.max(2, quantity);
+}
+export function expectedBaseQuantity(b: Bar): number {
+  const source = b.quantitySource;
+  if (source?.kind !== 'distribution') return b.quantity;
+  if (!b.distribution)
+    throw new Error(
+      'Quantidade com origem na faixa exige uma distribuição vinculada.',
+    );
+  return source.mode === 'spacing'
+    ? quantityForSpacing(
+        distance(b.distribution.start ?? b.origin, b.distribution.end),
+        source.spacing,
+      )
+    : b.quantity;
+}
+/** Only an edit recomputes a dependent base; readers reject a stale persisted cache. */
+export function recalculateBarQuantity(b: Bar): Bar {
+  const quantity = expectedBaseQuantity(b);
+  return quantity === b.quantity ? b : { ...b, quantity };
+}
+export function validateBarQuantity(b: Bar) {
+  if (expectedBaseQuantity(b) !== b.quantity)
+    throw new Error(
+      `Quantidade base de ${b.mark} não corresponde ao espaçamento da faixa.`,
+    );
+}
+export function quantitySourceLabel(source: BarQuantitySource): string {
+  return source.kind === 'manual'
+    ? 'Manual'
+    : source.mode === 'quantity'
+      ? 'Faixa · quantidade fixa'
+      : `Faixa · espaçamento máximo ${source.spacing} mm`;
+}
+/** Older formats may include harmless new defaults but cannot carry new effective factors. */
+export function hasArmatureData(b: Bar): boolean {
+  return (
+    (b.multiplier ?? 1) !== 1 ||
+    (b.quantitySource?.kind ?? 'manual') !== 'manual' ||
+    !!(b.comment || b.ribbed || b.showRibbed || b.columnLevel) ||
+    b.quantityDisplay === 'total'
+  );
 }

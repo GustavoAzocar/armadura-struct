@@ -22,7 +22,15 @@ export {
   previewMergeRepetitions,
   applyMergeRepetitions,
 } from './domain/detailRepetition';
-export { barQuantities, detailTitle } from './domain/detailQuantities';
+export {
+  barQuantities,
+  detailTitle,
+  localBarQuantities,
+  quantityLabel,
+  quantityExpression,
+  quantitySourceLabel,
+  assemblyLabel,
+} from './domain/detailQuantities';
 export type { DetailRepetition } from './domain/types';
 
 export {
@@ -38,4 +46,5 @@ export type {
   FabricationPosition,
   BarTermination,
   ScheduleContribution,
+  BarQuantitySource,
 } from './domain/types';

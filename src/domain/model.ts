@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { fabricationPositions, validateFabrication } from './fabrication';
-import { quantityContext } from './detailQuantities';
+import {
+  quantityContext,
+  localBarQuantities,
+  quantityExpression,
+  validateBarQuantity,
+  hasArmatureData,
+} from './detailQuantities';
 import { geometry, vertices, world } from './geometry';
 import { uid, type Bar, type Project, type ScheduleRow } from './types';
 import {
@@ -144,8 +150,31 @@ export const fabricationPositionSchema = z
     signature: z.string().max(200000),
   })
   .strict();
+export const quantitySourceSchema = z.union([
+  z.object({ kind: z.literal('manual') }).strict(),
+  z
+    .object({ kind: z.literal('distribution'), mode: z.literal('quantity') })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('distribution'),
+      mode: z.literal('spacing'),
+      spacing: number.positive(),
+    })
+    .strict(),
+]);
+export const armatureDataSchema = {
+  multiplier: z.number().int().min(1).max(10000).default(1),
+  quantitySource: quantitySourceSchema.default({ kind: 'manual' }),
+  quantityDisplay: z.enum(['factored', 'total']).optional(),
+  comment: z.string().trim().max(500).optional(),
+  ribbed: z.boolean().optional(),
+  showRibbed: z.boolean().optional(),
+  columnLevel: z.string().trim().max(100).optional(),
+};
 const barSchema = z
   .object({
+    ...armatureDataSchema,
     manufacturing: manufacturingSchema.optional(),
     id: z.string(),
     mark: z.string().min(1).max(40),
@@ -181,6 +210,7 @@ const schema = z.object({
     'armadurastruct/6',
     'armadurastruct/7',
     'armadurastruct/8',
+    'armadurastruct/9',
   ]),
   sheets: z
     .array(
@@ -347,7 +377,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/5' ||
     parsed.schema === 'armadurastruct/6' ||
     parsed.schema === 'armadurastruct/7' ||
-    parsed.schema === 'armadurastruct/8';
+    parsed.schema === 'armadurastruct/8' ||
+    parsed.schema === 'armadurastruct/9';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -383,7 +414,15 @@ export function decodeProject(
   );
   let sheetId = `${id}:sheet`;
   while (occupied.has(sheetId)) sheetId += '-';
-  const v8 = parsed.schema === 'armadurastruct/8';
+  const v9 = parsed.schema === 'armadurastruct/9';
+  if (
+    !v9 &&
+    [...parsed.bars, ...(parsed.scheduleLock?.bars ?? [])].some(hasArmatureData)
+  )
+    throw new Error(
+      'Composição de quantidade/metadados da armadura exige o formato 9.',
+    );
+  const v8 = parsed.schema === 'armadurastruct/8' || v9;
   if (v8 && !parsed.fabricationPositions)
     throw new Error('Projeto v8 sem posições de fabricação.');
   if (!v8 && parsed.fabricationPositions?.some((g) => g.barIds.length > 1))
@@ -450,7 +489,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/8',
+    schema: 'armadurastruct/9',
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -466,6 +505,8 @@ export function decodeProject(
       objectOrigins: hierarchy.objectOrigins ?? {},
     },
   };
+  for (const b of [...p.bars, ...(p.scheduleLock?.bars ?? [])])
+    validateBarQuantity(b);
   for (const sheet of p.sheets) validateSheetLayout(sheet);
   const ids = p.bars.map((b) => b.id);
   if (new Set(ids).size !== ids.length)
@@ -558,6 +599,8 @@ export function newBar(mark: string): Bar {
     mandrel: 40,
     steel: 'CA-50',
     quantity: 1,
+    multiplier: 1,
+    quantitySource: { kind: 'manual' },
     color: '#4b71e8',
   };
 }
@@ -576,7 +619,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/8',
+    schema: 'armadurastruct/9',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),
@@ -638,7 +681,8 @@ export function schedule(p: Project): ScheduleRow[] {
                 detailTitle: '',
               })
             : quantityContext(p, b);
-        const quantity = b.quantity * context.repetitions,
+        const local = localBarQuantities(b);
+        const quantity = local.perDetailQuantity * context.repetitions,
           totalLength = (g.length * quantity) / 1000;
         return {
           barId: b.id,
@@ -648,7 +692,11 @@ export function schedule(p: Project): ScheduleRow[] {
             '',
           origin:
             p.scheduleLock?.origins?.[b.id] ?? contributionOrigin(p, b.id),
-          baseQuantity: b.quantity,
+          ...local,
+          comment: b.comment ?? '',
+          ribbed: b.ribbed ?? false,
+          showRibbed: b.showRibbed ?? false,
+          columnLevel: b.columnLevel ?? '',
           repetitions: context.repetitions,
           quantity,
           unitLength: g.length / 1000,
@@ -678,6 +726,15 @@ export function schedule(p: Project): ScheduleRow[] {
         diameter: bar.diameter,
         quantity,
         baseQuantity: contributions.reduce((n, c) => n + c.baseQuantity, 0),
+        multiplier: contributions.every(
+          (c) => c.multiplier === contributions[0].multiplier,
+        )
+          ? contributions[0].multiplier
+          : null,
+        perDetailQuantity: contributions.reduce(
+          (n, c) => n + c.perDetailQuantity,
+          0,
+        ),
         repetitions: contributions.every(
           (c) => c.repetitions === contributions[0].repetitions,
         )
@@ -697,10 +754,13 @@ export function schedule(p: Project): ScheduleRow[] {
     });
 }
 export function scheduleQuantityLabel(r: ScheduleRow) {
+  const expressions = r.contributions.map((c) =>
+    quantityExpression(c, r.contributions.length === 1),
+  );
   return r.contributions.length > 1
-    ? `${r.contributions.map((c) => (c.repetitions > 1 ? `${c.baseQuantity}×${c.repetitions}` : c.baseQuantity)).join(' + ')} = ${r.quantity}`
-    : (r.repetitions ?? 1) > 1
-      ? `${r.baseQuantity} × ${r.repetitions} = ${r.quantity}`
+    ? `${expressions.join(' + ')} = ${r.quantity}`
+    : r.contributions[0].multiplier > 1 || r.contributions[0].repetitions > 1
+      ? `${expressions[0]} = ${r.quantity}`
       : String(r.quantity);
 }
 export function scheduleChanged(p: Project) {
@@ -716,6 +776,12 @@ export function scheduleChanged(p: Project) {
         steel: b.steel,
         diameter: b.diameter,
         quantity: b.quantity,
+        multiplier: b.multiplier ?? 1,
+        quantitySource: b.quantitySource ?? { kind: 'manual' },
+        comment: b.comment ?? '',
+        ribbed: b.ribbed ?? false,
+        showRibbed: b.showRibbed ?? false,
+        columnLevel: b.columnLevel ?? '',
         kind: b.kind,
         points: b.points,
         width: b.width,

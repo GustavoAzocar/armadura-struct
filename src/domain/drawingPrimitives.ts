@@ -1,4 +1,4 @@
-import { quantityLabel, detailTitle } from './detailQuantities';
+import { quantityLabel, detailTitle, assemblyLabel } from './detailQuantities';
 import { format, geometry, sampled, world, bounds } from './geometry';
 import { maskPrimitives } from '../cad/import';
 import {
@@ -46,7 +46,7 @@ export function drawingPrimitives(
       });
     lines.push(
       label(
-        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
+        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
         { x: b.origin.x, y: b.origin.y - offset(100, 1.8) },
         'IDENTIFICACAO',
       ),
@@ -81,7 +81,7 @@ export function drawingPrimitives(
     });
     lines.push(
       label(
-        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
+        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
         { x: d.origin.x, y: d.origin.y - offset(110, 1.8) },
         'IDENTIFICACAO',
       ),

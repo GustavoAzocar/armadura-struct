@@ -13,7 +13,16 @@ export type Bar = {
   diameter: number;
   mandrel: number;
   steel: 'CA-50' | 'CA-60';
+  /** Pieces per group; never contains armature or detail repetition factors. */
   quantity: number;
+  multiplier: number;
+  quantitySource: BarQuantitySource;
+  quantityDisplay?: 'factored' | 'total';
+  comment?: string;
+  ribbed?: boolean;
+  showRibbed?: boolean;
+  /** Textual assembly reference, independent of floor identity and structural checks. */
+  columnLevel?: string;
   distribution?: { start?: Point; end: Point; render?: 'ticks' | 'bars' };
   color: string;
   /** Fabrication specifications; no implicit added geometry or cut allowance. */
@@ -23,6 +32,10 @@ export type Bar = {
     variant?: string;
   };
 };
+export type BarQuantitySource =
+  | { kind: 'manual' }
+  | { kind: 'distribution'; mode: 'quantity' }
+  | { kind: 'distribution'; mode: 'spacing'; spacing: number };
 export type BarTermination = {
   kind: 'plain' | 'coupler' | 'threaded' | 'headed';
   code: string;
@@ -158,7 +171,7 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/8';
+  schema: 'armadurastruct/9';
   id: string;
   hierarchy: ProjectHierarchy;
   /** Array order is the document order, independent of tab opening order. */
@@ -220,6 +233,13 @@ export type ScheduleContribution = {
   detailId: string;
   origin: string;
   baseQuantity: number;
+  multiplier: number;
+  perDetailQuantity: number;
+  quantitySource: BarQuantitySource;
+  comment: string;
+  ribbed: boolean;
+  showRibbed: boolean;
+  columnLevel: string;
   repetitions: number;
   quantity: number;
   unitLength: number;
@@ -236,6 +256,8 @@ export type ScheduleRow = {
   diameter: number;
   quantity: number;
   baseQuantity: number;
+  multiplier: number | null;
+  perDetailQuantity: number;
   /** Null for a fabrication position with contributions using different detail factors. */
   repetitions: number | null;
   unitLength: number;

@@ -40,6 +40,13 @@ function barKey(b: Bar) {
     steel: b.steel,
     manufacturing: b.manufacturing,
     quantity: b.quantity,
+    multiplier: b.multiplier ?? 1,
+    quantitySource: b.quantitySource ?? { kind: 'manual' },
+    comment: b.comment ?? '',
+    ribbed: b.ribbed ?? false,
+    showRibbed: b.showRibbed ?? false,
+    columnLevel: b.columnLevel ?? '',
+    quantityDisplay: b.quantityDisplay ?? 'factored',
     ...(b.kind === 'free'
       ? { points: b.points.map((p) => sub(p, first)) }
       : { width: b.width, height: b.height, hook: b.hook }),

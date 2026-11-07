@@ -124,7 +124,15 @@ Use **Elementos → Posições de fabricação** para conferir equivalências, s
 
 Alterar uma ocorrência separa sua posição quando a fabricação deixa de coincidir; chamadas mantêm o ID original. Para luvas, roscas/cabeças e variante, expanda **Propriedades → Fabricação**. São especificações por código, sem acréscimo automático de comprimento ou verificação resistente. Consulte [AS-54: uso, regras, contrato e limites](AS-54.md).
 
-### Formato 8 e compatibilidade
+### Quantidade por grupo, nervura e lance
+
+Em **Propriedades**, **Peças por grupo** é a base. Em **Composição da quantidade**, informe o número de **Grupos da armadura** e confira base × multiplicador × repetição do detalhe. Exemplo: 2 × 3 × 4 = 24, independentemente das vistas. Voltar um fator a 1 remove somente esse fator. A repetição global do detalhe continua no comando da AS-03.
+
+A origem da base pode ser manual ou, quando houver faixa vinculada, quantidade fixa/espaçamento máximo. No modo por espaçamento, altere o limite da faixa; a base será recalculada. Remover a distribuição conserva a última base e volta à origem manual. A apresentação pode ser fatorada ou total.
+
+Expanda **Montagem · nervura, observação e lance** para registrar informações e controlar a indicação `C/NERV`. Esses campos são metadados: ativá-los não acrescenta grupos. A pesquisa encontra observação e lance, e o quadro mostra os fatores e os dados por contribuição. Consulte [AS-56: regras, API, persistência e limites](AS-56.md).
+
+### Formato 9 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
 
@@ -220,7 +228,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/8`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/9`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

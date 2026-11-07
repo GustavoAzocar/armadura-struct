@@ -2997,3 +2997,20 @@ button.hierarchy-drawing {
   max-height: 190px;
   overflow: auto;
 }
+
+.assembly-fields {
+  padding: 8px;
+  font-size: 11px;
+}
+.assembly-fields > summary {
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.assembly-fields .transfer-checkbox {
+  margin: 7px 0;
+}
+.bar-list .bar-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

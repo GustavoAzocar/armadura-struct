@@ -16,7 +16,7 @@ import {
   type RebarBatchResult,
   type RebarCommand,
 } from '../domain/rebarApi';
-import { barQuantities } from '../domain/detailQuantities';
+import { barQuantities, barSearchText } from '../domain/detailQuantities';
 import { format } from '../domain/geometry';
 
 export default function FabricationDialog({
@@ -201,7 +201,7 @@ export default function FabricationDialog({
             <div className="repetition-candidates">
               {members
                 .filter((b) =>
-                  `${b.mark} ${b.element} ${contributionOrigin(p, b.id)}`
+                  `${barSearchText(b)} ${contributionOrigin(p, b.id)}`
                     .toLocaleLowerCase()
                     .includes(query.toLocaleLowerCase()),
                 )

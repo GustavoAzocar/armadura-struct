@@ -10,7 +10,7 @@ import {
   world,
   sampled,
 } from './geometry';
-import { quantityLabel } from './detailQuantities';
+import { quantityLabel, assemblyLabel } from './detailQuantities';
 import type { Annotation, Bar, Point, Primitive, Project } from './types';
 
 const line = (points: Point[], layer = 'COTAS'): Primitive => ({
@@ -38,7 +38,7 @@ const angleOf = (u: Point) => {
   return angle;
 };
 export function barCaption(b: Bar, project?: Project) {
-  return `${project ? quantityLabel(project, b) : b.quantity} ${b.mark} Ø${format(b.diameter, b.diameter % 1 ? 1 : 0)} C=${format(geometry(b).length / 10, 0)}`;
+  return `${quantityLabel(project, b)} ${b.mark} Ø${format(b.diameter, b.diameter % 1 ? 1 : 0)} C=${format(geometry(b).length / 10, 0)}${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`;
 }
 function tick(at: Point, u: Point, height: number, layer = 'COTAS') {
   const diagonal = mul(add(u, normal(u)), height * 0.25);
@@ -239,7 +239,7 @@ export function distributionPrimitives(
   ];
   result.push(
     text(
-      `${project ? quantityLabel(project, b) : b.quantity} ${b.mark} c/${format(distance(start, end) / Math.max(1, b.quantity - 1) / 10, 1)}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
+      `${quantityLabel(project, b)} ${b.mark} c/${format(distance(start, end) / Math.max(1, b.quantity - 1) / 10, 1)}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
       add(mul(add(start, end), 0.5), mul(n, h * 1.3)),
       h,
       angleOf(u),

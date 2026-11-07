@@ -27,7 +27,8 @@
     "format": "prettier --write src tests scripts docs *.json *.ts *.md .github",
     "format:check": "prettier --check src tests scripts docs *.json *.ts *.md .github",
     "release:version": "node scripts/openstruct-version.mjs",
-    "example:fabrication": "node scripts/examples/fabrication.mjs"
+    "example:fabrication": "node scripts/examples/fabrication.mjs",
+    "example:quantities": "node scripts/examples/armature-quantities.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",

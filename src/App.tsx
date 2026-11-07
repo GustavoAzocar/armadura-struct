@@ -759,6 +759,7 @@ export default function App() {
       const b = current.bars.find((b) => b.id === id);
       if (!b) throw new Error('Armadura inexistente.');
       const { distribution, ...fields } = patch;
+      const source = patch.quantitySource ?? b.quantitySource;
       const commands: RebarCommand[] = [];
       if (Object.hasOwn(patch, 'distribution') && !distribution)
         commands.push({ type: 'distribution.remove', barId: id });
@@ -773,7 +774,16 @@ export default function App() {
           type: 'distribution.set',
           barId: id,
           distribution,
-          count: { mode: 'quantity', quantity: patch.quantity ?? b.quantity },
+          count:
+            source?.kind === 'distribution' && source.mode === 'spacing'
+              ? { mode: 'spacing', spacing: source.spacing }
+              : {
+                  mode:
+                    b.distribution && source?.kind === 'manual'
+                      ? 'manual'
+                      : 'quantity',
+                  quantity: patch.quantity ?? b.quantity,
+                },
         });
       return applyRebarBatch(
         current,
@@ -792,7 +802,12 @@ export default function App() {
             type: 'bar.create',
             id: b.id,
             detailId: activeDetailId,
-            definition: rebarDefinition(b),
+            definition: {
+              ...rebarDefinition(b),
+              ...(b.distribution
+                ? { quantitySource: { kind: 'manual' as const } }
+                : {}),
+            },
           },
         ];
         if (b.distribution)
@@ -800,7 +815,17 @@ export default function App() {
             type: 'distribution.set',
             barId: b.id,
             distribution: b.distribution,
-            count: { mode: 'quantity', quantity: b.quantity },
+            count:
+              b.quantitySource?.kind === 'distribution' &&
+              b.quantitySource.mode === 'spacing'
+                ? { mode: 'spacing', spacing: b.quantitySource.spacing }
+                : {
+                    mode:
+                      b.quantitySource?.kind === 'manual'
+                        ? 'manual'
+                        : 'quantity',
+                    quantity: b.quantity,
+                  },
           });
         const next = applyRebarBatch(
           current,
@@ -1118,8 +1143,10 @@ export default function App() {
     if (tool === 'distribute') {
       if (distance(chosen.origin, point) < 1) return;
       editBar(chosen.id, {
-        distribution: { end: point },
-        quantity: Math.max(2, chosen.quantity),
+        distribution: { ...chosen.distribution, end: point },
+        ...(!chosen.distribution
+          ? { quantity: Math.max(2, chosen.quantity) }
+          : {}),
       });
       setTool('select');
       notify(

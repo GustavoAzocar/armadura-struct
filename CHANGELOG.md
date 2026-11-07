@@ -2,6 +2,10 @@
 
 ## Em desenvolvimento
 
+- AS-56: base por grupo, multiplicador inteiro por armadura e quantidade efetiva, compostos com a repetição do detalhe uma única vez. Origem manual ou faixa com quantidade fixa/espaçamento registrado; base controlada é recalculada e protegida de edição ambígua.
+- Observação, indicação/opção de texto por nervura e referência textual ao lance nas propriedades, consultas, chamadas, rebatimentos e saídas; preferência gráfica por quantidade fatorada ou total, sem alterar o aço.
+- Formato nativo 9 (migração 1–8), pacote `openstruct.detail/4` (leitura v1/v2/v3), contribuições de fabricação e snapshots com fatores/metadados, API comum, exemplo executável e testes AS-56.
+
 - AS-54: entidades de posição de fabricação separadas das ocorrências, assinatura canônica por forma/aço/bitola/mandril/gancho/terminações/variante, percurso reverso explícito e reflexão conservadora.
 - Prévia de equivalências com representante, pesquisa, seleção de contribuições, agrupar/desagrupar e uma operação de histórico. Editar uma peça separa somente sua ocorrência; marcas compartilhadas conservam os IDs das chamadas.
 - Quadro/CSV/DXF/PDF consolidados com somas reais por ocorrência, rastreabilidade, repetições independentes e snapshot de fabricação na RA. Campos compactos de especificação de pontas/luvas/variantes.

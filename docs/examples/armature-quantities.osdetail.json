@@ -1,0 +1,117 @@
+{
+  "schema": "openstruct.detail/4",
+  "fabricationPositions": [
+    {
+      "id": "fabrication:quantity-example",
+      "mark": "N1",
+      "barIds": ["quantity-example"],
+      "reverse": true,
+      "signature": "{\"family\":\"free\",\"steel\":\"CA-50\",\"diameter\":10000,\"mandrel\":50000,\"hook\":null,\"edges\":[1000000],\"turns\":[],\"ends\":[[\"plain\"],[\"plain\"]],\"variant\":\"\"}"
+    }
+  ],
+  "units": {
+    "length": "mm",
+    "angle": "deg"
+  },
+  "origin": {
+    "projectId": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50",
+    "floorId": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50:floor",
+    "elementId": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50:element",
+    "detailId": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50:detail"
+  },
+  "context": {
+    "project": {
+      "id": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50",
+      "name": "Novo projeto"
+    },
+    "floor": {
+      "id": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50:floor",
+      "name": "Pavimento 1"
+    },
+    "element": {
+      "id": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50:element",
+      "name": "Geral"
+    },
+    "detail": {
+      "id": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50:detail",
+      "name": "Detalhamento 1",
+      "grouped": true,
+      "repetition": {
+        "factor": 4,
+        "elements": []
+      }
+    }
+  },
+  "revision": "00",
+  "producer": {
+    "app": "OpenStruct quantity example",
+    "version": "1.0"
+  },
+  "exportedAt": "2026-11-07T13:00:00Z",
+  "metadata": {},
+  "objects": {
+    "bars": [
+      {
+        "multiplier": 3,
+        "quantitySource": {
+          "kind": "manual"
+        },
+        "comment": "Montagem por nervura",
+        "ribbed": true,
+        "showRibbed": true,
+        "columnLevel": "L2",
+        "id": "quantity-example",
+        "mark": "N1",
+        "element": "Geral",
+        "kind": "free",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "rotation": 0,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1000,
+            "y": 0
+          }
+        ],
+        "width": 250,
+        "height": 500,
+        "hook": 80,
+        "diameter": 10,
+        "mandrel": 50,
+        "steel": "CA-50",
+        "quantity": 2,
+        "color": "#4b71e8"
+      }
+    ],
+    "details": [
+      {
+        "id": "quantity-representation",
+        "barId": "quantity-example",
+        "origin": {
+          "x": 0,
+          "y": -400
+        }
+      }
+    ],
+    "masks": [],
+    "annotations": [],
+    "polylines": []
+  },
+  "dependencies": [],
+  "objectOrigins": {
+    "quantity-example": {
+      "projectId": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50",
+      "objectId": "quantity-example"
+    },
+    "quantity-representation": {
+      "projectId": "e81043dc-fc7e-49f1-9f88-ffdc2db36b50",
+      "objectId": "quantity-representation"
+    }
+  }
+}
