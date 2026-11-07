@@ -96,6 +96,14 @@ Linhas/textos sem atribuição continuam na máscara, assim como os selecionados
 
 ![Atribuição explícita de propriedades a um contorno CAD](cad-assisted.png)
 
+### Geradores por código
+
+A [API de armaduras](AS-51.md) permite gerar posições, rebatimentos e faixas com as mesmas operações usadas nos comandos e nas propriedades do editor. O exemplo `npm run example:rebar -- rebar-example.armstruct.json` cria um projeto nativo com duas posições e 11 peças; abra esse arquivo pelo comando **Abrir projeto**. Para enviar somente um detalhamento a um projeto existente, gere depois um pacote pelo contrato da AS-09.
+
+Os lotes são atômicos: se uma operação falhar, nenhuma alteração do lote entra no projeto. Na interface, uma operação sobre várias posições é uma única etapa de **Desfazer/Refazer**. Erros de geometria, família, unidade, ID e referência indicam os campos/objetos envolvidos. Uma edição física recusada mantém o modelo e recupera o valor do campo numérico. Projetos antigos continuam abrindo; geometrias inválidas já existentes precisam ser corrigidas com uma alteração que produza uma posição válida.
+
+O quadro em atualização automática acompanha as alterações. O bloqueio de RA existente na edição manual é preservado e passa a indicar alterações pendentes, como antes; o gerador pode solicitar invalidação explícita do bloqueio fora da edição isolada. Representações gráficas adicionais não acrescentam aço. A API não dimensiona armaduras nem verifica normas.
+
 ### Formato 6 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.

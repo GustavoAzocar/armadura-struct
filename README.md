@@ -16,6 +16,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Gerenciador de pranchas com folhas A0–A4, orientação, revisão, notas, ordenação, duplicação de layout e vistas vinculadas; abas de folhas e desenhos com navegação independente.
 - Inserção e atualização seletiva de detalhamentos por JSON, comparação antes/depois, identificação pela origem, mapeamento de posições, reassociação de vínculos e preservação das vistas.
 - Pacotes abertos `openstruct.detail/1` (`.osdetail.json`) para intercâmbio de um detalhamento, com unidades, origem, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato, schema e exemplos para produtores OpenStruct](docs/AS-09.md).
+- [API TypeScript de domínio](docs/AS-51.md), sem React, para criar/editar/excluir posições, associar representações/faixas e executar lotes atômicos. A interface e o exemplo executável usam as mesmas operações e validações.
 - Interpretação assistida de contornos/textos das máscaras CAD, com atribuição e confirmação explícitas de bitola, quantidade, categoria de aço e diâmetro de dobra; a referência CAD é preservada.
 - Agrupamento semântico com seleção do conjunto e edição isolada por duplo clique; navegação e conclusão mantêm os demais detalhamentos protegidos e o quadro global vinculado.
 - Faixa de comandos compacta, painel lateral único com abas Projeto/Propriedades/Pranchas, recolhimento dos painéis e modo Foco no CAD. Fundo claro/escuro, pan, zoom, enquadramento e grade.

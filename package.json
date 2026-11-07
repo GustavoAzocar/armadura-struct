@@ -21,6 +21,7 @@
     "test": "vitest run",
     "check": "tsc -b && vitest run && node --test scripts/distribution/request-release.test.mjs",
     "test:e2e": "playwright test",
+    "example:rebar": "node scripts/examples/rebar-api.mjs",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
     "format": "prettier --write src tests scripts docs *.json *.ts *.md .github",

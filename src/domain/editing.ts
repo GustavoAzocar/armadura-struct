@@ -171,6 +171,23 @@ export function quantityForSpacing(length: number, spacing: number) {
   return quantity;
 }
 
+/** A translation moves the physical occurrence and its linked range together. */
+export function translateBar(bar: Bar, delta: Point): Bar {
+  return {
+    ...bar,
+    origin: add(bar.origin, delta),
+    distribution: bar.distribution
+      ? {
+          ...bar.distribution,
+          start: bar.distribution.start
+            ? add(bar.distribution.start, delta)
+            : undefined,
+          end: add(bar.distribution.end, delta),
+        }
+      : undefined,
+  };
+}
+
 export function renumber(project: Project): Project {
   return {
     ...project,

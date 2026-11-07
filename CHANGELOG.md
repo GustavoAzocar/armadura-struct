@@ -2,6 +2,10 @@
 
 ## Em desenvolvimento
 
+- AS-51: fachada TypeScript `src/api.ts`, versão 1.0, com famílias discriminadas, capacidades, unidades em mm e erros estruturados por operação/objeto/campo. Lotes rejeitados conservam integralmente o projeto original.
+- Criação/edição/exclusão, cópia/movimentação/transformação, divisão/união/renumeração e associação de rebatimentos/faixas compartilhadas pela interface e geradores; validação de geometria, referências, marcas/IDs e contexto isolado antes de confirmar.
+- Exemplo executável de barra, estribo e conjunto distribuído por `npm run example:rebar`; integração ao histórico em uma operação por lote, com políticas explícitas para referências e RA bloqueada.
+
 - AS-09: pacote aberto `openstruct.detail/1`, exportação de um detalhamento, importação pela comparação da AS-08, conversão mm/cm/m, origem transitiva, metadados e tratamento explícito de dependências externas.
 - Reconhecimento de uma origem já presente propõe atualização, preservando IDs locais, vistas e uma única definição física; colisões são tratadas pelo mapeamento existente.
 - Interpretação assistida de contornos/textos de máscaras DXF/DWG, propriedades físicas explícitas, confirmação de unidade e preservação integral das primitivas normalizadas como referência. Criação transacional com desfazer/refazer e invalidação da RA bloqueada.

@@ -39,7 +39,7 @@ export function NumberField({
   label: string;
   compactLabel?: string;
   value: number;
-  onChange: (n: number) => void;
+  onChange: (n: number) => void | boolean;
   min?: number;
   max?: number;
   step?: number | 'any';
@@ -62,7 +62,7 @@ export function NumberField({
       n <= max &&
       (step !== 1 || Number.isInteger(n))
     ) {
-      if (n !== value) onChange(n);
+      if (n !== value && onChange(n) === false) setText(String(value));
     } else setText(String(value));
   };
   return (
@@ -169,6 +169,7 @@ export function Inspector({
   bar,
   mask,
   onBar,
+  onDistributionSpacing,
   onMask,
   onRemoveDetails,
   project,
@@ -176,7 +177,8 @@ export function Inspector({
 }: {
   bar?: Bar;
   mask?: Mask;
-  onBar: (patch: Partial<Bar>) => void;
+  onBar: (patch: Partial<Bar>) => void | boolean;
+  onDistributionSpacing: (spacing: number) => void | boolean;
   onMask: (patch: Partial<Mask>) => void;
   onRemoveDetails: () => void;
   project: Project;
@@ -407,22 +409,7 @@ export function Inspector({
                     (bar.quantity - 1)
                   }
                   suffix="mm"
-                  onChange={(s) =>
-                    onBar({
-                      quantity: Math.min(
-                        100000,
-                        Math.max(
-                          2,
-                          Math.ceil(
-                            distance(
-                              bar.distribution!.start ?? bar.origin,
-                              bar.distribution!.end,
-                            ) / s,
-                          ) + 1,
-                        ),
-                      ),
-                    })
-                  }
+                  onChange={onDistributionSpacing}
                 />
                 <p className="field-help">
                   Inclui as duas extremidades. Ao ajustar o espaçamento, a

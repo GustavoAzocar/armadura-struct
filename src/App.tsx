@@ -36,6 +36,15 @@ const CadInterpretDialog = lazy(
 );
 import { applyCadInterpretation, type CadInterpretation } from './cad/assisted';
 import {
+  applyRebarBatch,
+  executeRebarBatch,
+  rebarDefinition,
+  RebarApiError,
+  validateRebarChange,
+  type RebarCommand,
+  type RebarPatch,
+} from './domain/rebarApi';
+import {
   applyDetailTransfer,
   type TransferPlan,
 } from './domain/detailTransfer';
@@ -93,13 +102,6 @@ import {
   safeName,
   saveFile,
 } from './lib/files';
-import {
-  transformBar,
-  splitBar,
-  joinBars,
-  quantityForSpacing,
-  renumber,
-} from './domain/editing';
 import { annotationError } from './domain/drafting';
 import { completeOwnership, detailPath } from './domain/hierarchy';
 import {
@@ -618,6 +620,15 @@ export default function App() {
             ? activeDetailId
             : next.hierarchy.details[0].id);
         const complete = completeOwnership(next, target);
+        if (
+          next.id === h.present.id &&
+          (next.bars !== h.present.bars ||
+            next.details !== h.present.details ||
+            next.annotations !== h.present.annotations)
+        ) {
+          const issues = validateRebarChange(h.present, complete);
+          if (issues.length) throw new RebarApiError(issues);
+        }
         if (scope) assertDetailEdit(h.present, complete, scope);
         const updated = {
           past: [...h.past.slice(-39), h.present],
@@ -737,30 +748,84 @@ export default function App() {
     );
   };
   const editBar = (id: string, patch: Partial<Bar>) => {
-    if (
-      patch.mark &&
-      p.bars.some((b) => b.id !== id && b.mark === patch.mark)
-    ) {
-      notify('Essa posição já existe. Escolha outra identificação.');
-      return;
-    }
-    commit((p) => ({
-      ...p,
-      bars: p.bars.map((b) => (b.id === id ? { ...b, ...patch } : b)),
-    }));
+    return commit((current) => {
+      const b = current.bars.find((b) => b.id === id);
+      if (!b) throw new Error('Armadura inexistente.');
+      const { distribution, ...fields } = patch;
+      const commands: RebarCommand[] = [];
+      if (Object.hasOwn(patch, 'distribution') && !distribution)
+        commands.push({ type: 'distribution.remove', barId: id });
+      if (Object.keys(fields).length)
+        commands.push({
+          type: 'bar.update',
+          id,
+          patch: { kind: b.kind, ...fields } as RebarPatch,
+        });
+      if (distribution)
+        commands.push({
+          type: 'distribution.set',
+          barId: id,
+          distribution,
+          count: { mode: 'quantity', quantity: patch.quantity ?? b.quantity },
+        });
+      return applyRebarBatch(
+        current,
+        executeRebarBatch(current, commands, {
+          units: 'mm',
+          scopeDetailId: isolationRef.current,
+        }),
+      );
+    });
   };
   const insertBar = (b: Bar, removePolyline?: string) => {
-    commit((p) => ({
-      ...p,
-      bars: [...p.bars, b],
-      polylines: removePolyline
-        ? p.polylines.filter((l) => l.id !== removePolyline)
-        : p.polylines,
-    }));
+    if (
+      !commit((current) => {
+        const commands: RebarCommand[] = [
+          {
+            type: 'bar.create',
+            id: b.id,
+            detailId: activeDetailId,
+            definition: rebarDefinition(b),
+          },
+        ];
+        if (b.distribution)
+          commands.push({
+            type: 'distribution.set',
+            barId: b.id,
+            distribution: b.distribution,
+            count: { mode: 'quantity', quantity: b.quantity },
+          });
+        const next = applyRebarBatch(
+          current,
+          executeRebarBatch(current, commands, {
+            units: 'mm',
+            scopeDetailId: isolationRef.current,
+          }),
+        );
+        return {
+          ...next,
+          polylines: removePolyline
+            ? next.polylines.filter((l) => l.id !== removePolyline)
+            : next.polylines,
+        };
+      })
+    )
+      return false;
     select([b.id]);
     setDraft([]);
     setMessage(`${b.mark} criada. Continue desenhando ou pressione Esc.`);
+    return true;
   };
+  const commitRebars = (commands: RebarCommand[]) =>
+    commit((current) =>
+      applyRebarBatch(
+        current,
+        executeRebarBatch(current, commands, {
+          units: 'mm',
+          scopeDetailId: isolationRef.current,
+        }),
+      ),
+    );
   const finish = () => {
     if (activeSheet) return;
     if (tool === 'polyline' && draft.length >= 2) {
@@ -875,31 +940,30 @@ export default function App() {
       const selectedIds: string[] = [];
       const copies = new Map<string, string>();
       if (tool === 'copy') {
-        for (const b of p.bars.filter((b) => selected.includes(b.id))) {
-          const id = uid();
-          copies.set(b.id, id);
-          selectedIds.push(id);
-          next = {
-            ...next,
-            bars: [
-              ...next.bars,
-              {
-                ...b,
-                id,
-                mark: nextMark(next),
-                origin: add(b.origin, delta),
-                distribution: b.distribution
-                  ? {
-                      ...b.distribution,
-                      start: b.distribution.start
-                        ? add(b.distribution.start, delta)
-                        : undefined,
-                      end: add(b.distribution.end, delta),
-                    }
-                  : undefined,
-              },
-            ],
-          };
+        const commands: RebarCommand[] = p.bars
+          .filter((b) => selected.includes(b.id))
+          .map((b) => {
+            const id = uid();
+            copies.set(b.id, id);
+            selectedIds.push(id);
+            return {
+              type: 'bar.copy',
+              id: b.id,
+              newId: id,
+              detailId: activeDetailId,
+              delta,
+            };
+          });
+        if (commands.length) {
+          const result = executeRebarBatch(p, commands, {
+            units: 'mm',
+            scopeDetailId: isolationRef.current,
+          });
+          if (!result.ok) {
+            notify(new RebarApiError(result.issues).message);
+            return;
+          }
+          next = result.project;
         }
         next = {
           ...next,
@@ -929,26 +993,23 @@ export default function App() {
               }),
           ],
         };
-      } else
+      } else {
+        const commands: RebarCommand[] = p.bars
+          .filter((b) => selected.includes(b.id))
+          .map((b) => ({ type: 'bar.move', id: b.id, delta }));
+        if (commands.length) {
+          const result = executeRebarBatch(p, commands, {
+            units: 'mm',
+            scopeDetailId: isolationRef.current,
+          });
+          if (!result.ok) {
+            notify(new RebarApiError(result.issues).message);
+            return;
+          }
+          next = result.project;
+        }
         next = {
-          ...p,
-          bars: p.bars.map((b) =>
-            selected.includes(b.id)
-              ? {
-                  ...b,
-                  origin: add(b.origin, delta),
-                  distribution: b.distribution
-                    ? {
-                        ...b.distribution,
-                        start: b.distribution.start
-                          ? add(b.distribution.start, delta)
-                          : undefined,
-                        end: add(b.distribution.end, delta),
-                      }
-                    : undefined,
-                }
-              : b,
-          ),
+          ...next,
           annotations: p.annotations.map((a) =>
             selected.includes(a.id)
               ? { ...a, points: a.points.map((v) => add(v, delta)) }
@@ -970,6 +1031,7 @@ export default function App() {
               : m,
           ),
         };
+      }
       commit(() => next);
       if (tool === 'copy') select(selectedIds);
       setTool('select');
@@ -986,13 +1048,17 @@ export default function App() {
         return;
       }
       try {
-        editBar(chosen.id, {
-          distribution: { end: point, render: 'bars' },
-          quantity: quantityForSpacing(
-            distance(chosen.origin, point),
-            newSpacing,
-          ),
-        });
+        if (
+          !commitRebars([
+            {
+              type: 'distribution.set',
+              barId: chosen.id,
+              distribution: { end: point, render: 'bars' },
+              count: { mode: 'spacing', spacing: newSpacing },
+            },
+          ])
+        )
+          return;
         setTool('select');
       } catch (e) {
         notify((e as Error).message);
@@ -1011,10 +1077,17 @@ export default function App() {
           ? { x: point.x, y: start.y }
           : { x: start.x, y: point.y };
       try {
-        editBar(chosen.id, {
-          distribution: { start, end, render: 'ticks' },
-          quantity: quantityForSpacing(distance(start, end), newSpacing),
-        });
+        if (
+          !commitRebars([
+            {
+              type: 'distribution.set',
+              barId: chosen.id,
+              distribution: { start, end, render: 'ticks' },
+              count: { mode: 'spacing', spacing: newSpacing },
+            },
+          ])
+        )
+          return;
         setTool('select');
         notify(
           'Faixa vinculada à posição; a quantidade inclui as duas extremidades.',
@@ -1025,10 +1098,12 @@ export default function App() {
       return;
     }
     if (tool === 'detail') {
-      commit((p) => ({
-        ...p,
-        details: [...p.details, { id: uid(), barId: chosen.id, origin: point }],
-      }));
+      if (
+        !commitRebars([
+          { type: 'representation.create', barId: chosen.id, origin: point },
+        ])
+      )
+        return;
       setTool('select');
       notify('Rebatimento criado. Ele permanece vinculado à posição original.');
       return;
@@ -1407,13 +1482,20 @@ export default function App() {
         );
       }
       if (a === 'renumber') {
-        commit(renumber);
+        if (!commitRebars([{ type: 'bar.renumber' }])) return;
         notify(
           'Posições renumeradas; chamadas e rebatimentos mantiveram os vínculos.',
         );
       }
       if (a === 'join') {
-        const next = joinBars(p, selected);
+        const next = applyRebarBatch(
+          p,
+          executeRebarBatch(
+            p,
+            [{ type: 'bar.join', ids: selected as [string, string] }],
+            { units: 'mm', scopeDetailId: isolationRef.current },
+          ),
+        );
         if (!commit(() => next)) return;
         select([next.bars.find((b) => selected.includes(b.id))!.id]);
         notify(
@@ -1488,19 +1570,36 @@ export default function App() {
           notify('Projeto salvo com armaduras, rebatimentos e máscaras.');
       }
       if (a === 'delete') {
-        commit((p) => ({
-          ...p,
-          bars: p.bars.filter((b) => !selected.includes(b.id)),
-          details: p.details.filter(
-            (d) => !selected.includes(d.barId) && !selected.includes(d.id),
-          ),
-          masks: p.masks.filter((m) => !selected.includes(m.id)),
-          annotations: p.annotations.filter(
-            (a) =>
-              !selected.includes(a.id) && !selected.includes(a.barId ?? ''),
-          ),
-          polylines: p.polylines.filter((a) => !selected.includes(a.id)),
-        }));
+        if (
+          !commit((current) => {
+            const commands: RebarCommand[] = current.bars
+              .filter((b) => selected.includes(b.id))
+              .map((b) => ({
+                type: 'bar.delete',
+                id: b.id,
+                references: 'remove',
+              }));
+            const next = commands.length
+              ? applyRebarBatch(
+                  current,
+                  executeRebarBatch(current, commands, {
+                    units: 'mm',
+                    scopeDetailId: isolationRef.current,
+                  }),
+                )
+              : current;
+            return {
+              ...next,
+              details: next.details.filter((d) => !selected.includes(d.id)),
+              masks: next.masks.filter((m) => !selected.includes(m.id)),
+              annotations: next.annotations.filter(
+                (n) => !selected.includes(n.id),
+              ),
+              polylines: next.polylines.filter((l) => !selected.includes(l.id)),
+            };
+          })
+        )
+          return;
         select([]);
       }
       if (a === 'rotate' || a === 'mirror') {
@@ -1512,18 +1611,33 @@ export default function App() {
               a === 'rotate' ? rotate(d, 90) : { x: -d.x, y: d.y },
             );
           });
-        commit((p) => ({
-          ...p,
-          bars: p.bars.map((b) =>
-            selected.includes(b.id) ? transformBar(b, a) : b,
-          ),
-          annotations: p.annotations.map((n) =>
-            selected.includes(n.id) ? { ...n, points: transform(n.points) } : n,
-          ),
-          polylines: p.polylines.map((n) =>
-            selected.includes(n.id) ? { ...n, points: transform(n.points) } : n,
-          ),
-        }));
+        commit((p) => {
+          const commands: RebarCommand[] = p.bars
+            .filter((b) => selected.includes(b.id))
+            .map((b) => ({ type: 'bar.transform', id: b.id, operation: a }));
+          const next = commands.length
+            ? applyRebarBatch(
+                p,
+                executeRebarBatch(p, commands, {
+                  units: 'mm',
+                  scopeDetailId: isolationRef.current,
+                }),
+              )
+            : p;
+          return {
+            ...next,
+            annotations: p.annotations.map((n) =>
+              selected.includes(n.id)
+                ? { ...n, points: transform(n.points) }
+                : n,
+            ),
+            polylines: p.polylines.map((n) =>
+              selected.includes(n.id)
+                ? { ...n, points: transform(n.points) }
+                : n,
+            ),
+          };
+        });
       }
       if (a === 'fit') {
         if (page === 'drawing') canvas()?.fit();
@@ -2334,6 +2448,17 @@ export default function App() {
                 bar={chosen}
                 mask={mask}
                 onBar={(patch) => chosen && editBar(chosen.id, patch)}
+                onDistributionSpacing={(spacing) =>
+                  chosen?.distribution &&
+                  commitRebars([
+                    {
+                      type: 'distribution.set',
+                      barId: chosen.id,
+                      distribution: chosen.distribution,
+                      count: { mode: 'spacing', spacing },
+                    },
+                  ])
+                }
                 onMask={(patch) =>
                   commit((p) => ({
                     ...p,
@@ -2342,12 +2467,43 @@ export default function App() {
                     ),
                   }))
                 }
-                onProject={(patch) => commit((p) => ({ ...p, ...patch }))}
+                onProject={(patch) =>
+                  commit((current) => {
+                    if (!patch.details) return { ...current, ...patch };
+                    const commands: RebarCommand[] = patch.details
+                      .filter(
+                        (d) =>
+                          JSON.stringify(d) !==
+                          JSON.stringify(
+                            current.details.find((old) => old.id === d.id),
+                          ),
+                      )
+                      .map((d) => ({
+                        type: 'representation.update',
+                        id: d.id,
+                        barId: d.barId,
+                        origin: d.origin,
+                      }));
+                    return commands.length
+                      ? applyRebarBatch(
+                          current,
+                          executeRebarBatch(current, commands, {
+                            units: 'mm',
+                            scopeDetailId: isolationRef.current,
+                          }),
+                        )
+                      : current;
+                  })
+                }
                 onRemoveDetails={() =>
-                  commit((p) => ({
-                    ...p,
-                    details: p.details.filter((d) => d.barId !== chosen?.id),
-                  }))
+                  commitRebars(
+                    p.details
+                      .filter((d) => d.barId === chosen?.id)
+                      .map((d) => ({
+                        type: 'representation.delete',
+                        id: d.id,
+                      })),
+                  )
                 }
               />
             )}
@@ -2613,7 +2769,24 @@ export default function App() {
                     className="primary"
                     onClick={() => {
                       try {
-                        const next = splitBar(p, chosen.id, splitAt, lap);
+                        const next = applyRebarBatch(
+                          p,
+                          executeRebarBatch(
+                            p,
+                            [
+                              {
+                                type: 'bar.split',
+                                id: chosen.id,
+                                station: splitAt,
+                                lap,
+                              },
+                            ],
+                            {
+                              units: 'mm',
+                              scopeDetailId: isolationRef.current,
+                            },
+                          ),
+                        );
                         if (!commit(() => next)) return;
                         setModal(null);
                         notify(

@@ -1,6 +1,11 @@
 import { maskPoint } from './import';
 import { completeOwnership } from '../domain/hierarchy';
 import { objectOrigin } from '../domain/detailTransfer';
+import {
+  applyRebarBatch,
+  executeRebarBatch,
+  rebarDefinition,
+} from '../domain/rebarApi';
 import { decodeProject, newBar } from '../domain/model';
 import { distance, geometry, sub } from '../domain/geometry';
 import { uid, type Bar, type Project } from '../domain/types';
@@ -148,23 +153,30 @@ export function previewCadInterpretation(
       throw new Error(
         'Confirme a unidade, o contorno e as propriedades físicas antes de criar aço.',
       );
+    const created = applyRebarBatch(
+      project,
+      executeRebarBatch(
+        project,
+        [
+          {
+            type: 'bar.create',
+            id: bar.id,
+            detailId,
+            definition: rebarDefinition(bar),
+            provenance: origin,
+          },
+        ],
+        { units: 'mm', schedule: 'invalidate-lock' },
+      ),
+    );
     const next = completeOwnership(
       {
-        ...project,
-        bars: [...project.bars, bar],
+        ...created,
         annotations,
         // All normalized CAD entities stay as references, including the selected contour/text.
         masks: project.masks.map((m) =>
           m.id === mask.id ? { ...m, scale: input.scale } : m,
         ),
-        hierarchy: {
-          ...project.hierarchy,
-          objectOrigins: {
-            ...project.hierarchy.objectOrigins,
-            [bar.id]: origin,
-          },
-        },
-        scheduleLock: undefined,
       },
       detailId,
     );
