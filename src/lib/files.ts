@@ -1,5 +1,70 @@
 import { isTauri } from '@tauri-apps/api/core';
 import type { Mask, Project } from '../domain/types';
+import type { CadState } from '../components/CadCanvas';
+
+export type DocumentWorkspace = {
+  active: string;
+  opened: string[];
+  cameras: Record<string, CadState>;
+};
+/** Local navigation preferences; document content is always serialized in Project. */
+export function readDocumentWorkspace(
+  projectId: string,
+): DocumentWorkspace | undefined {
+  try {
+    const value = JSON.parse(
+      localStorage.getItem(`armadurastruct.documents.${projectId}`) || 'null',
+    );
+    if (
+      !value ||
+      typeof value.active !== 'string' ||
+      !Array.isArray(value.opened) ||
+      !value.opened.every((k: unknown) => typeof k === 'string')
+    )
+      return;
+    const camera = (c: unknown) => {
+      const v = c as { x?: number; y?: number; s?: number } | undefined;
+      return (
+        v &&
+        [v.x, v.y, v.s].every(
+          (n) => typeof n === 'number' && Number.isFinite(n),
+        ) &&
+        v.s! > 0
+      );
+    };
+    const cameras: Record<string, CadState> = {};
+    for (const [key, raw] of Object.entries(value.cameras ?? {})) {
+      const state = raw as CadState;
+      if (
+        camera(state?.view) &&
+        (!state.overview ||
+          (typeof state.overview.projectId === 'string' &&
+            camera(state.overview.view)))
+      )
+        cameras[key] = state;
+    }
+    return {
+      active: value.active,
+      opened: value.opened.slice(0, 1000),
+      cameras,
+    };
+  } catch {
+    return;
+  }
+}
+export function saveDocumentWorkspace(
+  projectId: string,
+  value: DocumentWorkspace,
+) {
+  try {
+    localStorage.setItem(
+      `armadurastruct.documents.${projectId}`,
+      JSON.stringify(value),
+    );
+  } catch {
+    /* Navigation preferences are optional. */
+  }
+}
 export async function pickNativeFile(
   extensions: string[],
 ): Promise<File | null | undefined> {

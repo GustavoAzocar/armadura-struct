@@ -40,6 +40,7 @@ export default function HierarchyNavigator({
   onSearch,
   onEditDetail,
   onSelectDetail,
+  onOpenDrawing,
 }: {
   project: Project;
   activeDetailId: string;
@@ -50,6 +51,7 @@ export default function HierarchyNavigator({
   onSearch: (text: string) => void;
   onEditDetail: (id: string) => void;
   onSelectDetail: (id: string) => void;
+  onOpenDrawing: (id: string) => void;
 }) {
   const h = project.hierarchy;
   const index = useMemo(() => {
@@ -296,13 +298,15 @@ export default function HierarchyNavigator({
                           d.id,
                           d.name,
                           (index.drawings.get(d.id) || []).map((v) => (
-                            <div
+                            <button
+                              onClick={() => onOpenDrawing(v.id)}
+                              aria-label={`Abrir desenho ${v.name}`}
                               className="hierarchy-drawing"
                               key={v.id}
                               title={v.name}
                             >
                               ⌗ {v.name}
-                            </div>
+                            </button>
                           )),
                           index.counts.get(d.id) || 0,
                         ),

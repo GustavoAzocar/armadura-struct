@@ -7,6 +7,7 @@ import {
   legacyProjectId,
   validateHierarchy,
 } from './hierarchy';
+import { initialSheet, placeDrawing } from './sheets';
 const number = z.number().finite();
 const point = z.object({ x: number, y: number });
 const identity = z.string().min(1).max(200);
@@ -39,12 +40,18 @@ const hierarchySchema = z.object({
       z.object({
         id: identity,
         drawingId: identity,
+        sheetId: identity.optional(),
+        frame: z
+          .object({
+            width: number.positive().max(100000),
+            height: number.positive().max(100000),
+          })
+          .optional(),
         origin: point,
         rotation: number,
         scale: number.positive().max(1000000),
       }),
     )
-    .min(1)
     .max(10000),
   objectDetails: z.record(z.string(), identity),
 });
@@ -73,7 +80,26 @@ const barSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 const schema = z.object({
-  schema: z.enum(['armadurastruct/1', 'armadurastruct/2', 'armadurastruct/3']),
+  schema: z.enum([
+    'armadurastruct/1',
+    'armadurastruct/2',
+    'armadurastruct/3',
+    'armadurastruct/4',
+  ]),
+  sheets: z
+    .array(
+      z.object({
+        ...named,
+        format: z.enum(['A0', 'A1', 'A2', 'A3', 'A4']),
+        orientation: z.enum(['portrait', 'landscape']),
+        properties: z.object({
+          revision: z.string().max(40),
+          notes: z.string().max(5000),
+        }),
+      }),
+    )
+    .max(1000)
+    .optional(),
   id: identity.optional(),
   hierarchy: hierarchySchema.optional(),
   name: z.string().min(1).max(150),
@@ -156,11 +182,13 @@ const schema = z.object({
 });
 export function decodeProject(raw: string): Project {
   const parsed = schema.parse(JSON.parse(raw));
-  if (parsed.schema === 'armadurastruct/3' && (!parsed.id || !parsed.hierarchy))
-    throw new Error('Projeto v3 sem identidade ou hierarquia.');
-  let id =
-    parsed.schema === 'armadurastruct/3' ? parsed.id! : legacyProjectId(raw);
-  if (parsed.schema !== 'armadurastruct/3') {
+  const modern =
+    parsed.schema === 'armadurastruct/3' ||
+    parsed.schema === 'armadurastruct/4';
+  if (modern && (!parsed.id || !parsed.hierarchy))
+    throw new Error('Projeto sem identidade ou hierarquia.');
+  let id = modern ? parsed.id! : legacyProjectId(raw);
+  if (!modern) {
     const oldIds = new Set(
       [
         ...parsed.bars,
@@ -172,14 +200,68 @@ export function decodeProject(raw: string): Project {
     );
     while (oldIds.has(id)) id += '-';
   }
+  const hierarchy = modern
+    ? parsed.hierarchy!
+    : initialHierarchy(parsed, id, parsed.drawing.floor);
+  const occupied = new Set(
+    [
+      id,
+      ...parsed.bars,
+      ...parsed.details,
+      ...parsed.annotations,
+      ...parsed.polylines,
+      ...parsed.masks,
+      ...hierarchy.floors,
+      ...hierarchy.elements,
+      ...hierarchy.details,
+      ...hierarchy.drawings,
+      ...hierarchy.placements,
+    ].map((o) => (typeof o === 'string' ? o : o.id)),
+  );
+  let sheetId = `${id}:sheet`;
+  while (occupied.has(sheetId)) sheetId += '-';
+  const v4 = parsed.schema === 'armadurastruct/4';
+  if (
+    v4 &&
+    (!parsed.sheets || hierarchy.placements.some((v) => !v.sheetId || !v.frame))
+  )
+    throw new Error('Projeto v4 sem folhas ou com vista incompleta.');
+  const placements = hierarchy.placements.map((v) => ({
+    ...v,
+    sheetId: v4 ? v.sheetId! : sheetId,
+    frame: v.frame ?? { width: 160, height: 100 },
+  }));
+  if (
+    !modern &&
+    [
+      ...parsed.bars,
+      ...parsed.details,
+      ...parsed.annotations,
+      ...parsed.polylines,
+      ...parsed.masks,
+    ].length
+  ) {
+    let placementId = `${id}:placement`;
+    while (occupied.has(placementId) || placementId === sheetId)
+      placementId += '-';
+    placements.push({
+      id: placementId,
+      drawingId: hierarchy.drawings[0].id,
+      sheetId,
+      origin: { x: 0, y: 0 },
+      rotation: 0,
+      scale: 1,
+      frame: { width: 160, height: 100 },
+    });
+  }
   const p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/3',
-    hierarchy:
-      parsed.schema === 'armadurastruct/3'
-        ? parsed.hierarchy!
-        : initialHierarchy(parsed, id, parsed.drawing.floor),
+    schema: 'armadurastruct/4',
+    sheets: v4
+      ? parsed.sheets!
+      : [initialSheet(sheetId, parsed.drawing.revision)],
+    hierarchy: { ...hierarchy, placements },
   };
   const ids = p.bars.map((b) => b.id);
   if (new Set(ids).size !== ids.length)
@@ -246,7 +328,8 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/3',
+    schema: 'armadurastruct/4',
+    sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),
     name: 'Novo projeto',
@@ -458,5 +541,9 @@ export function demoProject(): Project {
       color: '#c89a4d',
     },
   ];
-  return completeOwnership(p);
+  return placeDrawing(
+    completeOwnership(p),
+    p.sheets[0].id,
+    p.hierarchy.drawings[0].id,
+  ).project;
 }

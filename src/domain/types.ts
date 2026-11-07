@@ -30,13 +30,25 @@ export type DrawingDetail = {
   grouped?: boolean;
 };
 export type DetailDrawing = { id: string; detailId: string; name: string };
+export type SheetFormat = 'A0' | 'A1' | 'A2' | 'A3' | 'A4';
+export type Sheet = {
+  id: string;
+  name: string;
+  format: SheetFormat;
+  orientation: 'portrait' | 'landscape';
+  properties: { revision: string; notes: string };
+};
 /** Paper placement is independent of physical geometry and representation origins. */
 export type SheetPlacement = {
   id: string;
+  sheetId: string;
   drawingId: string;
+  /** Millimeters on paper, measured from the lower left corner. */
   origin: Point;
   rotation: number;
   scale: number;
+  /** Preview frame on paper; does not rescale the physical definition. */
+  frame: { width: number; height: number };
 };
 export type ProjectHierarchy = {
   floors: Floor[];
@@ -91,9 +103,11 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/3';
+  schema: 'armadurastruct/4';
   id: string;
   hierarchy: ProjectHierarchy;
+  /** Array order is the document order, independent of tab opening order. */
+  sheets: Sheet[];
   name: string;
   author: string;
   notes: string;

@@ -43,9 +43,19 @@ import {
   toggleDetailSelection,
 } from '../domain/detailEditing';
 import type { Bar, Point, Primitive, Project, Tool } from '../domain/types';
-export type CadHandle = { fit: () => void; zoom: (factor: number) => void };
+export type Camera = { x: number; y: number; s: number };
+export type CadState = {
+  view: Camera;
+  overview: { projectId: string; view: Camera } | null;
+};
+export type CadHandle = {
+  fit: () => void;
+  zoom: (factor: number) => void;
+  getState: () => CadState;
+};
 type Props = {
   project: Project;
+  initialState?: CadState;
   tool: Tool;
   selected: string[];
   setSelected: (ids: string[]) => void;
@@ -85,7 +95,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const overview = useRef<{
     projectId: string;
     view: { x: number; y: number; s: number };
-  } | null>(null);
+  } | null>(props.initialState?.overview ?? null);
   const groupedIds = useMemo(
     () =>
       new Set(
@@ -99,7 +109,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const host = useRef<HTMLDivElement>(null),
     svg = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 900, h: 600 });
-  const [view, setView] = useState({ x: 2800, y: -300, s: 0.12 });
+  const [view, setView] = useState(
+    props.initialState?.view ?? { x: 2800, y: -300, s: 0.12 },
+  );
   const [cursor, setCursor] = useState<Point | null>(null);
   const [snapPoint, setSnapPoint] = useState<Point | null>(null);
   const [drag, setDrag] = useState<{ screen: Point; view: typeof view } | null>(
@@ -287,16 +299,28 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   };
   useImperativeHandle(ref, () => ({
     fit,
+    getState: () => ({ view, overview: overview.current }),
     zoom: (f) =>
       setView((v) => ({ ...v, s: Math.max(0.000001, Math.min(20, v.s * f)) })),
   }));
+  const initialMaskCount = useRef(project.masks.length);
+  const firstScopeEffect = useRef(true);
   useEffect(() => {
-    if (size.w > 0) fit();
+    if (
+      size.w > 0 &&
+      (!props.initialState || project.masks.length !== initialMaskCount.current)
+    )
+      fit();
   }, [project.masks.length, size.w === 900]); // fit after a new reference, not after every edit
   useEffect(() => {
     setGrip(null);
     setDrag(null);
     setMarquee(null);
+    if (firstScopeEffect.current && props.initialState) {
+      firstScopeEffect.current = false;
+      return;
+    }
+    firstScopeEffect.current = false;
     if (props.isolatedDetailId) {
       if (!overview.current) overview.current = { projectId: project.id, view };
       fit();

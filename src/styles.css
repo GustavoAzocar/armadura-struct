@@ -2270,6 +2270,260 @@ svg {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Multiple documents keep the compact CAD header and scroll independently. */
+.document-strip {
+  display: flex;
+  align-items: stretch;
+  min-width: 80px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  flex: 1;
+}
+.document-strip > button,
+.document-tab > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 10px;
+  padding: 0 10px;
+  color: #69758c;
+}
+.document-strip > button {
+  flex-shrink: 0;
+}
+.document-tab {
+  display: flex;
+  flex-shrink: 0;
+  max-width: 225px;
+  border-left: 1px solid #dfe4ed;
+}
+.document-tab > button:first-child {
+  display: block;
+  max-width: 197px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.document-tab > .close-document {
+  padding: 0 5px;
+}
+.document-strip > button.active,
+.document-tab.active {
+  background: #fff;
+  border-top: 2px solid #6679df;
+  color: #43506e;
+}
+.document-tabs > button {
+  flex-shrink: 0;
+}
+.document-tabs .document-toolbar {
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+.sheet-manager {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+}
+.sheet-manager .panel-heading {
+  flex-shrink: 0;
+}
+.sheet-manager h3 {
+  font-size: 11px;
+  margin: 15px 0 7px;
+}
+.sheet-create {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.sheet-create input {
+  width: 100%;
+  min-width: 0;
+  font-size: 10px;
+  padding: 5px;
+}
+.sheet-create button {
+  padding: 4px 7px;
+  background: #e9edf7;
+}
+.sheet-row {
+  border: 1px solid #e1e6ef;
+  border-radius: 3px;
+  margin-bottom: 4px;
+}
+.sheet-row.selected {
+  border-color: #8094de;
+  background: #edf1ff;
+}
+.sheet-open {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 7px;
+  text-align: left;
+  font-size: 10px;
+}
+.sheet-open b {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-open small {
+  font-size: 9px;
+  color: #7a859b;
+  flex-shrink: 0;
+}
+.sheet-open > span {
+  color: #7a859b;
+  font-size: 9px;
+}
+.sheet-properties {
+  border: 1px solid #e1e6ef;
+  padding: 7px;
+  margin: 10px 0;
+  min-width: 0;
+  border-radius: 3px;
+}
+.sheet-properties legend {
+  font-size: 10px;
+  color: #687792;
+  padding: 0 4px;
+}
+.sheet-properties > label:not(.field),
+.place-drawing {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  margin: 6px 0;
+}
+.sheet-properties select,
+.place-drawing select {
+  min-width: 0;
+  font-size: 10px;
+  padding: 4px;
+}
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.sheet-actions button,
+.sheet-properties > button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  background: #edf0f6;
+  border-radius: 3px;
+  padding: 5px;
+}
+.sheet-manager .danger {
+  color: #af4051;
+}
+.sheet-view-list > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid #e5e9f0;
+}
+.sheet-view-list > div.selected {
+  background: #edf1ff;
+}
+.sheet-view-list button {
+  padding: 6px 3px;
+  font-size: 10px;
+  text-align: left;
+}
+.sheet-view-list button:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.unplaced-drawings button {
+  display: flex;
+  gap: 5px;
+  width: 100%;
+  font-size: 10px;
+  padding: 6px 0;
+  text-align: left;
+}
+.unplaced-drawings svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.sheet-canvas-host {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: #d7dde8;
+}
+.sheet-canvas-host > svg {
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
+.sheet-canvas-host .paper {
+  fill: #fff;
+  stroke: #a3adbf;
+  stroke-width: 0.4;
+  filter: drop-shadow(1px 2px 2px #0002);
+}
+.sheet-preview-label,
+.sheet-canvas-help {
+  position: absolute;
+  pointer-events: none;
+  padding: 5px 9px;
+  font-size: 10px;
+  color: #64718a;
+  background: #f6f8fbdc;
+  border-radius: 3px;
+}
+.sheet-preview-label {
+  left: 8px;
+  top: 8px;
+}
+.sheet-canvas-help {
+  left: 8px;
+  bottom: 8px;
+}
+.sheet-fit {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: #fff;
+  border: 1px solid #b8c3d6;
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+.sheet-view-frame {
+  fill: #fafbfe;
+  stroke: #b7c2d5;
+  stroke-width: 0.4;
+  stroke-dasharray: 2 1;
+  cursor: move;
+}
+.selected > .sheet-view-frame {
+  stroke: #4d69ca;
+  stroke-width: 0.7;
+  stroke-dasharray: none;
+  fill: #f5f7ff;
+}
+button.hierarchy-drawing {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
 .hierarchy-editor {
   padding: 7px;
   margin: 7px 0;

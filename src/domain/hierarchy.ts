@@ -44,15 +44,7 @@ export function initialHierarchy(
     elements: [{ id: elementId, floorId, name: 'Geral' }],
     details: [{ id: detailId, elementId, name: 'Detalhamento 1' }],
     drawings: [{ id: drawingId, detailId, name: 'Desenho principal' }],
-    placements: [
-      {
-        id: id('placement'),
-        drawingId,
-        origin: { x: 0, y: 0 },
-        rotation: 0,
-        scale: 1,
-      },
-    ],
+    placements: [],
     objectDetails: Object.fromEntries(
       contentObjects(project).map((o) => [o.id, detailId]),
     ),
@@ -147,16 +139,6 @@ export function createHierarchyNode(
         drawings: [
           ...h.drawings,
           { id: drawingId, detailId: id, name: 'Desenho principal' },
-        ],
-        placements: [
-          ...h.placements,
-          {
-            id: uid(),
-            drawingId,
-            origin: { x: 0, y: 0 },
-            rotation: 0,
-            scale: 1,
-          },
         ],
       },
     },
@@ -306,6 +288,7 @@ export function validateHierarchy(project: Project) {
     ...h.details.map((d) => d.id),
     ...h.drawings.map((d) => d.id),
     ...h.placements.map((p) => p.id),
+    ...project.sheets.map((s) => s.id),
   ];
   if (new Set(allIds).size !== allIds.length)
     throw new Error('Identificadores duplicados na hierarquia.');
@@ -313,7 +296,11 @@ export function validateHierarchy(project: Project) {
     h.elements.some((e) => !floors.has(e.floorId)) ||
     h.details.some((d) => !elements.has(d.elementId)) ||
     h.drawings.some((d) => !details.has(d.detailId)) ||
-    h.placements.some((p) => !drawings.has(p.drawingId))
+    h.placements.some(
+      (p) =>
+        !drawings.has(p.drawingId) ||
+        !project.sheets.some((s) => s.id === p.sheetId),
+    )
   )
     throw new Error('Vínculo de hierarquia inexistente.');
   const objects = new Set(contentObjects(project).map((o) => o.id));
@@ -323,10 +310,6 @@ export function validateHierarchy(project: Project) {
   )
     throw new Error('Associação de objeto ao detalhamento inválida.');
   const drawnDetails = new Set(h.drawings.map((d) => d.detailId));
-  const placedDrawings = new Set(h.placements.map((p) => p.drawingId));
-  if (
-    h.details.some((d) => !drawnDetails.has(d.id)) ||
-    h.drawings.some((d) => !placedDrawings.has(d.id))
-  )
-    throw new Error('Detalhamento sem desenho ou posicionamento.');
+  if (h.details.some((d) => !drawnDetails.has(d.id)))
+    throw new Error('Detalhamento sem desenho.');
 }

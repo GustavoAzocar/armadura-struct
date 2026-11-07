@@ -718,6 +718,7 @@ export function ProjectTree({
   isolatedDetailId,
   onEditDetail,
   onSelectDetail,
+  onOpenDrawing,
 }: {
   project: Project;
   selected: string[];
@@ -734,6 +735,7 @@ export function ProjectTree({
   isolatedDetailId?: string;
   onEditDetail: (id: string) => void;
   onSelectDetail: (id: string) => void;
+  onOpenDrawing: (id: string) => void;
 }) {
   const treeKey = `armadurastruct.contentTree.${project.id}`;
   const [groups, setGroups] = useState<{ bars: boolean; masks: boolean }>(
@@ -817,6 +819,7 @@ export function ProjectTree({
             onSearch={setSearch}
             onEditDetail={onEditDetail}
             onSelectDetail={onSelectDetail}
+            onOpenDrawing={onOpenDrawing}
           />
         )}
         <p className="tree-content-caption">Objetos do detalhamento ativo</p>

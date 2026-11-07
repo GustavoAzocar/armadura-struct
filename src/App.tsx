@@ -22,7 +22,13 @@ import {
   Shapes,
 } from 'lucide-react';
 import Ribbon, { type Action } from './components/Ribbon';
-import CadCanvas, { type CadHandle } from './components/CadCanvas';
+import CadCanvas, {
+  type CadHandle,
+  type CadState,
+} from './components/CadCanvas';
+import SheetCanvas from './components/SheetCanvas';
+import SheetManager from './components/SheetManager';
+import { removePlacement, updatePlacement } from './domain/sheets';
 import {
   Inspector,
   NumberField,
@@ -59,6 +65,8 @@ import {
 } from './domain/types';
 import {
   autosave,
+  readDocumentWorkspace,
+  saveDocumentWorkspace,
   importMask,
   pickNativeFile,
   restore,
@@ -84,6 +92,29 @@ import {
   setDetailGrouped,
 } from './domain/detailEditing';
 import { version as appVersion } from '../package.json';
+type DocumentSession = {
+  selected: string[];
+  maskId: string | null;
+  tool: Tool;
+  draft: Point[];
+  page: 'drawing' | 'schedule';
+  command: string;
+  detailId: string;
+  isolation?: string;
+  camera?: CadState;
+  selectedView?: string;
+  sidebar: 'project' | 'properties' | 'sheets';
+  returnTo?: string;
+  settings?: {
+    diameter: number;
+    quantity: number;
+    spacing: number;
+    cover: number;
+    snap: boolean;
+    ortho: boolean;
+    ribbon: string;
+  };
+};
 type History = { past: Project[]; present: Project; future: Project[] };
 const prompts: Record<Tool, string> = {
   polyline:
@@ -142,6 +173,30 @@ export default function App() {
     future: [],
   }));
   const p = history.present;
+  const [documents, setDocuments] = useState<{
+    projectId: string;
+    active: string;
+    opened: string[];
+  }>({ projectId: p.id, active: 'model', opened: [] });
+  const validDocument = (key: string, project = p) =>
+    key === 'model' ||
+    (key.startsWith('sheet:')
+      ? project.sheets.some((s) => s.id === key.slice(6))
+      : key.startsWith('drawing:') &&
+        project.hierarchy.drawings.some((d) => d.id === key.slice(8)));
+  const documentKey =
+    documents.projectId === p.id && validDocument(documents.active)
+      ? documents.active
+      : 'model';
+  const activeSheet = documentKey.startsWith('sheet:')
+    ? p.sheets.find((s) => s.id === documentKey.slice(6))
+    : undefined;
+  const activeDrawing = documentKey.startsWith('drawing:')
+    ? p.hierarchy.drawings.find((d) => d.id === documentKey.slice(8))
+    : undefined;
+  const sessions = useRef(new Map<string, DocumentSession>());
+  const sessionsProject = useRef('');
+  const [selectedView, setSelectedView] = useState<string>();
   const historyRef = useRef(history);
   // Reject writes synchronously, including callbacks completing after a context switch.
   historyRef.current = history;
@@ -150,10 +205,11 @@ export default function App() {
     detailId: string;
   } | null>(null);
   const isolatedDetailId =
-    isolation?.projectId === p.id &&
+    activeDrawing?.detailId ??
+    (isolation?.projectId === p.id &&
     p.hierarchy.details.some((d) => d.id === isolation.detailId)
       ? isolation.detailId
-      : undefined;
+      : undefined);
   const canUndo = canEditDetailChange(p, history.past.at(-1), isolatedDetailId);
   const canRedo = canEditDetailChange(p, history.future[0], isolatedDetailId);
   const isolationRef = useRef(isolatedDetailId);
@@ -196,7 +252,7 @@ export default function App() {
   const [tool, setToolRaw] = useState<Tool>('select'),
     [draft, setDraft] = useState<Point[]>([]),
     [tab, setTab] = useState('Armaduras'),
-    [page, setPage] = useState<'drawing' | 'schedule'>('drawing');
+    [page, setPageRaw] = useState<'drawing' | 'schedule'>('drawing');
   const [grid, setGrid] = useState(true),
     [snap, setSnap] = useState(true),
     [ortho, setOrtho] = useState(false),
@@ -219,9 +275,9 @@ export default function App() {
     [newSpacing, setNewSpacing] = useState(150),
     [splitAt, setSplitAt] = useState(500),
     [lap, setLap] = useState(0);
-  const [sidebarTab, setSidebarTab] = useState<'project' | 'properties'>(
-    'project',
-  );
+  const [sidebarTab, setSidebarTab] = useState<
+    'project' | 'properties' | 'sheets'
+  >('project');
   const [sidebarOpen, setSidebarOpen] = useState(
     () => localStorage.getItem('armadurastruct.sidebar') !== 'closed',
   );
@@ -247,10 +303,191 @@ export default function App() {
       ),
     [ribbonCollapsed],
   );
+  const paperCanvas = useRef<CadHandle>(null);
   const cad = useRef<CadHandle>(null),
     maskInput = useRef<HTMLInputElement>(null),
     projectInput = useRef<HTMLInputElement>(null),
     cmdInput = useRef<HTMLInputElement>(null);
+  const canvas = () => (activeSheet ? paperCanvas.current : cad.current);
+  const captureDocument = (): DocumentSession => ({
+    selected,
+    maskId,
+    tool,
+    draft,
+    page,
+    command,
+    detailId: activeDetailId,
+    isolation: activeDrawing ? undefined : isolatedDetailId,
+    camera: canvas()?.getState() ?? sessions.current.get(documentKey)?.camera,
+    selectedView,
+    settings: {
+      diameter: newDiameter,
+      quantity: newQuantity,
+      spacing: newSpacing,
+      cover,
+      snap,
+      ortho,
+      ribbon: tab,
+    },
+    sidebar: sidebarTab,
+    returnTo: sessions.current.get(documentKey)?.returnTo,
+  });
+  const persistDocuments = (
+    active = documentKey,
+    opened = documents.opened,
+  ) => {
+    const cameras = Object.fromEntries(
+      [...sessions.current]
+        .filter(([, v]) => v.camera)
+        .map(([key, value]) => [key, value.camera!]),
+    );
+    saveDocumentWorkspace(p.id, { active, opened, cameras });
+  };
+  const setPage = (next: 'drawing' | 'schedule') => {
+    if (next !== page)
+      sessions.current.set(documentKey, { ...captureDocument(), page: next });
+    setPageRaw(next);
+  };
+  const switchDocument = (key: string, returnTo?: string) => {
+    const current = historyRef.current.present;
+    if (!validDocument(key, current)) return;
+    if (
+      key === documentKey &&
+      documents.active === key &&
+      documents.projectId === p.id
+    ) {
+      setPage('drawing');
+      return;
+    }
+    if (validDocument(documents.active) && documents.projectId === p.id)
+      sessions.current.set(documentKey, captureDocument());
+    const drawing = key.startsWith('drawing:')
+      ? current.hierarchy.drawings.find((d) => d.id === key.slice(8))
+      : undefined;
+    const next = sessions.current.get(key) ?? {
+      selected: [],
+      maskId: null,
+      tool: 'select' as Tool,
+      draft: [],
+      page: 'drawing' as const,
+      command: '',
+      detailId: drawing?.detailId ?? activeDetailId,
+      sidebar: key.startsWith('sheet:')
+        ? ('sheets' as const)
+        : ('project' as const),
+      returnTo,
+    };
+    if (returnTo && key !== 'model') next.returnTo = returnTo;
+    sessions.current.set(key, next);
+    const scope =
+      drawing?.detailId ??
+      (current.hierarchy.details.some((d) => d.id === next.isolation)
+        ? next.isolation
+        : undefined);
+    isolationRef.current = scope;
+    setIsolation(
+      scope && !drawing ? { projectId: p.id, detailId: scope } : null,
+    );
+    setContext({ projectId: p.id, detailId: next.detailId });
+    setSelectedRaw(
+      next.selected.filter(
+        (id) =>
+          Object.hasOwn(current.hierarchy.objectDetails, id) &&
+          (!scope || current.hierarchy.objectDetails[id] === scope),
+      ),
+    );
+    setMaskId(
+      next.maskId &&
+        current.masks.some(
+          (m) =>
+            m.id === next.maskId &&
+            (!scope || current.hierarchy.objectDetails[m.id] === scope),
+        )
+        ? next.maskId
+        : null,
+    );
+    if (next.settings) {
+      setNewDiameter(next.settings.diameter);
+      setNewQuantity(next.settings.quantity);
+      setNewSpacing(next.settings.spacing);
+      setCover(next.settings.cover);
+      setSnap(next.settings.snap);
+      setOrtho(next.settings.ortho);
+      setTab(next.settings.ribbon);
+    }
+    setToolRaw(next.tool);
+    setDraft(next.draft);
+    setPageRaw(next.page);
+    setCommand(next.command);
+    setSelectedView(next.selectedView);
+    setSidebarTab(next.sidebar);
+    setModal(null);
+    setMessage(prompts[next.tool]);
+    const opened = [
+      ...new Set([...documents.opened, ...(key === 'model' ? [] : [key])]),
+    ];
+    setDocuments({ projectId: p.id, active: key, opened });
+    persistDocuments(key, opened);
+  };
+  const openDrawing = (id: string) =>
+    switchDocument(`drawing:${id}`, documentKey);
+  const closeDocument = (key: string) => {
+    if (key === documentKey) switchDocument('model');
+    setDocuments((d) => ({
+      ...d,
+      active: key === d.active ? 'model' : d.active,
+      opened: d.opened.filter((k) => k !== key),
+    }));
+  };
+  useEffect(() => {
+    if (sessionsProject.current === p.id) return;
+    sessionsProject.current = p.id;
+    sessions.current.clear();
+    const saved = readDocumentWorkspace(p.id);
+    for (const [key, camera] of Object.entries(saved?.cameras ?? {})) {
+      sessions.current.set(key, {
+        selected: [],
+        maskId: null,
+        tool: 'select',
+        draft: [],
+        page: 'drawing',
+        command: '',
+        detailId: p.hierarchy.details[0].id,
+        camera,
+        sidebar: key.startsWith('sheet:') ? 'sheets' : 'project',
+      });
+    }
+    // File reopen starts outside isolated editing; cached cameras remain available.
+    setDocuments({
+      projectId: p.id,
+      active: 'model',
+      opened: (saved?.opened ?? []).filter((key) => validDocument(key)),
+    });
+    isolationRef.current = undefined;
+    setIsolation(null);
+    setSelectedRaw([]);
+    setMaskId(null);
+    setToolRaw('select');
+    setDraft([]);
+    setPageRaw('drawing');
+    setSelectedView(undefined);
+    setCommand('');
+  }, [p.id]);
+  useEffect(() => {
+    if (documents.projectId === p.id && !validDocument(documents.active))
+      switchDocument('model');
+  }, [p.sheets, p.hierarchy.drawings]);
+  useEffect(() => {
+    if (documents.projectId === p.id) persistDocuments();
+  }, [documents]);
+  useEffect(() => {
+    const save = () => {
+      sessions.current.set(documentKey, captureDocument());
+      persistDocuments();
+    };
+    window.addEventListener('beforeunload', save);
+    return () => window.removeEventListener('beforeunload', save);
+  });
   const cursorReadout = useRef<HTMLSpanElement>(null);
   const onCursor = useCallback((point: Point) => {
     if (cursorReadout.current)
@@ -364,7 +601,15 @@ export default function App() {
     },
     [activeDetailId],
   );
+  const commitLayout = (change: (current: Project) => Project) => {
+    sessions.current.set(documentKey, captureDocument());
+    return commit(change);
+  };
   const select = (ids: string[]) => {
+    if (activeSheet && ids.length) {
+      notify('Abra um desenho para selecionar os objetos do modelo.');
+      return;
+    }
     const current = historyRef.current.present;
     const scope = isolationRef.current;
     if (
@@ -386,6 +631,12 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    if (activeSheet && t !== 'select' && t !== 'pan') {
+      notify(
+        'Abra o desenho com duplo clique na vista para editar os objetos.',
+      );
+      return;
+    }
     setToolRaw(t);
     setDraft([]);
     setPage('drawing');
@@ -408,6 +659,35 @@ export default function App() {
     notify('Edição isolada. Os demais detalhamentos estão protegidos.');
   };
   const finishDetailEdit = () => {
+    if (activeDrawing) {
+      const session = captureDocument();
+      sessions.current.set(documentKey, {
+        ...session,
+        tool: 'select',
+        draft: [],
+        page: 'drawing',
+      });
+      const target =
+        session.returnTo && validDocument(session.returnTo)
+          ? session.returnTo
+          : 'model';
+      // Switch captures the current editing state; clear only this command explicitly.
+      setToolRaw('select');
+      setDraft([]);
+      switchDocument(target);
+      const cached = sessions.current.get(documentKey);
+      if (cached)
+        sessions.current.set(documentKey, {
+          ...cached,
+          tool: 'select',
+          draft: [],
+          page: 'drawing',
+        });
+      notify(
+        'Edição concluída. Todas as vistas usam o detalhamento atualizado.',
+      );
+      return;
+    }
     const current = historyRef.current.present,
       id = isolationRef.current;
     isolationRef.current = undefined;
@@ -445,6 +725,7 @@ export default function App() {
     setMessage(`${b.mark} criada. Continue desenhando ou pressione Esc.`);
   };
   const finish = () => {
+    if (activeSheet) return;
     if (tool === 'polyline' && draft.length >= 2) {
       const id = uid();
       commit((p) => ({
@@ -767,6 +1048,32 @@ export default function App() {
     }
   };
   const action = async (a: Action) => {
+    if (activeSheet && a === 'delete') {
+      if (selectedView) {
+        commit((p) => removePlacement(p, selectedView));
+        setSelectedView(undefined);
+      }
+      return;
+    }
+    if (
+      activeSheet &&
+      [
+        'copy',
+        'move',
+        'rotate',
+        'mirror',
+        'split',
+        'join',
+        'group',
+        'ungroup',
+        'import',
+      ].includes(a)
+    ) {
+      notify(
+        'Abra o desenho com duplo clique na vista para editar os objetos.',
+      );
+      return;
+    }
     if (
       isolationRef.current &&
       [
@@ -1001,10 +1308,10 @@ export default function App() {
         }));
       }
       if (a === 'fit') {
-        if (page === 'drawing') cad.current?.fit();
+        if (page === 'drawing') canvas()?.fit();
         else {
           setPage('drawing');
-          requestAnimationFrame(() => cad.current?.fit());
+          requestAnimationFrame(() => canvas()?.fit());
         }
       }
       if (a === 'grid') setGrid(!grid);
@@ -1076,7 +1383,7 @@ export default function App() {
       if (!commit(() => next)) return;
       select([]);
       setTool('select');
-      setTimeout(() => cad.current?.fit(), 50);
+      setTimeout(() => canvas()?.fit(), 50);
       notify('Projeto aberto.');
     } catch (e) {
       notify(
@@ -1391,13 +1698,58 @@ export default function App() {
       <div className="workspace">
         <main className="main-workspace">
           <div className="document-tabs">
-            <button
-              className={page === 'drawing' ? 'active' : ''}
-              onClick={() => setPage('drawing')}
-            >
-              <span className="document-icon">⌗</span> Desenho{' '}
-              <span className="tab-dot" />
-            </button>
+            <div className="document-strip" aria-label="Documentos abertos">
+              <button
+                className={
+                  documentKey === 'model' && page === 'drawing' ? 'active' : ''
+                }
+                aria-label="Desenho"
+                onClick={() => switchDocument('model')}
+              >
+                <span className="document-icon">⌗</span> Desenho{' '}
+                <span className="tab-dot" />
+              </button>
+              {[
+                ...p.sheets.map((s) => ({
+                  key: `sheet:${s.id}`,
+                  name: s.name,
+                  prefix: '▤',
+                  kind: 'folha',
+                })),
+                ...p.hierarchy.drawings.map((d) => ({
+                  key: `drawing:${d.id}`,
+                  name: `${p.hierarchy.details.find((n) => n.id === d.detailId)?.name} · ${d.name}`,
+                  prefix: '⌗',
+                  kind: 'desenho',
+                })),
+              ]
+                .filter(
+                  (d) =>
+                    documents.projectId === p.id &&
+                    documents.opened.includes(d.key),
+                )
+                .map((d) => (
+                  <div
+                    key={d.key}
+                    className={`document-tab ${documentKey === d.key && page === 'drawing' ? 'active' : ''}`}
+                  >
+                    <button
+                      title={d.name}
+                      aria-label={`Aba ${d.kind} ${d.name}`}
+                      onClick={() => switchDocument(d.key)}
+                    >
+                      {d.prefix} {d.name}
+                    </button>
+                    <button
+                      className="close-document"
+                      aria-label={`Fechar aba ${d.name}`}
+                      onClick={() => closeDocument(d.key)}
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                ))}
+            </div>
             <button
               className={page === 'schedule' ? 'active' : ''}
               onClick={() => setPage('schedule')}
@@ -1424,10 +1776,10 @@ export default function App() {
               </button>
               <button
                 onClick={() => action('pdf')}
-                title="Exportar prancha PDF"
+                title="Exportar PDF do desenho geral"
               >
                 <ArrowDownToLine size={14} />
-                <span>Exportar PDF</span>
+                <span>{activeSheet ? 'PDF do modelo' : 'Exportar PDF'}</span>
               </button>
             </div>
           </div>
@@ -1449,7 +1801,25 @@ export default function App() {
               <button onClick={finishDetailEdit}>Concluir edição</button>
             </div>
           )}
-          {page === 'drawing' ? (
+          {page === 'drawing' && activeSheet ? (
+            <SheetCanvas
+              key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
+              ref={paperCanvas}
+              project={p}
+              sheet={activeSheet}
+              initialState={sessions.current.get(documentKey)?.camera}
+              selectedView={selectedView}
+              pan={tool === 'pan'}
+              onSelect={(id) => {
+                setSelectedView(id);
+                setSidebarTab('sheets');
+              }}
+              onMove={(id, origin) =>
+                commitLayout((p) => updatePlacement(p, id, { origin }))
+              }
+              onOpenDrawing={openDrawing}
+            />
+          ) : page === 'drawing' ? (
             <>
               {tool === 'follow' && (
                 <div className="context-bar">
@@ -1467,6 +1837,8 @@ export default function App() {
                 </div>
               )}
               <CadCanvas
+                key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
+                initialState={sessions.current.get(documentKey)?.camera}
                 ref={cad}
                 project={p}
                 isolatedDetailId={isolatedDetailId}
@@ -1564,6 +1936,13 @@ export default function App() {
                 Propriedades
               </button>
               <button
+                role="tab"
+                aria-selected={sidebarTab === 'sheets'}
+                onClick={() => setSidebarTab('sheets')}
+              >
+                Pranchas
+              </button>
+              <button
                 className="dock-close"
                 aria-label="Recolher painel lateral"
                 title="Recolher painel · F4"
@@ -1572,13 +1951,30 @@ export default function App() {
                 <X size={14} />
               </button>
             </div>
-            {sidebarTab === 'project' ? (
+            {sidebarTab === 'sheets' ||
+            (activeSheet && sidebarTab === 'properties') ? (
+              <SheetManager
+                key={`${p.id}:${activeSheet?.id ?? 'model'}`}
+                project={p}
+                sheetId={activeSheet?.id}
+                selectedView={selectedView}
+                onSelectView={setSelectedView}
+                onChange={commitLayout}
+                onOpenSheet={(id) => {
+                  switchDocument(`sheet:${id}`);
+                  setSidebarTab('sheets');
+                }}
+                onOpenDrawing={openDrawing}
+                locked={!!isolatedDetailId}
+              />
+            ) : sidebarTab === 'project' ? (
               <ProjectTree
                 key={p.id}
                 project={p}
                 activeDetailId={activeDetailId}
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
+                onOpenDrawing={openDrawing}
                 onSelectDetail={(id) => select(detailObjectIds(p, id))}
                 onActiveDetail={activateDetail}
                 onHierarchy={(next) => commit(() => next)}
@@ -1612,7 +2008,7 @@ export default function App() {
                   commit(() => demoProject());
                   select([]);
                   setTool('select');
-                  setTimeout(() => cad.current?.fit(), 50);
+                  setTimeout(() => canvas()?.fit(), 50);
                 }}
               />
             ) : groupSelection ? (

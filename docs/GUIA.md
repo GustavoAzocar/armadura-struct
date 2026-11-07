@@ -2,7 +2,7 @@
 
 ## Espaço de trabalho
 
-Use a faixa **Armaduras** para criar e detalhar posições. Quantidade, bitola e espaçamento no topo valem para os próximos comandos; para alterar uma posição existente, selecione-a e use **Propriedades**. O único painel lateral alterna entre a árvore em **Projeto** e a edição em **Propriedades**.
+Use a faixa **Armaduras** para criar e detalhar posições. Quantidade, bitola e espaçamento no topo valem para os próximos comandos; para alterar uma posição existente, selecione-a e use **Propriedades**. O painel lateral alterna entre a árvore em **Projeto**, a edição em **Propriedades** e o gerenciador em **Pranchas**.
 
 **F4** recolhe/abre o painel. **Ctrl+F1** recolhe/expande a faixa. **Ctrl+0** alterna o modo Foco no CAD. Os botões no canto da área de desenho também permitem recuperar os painéis. A preferência de recolhimento é preservada neste dispositivo.
 
@@ -30,17 +30,33 @@ Altere bitola, quantidade ou geometria em **Propriedades**. As representações 
 
 **Concluir edição** (comando `CONCLUIR`) retorna à visão geral e recupera a câmera anterior. As alterações já integram o modelo, o salvamento e o histórico; não dependem desse botão para serem gravadas. Durante a edição isolada, desfazer/refazer aceita apenas operações que preservem os demais detalhes. Depois de concluir, o histórico geral volta a ficar acessível. O modo isolado é temporário: reabrir o JSON retorna à visão geral, preservando grupos e vínculos.
 
-**Desagrupar seleção** (`DESAGRUPAR`) devolve a seleção individual aos membros e mantém o detalhamento na hierarquia. Não converte barras em linhas, não apaga seus dados e não altera o peso. Excluir objetos físicos é uma operação diferente. O agrupamento visual usa o campo opcional `hierarchy.details[].grouped` no formato 3; arquivos anteriores sem esse campo continuam com seleção individual.
+**Desagrupar seleção** (`DESAGRUPAR`) devolve a seleção individual aos membros e mantém o detalhamento na hierarquia. Não converte barras em linhas, não apaga seus dados e não altera o peso. Excluir objetos físicos é uma operação diferente. O agrupamento visual usa o campo opcional `hierarchy.details[].grouped` nos formatos 3/4; arquivos anteriores sem esse campo continuam com seleção individual.
 
 ![Edição isolada de um detalhamento](detail-editing.png)
 
-### Formato 3 e compatibilidade
+### Folhas, vistas e abas
+
+Abra **Pranchas** no painel lateral. Digite o nome e use **+** para criar uma folha vazia. Clique em uma folha da lista para abri-la em aba. O gerenciador permite renomear, escolher A0–A4/paisagem/retrato, informar revisão e notas, reordenar pelas setas, **Duplicar layout** e **Excluir folha**. A posição na lista determina a ordem salva e a ordem das abas de folhas.
+
+Em **Colocar desenho**, escolha um desenho existente. Uma vista é uma referência ao desenho do detalhamento, com ID e posição próprios; não cria novas peças. **Duplicar vista** e **Duplicar layout** reutilizam a definição física. **Retirar vista** remove somente essa colocação. Excluir a folha remove suas vistas, mantendo desenhos e objetos no modelo; até a última folha pode ser excluída. **Desfazer/Refazer** restaura as operações. A lista de **Desenhos não colocados** inclui desenhos sem nenhuma vista, inclusive os de detalhes recém-criados.
+
+A folha mostra uma **prévia de layout**. Arraste o quadro de uma vista para posicioná-la ou selecione-a e informe X/Y, largura, altura e rotação no painel. As coordenadas são em mm no papel, a partir do canto inferior esquerdo. O conteúdo é ajustado ao quadro para organizar o layout; esse ajuste não define escala técnica de impressão. Roda aplica zoom, botão do meio arrasta a câmera, **Ajustar folha** enquadra o papel. Uma vista pode ficar fora do papel; reposicione-a pelo painel quando necessário.
+
+Use **duplo clique na vista**, o botão de abrir desenho na lista de vistas, um desenho não colocado ou o botão ⌗ na árvore para abrir o desenho em sua própria aba. A edição é isolada no detalhamento original e segue as proteções da AS-02. Alterar bitola, quantidade ou geometria atualiza todas as vistas do desenho. **Concluir edição** retorna à aba de origem; se ela tiver sido excluída, retorna à visão geral.
+
+Cada aba mantém zoom/pan, seleção, detalhamento ativo, modo de edição, ferramenta, pontos do comando em andamento e texto digitado. O quadro de aço continua global e mantém o contexto da aba ao ser consultado. Fechar pelo **×** fecha somente a aba; reabri-la durante a sessão recupera seu estado. Os nomes, a ordem, as propriedades, posições e referências das folhas fazem parte do arquivo JSON. As câmeras e abas abertas são preferências locais; reabrir o aplicativo começa na visão geral, com ferramentas em Selecionar e sem comandos pendentes.
+
+O PDF/DXF atual ainda exporta o desenho geral, e o CSV/RA abrange todo o modelo. A exportação dos novos layouts como pranchas em escala e com carimbos será tratada na etapa de composição de pranchas.
+
+![Gerenciador de pranchas e vistas vinculadas](sheets.png)
+
+### Formato 4 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
 
-No modelo, `hierarchy.details` contém os detalhamentos compostos e `hierarchy.objectDetails` associa os objetos por ID. `details` mantém exclusivamente os rebatimentos gráficos das barras. `hierarchy.drawings` identifica desenhos lógicos dos detalhamentos; `hierarchy.placements` reserva seus posicionamentos na folha, separados das origens físicas e dos rebatimentos. A composição/transformação visual dessas posições na prancha será feita nas tarefas de pranchas; o CAD atual conserva as coordenadas anteriores.
+No modelo, `hierarchy.details` contém os detalhamentos compostos e `hierarchy.objectDetails` associa os objetos por ID. `details` mantém exclusivamente os rebatimentos gráficos das barras. `hierarchy.drawings` identifica desenhos lógicos dos detalhamentos; `sheets` cadastra as folhas na ordem de documentação e `hierarchy.placements` associa vistas a `sheetId`/`drawingId`, separadas das origens físicas e dos rebatimentos. Um desenho pode existir sem colocação. Projetos 1/2 recebem uma folha inicial e, havendo objetos, uma vista do desenho migrado; projetos 3 mantêm IDs, origens, rotação e escala dos posicionamentos na folha inicial. A migração não move os objetos do CAD.
 
-Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hierarquia. Arquivos v3 com vínculos inválidos são recusados, em vez de descartar objetos silenciosamente. Mantenha uma cópia do JSON antigo se precisar abri-lo em uma versão anterior do aplicativo.
+Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hierarquia. Arquivos v3/v4 com vínculos inválidos são recusados, em vez de descartar objetos silenciosamente. Mantenha uma cópia do JSON antigo se precisar abri-lo em uma versão anterior do aplicativo.
 
 ## Mouse e seleção
 
@@ -130,7 +146,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável e as máscaras normalizadas; os bytes originais do CAD não são armazenados. DXF e PDF são saídas para documentação. Em **Propriedades** sem seleção, informe a revisão e escolha a escala do PDF: ajuste à folha ou 1:10, 1:20, 1:25, 1:50, 1:75, 1:100 ou 1:200. A exportação avisa se o desenho não couber na escala escolhida. Imprima em tamanho real (100%). Guarde o projeto JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2 são migrados ao abrir, e os novos salvamentos usam o formato `armadurastruct/3`.
+O `.armstruct.json` preserva o modelo editável e as máscaras normalizadas; os bytes originais do CAD não são armazenados. DXF e PDF são saídas para documentação. Em **Propriedades** sem seleção, informe a revisão e escolha a escala do PDF: ajuste à folha ou 1:10, 1:20, 1:25, 1:50, 1:75, 1:100 ou 1:200. A exportação avisa se o desenho não couber na escala escolhida. Imprima em tamanho real (100%). Guarde o projeto JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3 são migrados ao abrir, e os novos salvamentos usam o formato `armadurastruct/4`.
 
 ## Nota de implementação desktop
 

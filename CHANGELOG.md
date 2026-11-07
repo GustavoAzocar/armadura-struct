@@ -2,6 +2,12 @@
 
 ## Em desenvolvimento
 
+- AS-04: gerenciador compacto de pranchas; folhas vazias A0–A4 com orientação, revisão/notas, renomeação, ordenação, duplicação de layout e exclusão sem remover armaduras.
+- Vistas com IDs próprios e referências aos desenhos existentes; posição, rotação e quadro de prévia em mm de papel, arraste, duplicação/retirada e lista de desenhos não colocados.
+- Abas por folha e desenho preservam câmera, seleção e comando em andamento; edição de desenhos reaproveita a proteção da AS-02 e atualiza todas as vistas. Fechar uma aba preserva sua sessão durante o uso; câmeras e abas abertas são preferências locais.
+- Formato 4 com migração determinística de projetos 1/2/3, preservando os dados físicos e posicionamentos existentes. Histórico e reabertura incluem nomes, ordem, propriedades e vínculos das folhas.
+- Prévia vetorial compartilha as primitivas do exportador, sem carregar jsPDF na edição. A impressão dos novos layouts em escala e carimbos personalizados fica para a etapa de composição de pranchas; PDF/DXF atuais permanecem globais.
+
 - AS-02: agrupamento visual por detalhamento, seleção do conjunto, duplo clique no CAD/árvore, edição isolada com caminho de navegação e Concluir edição.
 - Proteção de objetos externos em seleção, comandos, histórico e gravações assíncronas; desagrupar preserva dados físicos, IDs, vínculos e quantitativos. O deslocamento de um conjunto inclui suas chamadas, rebatimentos e demais geometrias associadas.
 - AS-01: pavimentos, elementos e detalhamentos compostos com identidades estáveis; criação, edição, movimentação, exclusão de nós vazios e pesquisa no navegador compacto.

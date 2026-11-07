@@ -134,6 +134,7 @@ export function assertDetailEdit(
     'author',
     'notes',
     'drawing',
+    'sheets',
     'scheduleLock',
   ] as const)
     if (!same(before[field], after[field])) fail();
