@@ -77,6 +77,27 @@ export async function readProjectFile(
     allowOrphanReferences: forDetailTransfer,
   });
 }
+/** Packages and complete projects converge on the same AS-08 comparison. */
+export async function readDetailSourceFile(
+  file: File,
+): Promise<{ project: Project; detailId?: string }> {
+  if (file.size > 100 * 1024 * 1024)
+    throw new Error('Use um pacote de até 100 MB.');
+  const raw = await file.text();
+  const header = JSON.parse(raw) as { schema?: unknown } | null;
+  if (
+    typeof header?.schema === 'string' &&
+    header.schema.startsWith('openstruct.detail/')
+  ) {
+    const { readDetailPackage } = await import('../domain/detailPackage');
+    const { package: pack, project } = readDetailPackage(header);
+    return {
+      project,
+      detailId: pack.context.detail.id,
+    };
+  }
+  return { project: decodeProject(raw, { allowOrphanReferences: true }) };
+}
 export async function pickNativeFile(
   extensions: string[],
 ): Promise<File | null | undefined> {

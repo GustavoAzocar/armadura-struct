@@ -1,0 +1,166 @@
+{
+  "schema": "openstruct.detail/1",
+  "units": {
+    "length": "cm",
+    "angle": "deg"
+  },
+  "origin": {
+    "projectId": "openstruct-example-project",
+    "floorId": "floor-ground",
+    "elementId": "element-v1",
+    "detailId": "detail-v1"
+  },
+  "context": {
+    "project": {
+      "id": "openstruct-example-project",
+      "name": "Exemplo OpenStruct"
+    },
+    "floor": {
+      "id": "floor-ground",
+      "name": "Térreo"
+    },
+    "element": {
+      "id": "element-v1",
+      "name": "V1"
+    },
+    "detail": {
+      "id": "detail-v1",
+      "name": "Armação V1",
+      "grouped": true
+    }
+  },
+  "revision": "01",
+  "producer": {
+    "app": "Exemplo de produtor OpenStruct",
+    "version": "1.0.0"
+  },
+  "exportedAt": "2026-11-07T12:00:00Z",
+  "metadata": {
+    "purpose": "Revisão do mesmo detalhe com duas posições em centímetros."
+  },
+  "objects": {
+    "bars": [
+      {
+        "id": "bar-n1",
+        "mark": "N1",
+        "element": "V1",
+        "kind": "free",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "rotation": 0,
+        "points": [
+          {
+            "x": 0,
+            "y": 25
+          },
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 400,
+            "y": 0
+          },
+          {
+            "x": 400,
+            "y": 25
+          }
+        ],
+        "width": 25,
+        "height": 50,
+        "hook": 8,
+        "diameter": 1,
+        "mandrel": 5,
+        "steel": "CA-50",
+        "quantity": 4,
+        "color": "#4b71e8"
+      },
+      {
+        "id": "bar-n2",
+        "mark": "N2",
+        "element": "V1",
+        "kind": "stirrup",
+        "origin": {
+          "x": 450,
+          "y": 0
+        },
+        "rotation": 0,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 100,
+            "y": 0
+          }
+        ],
+        "width": 22,
+        "height": 44,
+        "hook": 6.5,
+        "diameter": 0.63,
+        "mandrel": 3.1500000000000004,
+        "steel": "CA-50",
+        "quantity": 21,
+        "color": "#4b71e8"
+      }
+    ],
+    "details": [
+      {
+        "id": "representation-n1",
+        "barId": "bar-n1",
+        "origin": {
+          "x": 0,
+          "y": -30
+        }
+      }
+    ],
+    "masks": [],
+    "annotations": [
+      {
+        "id": "call-n1",
+        "kind": "leader",
+        "points": [
+          {
+            "x": 50,
+            "y": 0
+          },
+          {
+            "x": 70,
+            "y": 20
+          },
+          {
+            "x": 90,
+            "y": 20
+          }
+        ],
+        "barId": "bar-n1",
+        "label": "",
+        "textHeight": 4,
+        "color": "#777777"
+      }
+    ],
+    "polylines": []
+  },
+  "dependencies": [],
+  "objectOrigins": {
+    "bar-n1": {
+      "projectId": "openstruct-example-project",
+      "objectId": "bar-n1"
+    },
+    "bar-n2": {
+      "projectId": "openstruct-example-project",
+      "objectId": "bar-n2"
+    },
+    "representation-n1": {
+      "projectId": "openstruct-example-project",
+      "objectId": "representation-n1"
+    },
+    "call-n1": {
+      "projectId": "openstruct-example-project",
+      "objectId": "call-n1"
+    }
+  }
+}

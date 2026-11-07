@@ -608,6 +608,9 @@ export function previewDetailTransfer(
                   projectName: source.name,
                   path: detailPath(source, incoming.id),
                   revision: source.drawing.revision,
+                  ...(incoming.source?.exchange
+                    ? { exchange: structuredClone(incoming.source.exchange) }
+                    : {}),
                 },
               }
             : d,

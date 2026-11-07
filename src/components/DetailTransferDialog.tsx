@@ -23,6 +23,7 @@ type Props = {
   elementId: string;
   sheetId?: string;
   activeDetailId: string;
+  sourceDetailId?: string;
   onApply: (plan: TransferPlan) => boolean;
   onClose: () => void;
 };
@@ -39,29 +40,34 @@ export default function DetailTransferDialog({
   elementId,
   sheetId,
   activeDetailId,
+  sourceDetailId,
   onApply,
   onClose,
 }: Props) {
+  const sourceDetails = sourceDetailId
+    ? source.hierarchy.details.filter((d) => d.id === sourceDetailId)
+    : source.hierarchy.details;
   const initial =
-    source.hierarchy.details.find((d) =>
+    sourceDetails.find((d) =>
       sameDetailOrigin(
         detailOrigin(source, d.id),
         detailOrigin(p, activeDetailId),
       ),
     ) ??
-    source.hierarchy.details.find((d) =>
+    sourceDetails.find((d) =>
       source.bars.some((b) => source.hierarchy.objectDetails[b.id] === d.id),
     ) ??
-    source.hierarchy.details[0];
+    sourceDetails[0];
   const firstMatches = matchingDetails(p, source, initial.id);
   const [options, setOptions] = useState<TransferOptions>({
-    mode: initialMode,
+    mode: sourceDetailId && firstMatches.length === 1 ? 'replace' : initialMode,
     sourceDetailId: initial.id,
     targetDetailId: firstMatches.length === 1 ? firstMatches[0].id : '',
     targetElementId: elementId,
     sheetId,
     name:
-      initialMode === 'replace' && firstMatches.length === 1
+      (initialMode === 'replace' || !!sourceDetailId) &&
+      firstMatches.length === 1
         ? firstMatches[0].name
         : initial.name,
   });
@@ -166,6 +172,14 @@ export default function DetailTransferDialog({
           Revise as posições e os vínculos antes de aplicar. O restante do
           projeto permanece no mesmo modelo.
         </p>
+        {sourceDetailId && (
+          <p className="field-help" role="status">
+            Pacote OpenStruct · unidades convertidas para mm.{' '}
+            {firstMatches.length === 1
+              ? 'Origem já presente: atualização proposta para evitar duplicação de aço.'
+              : 'Um detalhamento estruturado; dependências externas exigem decisão explícita.'}
+          </p>
+        )}
         <div className="transfer-fields">
           <label className="field">
             <span>Operação</span>
@@ -199,7 +213,7 @@ export default function DetailTransferDialog({
               value={incoming.id}
               onChange={(e) => chooseSource(e.target.value)}
             >
-              {source.hierarchy.details.map((d) => (
+              {sourceDetails.map((d) => (
                 <option key={d.id} value={d.id}>
                   {detailPath(source, d.id)}
                 </option>

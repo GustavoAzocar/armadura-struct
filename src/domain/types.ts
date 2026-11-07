@@ -34,6 +34,11 @@ export type DetailSource = {
   projectName: string;
   path: string;
   revision: string;
+  exchange?: {
+    producer: { app: string; version: string };
+    exportedAt: string;
+    metadata: Record<string, string>;
+  };
 };
 export type DrawingDetail = {
   id: string;

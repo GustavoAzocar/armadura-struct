@@ -1,0 +1,125 @@
+{
+  "schema": "openstruct.detail/1",
+  "units": {
+    "length": "mm",
+    "angle": "deg"
+  },
+  "origin": {
+    "projectId": "openstruct-example-project",
+    "floorId": "floor-ground",
+    "elementId": "element-v1",
+    "detailId": "detail-v1"
+  },
+  "context": {
+    "project": {
+      "id": "openstruct-example-project",
+      "name": "Exemplo OpenStruct"
+    },
+    "floor": {
+      "id": "floor-ground",
+      "name": "Térreo"
+    },
+    "element": {
+      "id": "element-v1",
+      "name": "V1"
+    },
+    "detail": {
+      "id": "detail-v1",
+      "name": "Armação V1",
+      "grouped": true
+    }
+  },
+  "revision": "00",
+  "producer": {
+    "app": "Exemplo de produtor OpenStruct",
+    "version": "1.0.0"
+  },
+  "exportedAt": "2026-11-07T12:00:00Z",
+  "metadata": {
+    "purpose": "Exemplo mínimo: 4 barras retas de 1000 mm, Ø10 mm."
+  },
+  "objects": {
+    "bars": [
+      {
+        "id": "bar-n1",
+        "mark": "N1",
+        "element": "V1",
+        "kind": "free",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "rotation": 0,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1000,
+            "y": 0
+          }
+        ],
+        "width": 250,
+        "height": 500,
+        "hook": 80,
+        "diameter": 10,
+        "mandrel": 50,
+        "steel": "CA-50",
+        "quantity": 4,
+        "color": "#4b71e8"
+      }
+    ],
+    "details": [
+      {
+        "id": "representation-n1",
+        "barId": "bar-n1",
+        "origin": {
+          "x": 0,
+          "y": -300
+        }
+      }
+    ],
+    "masks": [],
+    "annotations": [
+      {
+        "id": "call-n1",
+        "kind": "leader",
+        "points": [
+          {
+            "x": 500,
+            "y": 0
+          },
+          {
+            "x": 700,
+            "y": 200
+          },
+          {
+            "x": 900,
+            "y": 200
+          }
+        ],
+        "barId": "bar-n1",
+        "label": "",
+        "textHeight": 40,
+        "color": "#777777"
+      }
+    ],
+    "polylines": []
+  },
+  "dependencies": [],
+  "objectOrigins": {
+    "bar-n1": {
+      "projectId": "openstruct-example-project",
+      "objectId": "bar-n1"
+    },
+    "representation-n1": {
+      "projectId": "openstruct-example-project",
+      "objectId": "representation-n1"
+    },
+    "call-n1": {
+      "projectId": "openstruct-example-project",
+      "objectId": "call-n1"
+    }
+  }
+}

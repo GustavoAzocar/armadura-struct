@@ -2,6 +2,11 @@
 
 ## Em desenvolvimento
 
+- AS-09: pacote aberto `openstruct.detail/1`, exportação de um detalhamento, importação pela comparação da AS-08, conversão mm/cm/m, origem transitiva, metadados e tratamento explícito de dependências externas.
+- Reconhecimento de uma origem já presente propõe atualização, preservando IDs locais, vistas e uma única definição física; colisões são tratadas pelo mapeamento existente.
+- Interpretação assistida de contornos/textos de máscaras DXF/DWG, propriedades físicas explícitas, confirmação de unidade e preservação integral das primitivas normalizadas como referência. Criação transacional com desfazer/refazer e invalidação da RA bloqueada.
+- JSON Schema, exemplos em mm/cm e produtor Python utilizável por outros apps OpenStruct; o formato de projeto permanece 6, com metadados opcionais aditivos na origem.
+
 - AS-08: Inserir detalhamento e Atualizar detalhamento a partir de outro JSON, com seleção da origem/destino, comparação de posições, pesos, objetos e prévias antes/depois, sem trocar o projeto aberto.
 - Reconhecimento por identidade de projeto/pavimento/elemento/detalhamento e origem dos objetos; homônimos não são associados pelo nome. Posições preservadas mantêm IDs e marcas locais; novas marcas são resolvidas sem colidir com as existentes.
 - Reassociação explícita de chamadas/rebatimentos, importação controlada de dependências e bloqueio de aplicação com vínculos pendentes. Cancelar não altera o modelo/histórico; a aplicação é uma única transação reversível.

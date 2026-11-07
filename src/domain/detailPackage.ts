@@ -1,0 +1,301 @@
+import { z } from 'zod';
+import {
+  decodeProject,
+  detailContentSchema,
+  exchangeMetadataSchema,
+} from './model';
+import { contentObjects } from './hierarchy';
+import { detailOrigin, objectOrigin } from './detailTransfer';
+import { mul } from './geometry';
+import type { Bar, Point, Project } from './types';
+
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/1' as const;
+const id = z.string().min(1).max(200);
+const named = (max = 100) =>
+  z.object({ id, name: z.string().trim().min(1).max(max) });
+export const detailPackageSchema = z
+  .object({
+    schema: z.literal(DETAIL_PACKAGE_SCHEMA),
+    units: z
+      .object({ length: z.enum(['mm', 'cm', 'm']), angle: z.literal('deg') })
+      .strict(),
+    origin: z.object({
+      projectId: id,
+      floorId: id,
+      elementId: id,
+      detailId: id,
+    }),
+    context: z.object({
+      project: named(150),
+      floor: named(150),
+      element: named(),
+      detail: named().extend({ grouped: z.boolean() }),
+    }),
+    revision: z.string().max(40),
+    ...exchangeMetadataSchema.shape,
+    objects: detailContentSchema,
+    /** Definitions only: these are never imported as physical steel implicitly. */
+    dependencies: z.array(detailContentSchema.shape.bars.element).max(10000),
+    objectOrigins: z.record(
+      z.string(),
+      z.object({ projectId: id, objectId: id }),
+    ),
+  })
+  .strict();
+export type DetailPackage = z.infer<typeof detailPackageSchema>;
+export type PackageUnit = DetailPackage['units']['length'];
+const factors: Record<PackageUnit, number> = { mm: 1, cm: 10, m: 1000 };
+function scaleBar(b: Bar, k: number): Bar {
+  const point = (p: Point) => mul(p, k);
+  return {
+    ...b,
+    origin: point(b.origin),
+    points: b.points.map(point),
+    width: b.width * k,
+    height: b.height * k,
+    hook: b.hook * k,
+    diameter: b.diameter * k,
+    mandrel: b.mandrel * k,
+    ...(b.distribution
+      ? {
+          distribution: {
+            ...b.distribution,
+            end: point(b.distribution.end),
+            ...(b.distribution.start
+              ? { start: point(b.distribution.start) }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}
+/** Every length, including diameter and text height, uses units.length. Angles/counts/scales do not. */
+function scaleContent(value: DetailPackage, k: number): DetailPackage {
+  const point = (p: Point) => mul(p, k),
+    o = value.objects;
+  return {
+    ...value,
+    objects: {
+      bars: o.bars.map((b) => scaleBar(b, k)),
+      details: o.details.map((d) => ({ ...d, origin: point(d.origin) })),
+      annotations: o.annotations.map((a) => ({
+        ...a,
+        points: a.points.map(point),
+        textHeight: a.textHeight * k,
+      })),
+      polylines: o.polylines.map((l) => ({
+        ...l,
+        points: l.points.map(point),
+      })),
+      masks: o.masks.map((m) => ({
+        ...m,
+        origin: point(m.origin),
+        primitives: m.primitives.map((p) => ({
+          ...p,
+          points: p.points.map(point),
+          textHeight: (p.textHeight ?? 2.5) * k,
+        })),
+      })),
+    },
+    dependencies: value.dependencies.map((b) => scaleBar(b, k)),
+  };
+}
+
+/** Validate the complete closed reference graph before opening the AS-08 comparison. */
+export function detailPackageProject(value: DetailPackage): Project {
+  const pack = scaleContent(
+    detailPackageSchema.parse(value),
+    factors[value.units.length],
+  );
+  const o = pack.objects,
+    c = pack.context;
+  const objects = [...contentObjects(o), ...pack.dependencies];
+  const ids = objects.map((o) => o.id);
+  if (
+    ids.some((key) => !key || key.length > 200) ||
+    new Set(ids).size !== ids.length
+  )
+    throw new Error('Pacote com IDs de objetos vazios ou duplicados.');
+  if (
+    Object.keys(pack.objectOrigins).length !== ids.length ||
+    ids.some((key) => !Object.hasOwn(pack.objectOrigins, key))
+  )
+    throw new Error(
+      'Cada objeto e dependência do pacote precisa de uma identidade de origem.',
+    );
+  const originKeys = ids.map((key) => JSON.stringify(pack.objectOrigins[key]));
+  if (new Set(originKeys).size !== originKeys.length)
+    throw new Error(
+      'Dois objetos do pacote não podem representar a mesma identidade de origem.',
+    );
+  const referenced = new Set(
+    [...o.details, ...o.annotations].map((r) => r.barId).filter(Boolean),
+  );
+  if (pack.dependencies.some((b) => !referenced.has(b.id)))
+    throw new Error('Dependência não utilizada no detalhamento.');
+  // Synthetic drawing IDs are local transport scaffolding, never exchanged physical identity.
+  const occupied = new Set([
+    c.project.id,
+    c.floor.id,
+    c.element.id,
+    c.detail.id,
+    ...ids,
+  ]);
+  const fresh = (suffix: string) => {
+    let key = `exchange:${suffix}`;
+    while (occupied.has(key)) key += '-';
+    occupied.add(key);
+    return key;
+  };
+  const dependencyId = fresh('dependencies');
+  const details = [
+    {
+      ...c.detail,
+      elementId: c.element.id,
+      source: {
+        origin: pack.origin,
+        projectName: c.project.name,
+        path: `${c.floor.name} / ${c.element.name} / ${c.detail.name}`,
+        revision: pack.revision,
+        exchange: {
+          producer: pack.producer,
+          metadata: pack.metadata,
+          exportedAt: pack.exportedAt,
+        },
+      },
+    },
+  ];
+  const drawings = [
+    { id: fresh('drawing'), detailId: c.detail.id, name: 'Desenho principal' },
+  ];
+  if (pack.dependencies.length) {
+    details.push({
+      id: dependencyId,
+      elementId: c.element.id,
+      name: 'Dependências externas',
+      grouped: false,
+      source: {
+        origin: { ...pack.origin, detailId: dependencyId },
+        projectName: c.project.name,
+        path: 'Dependências externas',
+        revision: pack.revision,
+        exchange: {
+          producer: pack.producer,
+          metadata: {},
+          exportedAt: pack.exportedAt,
+        },
+      },
+    });
+    drawings.push({
+      id: fresh('dependency-drawing'),
+      detailId: dependencyId,
+      name: 'Referências externas',
+    });
+  }
+  return decodeProject(
+    JSON.stringify({
+      schema: 'armadurastruct/6',
+      id: c.project.id,
+      name: c.project.name,
+      author: pack.producer.app,
+      notes: '',
+      ...o,
+      bars: [...o.bars, ...pack.dependencies],
+      sheets: [],
+      drawing: { floor: c.floor.name, revision: pack.revision, scale: 0 },
+      hierarchy: {
+        floors: [c.floor],
+        elements: [{ ...c.element, floorId: c.floor.id }],
+        details,
+        drawings,
+        placements: [],
+        objectDetails: Object.fromEntries([
+          ...contentObjects(o).map((o) => [o.id, c.detail.id]),
+          ...pack.dependencies.map((b) => [b.id, dependencyId]),
+        ]),
+        objectOrigins: pack.objectOrigins,
+      },
+    }),
+  );
+}
+
+export function readDetailPackage(raw: unknown): {
+  package: DetailPackage;
+  project: Project;
+} {
+  const input = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (input?.schema !== DETAIL_PACKAGE_SCHEMA)
+    throw new Error(
+      `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA}.`,
+    );
+  const pack = detailPackageSchema.parse(input);
+  return { package: pack, project: detailPackageProject(pack) };
+}
+export function decodeDetailPackage(raw: string): DetailPackage {
+  return readDetailPackage(raw).package;
+}
+
+export function createDetailPackage(
+  project: Project,
+  detailId: string,
+  options: {
+    unit?: PackageUnit;
+    producer: DetailPackage['producer'];
+    metadata?: Record<string, string>;
+    exportedAt?: string;
+  },
+): DetailPackage {
+  const d = project.hierarchy.details.find((d) => d.id === detailId);
+  const e = project.hierarchy.elements.find((e) => e.id === d?.elementId);
+  const f = project.hierarchy.floors.find((f) => f.id === e?.floorId);
+  if (!d || !e || !f)
+    throw new Error('Escolha um detalhamento existente para exportar.');
+  const owns = (id: string) => project.hierarchy.objectDetails[id] === detailId;
+  const objects = {
+    bars: project.bars.filter((o) => owns(o.id)),
+    details: project.details.filter((o) => owns(o.id)),
+    masks: project.masks.filter((o) => owns(o.id)),
+    annotations: project.annotations.filter((o) => owns(o.id)),
+    polylines: project.polylines.filter((o) => owns(o.id)),
+  };
+  const owned = new Set(objects.bars.map((b) => b.id));
+  const refs = new Set(
+    [...objects.details, ...objects.annotations]
+      .map((r) => r.barId)
+      .filter(Boolean),
+  );
+  const dependencies = project.bars.filter(
+    (b) => refs.has(b.id) && !owned.has(b.id),
+  );
+  const mm: DetailPackage = {
+    schema: DETAIL_PACKAGE_SCHEMA,
+    units: { length: options.unit ?? 'mm', angle: 'deg' },
+    origin: detailOrigin(project, detailId),
+    context: {
+      project: { id: project.id, name: project.name },
+      floor: f,
+      element: { id: e.id, name: e.name },
+      detail: { id: d.id, name: d.name, grouped: d.grouped ?? false },
+    },
+    revision: project.drawing.revision,
+    producer: options.producer,
+    exportedAt: options.exportedAt ?? new Date().toISOString(),
+    metadata: { ...d.source?.exchange?.metadata, ...options.metadata },
+    objects,
+    dependencies,
+    objectOrigins: Object.fromEntries(
+      [...contentObjects(objects), ...dependencies].map((o) => [
+        o.id,
+        objectOrigin(project, o.id),
+      ]),
+    ),
+  };
+  const output = scaleContent(
+    structuredClone(mm),
+    1 / factors[mm.units.length],
+  );
+  // Avoid imposing millimeter diameter limits until declared units have been normalized.
+  const validated = detailPackageSchema.parse(output);
+  detailPackageProject(validated);
+  return validated;
+}

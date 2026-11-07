@@ -14,6 +14,16 @@ const number = z.number().finite();
 const point = z.object({ x: number, y: number });
 const identity = z.string().min(1).max(200);
 const named = { id: identity, name: z.string().trim().min(1).max(100) };
+export const exchangeMetadataSchema = z.object({
+  producer: z.object({
+    app: z.string().min(1).max(100),
+    version: z.string().max(40),
+  }),
+  exportedAt: z.iso.datetime(),
+  metadata: z
+    .record(z.string().min(1).max(100), z.string().max(5000))
+    .refine((m) => Object.keys(m).length <= 100, 'Use até 100 metadados.'),
+});
 const hierarchySchema = z.object({
   floors: z
     .array(z.object({ ...named, name: z.string().min(1).max(150) }))
@@ -40,6 +50,7 @@ const hierarchySchema = z.object({
             projectName: z.string().max(150),
             path: z.string().max(500),
             revision: z.string().max(40),
+            exchange: exchangeMetadataSchema.optional(),
           })
           .optional(),
       }),
@@ -225,11 +236,28 @@ const schema = z.object({
     )
     .max(20),
 });
+/** Shared physical/graphical validation at the open exchange boundary. */
+export const detailContentSchema = schema.pick({
+  bars: true,
+  details: true,
+  masks: true,
+  annotations: true,
+  polylines: true,
+});
+
 export function decodeProject(
   raw: string,
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
-  const parsed = schema.parse(JSON.parse(raw));
+  const input = JSON.parse(raw);
+  if (
+    typeof input?.schema === 'string' &&
+    input.schema.startsWith('openstruct.detail/')
+  )
+    throw new Error(
+      'Para importar um pacote OpenStruct, use Elementos → Inserir detalhamento no projeto de destino.',
+    );
+  const parsed = schema.parse(input);
   const modern =
     parsed.schema === 'armadurastruct/3' ||
     parsed.schema === 'armadurastruct/4' ||

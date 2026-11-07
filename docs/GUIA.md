@@ -58,7 +58,7 @@ Cada aba mantém zoom/pan, seleção, detalhamento ativo, modo de edição, ferr
 
 ### Inserir ou atualizar um detalhamento
 
-Na guia **Elementos**, use **Inserir detalhamento** ou **Atualizar detalhamento** e selecione um arquivo `.armstruct.json`/JSON do ArmaduraStruct. Esse fluxo lê somente a origem para comparação; **Abrir projeto** continua sendo a troca do projeto inteiro. Conclua uma edição isolada antes de importar uma revisão.
+Na guia **Elementos**, use **Inserir detalhamento** ou **Atualizar detalhamento** e selecione um arquivo `.armstruct.json`/JSON do ArmaduraStruct ou um pacote OpenStruct `.osdetail.json`. Esse fluxo lê somente a origem para comparação; **Abrir projeto** continua sendo a troca do projeto inteiro. Conclua uma edição isolada antes de importar uma revisão.
 
 Escolha o **Detalhamento recebido** pelo caminho completo. Para inserir, escolha o elemento local e a folha de destino, ou **Não colocar agora**. Somente os objetos do detalhamento selecionado são importados; os outros pavimentos/detalhes do arquivo não entram no modelo. As posições físicas novas entram uma vez no levantamento. Se essa mesma origem já existir, use Atualizar ou coloque outra vista do desenho existente.
 
@@ -75,6 +75,26 @@ Os desenhos lógicos e suas vistas permanecem vinculados ao mesmo detalhe local.
 Quando houver alteração de dados físicos/da RA, uma RA bloqueada será desbloqueada e recalculada com o modelo atualizado. Alterações somente gráficas preservam o bloqueio; um bloqueio que já estava desatualizado continua precisando de conferência. **Cancelar** não muda o projeto. **Aplicar** produz uma única etapa de Desfazer/Refazer, incluindo vistas, origem e bloqueio da RA. Salvar/reabrir mantém os vínculos de origem para a próxima revisão.
 
 ![Comparação antes/depois de uma revisão](detail-transfer.png)
+
+### Pacotes de detalhamento OpenStruct
+
+Em **Elementos → Pacote de detalhamento** (também em **Arquivo → Exportar**), exporte o detalhamento ativo. Se um conjunto estiver selecionado na visão geral, será exportado esse conjunto; em uma folha, selecione a vista desejada. O arquivo `.osdetail.json` contém um detalhe, suas posições físicas, rebatimentos, anotações, polilinhas, referências CAD incorporadas, origem, unidades e metadados. Não contém folhas, posições de vistas nem snapshot da RA.
+
+Use **Inserir detalhamento** para importar o pacote no projeto aberto. A comparação mostra o detalhe recebido, converte mm/cm/m para o modelo em mm e **propõe Atualizar** quando a mesma origem já estiver presente. Confirme as posições e vínculos como na AS-08. Posições externas ao detalhe aparecem como dependências: precisam de vínculo local ou importação explícita para entrar no aço. A mesma dependência entra uma única vez mesmo quando várias chamadas a utilizem.
+
+Os [exemplos e o contrato versionado](AS-09.md) permitem gerar pacotes em outros aplicativos OpenStruct. Isso é intercâmbio por arquivo; não declara leitura de `.PRJ`/`.CAD` ou comunicação proprietária com Eberick/TQS.
+
+### Interpretação assistida de DXF/DWG
+
+Importe uma máscara CAD no detalhamento desejado e use **Elementos → Interpretar CAD** (também em **Arquivo → Referências**). Escolha a máscara, confira **mm por unidade CAD** e selecione um contorno pela prévia ou pela lista pesquisável por camada/número. A seleção de um texto é opcional e produz uma chamada vinculada, mantendo o texto literal; o aplicativo não deduz bitola ou quantidade a partir dele.
+
+Informe explicitamente **posição, bitola, quantidade, aço e diâmetro interno de dobra**. O contorno deve representar o eixo da barra, já com o cobrimento pretendido; escolher o contorno de concreto não calcula o eixo ou ganchos. Confira as dimensões/quantitativo propostos e marque **Conferi a unidade, o eixo selecionado e todas as propriedades físicas**. Somente **Criar posição física** acrescenta aço ao levantamento.
+
+Linhas/textos sem atribuição continuam na máscara, assim como os selecionados. A nova escala afeta a máscara inteira; barras físicas preexistentes conservam dimensões. O mesmo contorno não pode originar duas posições físicas enquanto o vínculo de origem existir; altere a posição já criada. Dobras inviáveis e contornos com mais de 500 vértices são recusados; simplifique-os antes. Arcos/splines não são reconhecidos como formas inteligentes de fabricação.
+
+**Cancelar/Esc** mantém o projeto. A criação é uma única etapa de **Desfazer/Refazer**; salvar/reabrir preserva a atribuição, a referência e a chamada. Uma RA bloqueada será desbloqueada e recalculada. Em edição isolada com RA bloqueada, conclua a edição antes deste comando, pois ele exige alterar o quadro global. As limitações/avisos dos leitores DXF/DWG continuam valendo: entidades omitidas pelo leitor não são recuperadas por esta ferramenta.
+
+![Atribuição explícita de propriedades a um contorno CAD](cad-assisted.png)
 
 ### Formato 6 e compatibilidade
 

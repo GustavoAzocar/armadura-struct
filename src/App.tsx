@@ -31,6 +31,10 @@ import {
 const DetailTransferDialog = lazy(
   () => import('./components/DetailTransferDialog'),
 );
+const CadInterpretDialog = lazy(
+  () => import('./components/CadInterpretDialog'),
+);
+import { applyCadInterpretation, type CadInterpretation } from './cad/assisted';
 import {
   applyDetailTransfer,
   type TransferPlan,
@@ -81,6 +85,7 @@ import {
   autosave,
   readDocumentWorkspace,
   readProjectFile,
+  readDetailSourceFile,
   saveDocumentWorkspace,
   importMask,
   pickNativeFile,
@@ -192,6 +197,12 @@ export default function App() {
     source: Project;
     fileName: string;
     mode: 'insert' | 'replace';
+    projectId: string;
+    sourceDetailId?: string;
+  } | null>(null);
+  const [cadInterpretation, setCadInterpretation] = useState<{
+    detailId: string;
+    maskId?: string;
     projectId: string;
   } | null>(null);
   const detailRequest = useRef<{
@@ -1097,7 +1108,8 @@ export default function App() {
     if (!request) return;
     setBusy(`Lendo origem: ${file.name}…`);
     try {
-      const source = await readProjectFile(file, true);
+      const { project: source, detailId: sourceDetailId } =
+        await readDetailSourceFile(file);
       if (
         detailRequest.current !== request ||
         historyRef.current.present.id !== request.projectId ||
@@ -1113,6 +1125,7 @@ export default function App() {
         fileName: file.name,
         mode: request.mode,
         projectId: request.projectId,
+        sourceDetailId,
       });
     } catch (error) {
       notify(
@@ -1185,6 +1198,66 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'export-detail') {
+      try {
+        const view = p.hierarchy.placements.find((v) => v.id === selectedView);
+        const detailId =
+          (activeSheet && view
+            ? p.hierarchy.drawings.find((d) => d.id === view.drawingId)
+                ?.detailId
+            : undefined) ??
+          selectedGroup?.id ??
+          activeDetailId;
+        const { createDetailPackage } = await import('./domain/detailPackage');
+        const pack = createDetailPackage(p, detailId, {
+          producer: { app: 'ArmaduraStruct', version: appVersion },
+        });
+        const saved = await saveFile(
+          `${safeName(pack.context.detail.name)}.osdetail.json`,
+          JSON.stringify(pack, null, 2),
+          'application/json',
+          'json',
+        );
+        if (saved)
+          notify(
+            'Pacote OpenStruct exportado com unidades, origem, posições e vínculos.',
+          );
+      } catch (e) {
+        notify(
+          e instanceof Error
+            ? e.message
+            : 'Não foi possível exportar o pacote.',
+        );
+      }
+      return;
+    }
+    if (a === 'interpret-cad') {
+      if (isolationRef.current && p.scheduleLock) {
+        notify(
+          'Conclua a edição isolada antes de interpretar CAD com a RA bloqueada; a nova posição exige recalcular o quadro.',
+        );
+        return;
+      }
+      const owner = maskId ? p.hierarchy.objectDetails[maskId] : activeDetailId;
+      if (activeSheet) {
+        notify('Abra o desenho para interpretar uma referência CAD.');
+        return;
+      }
+      if (isolationRef.current && owner !== isolationRef.current) {
+        notify('Escolha uma máscara do detalhamento em edição.');
+        return;
+      }
+      if (!p.masks.some((m) => p.hierarchy.objectDetails[m.id] === owner)) {
+        notify('Importe primeiro uma máscara DXF/DWG neste detalhamento.');
+        return;
+      }
+      setCadInterpretation({
+        detailId: owner,
+        maskId: maskId ?? undefined,
+        projectId: p.id,
+      });
+      return;
+    }
     if (a === 'insert-detail' || a === 'update-detail') {
       await startDetailTransfer(a === 'insert-detail' ? 'insert' : 'replace');
       return;
@@ -1609,11 +1682,12 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (detailTransfer) {
+      if (detailTransfer || cadInterpretation) {
         if (e.key === 'Escape') {
           e.preventDefault();
           setDetailTransfer(null);
           detailRequest.current = null;
+          setCadInterpretation(null);
         } else if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -2353,11 +2427,53 @@ export default function App() {
                 .elementId
             }
             activeDetailId={activeDetailId}
+            sourceDetailId={detailTransfer.sourceDetailId}
             sheetId={activeSheet?.id}
             onApply={acceptDetailTransfer}
             onClose={() => {
               setDetailTransfer(null);
               detailRequest.current = null;
+            }}
+          />
+        </Suspense>
+      )}
+      {cadInterpretation && (
+        <Suspense
+          fallback={
+            <div className="busy-overlay">Preparando interpretação…</div>
+          }
+        >
+          <CadInterpretDialog
+            project={p}
+            detailId={cadInterpretation.detailId}
+            maskId={cadInterpretation.maskId}
+            onClose={() => setCadInterpretation(null)}
+            onApply={(plan: CadInterpretation) => {
+              if (
+                p.id !== cadInterpretation.projectId ||
+                (isolationRef.current &&
+                  isolationRef.current !== cadInterpretation.detailId)
+              ) {
+                notify('O contexto mudou. Abra novamente a interpretação.');
+                return false;
+              }
+              if (!commit((current) => applyCadInterpretation(current, plan)))
+                return false;
+              setCadInterpretation(null);
+              setDraft([]);
+              setToolRaw('select');
+              setMaskId(null);
+              setContext({
+                projectId: p.id,
+                detailId: cadInterpretation.detailId,
+              });
+              setSelectedRaw(plan.bar ? [plan.bar.id] : []);
+              setSidebarTab('properties');
+              setSidebarOpen(true);
+              notify(
+                'Posição física criada por atribuição explícita. A máscara foi preservada como referência.',
+              );
+              return true;
             }}
           />
         </Suspense>

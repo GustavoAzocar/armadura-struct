@@ -71,7 +71,9 @@ export type Action =
   | 'edit-detail'
   | 'finish-detail'
   | 'insert-detail'
-  | 'update-detail';
+  | 'update-detail'
+  | 'export-detail'
+  | 'interpret-cad';
 // Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
@@ -135,7 +137,10 @@ export default function Ribbon({
       },
       {
         name: 'Referências',
-        items: [item('import', 'Máscara DXF / DWG', Layers)],
+        items: [
+          item('import', 'Máscara DXF / DWG', Layers),
+          item('interpret-cad', 'Interpretar CAD', PencilRuler),
+        ],
       },
       {
         name: 'Exportar',
@@ -143,6 +148,7 @@ export default function Ribbon({
           item('pdf', 'Prancha PDF', FileText),
           item('dxf', 'Desenho DXF', Download),
           item('csv', 'Quadro CSV', Table2),
+          item('export-detail', 'Pacote de detalhamento', Download),
         ],
       },
       { name: 'Ajuda', items: [item('help', 'Guia de uso', HelpCircle)] },
@@ -184,6 +190,13 @@ export default function Ribbon({
       },
     ],
     Elementos: [
+      {
+        name: 'Intercâmbio',
+        items: [
+          item('export-detail', 'Pacote de detalhamento', Download),
+          item('interpret-cad', 'Interpretar CAD', PencilRuler),
+        ],
+      },
       {
         name: 'Detalhamento',
         items: [

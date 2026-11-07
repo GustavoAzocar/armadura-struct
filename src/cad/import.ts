@@ -230,7 +230,10 @@ export function normalizeCad(
       }
       primitives.push({
         layer,
-        points: points.map(apply),
+        points: points.map((p) => {
+          const { x, y } = apply(p);
+          return { x, y };
+        }),
         closed,
         text,
         textHeight,
