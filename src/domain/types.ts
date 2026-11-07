@@ -177,18 +177,22 @@ export type Annotation = {
   kind: AnnotationKind;
   points: Point[];
   barId?: string;
+  /** Additional dependency links; do not drive quantities or change the primary caption. */
+  barIds?: string[];
   label: string;
   textHeight: number;
   color: string;
 };
 export type DraftPolyline = {
   id: string;
+  /** Explicit armature dependencies, including shared auxiliary geometry. */
+  barIds?: string[];
   points: Point[];
   closed: boolean;
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/12';
+  schema: 'armadurastruct/13';
   id: string;
   hierarchy: ProjectHierarchy;
   numbering?: import('./marks').NumberingPolicy;

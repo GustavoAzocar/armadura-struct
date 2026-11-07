@@ -29,7 +29,8 @@
     "release:version": "node scripts/openstruct-version.mjs",
     "example:fabrication": "node scripts/examples/fabrication.mjs",
     "example:quantities": "node scripts/examples/armature-quantities.mjs",
-    "example:initial": "node scripts/examples/initial-project.mjs"
+    "example:initial": "node scripts/examples/initial-project.mjs",
+    "example:clone": "node scripts/examples/armature-clone.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",

@@ -1,3 +1,7 @@
+import {
+  armatureReferenceEdges,
+  armatureReferences,
+} from './armatureReferences';
 import { nextFreeMark } from './marks';
 import { fabricationPositions, groupFabrication } from './fabrication';
 import { repetitionNames } from './detailQuantities';
@@ -44,7 +48,7 @@ export type TransferOptions = {
 export type TransferReference = {
   key: string;
   side: 'incoming' | 'existing';
-  kind: 'annotation' | 'representation';
+  kind: 'annotation' | 'representation' | 'polyline';
   objectId: string;
   path: string;
   barId: string;
@@ -318,11 +322,29 @@ export function previewDetailTransfer(
         );
     const incomingRefs = [
       ...source.annotations
-        .filter((a) => ownsSource(a.id) && a.barId)
-        .map((a) => ({ object: a, kind: 'annotation' as const })),
+        .filter((a) => ownsSource(a.id))
+        .flatMap((a) =>
+          armatureReferenceEdges(a).map((e) => ({
+            ...e,
+            kind: 'annotation' as const,
+          })),
+        ),
       ...source.details
         .filter((a) => ownsSource(a.id))
-        .map((a) => ({ object: a, kind: 'representation' as const })),
+        .flatMap((a) =>
+          armatureReferenceEdges(a).map((e) => ({
+            ...e,
+            kind: 'representation' as const,
+          })),
+        ),
+      ...source.polylines
+        .filter((a) => ownsSource(a.id))
+        .flatMap((a) =>
+          armatureReferenceEdges(a).map((e) => ({
+            ...e,
+            kind: 'polyline' as const,
+          })),
+        ),
     ];
     const sourceOwned = new Set(sourceBars.map((b) => b.id));
     // Explicit dependency imports are allocated once even when several calls refer to them.
@@ -391,7 +413,7 @@ export function previewDetailTransfer(
         local = sourceToLocal.get(decision.slice(7));
       const special =
         decision === 'remove' ||
-        (decision === 'detach' && kind === 'annotation');
+        (decision === 'detach' && kind !== 'representation');
       const valid = !!local || special;
       plan.references.push({
         key,
@@ -419,14 +441,29 @@ export function previewDetailTransfer(
       ...target.bars.filter((b) => !removed.has(b.id)).map((b) => b.id),
       ...sourceToLocal.values(),
     ]);
+    const needsExisting = (o: { id: string }) =>
+      !ownsOld(o.id) ||
+      armatureReferences(o).some((id) => keep.has(id) && !usedLocal.has(id));
     const outgoingRefs = [
-      ...target.annotations
-        .filter((a) => !ownsOld(a.id) && a.barId && removed.has(a.barId))
-        .map((a) => ({ object: a, kind: 'annotation' as const })),
-      ...target.details
-        .filter((a) => !ownsOld(a.id) && removed.has(a.barId))
-        .map((a) => ({ object: a, kind: 'representation' as const })),
-    ];
+      ...target.annotations.filter(needsExisting).flatMap((a) =>
+        armatureReferenceEdges(a).map((e) => ({
+          ...e,
+          kind: 'annotation' as const,
+        })),
+      ),
+      ...target.details.filter(needsExisting).flatMap((a) =>
+        armatureReferenceEdges(a).map((e) => ({
+          ...e,
+          kind: 'representation' as const,
+        })),
+      ),
+      ...target.polylines.filter(needsExisting).flatMap((a) =>
+        armatureReferenceEdges(a).map((e) => ({
+          ...e,
+          kind: 'polyline' as const,
+        })),
+      ),
+    ].filter((e) => e.object.barId && removed.has(e.object.barId));
     for (const { object, kind } of outgoingRefs) {
       const key = `existing:${object.id}`,
         oldId = object.barId!;
@@ -446,14 +483,17 @@ export function previewDetailTransfer(
       if (!local || !finalIds.has(local)) local = undefined;
       const special =
           decision === 'remove' ||
-          (decision === 'detach' && kind === 'annotation'),
+          (decision === 'detach' && kind !== 'representation'),
         valid = !!local || special;
       plan.references.push({
         key,
         side: 'existing',
         kind,
         objectId: object.id,
-        path: detailPath(target, target.hierarchy.objectDetails[object.id]),
+        path: detailPath(
+          target,
+          target.hierarchy.objectDetails[object.id.split('/barIds/')[0]],
+        ),
         barId: oldId,
         bar: oldById.get(oldId),
         resolution: decision,
@@ -534,25 +574,42 @@ export function previewDetailTransfer(
       originUpdates.set(id, objectOrigin(source, sourceId));
       return id;
     };
-    const mapReference = <T extends Annotation | Detail>(
+    const mapReference = <
+      T extends { id: string; barId?: string; barIds?: string[] },
+    >(
       object: T,
       side: 'incoming' | 'existing',
     ): T | null => {
-      if (!object.barId) return object;
-      const choice = resolved.get(`${side}:${object.id}`);
-      if (choice === 'remove') return null;
-      if (choice === 'detach' && 'kind' in object) {
-        const old = (side === 'incoming' ? sourceById : oldById).get(
-          object.barId,
-        );
-        const label =
-          object.label ||
-          (old && !object.kind.startsWith('dimension-')
-            ? barCaption(old, side === 'incoming' ? source : target)
-            : object.label);
-        return { ...object, barId: undefined, label } as T;
+      let out = { ...object };
+      if (object.barId) {
+        const choice = resolved.get(`${side}:${object.id}`);
+        if (choice === 'remove') return null;
+        if (choice === 'detach' && 'kind' in object && 'label' in object) {
+          const a = object as unknown as Annotation;
+          const old = (side === 'incoming' ? sourceById : oldById).get(
+            object.barId,
+          );
+          out = {
+            ...out,
+            barId: undefined,
+            label:
+              a.label ||
+              (old && !a.kind.startsWith('dimension-')
+                ? barCaption(old, side === 'incoming' ? source : target)
+                : a.label),
+          };
+        } else if (choice) out = { ...out, barId: choice };
       }
-      return choice ? { ...object, barId: choice } : object;
+      if (object.barIds) {
+        const refs: string[] = [];
+        for (let i = 0; i < object.barIds.length; i++) {
+          const choice = resolved.get(`${side}:${object.id}/barIds/${i}`);
+          if (choice === 'remove') return null;
+          if (choice !== 'detach') refs.push(choice || object.barIds[i]);
+        }
+        out = { ...out, barIds: [...new Set(refs)] };
+      }
+      return out;
     };
     const copyGraphics = <
       K extends 'details' | 'annotations' | 'masks' | 'polylines',
@@ -561,8 +618,7 @@ export function previewDetailTransfer(
     ) => {
       const incomingObjects = source[kind].filter((o) => ownsSource(o.id));
       const imported = incomingObjects.flatMap((object) => {
-        const reference =
-          'barId' in object ? mapReference(object, 'incoming') : object;
+        const reference = mapReference(object, 'incoming');
         return reference
           ? [{ ...structuredClone(reference), id: objectId(object.id, kind) }]
           : [];
@@ -571,15 +627,15 @@ export function previewDetailTransfer(
       const existing = target[kind].flatMap((object) => {
         if (ownsOld(object.id)) {
           // Explicitly retained local positions keep their local linked graphics too.
-          return 'barId' in object &&
-            keep.has(object.barId!) &&
-            !usedLocal.has(object.barId!) &&
-            !importedIds.has(object.id)
-            ? [object]
-            : [];
+          const retained =
+            armatureReferences(object).some(
+              (id) => keep.has(id) && !usedLocal.has(id),
+            ) && !importedIds.has(object.id)
+              ? mapReference(object, 'existing')
+              : null;
+          return retained ? [retained] : [];
         }
-        const changed =
-          'barId' in object ? mapReference(object, 'existing') : object;
+        const changed = mapReference(object, 'existing');
         return changed ? [changed] : [];
       });
       return [...existing, ...imported];

@@ -3081,3 +3081,22 @@ button.hierarchy-drawing {
   top: 0;
   background: var(--panel, #fff);
 }
+
+.armature-clone-modal {
+  width: min(610px, 94vw);
+}
+.armature-clone-modal p {
+  line-height: 1.5;
+}
+.armature-clone-modal fieldset {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin: 12px 0;
+}
+.clone-preview {
+  padding: 10px;
+  margin: 12px 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}

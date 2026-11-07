@@ -60,3 +60,10 @@ export {
   representationPrimitives,
   showsPhysicalDescription,
 } from './domain/representations';
+
+export {
+  cloneArmatureGraph,
+  planArmatureClone,
+  ArmatureCloneError,
+} from './domain/editing';
+export type { ArmatureCloneOptions } from './domain/editing';

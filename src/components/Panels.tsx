@@ -1393,12 +1393,14 @@ export function DraftInspector({
   project,
   onAnnotation,
   onPolyline,
+  onLinks,
 }: {
   annotation?: Annotation;
   polyline?: DraftPolyline;
   project: Project;
   onAnnotation: (patch: Partial<Annotation>) => void;
   onPolyline: (patch: Partial<DraftPolyline>) => void;
+  onLinks: (ids: string[]) => void;
 }) {
   const object = annotation ?? polyline!;
   const updatePoints = (points: typeof object.points) =>
@@ -1473,6 +1475,37 @@ export function DraftInspector({
             </p>
           </Section>
         )}
+        <Section title="Vínculos de cópia">
+          <label className="field">
+            <span>
+              {annotation
+                ? 'Outras armaduras vinculadas'
+                : 'Armaduras da linha auxiliar'}
+            </span>
+            <select
+              multiple
+              size={3}
+              aria-label="Armaduras da geometria auxiliar"
+              value={object.barIds ?? []}
+              onChange={(e) =>
+                onLinks([...e.target.selectedOptions].map((o) => o.value))
+              }
+            >
+              {project.bars
+                .filter((b) => b.id !== annotation?.barId)
+                .map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.mark} · {b.element} · {b.id.slice(-6)}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <p className="field-help">
+            Esses vínculos incluem a geometria na cópia completa. Referenciar
+            várias armaduras torna o auxiliar compartilhado; não cria aço ou uma
+            faixa de cálculo.
+          </p>
+        </Section>
         <Section title="Vértices">
           {object.points.map((v, i) => (
             <div className="fields-2" key={i}>

@@ -12,7 +12,10 @@ import {
   world,
 } from './geometry';
 import { nextMark } from './model';
-import { completeOwnership } from './hierarchy';
+import { completeOwnership, contentObjects } from './hierarchy';
+import { armatureReferences } from './armatureReferences';
+import { nextFreeMark } from './marks';
+import { fabricationPositions, groupFabrication } from './fabrication';
 import { uid, type Bar, type Point, type Project } from './types';
 
 /** Split a physical centerline on a straight leg. Bends remain exact in both pieces. */
@@ -184,8 +187,26 @@ export function joinBars(project: Project, ids: string[]): Project {
       details: project.details.map((d) =>
         d.barId === b.id ? { ...d, barId: a.id } : d,
       ),
-      annotations: project.annotations.map((n) =>
-        n.barId === b.id ? { ...n, barId: a.id } : n,
+      annotations: project.annotations.map((n) => ({
+        ...n,
+        ...(n.barId === b.id ? { barId: a.id } : {}),
+        ...(n.barIds
+          ? {
+              barIds: [
+                ...new Set(n.barIds.map((id) => (id === b.id ? a.id : id))),
+              ],
+            }
+          : {}),
+      })),
+      polylines: project.polylines.map((n) =>
+        n.barIds
+          ? {
+              ...n,
+              barIds: [
+                ...new Set(n.barIds.map((id) => (id === b.id ? a.id : id))),
+              ],
+            }
+          : n,
       ),
     },
     ownerA || project.hierarchy.details[0].id,
@@ -238,5 +259,287 @@ export function transformBar(bar: Bar, operation: 'rotate' | 'mirror'): Bar {
           end: transformPoint(bar.distribution.end),
         }
       : undefined,
+  };
+}
+
+export type ArmatureCloneOptions = {
+  barIds: string[];
+  /** Explicitly selected graphics are copied once, including unlinked geometry. */
+  objectIds?: string[];
+  delta: Point;
+  shared?: 'keep' | 'clone-set';
+  position?: 'new' | 'equivalent';
+  /** Absent: preserve each source drawing; present: place the entire graph in this detail. */
+  detailId?: string;
+  /** Optional deterministic output IDs, keyed by source object ID. */
+  ids?: Record<string, string>;
+};
+export class ArmatureCloneError extends Error {
+  constructor(
+    readonly code:
+      | 'NOT_FOUND'
+      | 'ID_CONFLICT'
+      | 'INVALID_FIELD'
+      | 'SHARED_DEPENDENCY',
+    message: string,
+    readonly field: string,
+    readonly objectId?: string,
+  ) {
+    super(message);
+  }
+}
+export function planArmatureClone(
+  p: Project,
+  options: Pick<ArmatureCloneOptions, 'barIds' | 'objectIds' | 'shared'>,
+) {
+  const bars = new Set(options.barIds),
+    explicit = new Set(options.objectIds ?? []);
+  const all = contentObjects(p),
+    barMap = new Map(p.bars.map((b) => [b.id, b]));
+  for (const id of bars)
+    if (!barMap.has(id))
+      throw new ArmatureCloneError(
+        'NOT_FOUND',
+        'Armadura inexistente.',
+        'barIds',
+        id,
+      );
+  for (const id of explicit) {
+    const object = all.find((o) => o.id === id);
+    if (!object)
+      throw new ArmatureCloneError(
+        'NOT_FOUND',
+        'Objeto inexistente.',
+        'objectIds',
+        id,
+      );
+    if (barMap.has(id)) bars.add(id);
+  }
+  if (!bars.size && !explicit.size)
+    throw new ArmatureCloneError(
+      'INVALID_FIELD',
+      'Selecione armaduras ou objetos para copiar.',
+      'barIds',
+    );
+  const dependents = [...p.details, ...p.annotations, ...p.polylines];
+  if (bars.size && options.shared === 'clone-set') {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const o of dependents) {
+        const refs = armatureReferences(o);
+        if (!refs.some((id) => bars.has(id)) && !explicit.has(o.id)) continue;
+        for (const id of refs)
+          if (!bars.has(id)) {
+            if (!barMap.has(id))
+              throw new ArmatureCloneError(
+                'NOT_FOUND',
+                'Dependência física inexistente.',
+                'barIds',
+                id,
+              );
+            bars.add(id);
+            changed = true;
+          }
+      }
+    }
+  }
+  const objects = all.filter(
+    (o) =>
+      bars.has(o.id) ||
+      explicit.has(o.id) ||
+      armatureReferences(o).some((id) => bars.has(id)),
+  );
+  const external = [
+    ...new Set(
+      objects
+        .flatMap((o) => armatureReferences(o))
+        .filter((id) => !bars.has(id)),
+    ),
+  ];
+  // Graphical-only copies do not imply cloning physical definitions.
+  const sharedObjects = bars.size
+    ? objects.filter(
+        (o) =>
+          !barMap.has(o.id) &&
+          armatureReferences(o).some((id) => !bars.has(id)),
+      )
+    : [];
+  return {
+    barIds: p.bars.filter((b) => bars.has(b.id)).map((b) => b.id),
+    objectIds: objects.map((o) => o.id),
+    externalBarIds: external,
+    sharedObjectIds: sharedObjects.map((o) => o.id),
+  };
+}
+/** Immutable deep copy of an armature dependency graph. Validation is atomic at the AS-51 boundary. */
+export function cloneArmatureGraph(p: Project, options: ArmatureCloneOptions) {
+  if (!Number.isFinite(options.delta.x) || !Number.isFinite(options.delta.y))
+    throw new ArmatureCloneError(
+      'INVALID_FIELD',
+      'Informe uma translação finita em mm.',
+      'delta',
+    );
+  if (options.position && !['new', 'equivalent'].includes(options.position))
+    throw new ArmatureCloneError(
+      'INVALID_FIELD',
+      'Política de posição inválida.',
+      'position',
+    );
+  if (options.shared && !['keep', 'clone-set'].includes(options.shared))
+    throw new ArmatureCloneError(
+      'INVALID_FIELD',
+      'Política de dependências inválida.',
+      'shared',
+    );
+  if (
+    options.detailId &&
+    !p.hierarchy.details.some((d) => d.id === options.detailId)
+  )
+    throw new ArmatureCloneError(
+      'NOT_FOUND',
+      'Detalhamento inexistente.',
+      'detailId',
+      options.detailId,
+    );
+  const plan = planArmatureClone(p, options);
+  if (plan.sharedObjectIds.length && !options.shared)
+    throw new ArmatureCloneError(
+      'SHARED_DEPENDENCY',
+      'Escolha manter vínculos externos ou duplicar o conjunto compartilhado.',
+      'shared',
+      plan.sharedObjectIds[0],
+    );
+  const chosen = new Set(plan.objectIds),
+    physical = new Set(plan.barIds);
+  const occupied = new Set([
+    p.id,
+    ...contentObjects(p).map((o) => o.id),
+    ...p.hierarchy.floors.map((o) => o.id),
+    ...p.hierarchy.elements.map((o) => o.id),
+    ...p.hierarchy.details.map((o) => o.id),
+    ...p.hierarchy.drawings.map((o) => o.id),
+    ...p.hierarchy.placements.map((o) => o.id),
+    ...p.sheets.map((o) => o.id),
+    ...fabricationPositions(p).map((o) => o.id),
+  ]);
+  if (options.ids && Object.keys(options.ids).some((id) => !chosen.has(id)))
+    throw new ArmatureCloneError(
+      'INVALID_FIELD',
+      'O mapa contém objeto fora da cópia.',
+      'ids',
+    );
+  const idMap: Record<string, string> = Object.create(null);
+  for (const id of plan.objectIds) {
+    const value =
+      options.ids && Object.hasOwn(options.ids, id) ? options.ids[id] : uid();
+    if (!value || value.length > 200 || occupied.has(value))
+      throw new ArmatureCloneError(
+        'ID_CONFLICT',
+        'Identificador de cópia vazio, repetido ou já utilizado.',
+        'ids',
+        id,
+      );
+    occupied.add(value);
+    idMap[id] = value;
+  }
+  const marks = new Set(p.bars.map((b) => b.mark));
+  const bars = p.bars
+    .filter((b) => physical.has(b.id))
+    .map((b) => {
+      const mark = nextFreeMark(p, marks);
+      marks.add(mark);
+      return {
+        ...translateBar(structuredClone(b), options.delta),
+        id: idMap[b.id],
+        mark,
+      };
+    });
+  const remap = (id: string) => idMap[id] ?? id;
+  const remapReferences = <T extends { barId?: string; barIds?: string[] }>(
+    o: T,
+  ): T => ({
+    ...o,
+    ...(o.barId ? { barId: remap(o.barId) } : {}),
+    ...(o.barIds ? { barIds: o.barIds.map(remap) } : {}),
+  });
+  const details = p.details
+    .filter((o) => chosen.has(o.id))
+    .map((o) => ({
+      ...structuredClone(o),
+      id: idMap[o.id],
+      barId: remap(o.barId),
+      origin: add(o.origin, options.delta),
+      ...(!physical.has(o.barId) && o.identification === 'primary'
+        ? { identification: 'mark' as const }
+        : {}),
+    }));
+  const annotations = p.annotations
+    .filter((o) => chosen.has(o.id))
+    .map((o) => ({
+      ...remapReferences(structuredClone(o)),
+      id: idMap[o.id],
+      points: o.points.map((v) => add(v, options.delta)),
+    }));
+  const polylines = p.polylines
+    .filter((o) => chosen.has(o.id))
+    .map((o) => ({
+      ...remapReferences(structuredClone(o)),
+      id: idMap[o.id],
+      points: o.points.map((v) => add(v, options.delta)),
+    }));
+  const masks = p.masks
+    .filter((o) => chosen.has(o.id))
+    .map((o) => ({
+      ...structuredClone(o),
+      id: idMap[o.id],
+      origin: add(o.origin, options.delta),
+    }));
+  let next = completeOwnership({
+    ...p,
+    bars: [...p.bars, ...bars],
+    details: [...p.details, ...details],
+    annotations: [...p.annotations, ...annotations],
+    polylines: [...p.polylines, ...polylines],
+    masks: [...p.masks, ...masks],
+    hierarchy: {
+      ...p.hierarchy,
+      objectDetails: {
+        ...p.hierarchy.objectDetails,
+        ...Object.fromEntries(
+          plan.objectIds.map((id) => [
+            idMap[id],
+            options.detailId ?? p.hierarchy.objectDetails[id],
+          ]),
+        ),
+      },
+      objectOrigins: {
+        ...p.hierarchy.objectOrigins,
+        ...Object.fromEntries(
+          plan.objectIds.map((id) => [
+            idMap[id],
+            { projectId: p.id, objectId: idMap[id] },
+          ]),
+        ),
+      },
+    },
+  });
+  if (options.position === 'equivalent')
+    for (const position of fabricationPositions(p)) {
+      const added = position.barIds.filter((id) => physical.has(id)).map(remap);
+      if (added.length)
+        next = groupFabrication(
+          next,
+          [...position.barIds, ...added],
+          position.barIds[0],
+          position.reverse,
+          position.mark,
+        );
+    }
+  return {
+    project: next,
+    idMap,
+    ...plan,
+    createdIds: plan.objectIds.map(remap),
   };
 }

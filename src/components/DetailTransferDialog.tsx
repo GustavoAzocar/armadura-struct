@@ -440,7 +440,11 @@ export default function DetailTransferDialog({
               >
                 <div>
                   <b>
-                    {ref.kind === 'representation' ? 'Rebatimento' : 'Anotação'}{' '}
+                    {ref.kind === 'representation'
+                      ? 'Rebatimento'
+                      : ref.kind === 'polyline'
+                        ? 'Linha auxiliar'
+                        : 'Anotação'}{' '}
                     · {ref.bar?.mark ?? 'Posição ausente'}
                   </b>
                   <small>
@@ -500,7 +504,7 @@ export default function DetailTransferDialog({
                       aço)
                     </option>
                   )}
-                  {ref.kind === 'annotation' && (
+                  {ref.kind !== 'representation' && (
                     <option value="detach">
                       Desvincular anotação e conservar seu desenho/texto
                     </option>

@@ -1,3 +1,4 @@
+import { armatureReferences } from './armatureReferences';
 import { representationPoints } from './representations';
 import { nextFreeMark, numberingPolicySchema } from './marks';
 import { z } from 'zod';
@@ -224,6 +225,7 @@ const schema = z.object({
     'armadurastruct/10',
     'armadurastruct/11',
     'armadurastruct/12',
+    'armadurastruct/13',
   ]),
   numbering: numberingPolicySchema.optional(),
   sheets: z
@@ -276,6 +278,11 @@ const schema = z.object({
       z.object({
         id: z.string(),
         points: z.array(point).min(2).max(500),
+        barIds: z
+          .array(identity)
+          .max(10000)
+          .refine((v) => new Set(v).size === v.length, 'Vínculos repetidos.')
+          .optional(),
         closed: z.boolean(),
         color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
       }),
@@ -295,6 +302,11 @@ const schema = z.object({
         ]),
         points: z.array(point).length(3),
         barId: z.string().optional(),
+        barIds: z
+          .array(identity)
+          .max(10000)
+          .refine((v) => new Set(v).size === v.length, 'Vínculos repetidos.')
+          .optional(),
         label: z.string().max(200),
         textHeight: number.positive().max(10000),
         color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -409,7 +421,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/9' ||
     parsed.schema === 'armadurastruct/10' ||
     parsed.schema === 'armadurastruct/11' ||
-    parsed.schema === 'armadurastruct/12';
+    parsed.schema === 'armadurastruct/12' ||
+    parsed.schema === 'armadurastruct/13';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -447,16 +460,20 @@ export function decodeProject(
   while (occupied.has(sheetId)) sheetId += '-';
   if (
     parsed.numbering &&
-    !['armadurastruct/10', 'armadurastruct/11', 'armadurastruct/12'].includes(
-      parsed.schema,
-    )
+    ![
+      'armadurastruct/10',
+      'armadurastruct/11',
+      'armadurastruct/12',
+      'armadurastruct/13',
+    ].includes(parsed.schema)
   )
     throw new Error('Política de numeração exige formato 10.');
   const v9 =
     parsed.schema === 'armadurastruct/9' ||
     parsed.schema === 'armadurastruct/10' ||
     parsed.schema === 'armadurastruct/11' ||
-    parsed.schema === 'armadurastruct/12';
+    parsed.schema === 'armadurastruct/12' ||
+    parsed.schema === 'armadurastruct/13';
   if (
     !v9 &&
     [...parsed.bars, ...(parsed.scheduleLock?.bars ?? [])].some(hasArmatureData)
@@ -531,7 +548,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/12',
+    schema: 'armadurastruct/13',
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -584,7 +601,9 @@ export function decodeProject(
     throw new Error('Identificadores de objetos duplicados.');
   if (
     !options.allowOrphanReferences &&
-    p.annotations.some((a) => a.barId && !ids.includes(a.barId))
+    [...p.annotations, ...p.polylines].some((a) =>
+      armatureReferences(a).some((id) => !ids.includes(id)),
+    )
   )
     throw new Error('Chamada sem armadura correspondente.');
   const primaries = p.details
@@ -593,7 +612,9 @@ export function decodeProject(
   if (new Set(primaries).size !== primaries.length)
     throw new Error('Uma armadura só pode ter uma descrição principal.');
   if (
-    !['armadurastruct/11', 'armadurastruct/12'].includes(parsed.schema) &&
+    !['armadurastruct/11', 'armadurastruct/12', 'armadurastruct/13'].includes(
+      parsed.schema,
+    ) &&
     p.details.some(
       (d) =>
         d.rotation ||
@@ -603,10 +624,15 @@ export function decodeProject(
   )
     throw new Error('Representações transformadas exigem formato 11.');
   if (
-    parsed.schema !== 'armadurastruct/12' &&
+    !['armadurastruct/12', 'armadurastruct/13'].includes(parsed.schema) &&
     p.details.some((d) => d.label || d.showDimensions !== undefined)
   )
     throw new Error('Posicionamento de rótulo exige formato 12.');
+  if (
+    parsed.schema !== 'armadurastruct/13' &&
+    [...p.annotations, ...p.polylines].some((o) => o.barIds !== undefined)
+  )
+    throw new Error('Vínculos auxiliares exigem formato 13.');
   validateHierarchy(p);
   if (p.scheduleLock?.quantities) {
     const ids = new Set(p.scheduleLock.bars.map((b) => b.id));
@@ -679,7 +705,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/12',
+    schema: 'armadurastruct/13',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),

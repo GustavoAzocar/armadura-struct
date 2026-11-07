@@ -34,6 +34,10 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const ArmatureCloneDialog = lazy(
+  () => import('./components/ArmatureCloneDialog'),
+);
+import type { CloneRequest } from './components/ArmatureCloneDialog';
 const ExampleReviewDialog = lazy(
   () => import('./components/ExampleReviewDialog'),
 );
@@ -221,6 +225,7 @@ export default function App() {
     maskId?: string;
     projectId: string;
   } | null>(null);
+  const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
   const [exampleReviewOpen, setExampleReviewOpen] = useState(false);
   const [numberingOpen, setNumberingOpen] = useState(false);
   const [fabricationOpen, setFabricationOpen] = useState(false);
@@ -656,7 +661,8 @@ export default function App() {
           next.id === h.present.id &&
           (next.bars !== h.present.bars ||
             next.details !== h.present.details ||
-            next.annotations !== h.present.annotations)
+            next.annotations !== h.present.annotations ||
+            next.polylines !== h.present.polylines)
         ) {
           const issues = validateRebarChange(h.present, complete);
           if (issues.length) throw new RebarApiError(issues);
@@ -995,61 +1001,39 @@ export default function App() {
       const delta = sub(point, draft[0]);
       let next = p;
       const selectedIds: string[] = [];
-      const copies = new Map<string, string>();
       if (tool === 'copy') {
-        const commands: RebarCommand[] = p.bars
-          .filter((b) => selected.includes(b.id))
-          .map((b) => {
-            const id = uid();
-            copies.set(b.id, id);
-            selectedIds.push(id);
-            return {
-              type: 'bar.copy',
-              id: b.id,
-              newId: id,
-              detailId: activeDetailId,
-              delta,
-            };
-          });
-        if (commands.length) {
-          const result = executeRebarBatch(p, commands, {
-            units: 'mm',
-            scopeDetailId: isolationRef.current,
-          });
-          if (!result.ok) {
-            notify(new RebarApiError(result.issues).message);
-            return;
-          }
-          next = result.project;
-        }
-        next = {
-          ...next,
-          annotations: [
-            ...next.annotations,
-            ...p.annotations
-              .filter((a) => selected.includes(a.id))
-              .map((a) => {
-                const id = uid();
-                selectedIds.push(id);
-                return {
-                  ...a,
-                  id,
-                  barId: copies.get(a.barId ?? '') ?? a.barId,
-                  points: a.points.map((v) => add(v, delta)),
-                };
-              }),
-          ],
-          polylines: [
-            ...next.polylines,
-            ...p.polylines
-              .filter((a) => selected.includes(a.id))
-              .map((a) => {
-                const id = uid();
-                selectedIds.push(id);
-                return { ...a, id, points: a.points.map((v) => add(v, delta)) };
-              }),
-          ],
+        const request: CloneRequest = {
+          projectId: p.id,
+          barIds: p.bars
+            .filter((b) => selected.includes(b.id))
+            .map((b) => b.id),
+          objectIds: selected.filter((id) => !p.bars.some((b) => b.id === id)),
+          delta,
+          detailId: activeDetailId,
         };
+        const result = executeRebarBatch(
+          p,
+          [
+            {
+              type: 'armature.clone',
+              barIds: request.barIds,
+              objectIds: request.objectIds,
+              delta,
+              detailId: request.detailId,
+            },
+          ],
+          { units: 'mm', scopeDetailId: isolationRef.current },
+        );
+        // projectId is a UI guard, never an API command field.
+        if (!result.ok) {
+          if (result.issues.some((i) => i.code === 'SHARED_DEPENDENCY'))
+            setCloneRequest(request);
+          else notify(new RebarApiError(result.issues).message);
+          setTool('select');
+          return;
+        }
+        next = result.project;
+        selectedIds.push(...result.receipt.createdIds);
       } else {
         const commands: RebarCommand[] = p.bars
           .filter((b) => selected.includes(b.id))
@@ -1332,6 +1316,23 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'clone-armature') {
+      const barIds = p.bars
+        .filter((b) => selected.includes(b.id))
+        .map((b) => b.id);
+      if (!barIds.length) {
+        notify('Selecione uma armadura física para duplicar o conjunto.');
+        return;
+      }
+      setCloneRequest({
+        projectId: p.id,
+        barIds,
+        objectIds: selected.filter((id) => !barIds.includes(id)),
+        delta: { x: 1000, y: 0 },
+        detailId: isolationRef.current,
+      });
+      return;
+    }
     if (a === 'fabrication') {
       if (isolationRef.current) {
         notify(
@@ -1825,6 +1826,9 @@ export default function App() {
       MOVE: 'move',
       C: 'copy',
       COPY: 'copy',
+      DUPLICAR: 'clone-armature',
+      CLONAR: 'clone-armature',
+      DUPLICARARMADURA: 'clone-armature',
       R: 'detail',
       REBAT: 'detail',
       D: 'distribute',
@@ -2559,6 +2563,12 @@ export default function App() {
                 annotation={annotation}
                 polyline={polyline}
                 project={p}
+                onLinks={(barIds) => {
+                  const object = annotation ?? polyline!;
+                  commitRebars([
+                    { type: 'armature.bind', objectIds: [object.id], barIds },
+                  ]);
+                }}
                 onAnnotation={(patch) =>
                   commit((p) => ({
                     ...p,
@@ -2857,6 +2867,32 @@ export default function App() {
               setContext({ projectId: next.id, detailId: id });
               notify(
                 'Repetição aplicada. Vistas e relação de aço usam uma única definição física.',
+              );
+              return true;
+            }}
+          />
+        </Suspense>
+      )}
+      {cloneRequest && cloneRequest.projectId === p.id && (
+        <Suspense
+          fallback={<div className="busy-overlay">Preparando cópia…</div>}
+        >
+          <ArmatureCloneDialog
+            project={p}
+            request={cloneRequest}
+            scopeDetailId={isolatedDetailId}
+            onClose={() => setCloneRequest(null)}
+            onApply={(result) => {
+              if (
+                !result.ok ||
+                !commit((current) => applyRebarBatch(current, result))
+              )
+                return false;
+              setCloneRequest(null);
+              setTool('select');
+              select(result.receipt.createdIds);
+              notify(
+                'Armadura completa duplicada com novos IDs e vínculos remapeados.',
               );
               return true;
             }}

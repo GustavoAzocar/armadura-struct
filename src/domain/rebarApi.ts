@@ -1,3 +1,4 @@
+import { armatureReferences } from './armatureReferences';
 import { representationPoints, representationPoint } from './representations';
 import { renumberOptionsSchema } from './numbering';
 import {
@@ -27,6 +28,8 @@ import { assertDetailEdit } from './detailEditing';
 import { objectOrigin } from './detailTransfer';
 import { distance, geometry, world } from './geometry';
 import {
+  cloneArmatureGraph,
+  ArmatureCloneError,
   joinBars,
   quantityForSpacing,
   renumber,
@@ -48,6 +51,8 @@ export const REBAR_CAPABILITIES = Object.freeze({
     'bar.delete',
     'bar.move',
     'bar.copy',
+    'armature.clone',
+    'armature.bind',
     'bar.transform',
     'bar.split',
     'bar.join',
@@ -75,6 +80,8 @@ export const REBAR_CAPABILITIES = Object.freeze({
   atomicBatches: true,
   representationsDoNotAddSteel: true,
   placedRepresentationLabels: true,
+  deepArmatureCopy: true,
+  sharedClonePolicies: ['keep', 'clone-set'] as const,
 });
 const number = z.number().finite();
 const point = z.object({ x: number, y: number }).strict();
@@ -145,7 +152,31 @@ const distribution = z
     render: z.enum(['ticks', 'bars']).optional(),
   })
   .strict();
+const sharedPolicy = z.enum(['keep', 'clone-set']);
+const positionPolicy = z.enum(['new', 'equivalent']);
 const commandSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('armature.clone'),
+      barIds: z.array(id).max(10000),
+      objectIds: z.array(id).max(30000).optional(),
+      delta: point,
+      detailId: id.optional(),
+      shared: sharedPolicy.optional(),
+      position: positionPolicy.optional(),
+      ids: z.record(id, id).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('armature.bind'),
+      objectIds: z.array(id).min(1).max(10000),
+      barIds: z
+        .array(id)
+        .max(10000)
+        .refine((v) => new Set(v).size === v.length, 'Vínculos repetidos.'),
+    })
+    .strict(),
   z
     .object({
       type: z.literal('bar.create'),
@@ -169,6 +200,8 @@ const commandSchema = z.discriminatedUnion('type', [
       type: z.literal('bar.copy'),
       id,
       newId: id.optional(),
+      shared: sharedPolicy.optional(),
+      position: positionPolicy.optional(),
       detailId: id.optional(),
       mark: common.mark,
       delta: point,
@@ -282,6 +315,7 @@ export type RebarIssue = {
     | 'REFERENCE_IN_USE'
     | 'SCOPE_VIOLATION'
     | 'SOURCE_CONFLICT'
+    | 'SHARED_DEPENDENCY'
     | 'INVALID_PROJECT'
     | 'STALE_BATCH';
   message: string;
@@ -385,6 +419,21 @@ export function validateRebarChange(
         'details',
       ),
     );
+  for (const key of ['annotations', 'polylines', 'masks'] as const)
+    if (after[key].length > (key === 'masks' ? 20 : 10000))
+      errors.push(
+        issue(
+          'INVALID_FIELD',
+          'A cópia excede o limite de objetos do projeto.',
+          key,
+        ),
+      );
+  const oldMasks = new Map(before.masks.map((m) => [m.id, m]));
+  for (const mask of after.masks)
+    if (mask !== oldMasks.get(mask.id)) {
+      const valid = detailContentSchema.shape.masks.element.safeParse(mask);
+      if (!valid.success) errors.push(...fields(valid.error, mask.id));
+    }
   const old = new Map(before.bars.map((b) => [b.id, b]));
   try {
     validateFabrication(after);
@@ -501,6 +550,26 @@ export function validateRebarChange(
       errors.push(
         issue('NOT_FOUND', 'Armadura referenciada inexistente.', 'barId', a.id),
       );
+  for (const [kind, objects] of [
+    ['annotations', after.annotations],
+    ['polylines', after.polylines],
+  ] as const)
+    for (const object of objects) {
+      const valid = detailContentSchema.shape[kind]
+        .unwrap()
+        .element.safeParse(object);
+      if (!valid.success) errors.push(...fields(valid.error, object.id));
+      for (const id of armatureReferences(object))
+        if (!ids.has(id))
+          errors.push(
+            issue(
+              'NOT_FOUND',
+              'Armadura vinculada inexistente.',
+              'barIds',
+              object.id,
+            ),
+          );
+    }
   if (scopeDetailId)
     try {
       assertDetailEdit(before, after, scopeDetailId);
@@ -644,7 +713,9 @@ function perform(
     if (
       c.references !== 'remove' &&
       (p.details.some((d) => d.barId === c.id) ||
-        p.annotations.some((a) => a.barId === c.id))
+        [...p.annotations, ...p.polylines].some((a) =>
+          armatureReferences(a).includes(c.id),
+        ))
     )
       fail(
         'REFERENCE_IN_USE',
@@ -656,22 +727,96 @@ function perform(
       ...p,
       bars: p.bars.filter((b) => b.id !== c.id),
       details: p.details.filter((r) => r.barId !== c.id),
-      annotations: p.annotations.filter((a) => a.barId !== c.id),
+      annotations: p.annotations
+        .filter(
+          (a) =>
+            a.barId !== c.id &&
+            !(
+              armatureReferences(a).length === 1 &&
+              armatureReferences(a)[0] === c.id
+            ),
+        )
+        .map((a) =>
+          a.barIds?.includes(c.id)
+            ? { ...a, barIds: a.barIds.filter((id) => id !== c.id) }
+            : a,
+        ),
+      polylines: p.polylines
+        .filter(
+          (a) =>
+            !(
+              armatureReferences(a).length === 1 &&
+              armatureReferences(a)[0] === c.id
+            ),
+        )
+        .map((a) =>
+          a.barIds?.includes(c.id)
+            ? { ...a, barIds: a.barIds.filter((id) => id !== c.id) }
+            : a,
+        ),
     };
     touched.push(c.id);
-  } else if (c.type === 'bar.move' || c.type === 'bar.copy') {
-    const b = translateBar(barById(p, c.id), c.delta);
-    if (c.type === 'bar.move') next = replace(p, b);
-    else {
-      b.id = newId(p, c.newId);
-      b.mark = c.mark ?? nextMark(p);
-      next = own(
-        { ...p, bars: [...p.bars, b] },
-        b.id,
-        c.detailId ?? p.hierarchy.objectDetails[c.id],
-      );
+  } else if (c.type === 'bar.move') {
+    next = replace(p, translateBar(barById(p, c.id), c.delta));
+    touched.push(c.id);
+  } else if (c.type === 'bar.copy' || c.type === 'armature.clone') {
+    try {
+      const options =
+        c.type === 'bar.copy'
+          ? {
+              barIds: [c.id],
+              delta: c.delta,
+              detailId: c.detailId,
+              shared: c.shared,
+              position: c.position,
+              ids: c.newId ? { [c.id]: c.newId } : undefined,
+            }
+          : c;
+      const clone = cloneArmatureGraph(p, options);
+      next = clone.project;
+      if (c.type === 'bar.copy' && c.mark) {
+        if (c.position === 'equivalent')
+          fail(
+            'INVALID_FIELD',
+            'A posição equivalente usa a marca do original.',
+            'mark',
+            c.id,
+          );
+        next = replace(next, {
+          ...barById(next, clone.idMap[c.id]),
+          mark: c.mark,
+        });
+      }
+      touched.push(...clone.createdIds);
+    } catch (e) {
+      if (e instanceof ArmatureCloneError)
+        fail(e.code, e.message, e.field, e.objectId);
+      throw e;
     }
-    touched.push(b.id);
+  } else if (c.type === 'armature.bind') {
+    c.barIds.forEach((id) => barById(p, id));
+    const allowed = new Set(
+      [...p.annotations, ...p.polylines].map((o) => o.id),
+    );
+    for (const id of c.objectIds)
+      if (!allowed.has(id))
+        fail(
+          'NOT_FOUND',
+          'Selecione anotações ou linhas auxiliares existentes.',
+          'objectIds',
+          id,
+        );
+    const selected = new Set(c.objectIds);
+    next = {
+      ...p,
+      annotations: p.annotations.map((o) =>
+        selected.has(o.id) ? { ...o, barIds: [...c.barIds] } : o,
+      ),
+      polylines: p.polylines.map((o) =>
+        selected.has(o.id) ? { ...o, barIds: [...c.barIds] } : o,
+      ),
+    };
+    touched.push(...c.objectIds);
   } else if (c.type === 'bar.transform') {
     next = replace(p, transformBar(barById(p, c.id), c.operation));
     touched.push(c.id);
@@ -905,7 +1050,10 @@ export function executeRebarBatch(
         options.scopeDetailId &&
         (parsed.data.type === 'fabrication.group' ||
           parsed.data.type === 'fabrication.ungroup' ||
-          parsed.data.type === 'bar.renumber')
+          parsed.data.type === 'bar.renumber' ||
+          ((parsed.data.type === 'armature.clone' ||
+            parsed.data.type === 'bar.copy') &&
+            parsed.data.position === 'equivalent'))
       )
         fail(
           'INVALID_FIELD',
@@ -963,8 +1111,8 @@ export function executeRebarBatch(
         .filter(Boolean),
     );
     for (const p of [project, next])
-      for (const r of [...p.details, ...p.annotations])
-        if (r.barId && changedBars.has(r.barId))
+      for (const r of [...p.details, ...p.annotations, ...p.polylines])
+        if (armatureReferences(r).some((id) => changedBars.has(id)))
           affectedDetails.add(p.hierarchy.objectDetails[r.id]);
     const drawingIds = new Set(
       next.hierarchy.drawings

@@ -1,3 +1,4 @@
+import { armatureReferences } from './armatureReferences';
 import { hasArmatureData } from './detailQuantities';
 import { fabricationPositions } from './fabrication';
 import { z } from 'zod';
@@ -14,7 +15,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/6' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/7' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -27,6 +28,7 @@ export const detailPackageSchema = z
       'openstruct.detail/4',
       'openstruct.detail/5',
       'openstruct.detail/6',
+      'openstruct.detail/7',
     ]),
     fabricationPositions: z
       .array(fabricationPositionSchema)
@@ -151,6 +153,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/4',
       'openstruct.detail/5',
       'openstruct.detail/6',
+      'openstruct.detail/7',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -163,6 +166,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/4',
       'openstruct.detail/5',
       'openstruct.detail/6',
+      'openstruct.detail/7',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -170,7 +174,11 @@ export function detailPackageProject(value: DetailPackage): Project {
       'Composição de quantidade/metadados da armadura exige pacote openstruct.detail/4.',
     );
   if (
-    !['openstruct.detail/5', 'openstruct.detail/6'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/5',
+      'openstruct.detail/6',
+      'openstruct.detail/7',
+    ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
         d.rotation ||
@@ -180,10 +188,17 @@ export function detailPackageProject(value: DetailPackage): Project {
   )
     throw new Error('Representações transformadas exigem pacote v5.');
   if (
-    pack.schema !== 'openstruct.detail/6' &&
+    !['openstruct.detail/6', 'openstruct.detail/7'].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
     throw new Error('Posicionamento de rótulo exige pacote v6.');
+  if (
+    pack.schema !== 'openstruct.detail/7' &&
+    [...pack.objects.annotations, ...pack.objects.polylines].some(
+      (o) => o.barIds !== undefined,
+    )
+  )
+    throw new Error('Vínculos auxiliares exigem pacote v7.');
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -206,7 +221,9 @@ export function detailPackageProject(value: DetailPackage): Project {
       'Dois objetos do pacote não podem representar a mesma identidade de origem.',
     );
   const referenced = new Set(
-    [...o.details, ...o.annotations].map((r) => r.barId).filter(Boolean),
+    [...o.details, ...o.annotations, ...o.polylines].flatMap(
+      armatureReferences,
+    ),
   );
   if (pack.dependencies.some((b) => !referenced.has(b.id)))
     throw new Error('Dependência não utilizada no detalhamento.');
@@ -272,7 +289,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/12',
+      schema: 'armadurastruct/13',
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
       name: c.project.name,
@@ -308,6 +325,9 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/1',
       'openstruct.detail/2',
       'openstruct.detail/3',
+      'openstruct.detail/4',
+      'openstruct.detail/5',
+      'openstruct.detail/6',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -348,9 +368,9 @@ export function createDetailPackage(
   };
   const owned = new Set(objects.bars.map((b) => b.id));
   const refs = new Set(
-    [...objects.details, ...objects.annotations]
-      .map((r) => r.barId)
-      .filter(Boolean),
+    [...objects.details, ...objects.annotations, ...objects.polylines].flatMap(
+      armatureReferences,
+    ),
   );
   const dependencies = project.bars.filter(
     (b) => refs.has(b.id) && !owned.has(b.id),

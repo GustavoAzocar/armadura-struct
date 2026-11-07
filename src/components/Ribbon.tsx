@@ -75,7 +75,8 @@ export type Action =
   | 'export-detail'
   | 'interpret-cad'
   | 'detail-repetition'
-  | 'fabrication';
+  | 'fabrication'
+  | 'clone-armature';
 // Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
@@ -223,6 +224,7 @@ export default function Ribbon({
         items: [
           item('move', 'Mover', Move, 1),
           item('copy', 'Copiar', Copy, 1),
+          item('clone-armature', 'Duplicar completa', Copy, 1),
           item('rotate', 'Girar 90°', RotateCw, 1),
           item('mirror', 'Espelhar', FlipHorizontal2, 1),
           item('delete', 'Excluir', Trash2, 1),

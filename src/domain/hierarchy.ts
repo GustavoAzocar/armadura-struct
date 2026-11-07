@@ -1,3 +1,4 @@
+import { armatureReferences } from './armatureReferences';
 import { recalculateBarQuantity } from './detailQuantities';
 import { reconcileFabrication } from './fabrication';
 import { uid, type Project, type ProjectHierarchy } from './types';
@@ -292,8 +293,12 @@ export function moveObjectsToDetail(
   if (!objectIds.every((id) => objects.some((o) => o.id === id)))
     throw new Error('Objeto inexistente.');
   // Rebatimentos and linked callouts accompany their physical bar, without a geometric transform.
-  for (const o of [...project.details, ...project.annotations])
-    if (o.barId && ids.has(o.barId)) ids.add(o.id);
+  for (const o of [
+    ...project.details,
+    ...project.annotations,
+    ...project.polylines,
+  ])
+    if (armatureReferences(o).some((id) => ids.has(id))) ids.add(o.id);
   return {
     ...project,
     hierarchy: {

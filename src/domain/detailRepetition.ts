@@ -227,10 +227,31 @@ export function previewMergeRepetitions(
     const drawingOwners = new Map(
       p.hierarchy.drawings.map((d) => [d.id, d.detailId]),
     );
-    const mapRef = <T extends { id: string; barId?: string }>(o: T): T =>
+    const mapRef = <
+      T extends { id: string; barId?: string; barIds?: string[] },
+    >(
+      o: T,
+    ): T =>
       o.barId && Object.hasOwn(plan.mapping, o.barId)
-        ? { ...o, barId: plan.mapping[o.barId] }
-        : o;
+        ? {
+            ...o,
+            barId: plan.mapping[o.barId],
+            ...(o.barIds
+              ? {
+                  barIds: [
+                    ...new Set(o.barIds.map((id) => plan.mapping[id] ?? id)),
+                  ],
+                }
+              : {}),
+          }
+        : o.barIds
+          ? {
+              ...o,
+              barIds: [
+                ...new Set(o.barIds.map((id) => plan.mapping[id] ?? id)),
+              ],
+            }
+          : o;
     let next: Project = {
       ...p,
       scheduleLock: undefined,
@@ -250,7 +271,7 @@ export function previewMergeRepetitions(
       annotations: p.annotations
         .filter((o) => !removedIds.has(o.id))
         .map(mapRef),
-      polylines: p.polylines.filter((o) => !removedIds.has(o.id)),
+      polylines: p.polylines.filter((o) => !removedIds.has(o.id)).map(mapRef),
       masks: p.masks.filter((o) => !removedIds.has(o.id)),
       hierarchy: {
         ...p.hierarchy,
