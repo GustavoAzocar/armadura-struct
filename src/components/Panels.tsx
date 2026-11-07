@@ -1,3 +1,8 @@
+import {
+  quantityLabel,
+  barQuantities,
+  detailTitle,
+} from '../domain/detailQuantities';
 import { annotationError } from '../domain/drafting';
 import HierarchyNavigator from './HierarchyNavigator';
 import { toggleDetailSelection } from '../domain/detailEditing';
@@ -305,6 +310,11 @@ export function Inspector({
                 </label>
               </div>
             </Section>
+            <p className="field-help" data-testid="bar-effective-quantity">
+              Quantidade base {bar.quantity} ×{' '}
+              {barQuantities(project, bar).repetitions} repetições ={' '}
+              {barQuantities(project, bar).quantity} peças efetivas.
+            </p>
             <Section title="Geometria e dobras">
               {bar.kind === 'stirrup' && (
                 <>
@@ -785,7 +795,12 @@ export function ProjectTree({
             onOpenDrawing={onOpenDrawing}
           />
         )}
-        <p className="tree-content-caption">Objetos do detalhamento ativo</p>
+        <p
+          className="tree-content-caption"
+          title={detailTitle(project, activeDetailId)}
+        >
+          {detailTitle(project, activeDetailId)}
+        </p>
         <button
           className="tree-section"
           onClick={() => setMasksOpen(!masksOpen)}
@@ -862,7 +877,7 @@ export function ProjectTree({
                   </b>
                   <small>{b.element}</small>
                 </span>
-                <em>×{b.quantity}</em>
+                <em>{quantityLabel(project, b)}</em>
               </button>
             ))}
             {!bars.length && (
@@ -1061,7 +1076,11 @@ export function Schedule({
                 <td>
                   {r.steel} / {format(r.diameter, r.diameter % 1 ? 1 : 0)}
                 </td>
-                <td>{r.quantity}</td>
+                <td title="Quantidade base × repetições = quantidade efetiva">
+                  {r.repetitions > 1
+                    ? `${r.baseQuantity} × ${r.repetitions} = ${r.quantity}`
+                    : r.quantity}
+                </td>
                 <td>{r.errors.length ? 'Revisar' : format(r.unitLength, 3)}</td>
                 <td>{r.errors.length ? '—' : format(r.totalLength, 3)}</td>
                 <td>{r.errors.length ? '—' : format(r.weight, 2)}</td>

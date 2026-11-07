@@ -227,6 +227,14 @@ export function deleteHierarchyNode(
   if (kind === 'element') {
     if (!h.elements.some((e) => e.id === id))
       throw new Error('Elemento inexistente.');
+    if (
+      h.details.some((d) =>
+        d.repetition?.elements.some((e) => e.elementId === id),
+      )
+    )
+      throw new Error(
+        'O elemento participa de uma repetição. Remova ou altere esse vínculo antes de excluí-lo.',
+      );
     if (h.elements.length === 1 || h.details.some((d) => d.elementId === id))
       throw new Error(
         'Mova ou exclua os detalhamentos antes de excluir o elemento. Mantenha ao menos um elemento.',
@@ -264,6 +272,19 @@ export function moveObjectsToDetail(
     throw new Error('Detalhamento de destino inexistente.');
   const ids = new Set(objectIds),
     objects = contentObjects(project);
+  const targetFactor =
+    project.hierarchy.details.find((d) => d.id === detailId)?.repetition
+      ?.factor ?? 1;
+  for (const b of project.bars.filter((b) => ids.has(b.id))) {
+    const factor =
+      project.hierarchy.details.find(
+        (d) => d.id === project.hierarchy.objectDetails[b.id],
+      )?.repetition?.factor ?? 1;
+    if (factor !== targetFactor)
+      throw new Error(
+        'A transferência mudaria a quantidade efetiva. Configure o mesmo fator de repetição no destino antes de mover posições físicas.',
+      );
+  }
   if (!objectIds.every((id) => objects.some((o) => o.id === id)))
     throw new Error('Objeto inexistente.');
   // Rebatimentos and linked callouts accompany their physical bar, without a geometric transform.
@@ -297,6 +318,31 @@ export function validateHierarchy(project: Project) {
     ...h.placements.map((p) => p.id),
     ...project.sheets.map((s) => s.id),
   ];
+  for (const d of h.details)
+    if (d.repetition) {
+      const r = d.repetition;
+      if (
+        !Number.isInteger(r.factor) ||
+        r.factor < 1 ||
+        r.factor > 10000 ||
+        (r.elements.length && r.elements.length !== r.factor)
+      )
+        throw new Error('Fator/lista de nomes da repetição inválidos.');
+      if (r.elements.some((m) => m.elementId && !elements.has(m.elementId)))
+        throw new Error('Repetição vinculada a elemento inexistente.');
+      const refs = r.elements
+        .filter((m) => m.elementId)
+        .map((m) => m.elementId);
+      if (new Set(refs).size !== refs.length)
+        throw new Error(
+          'Um elemento estrutural não pode aparecer duas vezes na mesma repetição. Use nomes de ocorrências distintos.',
+        );
+      const aliases = r.elements
+        .filter((m) => !m.elementId)
+        .map((m) => m.name.toLocaleLowerCase());
+      if (new Set(aliases).size !== aliases.length)
+        throw new Error('Os nomes das ocorrências devem ser distintos.');
+    }
   if (new Set(allIds).size !== allIds.length)
     throw new Error('Identificadores duplicados na hierarquia.');
   if (

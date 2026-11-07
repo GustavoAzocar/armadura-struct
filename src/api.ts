@@ -15,3 +15,12 @@ export type {
   RebarBatchResult,
 } from './domain/rebarApi';
 export type { Project, Point, Bar, BarRepresentation } from './domain/types';
+
+export {
+  setDetailRepetition,
+  repetitionCandidates,
+  previewMergeRepetitions,
+  applyMergeRepetitions,
+} from './domain/detailRepetition';
+export { barQuantities, detailTitle } from './domain/detailQuantities';
+export type { DetailRepetition } from './domain/types';

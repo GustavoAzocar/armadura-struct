@@ -1,9 +1,11 @@
+import { barQuantities } from './detailQuantities';
 import { z } from 'zod';
 import {
   detailContentSchema,
   newBar,
   nextMark,
   scheduleChanged,
+  createScheduleLock,
 } from './model';
 import {
   completeOwnership,
@@ -352,7 +354,7 @@ export function validateRebarChange(
       );
     if (
       !Number.isFinite(g.length) ||
-      !Number.isFinite((g.length * b.quantity) / 1000) ||
+      !Number.isFinite((g.length * barQuantities(after, b).quantity) / 1000) ||
       g.vertices.some((p) => {
         const v = world(p, b);
         return !Number.isFinite(v.x) || !Number.isFinite(v.y);
@@ -728,7 +730,7 @@ export function executeRebarBatch(
     }
     const steelChanged = scheduleChanged({
       ...next,
-      scheduleLock: { at: 'comparison', bars: project.bars },
+      scheduleLock: createScheduleLock(project, 'comparison'),
     });
     const scheduleInvalidated =
       options.schedule === 'invalidate-lock' &&

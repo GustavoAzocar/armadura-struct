@@ -1,3 +1,4 @@
+import { repetitionNames } from './detailQuantities';
 import type {
   Bar,
   DetailOrigin,
@@ -13,7 +14,12 @@ import {
   createHierarchyNode,
   detailPath,
 } from './hierarchy';
-import { decodeProject, schedule, scheduleChanged } from './model';
+import {
+  decodeProject,
+  schedule,
+  scheduleChanged,
+  createScheduleLock,
+} from './model';
 import { barCaption } from './drafting';
 import { alignPlacement, composeSheet } from './paper';
 import { placeDrawing } from './sheets';
@@ -113,8 +119,10 @@ export function matchingDetails(
   detailId: string,
 ) {
   const origin = detailOrigin(source, detailId);
-  return target.hierarchy.details.filter((d) =>
-    sameDetailOrigin(detailOrigin(target, d.id), origin),
+  return target.hierarchy.details.filter(
+    (d) =>
+      sameDetailOrigin(detailOrigin(target, d.id), origin) ||
+      !!d.repetition?.absorbedOrigins?.some((o) => sameDetailOrigin(o, origin)),
   );
 }
 const weight = (p: Project) =>
@@ -204,6 +212,14 @@ export function previewDetailTransfer(
     if (options.mode === 'insert' && matches.length)
       plan.issues.push(
         'Esta origem já existe no projeto. Use Atualizar detalhamento ou coloque outra vista pelo gerenciador para manter uma única definição de aço.',
+      );
+    if (
+      matches.some((d) =>
+        d.repetition?.absorbedOrigins?.some((o) => sameDetailOrigin(o, origin)),
+      )
+    )
+      plan.issues.push(
+        'Esta origem foi reunida em uma repetição. Desfaça a reunião ou separe as ocorrências antes de importar uma revisão individual.',
       );
     let next = target,
       detailId = oldDetail?.id;
@@ -603,6 +619,15 @@ export function previewDetailTransfer(
                 ...d,
                 name: options.name?.trim() || d.name,
                 grouped: oldDetail?.grouped ?? true,
+                repetition: incoming.repetition
+                  ? {
+                      ...structuredClone(incoming.repetition),
+                      elements: repetitionNames(
+                        source,
+                        incoming.repetition,
+                      ).map((name) => ({ name })),
+                    }
+                  : oldDetail?.repetition,
                 source: {
                   origin,
                   projectName: source.name,
@@ -643,7 +668,7 @@ export function previewDetailTransfer(
       plan.physicalChanged ||
       scheduleChanged({
         ...next,
-        scheduleLock: { at: 'comparison', bars: target.bars },
+        scheduleLock: createScheduleLock(target, 'comparison'),
       });
     if (raDataChanged && target.scheduleLock) {
       next = { ...next, scheduleLock: undefined };

@@ -1,0 +1,99 @@
+{
+  "schema": "openstruct.detail/2",
+  "units": {
+    "length": "mm",
+    "angle": "deg"
+  },
+  "origin": {
+    "projectId": "openstruct-repetition-example",
+    "floorId": "rep-floor",
+    "elementId": "rep-element",
+    "detailId": "rep-detail"
+  },
+  "context": {
+    "project": {
+      "id": "openstruct-repetition-example",
+      "name": "Repetição V1=V2=V3"
+    },
+    "floor": {
+      "id": "rep-floor",
+      "name": "Térreo"
+    },
+    "element": {
+      "id": "rep-element",
+      "name": "V1"
+    },
+    "detail": {
+      "id": "rep-detail",
+      "name": "Armação V1",
+      "grouped": true,
+      "repetition": {
+        "factor": 3,
+        "elements": [
+          {
+            "name": "V1"
+          },
+          {
+            "name": "V2"
+          },
+          {
+            "name": "V3"
+          }
+        ]
+      }
+    }
+  },
+  "revision": "00",
+  "producer": {
+    "app": "Exemplo OpenStruct",
+    "version": "1.0.0"
+  },
+  "exportedAt": "2026-11-07T12:00:00Z",
+  "metadata": {
+    "purpose": "4 barras por elemento × 3 elementos = 12 peças físicas."
+  },
+  "objects": {
+    "bars": [
+      {
+        "id": "rep-bar",
+        "mark": "N1",
+        "element": "Geral",
+        "kind": "free",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "rotation": 0,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1000,
+            "y": 0
+          }
+        ],
+        "width": 250,
+        "height": 500,
+        "hook": 80,
+        "diameter": 10,
+        "mandrel": 50,
+        "steel": "CA-50",
+        "quantity": 4,
+        "color": "#4b71e8"
+      }
+    ],
+    "details": [],
+    "masks": [],
+    "annotations": [],
+    "polylines": []
+  },
+  "dependencies": [],
+  "objectOrigins": {
+    "rep-bar": {
+      "projectId": "openstruct-repetition-example",
+      "objectId": "rep-bar"
+    }
+  }
+}

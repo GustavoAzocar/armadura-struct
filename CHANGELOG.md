@@ -2,6 +2,11 @@
 
 ## Em desenvolvimento
 
+- AS-03: repetição inteira por detalhamento, lista de elementos vinculados/nomes livres, título automático e levantamento com quantidade base, fator e quantidade efetiva. Vistas/rebatimentos adicionais não acrescentam aço.
+- Reunião assistida de detalhes com posições físicas idênticas, escolha do representante, retirada controlada das definições duplicadas, redirecionamento de desenhos/vistas e reassociação de vínculos externos; comparação e uma etapa de desfazer/refazer.
+- Formato 7, migração dos formatos 1–6, contexto congelado da RA e pacote `openstruct.detail/2` para transportar a repetição. Leitura de pacotes v1 permanece disponível sem multiplicador.
+- Títulos, CAD, RA/resumo, CSV, DXF e PDF consideram a repetição. Agrupar e transferir posições preserva ou exige um fator compatível; origens reunidas são protegidas contra reimportação duplicada.
+
 - AS-51: fachada TypeScript `src/api.ts`, versão 1.0, com famílias discriminadas, capacidades, unidades em mm e erros estruturados por operação/objeto/campo. Lotes rejeitados conservam integralmente o projeto original.
 - Criação/edição/exclusão, cópia/movimentação/transformação, divisão/união/renumeração e associação de rebatimentos/faixas compartilhadas pela interface e geradores; validação de geometria, referências, marcas/IDs e contexto isolado antes de confirmar.
 - Exemplo executável de barra, estribo e conjunto distribuído por `npm run example:rebar`; integração ao histórico em uma operação por lote, com políticas explícitas para referências e RA bloqueada.

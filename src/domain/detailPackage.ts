@@ -3,19 +3,21 @@ import {
   decodeProject,
   detailContentSchema,
   exchangeMetadataSchema,
+  repetitionSchema,
 } from './model';
 import { contentObjects } from './hierarchy';
 import { detailOrigin, objectOrigin } from './detailTransfer';
 import { mul } from './geometry';
+import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/1' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/2' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
 export const detailPackageSchema = z
   .object({
-    schema: z.literal(DETAIL_PACKAGE_SCHEMA),
+    schema: z.enum(['openstruct.detail/1', 'openstruct.detail/2']),
     units: z
       .object({ length: z.enum(['mm', 'cm', 'm']), angle: z.literal('deg') })
       .strict(),
@@ -29,7 +31,10 @@ export const detailPackageSchema = z
       project: named(150),
       floor: named(150),
       element: named(),
-      detail: named().extend({ grouped: z.boolean() }),
+      detail: named().extend({
+        grouped: z.boolean(),
+        repetition: repetitionSchema.optional(),
+      }),
     }),
     revision: z.string().max(40),
     ...exchangeMetadataSchema.shape,
@@ -107,6 +112,8 @@ export function detailPackageProject(value: DetailPackage): Project {
     detailPackageSchema.parse(value),
     factors[value.units.length],
   );
+  if (pack.schema === 'openstruct.detail/1' && pack.context.detail.repetition)
+    throw new Error('Repetições exigem pacote openstruct.detail/2.');
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -152,6 +159,7 @@ export function detailPackageProject(value: DetailPackage): Project {
     {
       ...c.detail,
       elementId: c.element.id,
+      ...(c.detail.repetition ? { repetition: c.detail.repetition } : {}),
       source: {
         origin: pack.origin,
         projectName: c.project.name,
@@ -194,7 +202,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/6',
+      schema: 'armadurastruct/7',
       id: c.project.id,
       name: c.project.name,
       author: pack.producer.app,
@@ -224,11 +232,13 @@ export function readDetailPackage(raw: unknown): {
   project: Project;
 } {
   const input = typeof raw === 'string' ? JSON.parse(raw) : raw;
-  if (input?.schema !== DETAIL_PACKAGE_SCHEMA)
+  if (!['openstruct.detail/1', DETAIL_PACKAGE_SCHEMA].includes(input?.schema))
     throw new Error(
       `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA}.`,
     );
   const pack = detailPackageSchema.parse(input);
+  if (pack.schema === 'openstruct.detail/1' && pack.context.detail.repetition)
+    throw new Error('Repetições exigem pacote openstruct.detail/2.');
   return { package: pack, project: detailPackageProject(pack) };
 }
 export function decodeDetailPackage(raw: string): DetailPackage {
@@ -275,7 +285,21 @@ export function createDetailPackage(
       project: { id: project.id, name: project.name },
       floor: f,
       element: { id: e.id, name: e.name },
-      detail: { id: d.id, name: d.name, grouped: d.grouped ?? false },
+      detail: {
+        id: d.id,
+        name: d.name,
+        grouped: d.grouped ?? false,
+        ...(d.repetition
+          ? {
+              repetition: {
+                ...d.repetition,
+                elements: repetitionNames(project, d.repetition).map(
+                  (name) => ({ name }),
+                ),
+              },
+            }
+          : {}),
+      },
     },
     revision: project.drawing.revision,
     producer: options.producer,

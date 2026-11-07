@@ -137,10 +137,10 @@ export function toDxf(p: Project): string {
   let y = box.y - 400;
   for (const line of [
     'QUADRO DE ACO | comprimentos em metros',
-    'POS   ACO   DIAM   QTD   C.UNIT   C.TOTAL   PESO(kg)',
+    'POS   ACO   DIAM   BASE x REP = QTD   C.UNIT   C.TOTAL   PESO(kg)',
     ...schedule(p).map(
       (r) =>
-        `${r.mark}   ${r.steel}   ${r.diameter}   ${r.quantity}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
+        `${r.mark}   ${r.steel}   ${r.diameter}   ${r.baseQuantity} x ${r.repetitions} = ${r.quantity}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
     ),
   ]) {
     put(
@@ -178,7 +178,9 @@ export function toCsv(p: Project) {
         'Elemento',
         'Aço',
         'Bitola (mm)',
-        'Quantidade',
+        'Quantidade base',
+        'Repetições',
+        'Quantidade efetiva',
         'Comprimento unitário (m)',
         'Comprimento total (m)',
         'Peso teórico (kg)',
@@ -188,6 +190,8 @@ export function toCsv(p: Project) {
         r.element,
         r.steel,
         r.diameter,
+        r.baseQuantity,
+        r.repetitions,
         r.quantity,
         format(r.unitLength, 3),
         format(r.totalLength, 3),
@@ -321,7 +325,7 @@ export function toPdf(p: Project): Uint8Array {
       r.element.slice(0, 55),
       r.steel,
       String(r.diameter),
-      String(r.quantity),
+      `${r.baseQuantity}x${r.repetitions}=${r.quantity}`,
       format(r.unitLength, 3),
       format(r.totalLength, 3),
       format(r.weight, 2),

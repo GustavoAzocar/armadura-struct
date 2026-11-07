@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { quantityContext } from './detailQuantities';
 import { geometry, vertices, world } from './geometry';
 import { uid, type Bar, type Project, type ScheduleRow } from './types';
 import {
@@ -24,6 +25,33 @@ export const exchangeMetadataSchema = z.object({
     .record(z.string().min(1).max(100), z.string().max(5000))
     .refine((m) => Object.keys(m).length <= 100, 'Use até 100 metadados.'),
 });
+export const repetitionSchema = z
+  .object({
+    factor: z.number().int().min(1).max(10000),
+    elements: z
+      .array(
+        z.object({
+          name: z.string().trim().min(1).max(500),
+          elementId: identity.optional(),
+        }),
+      )
+      .max(10000),
+    absorbedOrigins: z
+      .array(
+        z.object({
+          projectId: identity,
+          floorId: identity,
+          elementId: identity,
+          detailId: identity,
+        }),
+      )
+      .max(10000)
+      .optional(),
+  })
+  .refine(
+    (r) => !r.elements.length || r.elements.length === r.factor,
+    'Informe um nome por repetição, ou deixe todos os nomes vazios.',
+  );
 const hierarchySchema = z.object({
   floors: z
     .array(z.object({ ...named, name: z.string().min(1).max(150) }))
@@ -39,6 +67,7 @@ const hierarchySchema = z.object({
         ...named,
         elementId: identity,
         grouped: z.boolean().optional(),
+        repetition: repetitionSchema.optional(),
         source: z
           .object({
             origin: z.object({
@@ -120,6 +149,7 @@ const schema = z.object({
     'armadurastruct/4',
     'armadurastruct/5',
     'armadurastruct/6',
+    'armadurastruct/7',
   ]),
   sheets: z
     .array(
@@ -201,7 +231,19 @@ const schema = z.object({
     })
     .default({ floor: '', revision: '00', scale: 0 }),
   scheduleLock: z
-    .object({ at: z.string(), bars: z.array(barSchema).max(10000) })
+    .object({
+      at: z.string(),
+      bars: z.array(barSchema).max(10000),
+      quantities: z
+        .record(
+          z.string(),
+          z.object({
+            repetitions: z.number().int().min(1).max(10000),
+            detailTitle: z.string().max(8000000),
+          }),
+        )
+        .optional(),
+    })
     .optional(),
   details: z
     .array(z.object({ id: z.string(), barId: z.string(), origin: point }))
@@ -262,7 +304,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/3' ||
     parsed.schema === 'armadurastruct/4' ||
     parsed.schema === 'armadurastruct/5' ||
-    parsed.schema === 'armadurastruct/6';
+    parsed.schema === 'armadurastruct/6' ||
+    parsed.schema === 'armadurastruct/7';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -298,7 +341,10 @@ export function decodeProject(
   );
   let sheetId = `${id}:sheet`;
   while (occupied.has(sheetId)) sheetId += '-';
-  const v6 = parsed.schema === 'armadurastruct/6';
+  const v7 = parsed.schema === 'armadurastruct/7';
+  if (!v7 && parsed.hierarchy?.details.some((d) => d.repetition))
+    throw new Error('Repetição de detalhamento exige o formato 7.');
+  const v6 = parsed.schema === 'armadurastruct/6' || v7;
   const v5 = parsed.schema === 'armadurastruct/5' || v6;
   if (v6 && !parsed.hierarchy?.objectOrigins)
     throw new Error('Projeto v6 sem identidades de origem.');
@@ -357,7 +403,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/6',
+    schema: 'armadurastruct/7',
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -406,6 +452,21 @@ export function decodeProject(
   )
     throw new Error('Chamada sem armadura correspondente.');
   validateHierarchy(p);
+  if (p.scheduleLock?.quantities) {
+    const ids = new Set(p.scheduleLock.bars.map((b) => b.id));
+    if (
+      Object.keys(p.scheduleLock.quantities).some((id) => !ids.has(id)) ||
+      p.scheduleLock.bars.some(
+        (b) => !Object.hasOwn(p.scheduleLock!.quantities!, b.id),
+      )
+    )
+      throw new Error('Contexto de repetição da RA incompleto.');
+  } else if (
+    v7 &&
+    p.scheduleLock &&
+    p.hierarchy.details.some((d) => d.repetition)
+  )
+    throw new Error('RA bloqueada sem snapshot de repetições.');
   if (!v5)
     for (const view of p.hierarchy.placements) {
       try {
@@ -462,7 +523,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/6',
+    schema: 'armadurastruct/7',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),
@@ -477,26 +538,55 @@ export const emptyProject = (): Project => {
     drawing: { floor: '', revision: '00', scale: 0 },
   };
 };
+export function createScheduleLock(
+  p: Project,
+  at = new Date().toISOString(),
+): NonNullable<Project['scheduleLock']> {
+  return {
+    at,
+    bars: structuredClone(p.bars),
+    quantities: Object.fromEntries(
+      p.bars.map((b) => [b.id, quantityContext(p, b)]),
+    ),
+  };
+}
 export function schedule(p: Project): ScheduleRow[] {
   return (p.scheduleLock?.bars ?? p.bars).map((bar) => {
     const g = geometry(bar),
-      totalLength = (g.length * bar.quantity) / 1000;
+      context = p.scheduleLock
+        ? (p.scheduleLock.quantities?.[bar.id] ?? {
+            repetitions: 1,
+            detailTitle: '',
+          })
+        : quantityContext(p, bar),
+      quantity = bar.quantity * context.repetitions,
+      totalLength = (g.length * quantity) / 1000;
     return {
       mark: bar.mark,
-      element: bar.element,
+      element: context.detailTitle || bar.element,
       steel: bar.steel,
       diameter: bar.diameter,
-      quantity: bar.quantity,
+      quantity,
+      baseQuantity: bar.quantity,
+      repetitions: context.repetitions,
       unitLength: g.length / 1000,
       totalLength,
       weight: totalLength * ((Math.PI * (bar.diameter / 1000) ** 2) / 4) * 7850,
-      errors: g.errors,
+      errors: [
+        ...g.errors,
+        ...(!Number.isFinite(totalLength)
+          ? ['Quantidade/comprimento excede os limites numéricos.']
+          : []),
+      ],
       bar,
     };
   });
 }
 export function scheduleChanged(p: Project) {
-  const fingerprint = (bars: Bar[]) =>
+  const fingerprint = (
+    bars: Bar[],
+    quantities: NonNullable<Project['scheduleLock']>['quantities'],
+  ) =>
     JSON.stringify(
       bars.map((b) => ({
         id: b.id,
@@ -511,10 +601,16 @@ export function scheduleChanged(p: Project) {
         height: b.height,
         hook: b.hook,
         mandrel: b.mandrel,
+        repetitions: quantities?.[b.id]?.repetitions ?? 1,
+        detailTitle: quantities?.[b.id]?.detailTitle ?? '',
       })),
     );
   return (
-    !!p.scheduleLock && fingerprint(p.bars) !== fingerprint(p.scheduleLock.bars)
+    !!p.scheduleLock &&
+    fingerprint(
+      p.bars,
+      Object.fromEntries(p.bars.map((b) => [b.id, quantityContext(p, b)])),
+    ) !== fingerprint(p.scheduleLock.bars, p.scheduleLock.quantities)
   );
 }
 export function projectPoints(p: Project) {

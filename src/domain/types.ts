@@ -47,6 +47,13 @@ export type DrawingDetail = {
   /** Visual selection as a unit; false/absent keeps individually selectable objects. */
   grouped?: boolean;
   source?: DetailSource;
+  repetition?: DetailRepetition;
+};
+export type DetailRepetition = {
+  factor: number;
+  elements: { name: string; elementId?: string }[];
+  /** Origins whose physical definitions were explicitly consolidated into this detail. */
+  absorbedOrigins?: DetailOrigin[];
 };
 export type DetailDrawing = { id: string; detailId: string; name: string };
 export type SheetFormat = 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'custom';
@@ -134,7 +141,7 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/6';
+  schema: 'armadurastruct/7';
   id: string;
   hierarchy: ProjectHierarchy;
   /** Array order is the document order, independent of tab opening order. */
@@ -148,7 +155,11 @@ export type Project = {
   annotations: Annotation[];
   polylines: DraftPolyline[];
   drawing: { floor: string; revision: string; scale: number };
-  scheduleLock?: { at: string; bars: Bar[] };
+  scheduleLock?: {
+    at: string;
+    bars: Bar[];
+    quantities?: Record<string, { repetitions: number; detailTitle: string }>;
+  };
 };
 export type Tool =
   | 'select'
@@ -189,6 +200,8 @@ export type ScheduleRow = {
   steel: string;
   diameter: number;
   quantity: number;
+  baseQuantity: number;
+  repetitions: number;
   unitLength: number;
   totalLength: number;
   weight: number;

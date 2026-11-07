@@ -1,4 +1,5 @@
-import { format, geometry, sampled, world } from './geometry';
+import { quantityLabel, detailTitle } from './detailQuantities';
+import { format, geometry, sampled, world, bounds } from './geometry';
 import { maskPrimitives } from '../cad/import';
 import {
   annotationPrimitives,
@@ -45,7 +46,7 @@ export function drawingPrimitives(
       });
     lines.push(
       label(
-        `${b.mark} - ${b.quantity} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
+        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
         { x: b.origin.x, y: b.origin.y - offset(100, 1.8) },
         'IDENTIFICACAO',
       ),
@@ -66,7 +67,7 @@ export function drawingPrimitives(
         ),
       );
     }
-    lines.push(...distributionPrimitives(b, options.minTextHeight));
+    lines.push(...distributionPrimitives(b, options.minTextHeight, references));
   }
   for (const d of p.details) {
     const b = references.bars.find((b) => b.id === d.barId);
@@ -80,7 +81,7 @@ export function drawingPrimitives(
     });
     lines.push(
       label(
-        `${b.mark} - ${b.quantity} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
+        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
         { x: d.origin.x, y: d.origin.y - offset(110, 1.8) },
         'IDENTIFICACAO',
       ),
@@ -101,6 +102,20 @@ export function drawingPrimitives(
         ),
       );
     }
+  }
+  for (const d of p.hierarchy.details.filter((d) => d.repetition)) {
+    const bars = p.bars.filter((b) => p.hierarchy.objectDetails[b.id] === d.id);
+    if (!bars.length) continue;
+    const box = bounds(
+      bars.flatMap((b) => geometry(b).vertices.map((v) => world(v, b))),
+    );
+    lines.push(
+      label(
+        detailTitle(references, d.id),
+        { x: box.x, y: box.y + box.height + h * 2 },
+        'IDENTIFICACAO',
+      ),
+    );
   }
   return lines;
 }

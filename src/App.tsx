@@ -34,6 +34,9 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const DetailRepetitionDialog = lazy(
+  () => import('./components/DetailRepetitionDialog'),
+);
 import { applyCadInterpretation, type CadInterpretation } from './cad/assisted';
 import {
   applyRebarBatch,
@@ -70,6 +73,7 @@ import {
   newBar,
   nextMark,
   scheduleChanged,
+  createScheduleLock,
 } from './domain/model';
 import {
   add,
@@ -207,6 +211,7 @@ export default function App() {
     maskId?: string;
     projectId: string;
   } | null>(null);
+  const [repetitionDetailId, setRepetitionDetailId] = useState<string>();
   const detailRequest = useRef<{
     mode: 'insert' | 'replace';
     projectId: string;
@@ -1273,6 +1278,23 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'detail-repetition') {
+      if (isolationRef.current) {
+        notify(
+          'Conclua a edição isolada antes de alterar a repetição do elemento.',
+        );
+        return;
+      }
+      const view = p.hierarchy.placements.find((v) => v.id === selectedView);
+      setRepetitionDetailId(
+        (activeSheet && view
+          ? p.hierarchy.drawings.find((d) => d.id === view.drawingId)?.detailId
+          : undefined) ??
+          selectedGroup?.id ??
+          activeDetailId,
+      );
+      return;
+    }
     if (a === 'export-detail') {
       try {
         const view = p.hierarchy.placements.find((v) => v.id === selectedView);
@@ -1459,10 +1481,7 @@ export default function App() {
           p.scheduleLock
             ? {
                 ...p,
-                scheduleLock: {
-                  at: new Date().toISOString(),
-                  bars: structuredClone(p.bars),
-                },
+                scheduleLock: createScheduleLock(p),
               }
             : { ...p },
         );
@@ -1471,9 +1490,7 @@ export default function App() {
       if (a === 'lock-schedule') {
         commit((p) => ({
           ...p,
-          scheduleLock: p.scheduleLock
-            ? undefined
-            : { at: new Date().toISOString(), bars: structuredClone(p.bars) },
+          scheduleLock: p.scheduleLock ? undefined : createScheduleLock(p),
         }));
         notify(
           p.scheduleLock
@@ -1796,12 +1813,13 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (detailTransfer || cadInterpretation) {
+      if (detailTransfer || cadInterpretation || repetitionDetailId) {
         if (e.key === 'Escape') {
           e.preventDefault();
           setDetailTransfer(null);
           detailRequest.current = null;
           setCadInterpretation(null);
+          setRepetitionDetailId(undefined);
         } else if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -2628,6 +2646,32 @@ export default function App() {
               setSidebarOpen(true);
               notify(
                 'Posição física criada por atribuição explícita. A máscara foi preservada como referência.',
+              );
+              return true;
+            }}
+          />
+        </Suspense>
+      )}
+      {repetitionDetailId && (
+        <Suspense
+          fallback={<div className="busy-overlay">Preparando repetições…</div>}
+        >
+          <DetailRepetitionDialog
+            project={p}
+            detailId={repetitionDetailId}
+            onClose={() => setRepetitionDetailId(undefined)}
+            onApply={(next, id, base) => {
+              if (historyRef.current.present !== base || isolationRef.current) {
+                notify('O projeto/contexto mudou. Abra novamente a repetição.');
+                return false;
+              }
+              if (!commit(() => next)) return false;
+              setRepetitionDetailId(undefined);
+              setSelectedRaw([]);
+              setMaskId(null);
+              setContext({ projectId: next.id, detailId: id });
+              notify(
+                'Repetição aplicada. Vistas e relação de aço usam uma única definição física.',
               );
               return true;
             }}

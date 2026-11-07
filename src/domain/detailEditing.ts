@@ -73,6 +73,44 @@ export function groupInDetail(
     throw new Error('Objeto inexistente na seleção.');
   const ids = expandDetailSelection(project, objectIds);
   const created = createHierarchyNode(project, 'detail', name, elementId);
+  const sourceDetails = project.hierarchy.details.filter((d) =>
+    project.bars.some(
+      (b) =>
+        ids.includes(b.id) && project.hierarchy.objectDetails[b.id] === d.id,
+    ),
+  );
+  const repetition = sourceDetails[0]?.repetition;
+  if (
+    sourceDetails.some(
+      (d) =>
+        JSON.stringify({
+          factor: d.repetition?.factor ?? 1,
+          elements: d.repetition?.elements ?? [],
+        }) !==
+        JSON.stringify({
+          factor: repetition?.factor ?? 1,
+          elements: repetition?.elements ?? [],
+        }),
+    )
+  )
+    throw new Error(
+      'Selecione posições com a mesma repetição para agrupar sem alterar quantitativos.',
+    );
+  if (repetition)
+    created.project = {
+      ...created.project,
+      hierarchy: {
+        ...created.project.hierarchy,
+        details: created.project.hierarchy.details.map((d) =>
+          d.id === created.id
+            ? {
+                ...d,
+                repetition: { ...repetition, absorbedOrigins: undefined },
+              }
+            : d,
+        ),
+      },
+    };
   const moved = moveObjectsToDetail(created.project, ids, created.id);
   return { id: created.id, project: setDetailGrouped(moved, created.id, true) };
 }

@@ -1,3 +1,4 @@
+import { detailTitle } from './detailQuantities';
 import type { Point, Primitive, Project, Sheet, SheetPlacement } from './types';
 import { bounds, rotate } from './geometry';
 import { detailEditorView } from './detailEditing';
@@ -179,10 +180,13 @@ function viewTitle(project: Project, view: SheetPlacement) {
   const drawing = project.hierarchy.drawings.find(
     (d) => d.id === view.drawingId,
   )!;
-  return (
-    view.title ||
-    project.hierarchy.details.find((d) => d.id === drawing.detailId)!.name
-  );
+  const title = detailTitle(project, drawing.detailId);
+  return view.title
+    ? project.hierarchy.details.find((d) => d.id === drawing.detailId)
+        ?.repetition
+      ? `${view.title} · ${title}`
+      : view.title
+    : title;
 }
 function titleLines(project: Project, view: SheetPlacement): PaperPrimitive[] {
   const height = Math.max(3, view.textHeight + 0.5);

@@ -2930,3 +2930,37 @@ button.hierarchy-drawing {
     grid-template-columns: 1fr;
   }
 }
+
+.repetition-modal {
+  width: min(1000px, 94vw);
+}
+.repetition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.repetition-modal textarea {
+  width: 100%;
+  min-height: 120px;
+  max-height: 220px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px;
+  font: inherit;
+}
+.repetition-candidates {
+  max-height: 220px;
+  overflow: auto;
+}
+.repetition-candidates small {
+  display: block;
+  font-size: 10px;
+  color: #71829d;
+  margin-top: 4px;
+}
+@media (max-width: 760px) {
+  .repetition-grid {
+    grid-template-columns: 1fr;
+  }
+}

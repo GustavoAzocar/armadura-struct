@@ -104,7 +104,21 @@ Os lotes são atômicos: se uma operação falhar, nenhuma alteração do lote e
 
 O quadro em atualização automática acompanha as alterações. O bloqueio de RA existente na edição manual é preservado e passa a indicar alterações pendentes, como antes; o gerador pode solicitar invalidação explícita do bloqueio fora da edição isolada. Representações gráficas adicionais não acrescentam aço. A API não dimensiona armaduras nem verifica normas.
 
-### Formato 6 e compatibilidade
+### Repetições de detalhamentos
+
+Em **Elementos → Repetições do detalhamento**, escolha o detalhamento e informe um **fator inteiro**. A quantidade da posição continua por elemento: uma posição com 4 barras e fator 3 entra no quadro como **4 × 3 = 12**. Duas vistas ou vários rebatimentos desse mesmo detalhe continuam com 12. A distribuição mostra as peças de um elemento típico; não desenha artificialmente três faixas.
+
+Preencha **Nomes dos elementos**, um por linha (por exemplo V1, V2, V3), para gerar o título automaticamente. A lista deve identificar todas as repetições, ou ficar completamente vazia para usar o nome do detalhe e o fator. **Remover repetição** recupera a quantidade base e o título original. Alterar nomes/fator atualiza títulos, quadro, resumo e exportações; a aplicação desbloqueia uma RA bloqueada para recalcular o levantamento.
+
+Para consolidar cópias que já existem, escolha **Reunir detalhes idênticos existentes**. Selecione o **representante que será conservado** e marque os candidatos. O comparador considera formas de corte, aço, bitola, mandril, quantidade base e distribuição; não associa por nome. Confira os nomes, o fator resultante e os totais antes/depois. Somente os gráficos internos do representante serão conservados. As demais definições físicas são retiradas, as vistas passam a referenciar o representante e vínculos externos são reassociados. Elementos/pavimentos da árvore são preservados.
+
+Uma translação uniforme de layout ajusta a origem do modelo nas vistas redirecionadas para manter o conteúdo no papel. Posição/escala/rotação da vista permanecem; layouts diferentes podem exigir reenquadramento. Confira os avisos antes de imprimir. **Cancelar/Esc** mantém tudo; **Desfazer** recupera as cópias e seus vínculos. Remover o multiplicador posteriormente não recria as cópias consolidadas: use Desfazer para isso.
+
+Nomes vinculados a elementos existentes acompanham renomeação/mudança de pavimento, com qualificação para homônimos. Um nome editado livremente funciona como alias. A reunião protege as origens absorvidas contra nova inserção/revisão individual; desfaça a reunião antes de atualizar uma dessas cópias isoladamente. O [contrato e os limites](AS-03.md) explicam as regras e o pacote v2.
+
+![Configuração de repetição com quantitativo antes/depois](detail-repetition.png)
+
+### Formato 7 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
 
@@ -200,7 +214,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/6`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/7`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

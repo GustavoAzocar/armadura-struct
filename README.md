@@ -15,7 +15,8 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
 - Gerenciador de pranchas com folhas A0–A4, orientação, revisão, notas, ordenação, duplicação de layout e vistas vinculadas; abas de folhas e desenhos com navegação independente.
 - Inserção e atualização seletiva de detalhamentos por JSON, comparação antes/depois, identificação pela origem, mapeamento de posições, reassociação de vínculos e preservação das vistas.
-- Pacotes abertos `openstruct.detail/1` (`.osdetail.json`) para intercâmbio de um detalhamento, com unidades, origem, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato, schema e exemplos para produtores OpenStruct](docs/AS-09.md).
+- Pacotes abertos `openstruct.detail/2` (`.osdetail.json`), com leitura de v1, para intercâmbio de um detalhamento, unidades, origem, repetição, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
+- [Repetição por detalhamento](docs/AS-03.md), com nomes/título automático e quantidade base × fator = quantidade efetiva. Reunião assistida de detalhes idênticos conserva uma definição física e reassocia vistas/vínculos, sem somar cópias ao multiplicador.
 - [API TypeScript de domínio](docs/AS-51.md), sem React, para criar/editar/excluir posições, associar representações/faixas e executar lotes atômicos. A interface e o exemplo executável usam as mesmas operações e validações.
 - Interpretação assistida de contornos/textos das máscaras CAD, com atribuição e confirmação explícitas de bitola, quantidade, categoria de aço e diâmetro de dobra; a referência CAD é preservada.
 - Agrupamento semântico com seleção do conjunto e edição isolada por duplo clique; navegação e conclusão mantêm os demais detalhamentos protegidos e o quadro global vinculado.
@@ -89,7 +90,7 @@ Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composi
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos nos formatos 1, 2, 3, 4 e 5 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo agora é `armadurastruct/6`, com origem dos detalhamentos/objetos, composição, folhas, hierarquia e vínculos validados. Versões anteriores do aplicativo não abrem esse formato.
+- Projetos nos formatos 1–6 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/7`, com repetição por detalhamento, contexto da RA bloqueada, origens, composição e vínculos validados. Aplicativos antigos não abrem esse formato. A quantidade armazenada na barra é por elemento; o quadro aplica o fator uma única vez.
 - O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
 
 ## Verificar e compilar

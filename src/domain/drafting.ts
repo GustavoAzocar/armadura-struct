@@ -10,6 +10,7 @@ import {
   world,
   sampled,
 } from './geometry';
+import { quantityLabel } from './detailQuantities';
 import type { Annotation, Bar, Point, Primitive, Project } from './types';
 
 const line = (points: Point[], layer = 'COTAS'): Primitive => ({
@@ -36,8 +37,8 @@ const angleOf = (u: Point) => {
   if (angle < -90) angle += 180;
   return angle;
 };
-export function barCaption(b: Bar) {
-  return `${b.quantity} ${b.mark} Ø${format(b.diameter, b.diameter % 1 ? 1 : 0)} C=${format(geometry(b).length / 10, 0)}`;
+export function barCaption(b: Bar, project?: Project) {
+  return `${project ? quantityLabel(project, b) : b.quantity} ${b.mark} Ø${format(b.diameter, b.diameter % 1 ? 1 : 0)} C=${format(geometry(b).length / 10, 0)}`;
 }
 function tick(at: Point, u: Point, height: number, layer = 'COTAS') {
   const diagonal = mul(add(u, normal(u)), height * 0.25);
@@ -151,7 +152,7 @@ export function annotationPrimitives(
       ...(bar
         ? [
             text(
-              barCaption(bar),
+              barCaption(bar, project),
               add(mul(add(start, end), 0.5), mul(n, -h * 1.25)),
               h,
               angleOf(axis),
@@ -174,7 +175,7 @@ export function annotationPrimitives(
         'CHAMADAS',
       ),
       text(
-        a.label || (bar ? barCaption(bar) : 'Chamada'),
+        a.label || (bar ? barCaption(bar, project) : 'Chamada'),
         add(r, { x: h * 0.3, y: h * 0.3 }),
         h,
         0,
@@ -182,7 +183,7 @@ export function annotationPrimitives(
       ),
     ];
   }
-  const caption = a.label || (bar ? barCaption(bar) : 'A');
+  const caption = a.label || (bar ? barCaption(bar, project) : 'A');
   if (a.kind === 'section-arc') {
     const points = arcThrough(p, q, r) ?? [p, q, r];
     const tangent = unit(sub(points[1], points[0]));
@@ -221,6 +222,7 @@ export function distributionOrigins(b: Bar, limit = 200): Point[] {
 export function distributionPrimitives(
   b: Bar,
   paperTextHeight?: number,
+  project?: Project,
 ): Primitive[] {
   if (!b.distribution) return [];
   const start = distributionStart(b),
@@ -237,7 +239,7 @@ export function distributionPrimitives(
   ];
   result.push(
     text(
-      `${b.quantity} ${b.mark} c/${format(distance(start, end) / Math.max(1, b.quantity - 1) / 10, 1)}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
+      `${project ? quantityLabel(project, b) : b.quantity} ${b.mark} c/${format(distance(start, end) / Math.max(1, b.quantity - 1) / 10, 1)}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
       add(mul(add(start, end), 0.5), mul(n, h * 1.3)),
       h,
       angleOf(u),

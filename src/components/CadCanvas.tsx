@@ -1,3 +1,4 @@
+import { quantityLabel, detailTitle } from '../domain/detailQuantities';
 import {
   forwardRef,
   useEffect,
@@ -267,7 +268,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       for (const item of m.items) addPoints(m.mask.id, primitiveBounds(item));
     return [...boxes].map(([id, box]) => ({
       id,
-      name: grouped.get(id)!.name,
+      name: detailTitle(source, id),
       ...box,
       width: box.right - box.x,
       height: box.top - box.y,
@@ -653,7 +654,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             >
               {b.mark}{' '}
               <tspan fontWeight="400">
-                {b.quantity} Ø{format(b.diameter, b.diameter % 1 ? 1 : 0)} · C=
+                {quantityLabel(source, b)} Ø
+                {format(b.diameter, b.diameter % 1 ? 1 : 0)} · C=
                 {format(g.length / 10)} cm
               </tspan>
               {isDetail && (
@@ -898,7 +900,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             .filter((b) => b.distribution)
             .map((b) => (
               <g key={b.id} data-testid="cad-distribution">
-                {renderPrimitives(distributionPrimitives(b), b.color)}
+                {renderPrimitives(
+                  distributionPrimitives(b, undefined, source),
+                  b.color,
+                )}
               </g>
             ))}
           {draft.length === 2 &&

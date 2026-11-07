@@ -1,3 +1,4 @@
+import { detailTitle } from '../domain/detailQuantities';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import type { Project } from '../domain/types';
@@ -60,7 +61,10 @@ export default function HierarchyNavigator({
       h.elements.map((e) => [e.id, `${floors.get(e.floorId)} / ${e.name}`]),
     );
     const paths = new Map(
-      h.details.map((d) => [d.id, `${elements.get(d.elementId)} / ${d.name}`]),
+      h.details.map((d) => [
+        d.id,
+        `${elements.get(d.elementId)} / ${detailTitle(project, d.id)}`,
+      ]),
     );
     const counts = new Map<string, number>();
     for (const id of Object.values(h.objectDetails))
@@ -296,7 +300,7 @@ export default function HierarchyNavigator({
                         row(
                           'detail',
                           d.id,
-                          d.name,
+                          detailTitle(project, d.id),
                           (index.drawings.get(d.id) || []).map((v) => (
                             <button
                               onClick={() => onOpenDrawing(v.id)}
