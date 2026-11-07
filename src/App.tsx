@@ -67,6 +67,7 @@ import {
   ProjectTree,
   Schedule,
   DraftInspector,
+  RepresentationInspector,
 } from './components/Panels';
 import {
   decodeProject,
@@ -2433,6 +2434,28 @@ export default function App() {
                   setTimeout(() => canvas()?.fit(), 50);
                 }}
               />
+            ) : selected.length === 1 &&
+              p.details.some((d) => d.id === selected[0]) ? (
+              <RepresentationInspector
+                representation={p.details.find((d) => d.id === selected[0])!}
+                onChange={(patch) =>
+                  commitRebars([
+                    {
+                      type: 'representation.update',
+                      id: selected[0],
+                      ...patch,
+                    },
+                  ])
+                }
+                onDelete={() => {
+                  if (
+                    commitRebars([
+                      { type: 'representation.delete', id: selected[0] },
+                    ])
+                  )
+                    select([]);
+                }}
+              />
             ) : groupSelection ? (
               <div className="inspector detail-inspector">
                 <div className="panel-heading">
@@ -2548,6 +2571,9 @@ export default function App() {
                         id: d.id,
                         barId: d.barId,
                         origin: d.origin,
+                        rotation: d.rotation,
+                        scale: d.scale,
+                        identification: d.identification,
                       }));
                     return commands.length
                       ? applyRebarBatch(
@@ -2560,6 +2586,7 @@ export default function App() {
                       : current;
                   })
                 }
+                onSelectRepresentation={(id) => select([id])}
                 onRemoveDetails={() =>
                   commitRebars(
                     p.details

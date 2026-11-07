@@ -187,6 +187,7 @@ export function Inspector({
   onBar,
   onDistributionSpacing,
   onMask,
+  onSelectRepresentation,
   onRemoveDetails,
   project,
   onProject,
@@ -196,6 +197,7 @@ export function Inspector({
   onBar: (patch: Partial<Bar>) => void | boolean;
   onDistributionSpacing: (spacing: number) => void | boolean;
   onMask: (patch: Partial<Mask>) => void;
+  onSelectRepresentation?: (id: string) => void;
   onRemoveDetails: () => void;
   project: Project;
   onProject: (patch: Partial<Project>) => void;
@@ -670,6 +672,16 @@ export function Inspector({
             </Section>
             {project.details.some((d) => d.barId === bar.id) && (
               <Section title="Rebatimentos">
+                {project.details
+                  .filter((d) => d.barId === bar.id)
+                  .map((d, i) => (
+                    <button
+                      key={d.id}
+                      onClick={() => onSelectRepresentation?.(d.id)}
+                    >
+                      Editar inserção {i + 1}
+                    </button>
+                  ))}
                 {project.details
                   .filter((d) => d.barId === bar.id)
                   .map((d, i) => (
@@ -1488,5 +1500,69 @@ export function DraftInspector({
       </div>
       <div className="panel-foot">MOVER · COPIAR · GIRAR · EXCLUIR</div>
     </div>
+  );
+}
+
+export function RepresentationInspector({
+  representation: d,
+  onChange,
+  onDelete,
+}: {
+  representation: import('../domain/types').Detail;
+  onChange: (patch: Partial<import('../domain/types').Detail>) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <aside className="inspector">
+      <div className="panel-heading">
+        <b>Representação da armadura</b>
+      </div>
+      <div className="panel-scroll">
+        <p className="field-help">
+          ID {d.id} · armadura {d.barId}. Transformações gráficas não alteram
+          comprimentos ou aço.
+        </p>
+        <NumberField
+          label="X da inserção"
+          value={d.origin.x}
+          onChange={(x) => onChange({ origin: { ...d.origin, x } })}
+        />
+        <NumberField
+          label="Y da inserção"
+          value={d.origin.y}
+          onChange={(y) => onChange({ origin: { ...d.origin, y } })}
+        />
+        <NumberField
+          label="Rotação da inserção"
+          value={d.rotation ?? 0}
+          onChange={(rotation) => onChange({ rotation })}
+        />
+        <NumberField
+          label="Escala gráfica da inserção"
+          value={d.scale ?? 1}
+          min={0.000001}
+          max={10000}
+          onChange={(scale) => onChange({ scale })}
+        />
+        <label className="field">
+          <span>Identificação</span>
+          <select
+            aria-label="Identificação da inserção"
+            value={d.identification ?? 'legacy'}
+            onChange={(e) =>
+              onChange({
+                identification: e.target.value as typeof d.identification,
+              })
+            }
+          >
+            <option value="legacy">Descrição (legado)</option>
+            <option value="primary">Descrição principal nesta inserção</option>
+            <option value="mark">Somente posição</option>
+            <option value="none">Sem identificação</option>
+          </select>
+        </label>
+        <button onClick={onDelete}>Excluir somente esta inserção</button>
+      </div>
+    </aside>
   );
 }

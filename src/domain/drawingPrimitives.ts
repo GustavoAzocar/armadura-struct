@@ -1,3 +1,7 @@
+import {
+  representationPrimitives,
+  showsPhysicalDescription,
+} from './representations';
 import { quantityLabel, detailTitle, assemblyLabel } from './detailQuantities';
 import { format, geometry, sampled, world, bounds } from './geometry';
 import { maskPrimitives } from '../cad/import';
@@ -44,13 +48,14 @@ export function drawingPrimitives(
         layer: 'ARMADURAS',
         points: sampled(geometry(b).segments).map((v) => world(v, b)),
       });
-    lines.push(
-      label(
-        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
-        { x: b.origin.x, y: b.origin.y - offset(100, 1.8) },
-        'IDENTIFICACAO',
-      ),
-    );
+    if (showsPhysicalDescription(references, b.id))
+      lines.push(
+        label(
+          `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
+          { x: b.origin.x, y: b.origin.y - offset(100, 1.8) },
+          'IDENTIFICACAO',
+        ),
+      );
     if (b.kind === 'stirrup') {
       lines.push(
         label(
@@ -71,37 +76,7 @@ export function drawingPrimitives(
   }
   for (const d of p.details) {
     const b = references.bars.find((b) => b.id === d.barId);
-    if (!b) continue;
-    lines.push({
-      layer: 'REBATIMENTOS',
-      points: sampled(geometry(b).segments).map((v) => ({
-        x: v.x + d.origin.x,
-        y: v.y + d.origin.y,
-      })),
-    });
-    lines.push(
-      label(
-        `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
-        { x: d.origin.x, y: d.origin.y - offset(110, 1.8) },
-        'IDENTIFICACAO',
-      ),
-    );
-    const v = geometry(b).vertices;
-    for (let i = 0; i < v.length - 1; i++) {
-      if (b.kind === 'stirrup' && ![3, 4].includes(i)) continue;
-      const a = v[i],
-        c = v[i + 1];
-      lines.push(
-        label(
-          format(Math.hypot(a.x - c.x, a.y - c.y) / 10),
-          {
-            x: d.origin.x + (a.x + c.x) / 2,
-            y: d.origin.y + (a.y + c.y) / 2 + offset(40, 1.1),
-          },
-          'COTAS',
-        ),
-      );
-    }
+    if (b) lines.push(...representationPrimitives(b, d, references, h));
   }
   for (const d of p.hierarchy.details.filter((d) => d.repetition)) {
     const bars = p.bars.filter((b) => p.hierarchy.objectDetails[b.id] === d.id);

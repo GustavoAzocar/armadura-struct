@@ -53,3 +53,10 @@ export { previewRenumber, applyRenumber } from './domain/numbering';
 export type { RenumberOptions } from './domain/numbering';
 export { nextFreeMark } from './domain/marks';
 export type { NumberingPolicy } from './domain/marks';
+
+export {
+  representationPoint,
+  representationPoints,
+  representationPrimitives,
+  showsPhysicalDescription,
+} from './domain/representations';

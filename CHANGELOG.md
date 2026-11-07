@@ -2,6 +2,8 @@
 
 ## Em desenvolvimento
 
+- AS-52: representações independentes por ID, origem/rotação/escala gráfica, política de identificação e descrição principal explícita; seleção, edição e exclusão por inserção. Transformações comuns para CAD, snaps, enquadramento e PDF/DXF, sem aço adicional. Formato nativo 11 e pacote v5, com migração dos rebatimentos legados.
+
 - AS-55: renumeração espacial determinística por posição de fabricação, prévia antes/depois, prefixo/início, quatro sentidos, escopos, marcas reservadas/preservadas e política comum da próxima marca livre. Formato nativo 10, migração 1–9, IDs e quantitativos preservados.
 
 - AS-56: base por grupo, multiplicador inteiro por armadura e quantidade efetiva, compostos com a repetição do detalhe uma única vez. Origem manual ou faixa com quantidade fixa/espaçamento registrado; base controlada é recalculada e protegida de edição ambígua.

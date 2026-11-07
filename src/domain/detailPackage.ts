@@ -14,7 +14,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/4' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/5' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -25,6 +25,7 @@ export const detailPackageSchema = z
       'openstruct.detail/2',
       'openstruct.detail/3',
       'openstruct.detail/4',
+      'openstruct.detail/5',
     ]),
     fabricationPositions: z
       .array(fabricationPositionSchema)
@@ -132,7 +133,11 @@ export function detailPackageProject(value: DetailPackage): Project {
   if (pack.schema === 'openstruct.detail/1' && pack.context.detail.repetition)
     throw new Error('Repetições exigem pacote openstruct.detail/2.');
   if (
-    !['openstruct.detail/3', 'openstruct.detail/4'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/3',
+      'openstruct.detail/4',
+      'openstruct.detail/5',
+    ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
   )
@@ -140,12 +145,22 @@ export function detailPackageProject(value: DetailPackage): Project {
       'Posições de fabricação/terminações exigem pacote openstruct.detail/3.',
     );
   if (
-    pack.schema !== 'openstruct.detail/4' &&
+    !['openstruct.detail/4', 'openstruct.detail/5'].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
     throw new Error(
       'Composição de quantidade/metadados da armadura exige pacote openstruct.detail/4.',
     );
+  if (
+    pack.schema !== 'openstruct.detail/5' &&
+    pack.objects.details.some(
+      (d) =>
+        d.rotation ||
+        (d.scale ?? 1) !== 1 ||
+        (d.identification && d.identification !== 'legacy'),
+    )
+  )
+    throw new Error('Representações transformadas exigem pacote v5.');
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -234,7 +249,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/10',
+      schema: 'armadurastruct/11',
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
       name: c.project.name,

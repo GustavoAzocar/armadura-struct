@@ -1,3 +1,4 @@
+import { representationPoints } from './representations';
 import { renumberOptionsSchema } from './numbering';
 import {
   FABRICATION_RULES,
@@ -230,6 +231,9 @@ const commandSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('representation.create'),
+      rotation: number.optional(),
+      scale: number.positive().max(10000).optional(),
+      identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id: id.optional(),
       barId: id,
       detailId: id.optional(),
@@ -239,6 +243,9 @@ const commandSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('representation.update'),
+      rotation: number.optional(),
+      scale: number.positive().max(10000).optional(),
+      identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id,
       origin: point.optional(),
       barId: id.optional(),
@@ -445,8 +452,34 @@ export function validateRebarChange(
       );
   }
   const ids = new Set(after.bars.map((b) => b.id));
+  const primary = after.details
+    .filter((d) => d.identification === 'primary')
+    .map((d) => d.barId);
+  if (new Set(primary).size !== primary.length)
+    errors.push(
+      issue(
+        'INVALID_FIELD',
+        'Uma armadura só pode ter uma descrição principal.',
+        'identification',
+      ),
+    );
   const oldRepresentations = new Map(before.details.map((r) => [r.id, r]));
   for (const r of after.details) {
+    const bar = after.bars.find((b) => b.id === r.barId);
+    if (
+      bar &&
+      representationPoints(bar, r).some(
+        (p) => !Number.isFinite(p.x) || !Number.isFinite(p.y),
+      )
+    )
+      errors.push(
+        issue(
+          'INVALID_GEOMETRY',
+          'Transformação gráfica excede os limites numéricos.',
+          'scale',
+          r.id,
+        ),
+      );
     if (!ids.has(r.barId))
       errors.push(
         issue('NOT_FOUND', 'Armadura referenciada inexistente.', 'barId', r.id),
@@ -704,7 +737,19 @@ function perform(
     next = own(
       {
         ...p,
-        details: [...p.details, { id, barId: c.barId, origin: c.origin }],
+        details: [
+          ...p.details,
+          {
+            id,
+            barId: c.barId,
+            origin: c.origin,
+            ...defined({
+              rotation: c.rotation,
+              scale: c.scale,
+              identification: c.identification,
+            }),
+          },
+        ],
       },
       id,
       c.detailId ?? p.hierarchy.objectDetails[c.barId],
@@ -724,6 +769,11 @@ function perform(
           old.id === c.id
             ? {
                 ...r,
+                ...defined({
+                  rotation: c.rotation,
+                  scale: c.scale,
+                  identification: c.identification,
+                }),
                 ...(c.origin ? { origin: c.origin } : {}),
                 ...(c.barId ? { barId: c.barId } : {}),
               }
@@ -732,6 +782,21 @@ function perform(
       };
     }
     touched.push(c.id);
+  }
+  if (
+    (c.type === 'representation.create' ||
+      c.type === 'representation.update') &&
+    c.identification === 'primary'
+  ) {
+    const chosen = next.details.find((d) => d.id === touched[0])!;
+    next = {
+      ...next,
+      details: next.details.map((d) =>
+        d.id !== chosen.id && d.barId === chosen.barId
+          ? { ...d, identification: 'mark' as const }
+          : d,
+      ),
+    };
   }
   return { project: completeOwnership(next), ids: touched };
 }

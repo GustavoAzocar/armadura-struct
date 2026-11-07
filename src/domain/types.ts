@@ -48,7 +48,14 @@ export type FabricationPosition = {
   signature: string;
 };
 /** A graphical rebatimento; never another physical bar or composite detail. */
-export type BarRepresentation = { id: string; barId: string; origin: Point };
+export type BarRepresentation = {
+  id: string;
+  barId: string;
+  origin: Point;
+  rotation?: number;
+  scale?: number;
+  identification?: 'legacy' | 'primary' | 'mark' | 'none';
+};
 export type Detail = BarRepresentation;
 export type Floor = { id: string; name: string };
 export type StructuralElement = { id: string; floorId: string; name: string };
@@ -171,7 +178,7 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/10';
+  schema: 'armadurastruct/11';
   id: string;
   hierarchy: ProjectHierarchy;
   numbering?: import('./marks').NumberingPolicy;

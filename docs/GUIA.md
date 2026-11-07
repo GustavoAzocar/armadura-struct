@@ -136,7 +136,11 @@ Expanda **Montagem · nervura, observação e lance** para registrar informaçõ
 
 Use **Renumerar** para configurar prefixo, início, reservas, preservações e escopo e conferir antes/depois. A ordem padrão é de cima para baixo, da direita para a esquerda, pela inserção física do representante de fabricação. Vistas não criam posições novas. Posições compartilhadas fora do escopo ficam protegidas. Aplicar é uma operação de histórico e salva a política usada para a próxima marca livre. Consulte [AS-55](AS-55.md) para as regras exatas e a API.
 
-### Formato 10 e compatibilidade
+### Representações independentes
+
+Use **Rebater armadura** para inserir a mesma peça em outros pontos. Nas propriedades da barra, **Rebatimentos → Editar inserção** abre origem, rotação, escala e identificação por inserção. **Descrição principal nesta inserção** escolhe explicitamente onde ficará a descrição; **Excluir somente esta inserção** preserva a armadura. Transformações gráficas não alteram medidas físicas ou quantitativos. Consulte [AS-52](AS-52.md).
+
+### Formato 11 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
 
@@ -232,7 +236,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/10`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/11`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

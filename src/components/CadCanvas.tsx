@@ -1,4 +1,10 @@
 import {
+  representationPoint,
+  representationPoints as insertedPoints,
+  representationPrimitives,
+  showsPhysicalDescription,
+} from '../domain/representations';
+import {
   quantityLabel,
   detailTitle,
   assemblyLabel,
@@ -198,11 +204,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     () =>
       project.details.flatMap((d) => {
         const bar = barDefinitions.get(d.barId);
-        return bar
-          ? sampled(barGeometries.get(bar.id)!.segments).map((v) =>
-              add(v, d.origin),
-            )
-          : [];
+        return bar ? insertedPoints(bar, d) : [];
       }),
     [project.details, barDefinitions, barGeometries],
   );
@@ -256,13 +258,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     }
     for (const d of project.details) {
       const bar = barDefinitions.get(d.barId);
-      if (bar)
-        addPoints(
-          d.id,
-          sampled(barGeometries.get(bar.id)!.segments).map((v) =>
-            add(v, d.origin),
-          ),
-        );
+      if (bar) addPoints(d.id, insertedPoints(bar, d));
     }
     for (const line of project.polylines) addPoints(line.id, line.points);
     for (const a of annotations)
@@ -472,16 +468,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         for (const d of project.details) {
           const b = barDefinitions.get(d.barId);
           if (!b) continue;
-          const pts = sampled(geometry(b).segments).map((v) =>
-            add(v, d.origin),
-          );
+          const pts = insertedPoints(b, d);
           for (let i = 1; i < pts.length; i++)
             if (distance(p, nearest(p, pts[i - 1], pts[i])) < best) {
-              hit =
-                !props.isolatedDetailId ||
-                source.hierarchy.objectDetails[b.id] === props.isolatedDetailId
-                  ? b.id
-                  : d.id;
+              hit = d.id;
               break;
             }
         }
@@ -586,6 +576,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           p.y >= box.y &&
           p.y <= box.y + box.height;
         const ids = [
+          ...project.details
+            .filter((d) => {
+              const b = barDefinitions.get(d.barId);
+              return b && insertedPoints(b, d).every(inside);
+            })
+            .map((d) => d.id),
           ...project.bars
             .filter((b) =>
               vertices(b)
@@ -648,7 +644,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           strokeWidth={(active ? 2.7 : 2) * stroke}
           strokeLinejoin="round"
         />
-        {showLabel && (
+        {showLabel && (isDetail || showsPhysicalDescription(source, b.id)) && (
           <g transform={`translate(0 ${-90}) scale(1 -1)`}>
             <text
               fill={color}
@@ -733,7 +729,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 : 'start'
             }
           >
-            {item.text}
+            {item.text.replace(/%%c/g, 'Ø')}
           </text>
         </g>
       ) : (
@@ -866,7 +862,19 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           ))}
           {project.details.map((d) => {
             const b = barDefinitions.get(d.barId);
-            return b ? renderBar(b, d.origin, true) : null;
+            return b ? (
+              <g key={d.id} data-representation-id={d.id}>
+                {!d.rotation &&
+                (d.scale ?? 1) === 1 &&
+                (d.identification ?? 'legacy') === 'legacy'
+                  ? renderBar(b, d.origin, true)
+                  : renderPrimitives(
+                      representationPrimitives(b, d, source, textSize),
+                      b.color,
+                      selected.includes(d.id),
+                    )}
+              </g>
+            ) : null;
           })}
           {groupBoxes.map((box) => (
             <g
