@@ -1,3 +1,4 @@
+import { visibilitySchema } from './visibilitySchema';
 import { z } from 'zod';
 import { layerObjects, objectRole, layerId } from './layers';
 import { uid, type Project, type LayerBinding } from './types';
@@ -28,7 +29,11 @@ export const layerEnvironmentSchema = z
       .max(100),
     contexts: z.record(
       z.string(),
-      z.object({ states, profileId: z.string().optional() }),
+      z.object({
+        states,
+        profileId: z.string().optional(),
+        visibility: visibilitySchema.optional(),
+      }),
     ),
   })
   .strict();
@@ -131,7 +136,11 @@ export function applyLayerProfile(p: Project, key: string, id: string) {
       ...e,
       contexts: {
         ...e.contexts,
-        [key]: { profileId: id, states: structuredClone(profile.states) },
+        [key]: {
+          ...e.contexts[key],
+          profileId: id,
+          states: structuredClone(profile.states),
+        },
       },
     },
   };
@@ -158,7 +167,10 @@ export function saveLayerProfile(p: Project, key: string, name: string) {
         ...e.profiles,
         { id, name, states: structuredClone(snapshot) },
       ],
-      contexts: { ...e.contexts, [key]: { profileId: id, states: snapshot } },
+      contexts: {
+        ...e.contexts,
+        [key]: { ...e.contexts[key], profileId: id, states: snapshot },
+      },
     },
   };
 }

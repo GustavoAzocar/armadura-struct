@@ -62,7 +62,22 @@ export function reorderSheet(p: Project, id: string, offset: -1 | 1): Project {
   [sheets[index], sheets[target]] = [sheets[target], sheets[index]];
   return { ...p, sheets };
 }
-export function duplicateSheet(p: Project, id: string) {
+function copyViewContexts(
+  p: Project,
+  pairs: [string, string][],
+): Project['layerEnvironment'] {
+  if (!p.layerEnvironment) return undefined;
+  const contexts = { ...p.layerEnvironment.contexts };
+  for (const [source, target] of pairs) {
+    const c = contexts[`view:${source}`];
+    if (c) contexts[`view:${target}`] = structuredClone(c);
+  }
+  return { ...p.layerEnvironment, contexts };
+}
+export function duplicateSheet(
+  p: Project,
+  id: string,
+): { id: string; project: Project } {
   const source = requireSheet(p, id),
     nextId = uid();
   const copy = {
@@ -74,6 +89,15 @@ export function duplicateSheet(p: Project, id: string) {
     margins: { ...source.margins },
     seal: { ...source.seal },
   };
+  const originalViews = p.hierarchy.placements.filter((v) => v.sheetId === id);
+  const copies = originalViews.map((v) => ({
+    ...v,
+    id: uid(),
+    sheetId: nextId,
+    origin: { ...v.origin },
+    frame: { ...v.frame },
+    modelOrigin: { ...v.modelOrigin },
+  }));
   const sheets = [...p.sheets];
   sheets.splice(sheets.findIndex((s) => s.id === id) + 1, 0, copy);
   return {
@@ -81,21 +105,13 @@ export function duplicateSheet(p: Project, id: string) {
     project: {
       ...p,
       sheets,
+      layerEnvironment: copyViewContexts(
+        p,
+        originalViews.map((v, i) => [v.id, copies[i].id]),
+      ),
       hierarchy: {
         ...p.hierarchy,
-        placements: [
-          ...p.hierarchy.placements,
-          ...p.hierarchy.placements
-            .filter((v) => v.sheetId === id)
-            .map((v) => ({
-              ...v,
-              id: uid(),
-              sheetId: nextId,
-              origin: { ...v.origin },
-              frame: { ...v.frame },
-              modelOrigin: { ...v.modelOrigin },
-            })),
-        ],
+        placements: [...p.hierarchy.placements, ...copies],
       },
     },
   };
@@ -222,7 +238,10 @@ export function removePlacement(p: Project, id: string): Project {
     },
   };
 }
-export function duplicatePlacement(p: Project, id: string) {
+export function duplicatePlacement(
+  p: Project,
+  id: string,
+): { id: string; project: Project } {
   const source = p.hierarchy.placements.find((v) => v.id === id);
   if (!source) throw new Error('Vista inexistente.');
   const view = {
@@ -236,6 +255,7 @@ export function duplicatePlacement(p: Project, id: string) {
     id: view.id,
     project: {
       ...p,
+      layerEnvironment: copyViewContexts(p, [[id, view.id]]),
       hierarchy: {
         ...p.hierarchy,
         placements: [...p.hierarchy.placements, view],

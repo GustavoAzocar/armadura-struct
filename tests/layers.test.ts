@@ -193,7 +193,7 @@ describe('AS-19 · layers nativos e estilos', () => {
           details: schema.endsWith('/13') ? legacy.details : [],
         }),
       );
-      expect(q.schema).toBe('armadurastruct/16');
+      expect(q.schema).toBe('armadurastruct/17');
       expect(q.bars[0].id).toBe('a');
       expect(q.bars[0].points).toEqual(p.bars[0].points);
       expect(resolveStyle(q, q.bars[0], 'ARMADURAS').color).toBe('#d12345');

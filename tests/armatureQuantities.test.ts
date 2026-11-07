@@ -369,7 +369,7 @@ describe('AS-56 · quantidade por grupo, nervura e lance', () => {
       delete raw.bars[0].quantitySource;
       raw.scheduleLock = { at: 'legacy', bars: structuredClone(raw.bars) };
       const p = decodeProject(JSON.stringify(raw));
-      expect(p.schema).toBe('armadurastruct/16');
+      expect(p.schema).toBe('armadurastruct/17');
       expect(p.bars[0]).toMatchObject({
         quantity: 7,
         multiplier: 1,

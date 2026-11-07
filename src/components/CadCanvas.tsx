@@ -1,8 +1,10 @@
 import {
-  layerProjection,
-  objectState,
-  layerState,
-} from '../domain/layerProfiles';
+  visibilityProjection,
+  visibilityReview,
+  visibilityState,
+} from '../domain/visibility';
+import { drawingPrimitives } from '../domain/drawingPrimitives';
+import { objectState, layerState } from '../domain/layerProfiles';
 import { stylePrimitive, resolveStyle, dashArray } from '../domain/layers';
 import {
   representationPoint,
@@ -107,7 +109,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   } = props;
   const project = useMemo(
     () =>
-      layerProjection(
+      visibilityProjection(
         detailEditorView(source, props.isolatedDetailId),
         props.layerContext ?? 'model',
         'visible',
@@ -115,9 +117,37 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     [source, props.isolatedDetailId, props.layerContext],
   );
   const capturable = useMemo(
-    () => layerProjection(project, props.layerContext ?? 'model', 'capture'),
+    () =>
+      visibilityProjection(project, props.layerContext ?? 'model', 'capture'),
     [project, props.layerContext],
   );
+  const review = useMemo(() => {
+    if (!visibilityState(source, props.layerContext ?? 'model').showHidden)
+      return { lines: [] as Primitive[], issue: '' };
+    try {
+      return {
+        lines: drawingPrimitives(
+          visibilityReview(
+            detailEditorView(source, props.isolatedDetailId),
+            props.layerContext ?? 'model',
+          ),
+          source,
+        ).map((p) => ({
+          ...p,
+          resolvedStyle: p.resolvedStyle
+            ? { ...p.resolvedStyle, color: '#f59e0b', fill: 'none' as const }
+            : undefined,
+        })),
+        issue: '',
+      };
+    } catch (e) {
+      return {
+        lines: [] as Primitive[],
+        issue: `Realce indisponível: ${(e as Error).message} Use a lista de objetos para recuperar ou encerrar o realce.`,
+      };
+    }
+  }, [source, props.layerContext, props.isolatedDetailId]);
+  const ghosts = review.lines;
   const lastHit = useRef<string | null>(null);
   const overview = useRef<{
     projectId: string;
@@ -245,11 +275,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const allPoints = useMemo(
     () => [
       ...projectPoints(project),
+      ...ghosts.flatMap(primitiveBounds),
       ...representationPoints,
       ...annotations.flatMap((a) => a.items.flatMap(primitiveBounds)),
       ...masks.flatMap((m) => m.items.flatMap(primitiveBounds)),
     ],
-    [project, masks, annotations, representationPoints],
+    [project, masks, annotations, representationPoints, ghosts],
   );
   const groupBoxes = useMemo(() => {
     if (props.isolatedDetailId) return [];
@@ -847,6 +878,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const origin = scr({ x: 0, y: 0 });
   return (
     <div className={`cad-host ${light ? 'cad-light' : ''}`} ref={host}>
+      {review.issue && (
+        <div className="visibility-warning" role="status">
+          {review.issue}
+        </div>
+      )}
       <svg
         ref={svg}
         className={`cad-svg ${tool === 'pan' || drag ? 'panning' : tool === 'select' ? 'selecting' : 'drawing'}`}
@@ -958,6 +994,15 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 ))}
             </g>
           ))}
+          {ghosts.length > 0 && (
+            <g
+              data-testid="hidden-object-ghosts"
+              pointerEvents="none"
+              opacity="0.7"
+            >
+              {renderPrimitives(ghosts, '#f59e0b')}
+            </g>
+          )}
           {project.polylines.map((l) => (
             <g key={l.id} data-testid="cad-polyline">
               {renderPrimitives(

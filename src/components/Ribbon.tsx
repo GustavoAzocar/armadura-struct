@@ -1,4 +1,6 @@
 import {
+  Eye,
+  EyeOff,
   Copy,
   Download,
   FilePlus2,
@@ -78,7 +80,12 @@ export type Action =
   | 'fabrication'
   | 'clone-armature'
   | 'layers'
-  | 'plot';
+  | 'plot'
+  | 'hide-objects'
+  | 'isolate-objects'
+  | 'show-all-objects'
+  | 'show-hidden-objects'
+  | 'end-object-isolation';
 // Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
@@ -186,6 +193,16 @@ export default function Ribbon({
           item('snap', 'Encaixes', ScanLine),
           item('ortho', 'Ortogonal', SquareDashed),
           item('dimensions', 'Cotas', Ruler),
+        ],
+      },
+      {
+        name: 'Visibilidade',
+        items: [
+          item('hide-objects', 'Ocultar seleção', EyeOff),
+          item('isolate-objects', 'Isolar seleção', Focus),
+          item('end-object-isolation', 'Sair do isolamento', Eye),
+          item('show-all-objects', 'Exibir todos', Eye),
+          item('show-hidden-objects', 'Mostrar ocultos', Eye),
         ],
       },
       {

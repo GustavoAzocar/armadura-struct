@@ -1,4 +1,14 @@
-import { assertLayerEdit, objectState } from './domain/layerProfiles';
+import {
+  assertVisibilityEdit,
+  canCaptureObject,
+  hideObjects,
+  isolateObjects,
+  endObjectIsolation,
+  showAllObjects,
+  setVisibility,
+  visibilityState,
+} from './domain/visibility';
+import { assertLayerEdit } from './domain/layerProfiles';
 import { layerObjects } from './domain/layers';
 import {
   lazy,
@@ -36,6 +46,7 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const VisibilityDialog = lazy(() => import('./components/VisibilityDialog'));
 const PlotDialog = lazy(() => import('./components/PlotDialog'));
 const LayerManager = lazy(() => import('./components/LayerManager'));
 const ArmatureCloneDialog = lazy(
@@ -230,6 +241,7 @@ export default function App() {
     projectId: string;
   } | null>(null);
   const [plotOpen, setPlotOpen] = useState(false);
+  const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
   const [exampleReviewOpen, setExampleReviewOpen] = useState(false);
@@ -265,6 +277,9 @@ export default function App() {
   const sessions = useRef(new Map<string, DocumentSession>());
   const sessionsProject = useRef('');
   const [selectedView, setSelectedView] = useState<string>();
+  const visibilityKey =
+    activeSheet && selectedView ? `view:${selectedView}` : documentKey;
+  const currentVisibility = visibilityState(p, visibilityKey);
   const historyRef = useRef(history);
   // Reject writes synchronously, including callbacks completing after a context switch.
   historyRef.current = history;
@@ -656,6 +671,7 @@ export default function App() {
         const h = historyRef.current;
         const next = change(h.present);
         const scope = isolationRef.current;
+        assertVisibilityEdit(h.present, next, visibilityKey);
         assertLayerEdit(
           h.present,
           next,
@@ -698,7 +714,7 @@ export default function App() {
         return false;
       }
     },
-    [activeDetailId, documentKey, selectedView],
+    [activeDetailId, documentKey, selectedView, visibilityKey],
   );
   const commitLayout = (change: (current: Project) => Project) => {
     sessions.current.set(documentKey, captureDocument());
@@ -709,7 +725,7 @@ export default function App() {
     setSelectedRaw((ids) =>
       ids.filter((id) => {
         const o = objects.get(id);
-        return o && objectState(p, documentKey, o).capture;
+        return o && canCaptureObject(p, documentKey, o.id);
       }),
     );
   }, [p.layerEnvironment, documentKey]);
@@ -733,7 +749,7 @@ export default function App() {
     }
     const next = expandDetailSelection(current, ids, scope).filter((id) => {
       const o = layerObjects(current).find((o) => o.id === id);
-      return o && objectState(current, documentKey, o).capture;
+      return o && canCaptureObject(current, documentKey, o.id);
     });
     setSelectedRaw(next);
     setMaskId(null);
@@ -1345,6 +1361,48 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (
+      [
+        'hide-objects',
+        'isolate-objects',
+        'end-object-isolation',
+        'show-all-objects',
+        'show-hidden-objects',
+      ].includes(a)
+    ) {
+      if (activeSheet && !selectedView) {
+        notify('Selecione uma vista da folha para controlar seus objetos.');
+        return;
+      }
+      const ids = selected.length ? selected : maskId ? [maskId] : [];
+      if (a === 'show-hidden-objects') {
+        if (
+          commit((p) => setVisibility(p, visibilityKey, { showHidden: true }))
+        )
+          setVisibilityOpen(true);
+      } else if (a === 'show-all-objects')
+        commit((p) => showAllObjects(p, visibilityKey));
+      else if (a === 'end-object-isolation')
+        commit((p) => endObjectIsolation(p, visibilityKey));
+      else if (activeSheet || !ids.length) {
+        if (
+          commit((p) => setVisibility(p, visibilityKey, { showHidden: true }))
+        )
+          setVisibilityOpen(true);
+      } else if (
+        commit((p) =>
+          a === 'hide-objects'
+            ? hideObjects(p, visibilityKey, ids)
+            : isolateObjects(p, visibilityKey, ids),
+        )
+      ) {
+        setSelectedRaw([]);
+        setMaskId(null);
+        setDraft([]);
+        setToolRaw('select');
+      }
+      return;
+    }
     if (a === 'plot') {
       setPlotOpen(true);
       return;
@@ -1866,6 +1924,11 @@ export default function App() {
       C: 'copy',
       COPY: 'copy',
       LAYERS: 'layers',
+      OCULTAR: 'hide-objects',
+      ISOLAR: 'isolate-objects',
+      EXIBIRTODOS: 'show-all-objects',
+      MOSTRAROCULTOS: 'show-hidden-objects',
+      SAIRISOLAMENTO: 'end-object-isolation',
       PLOT: 'plot',
       PLOTAGEM: 'plot',
       NIVEIS: 'layers',
@@ -2303,6 +2366,53 @@ export default function App() {
               <button onClick={finishDetailEdit}>Concluir edição</button>
             </div>
           )}
+          {page === 'drawing' &&
+            (currentVisibility.hiddenIds.length > 0 ||
+              currentVisibility.isolation ||
+              currentVisibility.showHidden) && (
+              <div
+                className="context-bar visibility-bar"
+                role="region"
+                aria-label="Visibilidade do contexto"
+              >
+                <b>Visibilidade</b>
+                <span>
+                  {currentVisibility.hiddenIds.length} oculto(s)
+                  {currentVisibility.isolation ? ' · Isolamento ativo' : ''}
+                  {currentVisibility.showHidden ? ' · Realce laranja' : ''}
+                </span>
+                <button onClick={() => setVisibilityOpen(true)}>
+                  Revisar objetos
+                </button>
+                {currentVisibility.isolation && (
+                  <button
+                    onClick={() =>
+                      commit((p) => endObjectIsolation(p, visibilityKey))
+                    }
+                  >
+                    Sair do isolamento
+                  </button>
+                )}
+                <button
+                  onClick={() =>
+                    commit((p) => showAllObjects(p, visibilityKey))
+                  }
+                >
+                  Exibir todos
+                </button>
+                {currentVisibility.showHidden && (
+                  <button
+                    onClick={() =>
+                      commit((p) =>
+                        setVisibility(p, visibilityKey, { showHidden: false }),
+                      )
+                    }
+                  >
+                    Encerrar realce
+                  </button>
+                )}
+              </div>
+            )}
           {page === 'drawing' && activeSheet ? (
             <SheetCanvas
               key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
@@ -2916,6 +3026,20 @@ export default function App() {
               );
               return true;
             }}
+          />
+        </Suspense>
+      )}
+      {visibilityOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Abrindo visibilidade…</div>}
+        >
+          <VisibilityDialog
+            key={`${p.id}:${visibilityKey}`}
+            project={p}
+            contextKey={visibilityKey}
+            detailId={!activeSheet ? isolatedDetailId : undefined}
+            onChange={(next) => commit(() => next)}
+            onClose={() => setVisibilityOpen(false)}
           />
         </Suspense>
       )}

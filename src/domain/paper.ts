@@ -1,5 +1,9 @@
 import { plotPrimitives } from './plotting';
-import { layerProjection } from './layerProfiles';
+import {
+  visibilityProjection,
+  visibilityReview,
+  visibilityState,
+} from './visibility';
 import { detailTitle } from './detailQuantities';
 import type { Point, Primitive, Project, Sheet, SheetPlacement } from './types';
 import { bounds, rotate } from './geometry';
@@ -17,6 +21,8 @@ export type PaperView = {
   lines: PaperPrimitive[];
   content: PaperPrimitive[];
   frame: Point[];
+  hidden: PaperPrimitive[];
+  reviewIssue?: string;
 };
 export type PaperComposition = {
   sheet: Sheet;
@@ -151,17 +157,22 @@ export function sealArea(sheet: Sheet): PaperRect | undefined {
 }
 export const scaleLabel = (n: number) =>
   `1:${Number(n.toFixed(4)).toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false })}`;
-function sourceLines(project: Project, view: SheetPlacement) {
+function sourceLines(project: Project, view: SheetPlacement, review = false) {
   const drawing = project.hierarchy.drawings.find(
     (d) => d.id === view.drawingId,
   );
   if (!drawing) throw new Error('Desenho da vista inexistente.');
   return drawingPrimitives(
-    layerProjection(
-      detailEditorView(project, drawing.detailId),
-      `view:${view.id}`,
-      'visible',
-    ),
+    review
+      ? visibilityReview(
+          detailEditorView(project, drawing.detailId),
+          `view:${view.id}`,
+        )
+      : visibilityProjection(
+          detailEditorView(project, drawing.detailId),
+          `view:${view.id}`,
+          'print',
+        ),
     project,
     { minTextHeight: view.textHeight * view.scale },
   );
@@ -169,8 +180,13 @@ function sourceLines(project: Project, view: SheetPlacement) {
 function localContent(
   project: Project,
   view: SheetPlacement,
+  review = false,
 ): PaperPrimitive[] {
-  return plotPrimitives(project, sourceLines(project, view)).map((line) => ({
+  return (
+    review
+      ? sourceLines(project, view, true)
+      : plotPrimitives(project, sourceLines(project, view))
+  ).map((line) => ({
     ...line,
     text: line.text ? paperText(line.text) : undefined,
     points: line.points.map((p) => ({
@@ -318,6 +334,7 @@ function overlaps(a: Point[], b: Point[]) {
 export function composeSheet(
   project: Project,
   sheetId: string,
+  reviewHidden = false,
 ): PaperComposition {
   const sheet = project.sheets.find((s) => s.id === sheetId);
   if (!sheet) throw new Error('Folha inexistente.');
@@ -427,8 +444,35 @@ export function composeSheet(
           viewId: placement.id,
           message: `${viewTitle(project, placement)}: vista sobre a reserva do selo.`,
         });
+      let hidden: PaperPrimitive[] = [],
+        reviewIssue: string | undefined;
+      if (
+        reviewHidden &&
+        visibilityState(project, `view:${placement.id}`).showHidden
+      ) {
+        try {
+          hidden = localContent(project, placement, true).map((l) => ({
+            ...transformLocal(l, placement),
+            resolvedStyle: {
+              ...(l.resolvedStyle ?? {
+                fillColor: '#f59e0b',
+                fill: 'none' as const,
+                lineWidth: 0.25,
+                lineScale: 1,
+                lineType: { name: 'CONTINUOUS', pattern: [] },
+              }),
+              color: '#f59e0b',
+              fill: 'none' as const,
+            },
+          }));
+        } catch (e) {
+          reviewIssue = `Realce indisponível: ${(e as Error).message} Recupere os objetos pela lista.`;
+        }
+      }
       return {
         placement,
+        hidden,
+        reviewIssue,
         lines,
         content: content.map((l) => transformLocal(l, placement)),
         frame,

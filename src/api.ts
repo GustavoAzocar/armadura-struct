@@ -98,3 +98,15 @@ export {
   PLOT_LINE_TYPES,
 } from './domain/plotting';
 export type { PlotStyle, PlotSettings } from './domain/types';
+
+export {
+  hideObjects,
+  isolateObjects,
+  endObjectIsolation,
+  restoreObjects,
+  showAllObjects,
+  setVisibility,
+  visibilityState,
+  visibilityProjection,
+  visibilityReasons,
+} from './domain/visibility';

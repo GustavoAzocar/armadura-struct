@@ -60,7 +60,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
     (v) => v.sheetId === sheet.id,
   );
   const composition = useMemo(
-    () => composeSheet(project, sheet.id),
+    () => composeSheet(project, sheet.id, true),
     [project, sheet],
   );
   const fit = () =>
@@ -104,6 +104,14 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
   };
   return (
     <div className="sheet-canvas-host" ref={host}>
+      {composition.views.some((v) => v.reviewIssue) && (
+        <div className="visibility-warning" role="status">
+          {composition.views
+            .filter((v) => v.reviewIssue)
+            .map((v) => v.reviewIssue)
+            .join(' · ')}
+        </div>
+      )}
       {composition.issues.length > 0 && (
         <div className="paper-issues" role="status">
           {composition.issues.length} problema(s) de composição · PDF bloqueado.
@@ -217,7 +225,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
               Folha vazia · coloque um desenho pelo gerenciador
             </text>
           )}
-          {composition.views.map(({ placement: v, lines, frame }) => {
+          {composition.views.map(({ placement: v, lines, frame, hidden }) => {
             const delta = drag?.id === v.id ? drag.delta : { x: 0, y: 0 };
             const invalid = composition.issues.some((i) => i.viewId === v.id);
             return (
@@ -237,6 +245,9 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
                 />
                 <g pointerEvents="none">
                   <PaperLines lines={lines} />
+                  <g data-testid="hidden-view-ghosts" opacity="0.7">
+                    <PaperLines lines={hidden} />
+                  </g>
                 </g>
               </g>
             );

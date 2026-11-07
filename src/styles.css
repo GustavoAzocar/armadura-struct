@@ -3216,3 +3216,49 @@ button.hierarchy-drawing {
     height: 240px;
   }
 }
+
+.visibility-dialog {
+  width: min(980px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+.visibility-list {
+  max-height: 40vh;
+  overflow: auto;
+  margin: 10px 0;
+}
+.visibility-list table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.visibility-list td,
+.visibility-list th {
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.visibility-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+.visibility-bar {
+  flex-wrap: wrap;
+  font-size: 11px;
+  min-height: 30px;
+}
+
+.visibility-warning {
+  position: absolute;
+  top: 40px;
+  left: 15px;
+  right: 15px;
+  z-index: 3;
+  background: #fff3cd;
+  color: #573d00;
+  padding: 8px;
+  border: 1px solid #dca52f;
+  border-radius: 4px;
+  font-size: 12px;
+}

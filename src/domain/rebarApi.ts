@@ -1,3 +1,4 @@
+import { assertVisibilityEdit } from './visibility';
 import { assertLayerEdit } from './layerProfiles';
 import { validateLayers } from './layers';
 import { layerBindingShape } from './layerSchema';
@@ -1095,6 +1096,11 @@ export function executeRebarBatch(
         );
       const result = perform(next, parsed.data);
       assertLayerEdit(next, result.project, options.layerContext ?? 'model');
+      assertVisibilityEdit(
+        next,
+        result.project,
+        options.layerContext ?? 'model',
+      );
       const errors = validateRebarChange(
         next,
         result.project,
