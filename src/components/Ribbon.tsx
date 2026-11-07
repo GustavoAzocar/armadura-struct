@@ -77,7 +77,8 @@ export type Action =
   | 'detail-repetition'
   | 'fabrication'
   | 'clone-armature'
-  | 'layers';
+  | 'layers'
+  | 'plot';
 // Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
@@ -149,6 +150,7 @@ export default function Ribbon({
       {
         name: 'Exportar',
         items: [
+          item('plot', 'Estilos de impressão', Layers),
           item('pdf', 'Prancha PDF', FileText),
           item('dxf', 'Desenho DXF', Download),
           item('csv', 'Quadro CSV', Table2),

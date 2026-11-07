@@ -1,5 +1,11 @@
+import PlotStyleFields from './PlotStyleFields';
 import type { DrawingStyle, LayerBinding, Project } from '../domain/types';
-import { layerId, LINE_TYPES, resolveStyle } from '../domain/layers';
+import {
+  layerId,
+  LINE_TYPES,
+  resolveStyle,
+  mergePlotStyle,
+} from '../domain/layers';
 import { NumberField } from './Panels';
 export default function LayerInspector({
   project,
@@ -24,6 +30,14 @@ export default function LayerInspector({
     onChange({ layerId: current.id, style: { ...baseStyle, ...patch } });
   return (
     <div className="layer-inspector">
+      <PlotStyleFields
+        value={object.plot}
+        base={{ ...style, ...current.plot }}
+        onChange={(patch) =>
+          onChange({ plot: mergePlotStyle(object.plot, patch) })
+        }
+        onReset={() => onChange({ plot: undefined })}
+      />
       <label className="field">
         <span>Layer</span>
         <select

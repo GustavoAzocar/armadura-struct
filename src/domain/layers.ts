@@ -3,10 +3,15 @@ import type {
   DrawingStyle,
   LayerBinding,
   Primitive,
+  PlotStyle,
   Project,
 } from './types';
 import { uid } from './types';
-import { drawingLayerSchema, drawingStyleSchema } from './layerSchema';
+import {
+  drawingLayerSchema,
+  drawingStyleSchema,
+  plotStyleSchema,
+} from './layerSchema';
 export const LINE_TYPES = [
   { name: 'CONTINUOUS', pattern: [] },
   { name: 'DASHED', pattern: [100, -50] },
@@ -98,6 +103,7 @@ export function stylePrimitive(
     layer: layer?.name ?? item.layer,
     layerId: layer?.id,
     style: binding.style,
+    plot: mergePlotStyle(item.plot, object.plot),
     resolvedStyle: resolveStyle(p, binding, role),
   };
 }
@@ -131,6 +137,7 @@ export function validateLayers(p: Project) {
     if (o.layerId && !ids.has(o.layerId))
       throw new Error(`Layer inexistente: ${o.layerId}.`);
     if (o.style) drawingStyleSchema.partial().parse(o.style);
+    if (o.plot) plotStyleSchema.parse(o.plot);
   }
 }
 /** Imported styles never overwrite the styles of existing local objects. */
@@ -325,4 +332,34 @@ export function removeLayer(p: Project, id: string, reassign?: string) {
   };
   validateLayers(next);
   return next;
+}
+
+/** A partial batch patch merges per layer; undefined restores individual inheritance. */
+export function editLayerPlotStyles(
+  p: Project,
+  ids: string[],
+  patch: import('./types').PlotStyle,
+  reset = false,
+): Project {
+  plotStyleSchema.parse(patch);
+  const next = {
+    ...p,
+    layers: p.layers.map((l) =>
+      ids.includes(l.id)
+        ? { ...l, plot: reset ? undefined : mergePlotStyle(l.plot, patch) }
+        : l,
+    ),
+  };
+  if (!ids.length || ids.some((id) => !p.layers.some((l) => l.id === id)))
+    throw new Error('Selecione layers existentes.');
+  validateLayers(next);
+  return next;
+}
+
+export function mergePlotStyle(base?: PlotStyle, patch?: PlotStyle): PlotStyle {
+  return Object.fromEntries(
+    Object.entries({ ...base, ...patch }).filter(
+      ([, value]) => value !== undefined,
+    ),
+  );
 }

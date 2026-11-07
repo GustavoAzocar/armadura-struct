@@ -72,6 +72,7 @@ export {
   defaultLayers,
   createLayer,
   editLayers,
+  editLayerPlotStyles,
   assignLayer,
   removeLayer,
   layerUsage,
@@ -88,3 +89,12 @@ export {
   applyLayerProfile,
   profileLabel,
 } from './domain/layerProfiles';
+
+export {
+  plotSettings,
+  setPlotSettings,
+  resolvePlotStyle,
+  plotPrimitives,
+  PLOT_LINE_TYPES,
+} from './domain/plotting';
+export type { PlotStyle, PlotSettings } from './domain/types';

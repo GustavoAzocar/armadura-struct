@@ -1,3 +1,4 @@
+import { plotSettingsSchema } from './layerSchema';
 import { layerEnvironmentSchema } from './layerProfiles';
 import { defaultLayers, completeLayers, validateLayers } from './layers';
 import { drawingLayerSchema, layerBindingShape } from './layerSchema';
@@ -232,8 +233,10 @@ const schema = z.object({
     'armadurastruct/13',
     'armadurastruct/14',
     'armadurastruct/15',
+    'armadurastruct/16',
   ]),
   layerEnvironment: layerEnvironmentSchema.optional(),
+  plotting: plotSettingsSchema.optional(),
   layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
   numbering: numberingPolicySchema.optional(),
   sheets: z
@@ -426,10 +429,26 @@ export function decodeProject(
     );
   const parsed = schema.parse(input);
   if (
-    ['armadurastruct/14', 'armadurastruct/15'].includes(parsed.schema) &&
+    ['armadurastruct/14', 'armadurastruct/15', 'armadurastruct/16'].includes(
+      parsed.schema,
+    ) &&
     !parsed.layers
   )
     throw new Error('Projeto v14 sem catálogo de layers.');
+  if (
+    parsed.schema !== 'armadurastruct/16' &&
+    (parsed.plotting ||
+      parsed.layers?.some((l) => l.plot) ||
+      [
+        ...parsed.bars,
+        ...parsed.details,
+        ...parsed.annotations,
+        ...parsed.polylines,
+        ...parsed.masks,
+        ...parsed.masks.flatMap((m) => m.primitives),
+      ].some((o) => o.plot))
+  )
+    throw new Error('Estilos de impressão exigem formato 16.');
   const modern =
     parsed.schema === 'armadurastruct/3' ||
     parsed.schema === 'armadurastruct/4' ||
@@ -443,7 +462,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/12' ||
     parsed.schema === 'armadurastruct/13' ||
     parsed.schema === 'armadurastruct/14' ||
-    parsed.schema === 'armadurastruct/15';
+    parsed.schema === 'armadurastruct/15' ||
+    parsed.schema === 'armadurastruct/16';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -488,6 +508,7 @@ export function decodeProject(
       'armadurastruct/13',
       'armadurastruct/14',
       'armadurastruct/15',
+      'armadurastruct/16',
     ].includes(parsed.schema)
   )
     throw new Error('Política de numeração exige formato 10.');
@@ -498,7 +519,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/12' ||
     parsed.schema === 'armadurastruct/13' ||
     parsed.schema === 'armadurastruct/14' ||
-    parsed.schema === 'armadurastruct/15';
+    parsed.schema === 'armadurastruct/15' ||
+    parsed.schema === 'armadurastruct/16';
   if (
     !v9 &&
     [...parsed.bars, ...(parsed.scheduleLock?.bars ?? [])].some(hasArmatureData)
@@ -573,7 +595,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/15',
+    schema: 'armadurastruct/16',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -632,7 +654,11 @@ export function decodeProject(
     )
   )
     throw new Error('Chamada sem armadura correspondente.');
-  if (!['armadurastruct/14', 'armadurastruct/15'].includes(parsed.schema)) {
+  if (
+    !['armadurastruct/14', 'armadurastruct/15', 'armadurastruct/16'].includes(
+      parsed.schema,
+    )
+  ) {
     const preserve = <
       T extends {
         layerId?: string;
@@ -677,6 +703,7 @@ export function decodeProject(
       'armadurastruct/13',
       'armadurastruct/14',
       'armadurastruct/15',
+      'armadurastruct/16',
     ].includes(parsed.schema) &&
     p.details.some(
       (d) =>
@@ -692,14 +719,18 @@ export function decodeProject(
       'armadurastruct/13',
       'armadurastruct/14',
       'armadurastruct/15',
+      'armadurastruct/16',
     ].includes(parsed.schema) &&
     p.details.some((d) => d.label || d.showDimensions !== undefined)
   )
     throw new Error('Posicionamento de rótulo exige formato 12.');
   if (
-    !['armadurastruct/13', 'armadurastruct/14', 'armadurastruct/15'].includes(
-      parsed.schema,
-    ) &&
+    ![
+      'armadurastruct/13',
+      'armadurastruct/14',
+      'armadurastruct/15',
+      'armadurastruct/16',
+    ].includes(parsed.schema) &&
     [...p.annotations, ...p.polylines].some((o) => o.barIds !== undefined)
   )
     throw new Error('Vínculos auxiliares exigem formato 13.');
@@ -776,7 +807,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/15',
+    schema: 'armadurastruct/16',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

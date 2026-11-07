@@ -1,4 +1,11 @@
-import { dashArray } from '../domain/layers';
+import { plotSettingsSchema } from '../domain/layerSchema';
+import {
+  plotPrimitives,
+  plotColor,
+  resolvePlotStyle,
+} from '../domain/plotting';
+import { stylePrimitive } from '../domain/layers';
+import { validateLayers, dashArray } from '../domain/layers';
 import type { Primitive } from '../domain/types';
 import { quantitySourceLabel } from '../domain/detailQuantities';
 import { jsPDF } from 'jspdf';
@@ -19,6 +26,8 @@ import {
   paperLineWidth,
 } from '../domain/paper';
 export function assertExportable(p: Project) {
+  validateLayers(p);
+  if (p.plotting) plotSettingsSchema.parse(p.plotting);
   const annotationIssue = p.annotations.map(annotationError).find(Boolean);
   if (annotationIssue)
     throw new Error(
@@ -43,13 +52,48 @@ export function toDxf(p: Project): string {
     put = (...pairs: (string | number)[]) => out.push(...pairs);
   const clean = (s: string) =>
     s.replace(/[\r\n\x00-\x1f]/g, ' ').replace(/Ø/g, '%%c');
-  const lines = exportLines(p);
+  const raw = exportLines(p);
+  const box = bounds(raw.flatMap((l) => l.points));
+  const scheduleLayer =
+    p.layers.find((l) => l.id === 'layer:QUADRO_ACO') ?? p.layers[0];
+  let scheduleY = box.y - 400;
+  for (const text of [
+    'QUADRO DE ACO | comprimentos em metros',
+    'POS   ACO   DIAM   BASE x REP = QTD   C.UNIT   C.TOTAL   PESO(kg)',
+    ...schedule(p).map(
+      (r) =>
+        `${r.mark}   ${r.steel}   ${r.diameter}   ${scheduleQuantityLabel(r).replace(/×/g, 'x')}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
+    ),
+  ]) {
+    raw.push(
+      stylePrimitive(
+        p,
+        { layerId: scheduleLayer.id },
+        {
+          layer: 'QUADRO_ACO',
+          points: [{ x: box.x, y: scheduleY }],
+          text,
+          textHeight: 45,
+        },
+      ),
+    );
+    scheduleY -= 90;
+  }
+  const lines = plotPrimitives(p, raw, 'dxf');
+  const plottedLayers = p.layers.map((l) => ({
+    ...l,
+    ...plotPrimitives(
+      p,
+      [{ layer: l.name, layerId: l.id, points: [] }],
+      'dxf',
+    )[0]?.resolvedStyle,
+  }));
   const weights = [
     0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106,
     120, 140, 158, 200, 211,
   ];
   for (const s of [
-    ...p.layers,
+    ...plottedLayers.filter((l) => l.plot?.include !== false),
     ...lines.map((l) => l.resolvedStyle).filter((s) => s !== undefined),
   ])
     if (
@@ -74,11 +118,13 @@ export function toDxf(p: Project): string {
     types.push({ ...t, name });
     return name;
   };
-  const layerTypes = new Map(p.layers.map((l) => [l.id, typeName(l.lineType)]));
-  const overrides = new Map(
+  const layerTypes = new Map(
+    plottedLayers.map((l) => [l.id, typeName(l.lineType)]),
+  );
+  const lineTypes = new Map(
     lines.map((l) => [
-      l,
-      l.style?.lineType ? typeName(l.style.lineType) : undefined,
+      JSON.stringify(l.resolvedStyle!.lineType),
+      typeName(l.resolvedStyle!.lineType),
     ]),
   );
   typeName({ name: 'CONTINUOUS', pattern: [] });
@@ -127,7 +173,7 @@ export function toDxf(p: Project): string {
     for (const n of t.pattern) put(49, n, 74, 0);
   }
   put(0, 'ENDTAB', 0, 'TABLE', 2, 'LAYER', 5, '11', 70, p.layers.length);
-  for (const l of p.layers)
+  for (const l of plottedLayers)
     put(
       0,
       'LAYER',
@@ -147,21 +193,28 @@ export function toDxf(p: Project): string {
       layerTypes.get(l.id) ?? 'CONTINUOUS',
       370,
       Math.round(l.lineWidth * 100),
+      290,
+      l.plot?.include === false ? 0 : 1,
     );
   put(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
   const common = (item: Primitive) => {
+    const style = item.resolvedStyle!;
+    const layer = plottedLayers.find((l) => l.id === item.layerId);
     put(100, 'AcDbEntity', 8, clean(item.layer));
-    if (item.style?.color) put(420, parseInt(item.style.color.slice(1), 16));
+    if (style.color !== layer?.color)
+      put(420, parseInt(style.color.slice(1), 16));
     else put(62, 256);
     put(
       6,
-      overrides.get(item) ?? 'BYLAYER',
+      JSON.stringify(style.lineType) === JSON.stringify(layer?.lineType)
+        ? 'BYLAYER'
+        : (lineTypes.get(JSON.stringify(style.lineType)) ?? 'CONTINUOUS'),
       48,
-      item.resolvedStyle?.lineScale ?? 1,
+      style.lineScale,
       370,
-      item.style?.lineWidth !== undefined
-        ? Math.round(item.style.lineWidth * 100)
-        : -1,
+      style.lineWidth === layer?.lineWidth
+        ? -1
+        : Math.round(style.lineWidth * 100),
     );
   };
   for (const item of lines) {
@@ -212,7 +265,10 @@ export function toDxf(p: Project): string {
       put(0, 'HATCH');
       common({
         ...item,
-        style: { ...item.style, color: item.resolvedStyle.fillColor },
+        resolvedStyle: {
+          ...item.resolvedStyle,
+          color: item.resolvedStyle.fillColor,
+        },
       });
       put(
         100,
@@ -249,34 +305,6 @@ export function toDxf(p: Project): string {
       for (const v of item.points) put(10, v.x, 20, v.y);
       put(97, 0, 75, 0, 76, 1, 98, 0);
     }
-  }
-  const box = bounds(exportLines(p).flatMap((l) => l.points));
-  let y = box.y - 400;
-  for (const line of [
-    'QUADRO DE ACO | comprimentos em metros',
-    'POS   ACO   DIAM   BASE x REP = QTD   C.UNIT   C.TOTAL   PESO(kg)',
-    ...schedule(p).map(
-      (r) =>
-        `${r.mark}   ${r.steel}   ${r.diameter}   ${scheduleQuantityLabel(r).replace(/×/g, 'x')}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
-    ),
-  ]) {
-    put(
-      0,
-      'TEXT',
-      8,
-      (p.layers.find((l) => l.id === 'layer:QUADRO_ACO') ?? p.layers[0]).name,
-      10,
-      box.x,
-      20,
-      y,
-      30,
-      0,
-      40,
-      45,
-      1,
-      clean(line),
-    );
-    y -= 90;
   }
   put(0, 'ENDSEC', 0, 'EOF');
   return out.join('\r\n') + '\r\n';
@@ -353,12 +381,12 @@ export function toPdf(p: Project): Uint8Array {
   const W = 420,
     H = 297;
   const title = (name: string) => {
-    doc.setDrawColor(52, 72, 209);
+    doc.setDrawColor(plotColor(p, '#3448d1'));
     doc.setLineWidth(0.5);
     doc.line(14, 24, W - 14, 24);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(17);
-    doc.setTextColor(25, 36, 66);
+    doc.setTextColor(plotColor(p, '#192442'));
     doc.text(name, 14, 17);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -366,7 +394,7 @@ export function toPdf(p: Project): Uint8Array {
       align: 'right',
     });
     doc.setFontSize(8);
-    doc.setTextColor(100);
+    doc.setTextColor(plotColor(p, '#646464'));
     doc.text(
       doc.splitTextToSize(
         `${p.name} | ${p.author || 'Autor não informado'} | ${p.hierarchy.floors.map((f) => f.name).join(', ')} | Rev. ${p.drawing.revision}`,
@@ -380,7 +408,7 @@ export function toPdf(p: Project): Uint8Array {
     });
   };
   title('Detalhamento de armaduras');
-  const lines = exportLines(p);
+  const lines = plotPrimitives(p, exportLines(p));
   const box = bounds(lines.flatMap(primitiveBounds));
   const fitScale = Math.min(
     (W - 40) / Math.max(box.width, 1),
@@ -410,7 +438,7 @@ export function toPdf(p: Project): Uint8Array {
       doc.setTextColor(c[0], c[1], c[2]);
     }
     doc.setLineWidth(item.resolvedStyle?.lineWidth ?? 0.3);
-    doc.setLineDashPattern(dashArray(item.resolvedStyle, s), 0);
+    doc.setLineDashPattern(dashArray(item.resolvedStyle), 0);
     if (item.text) {
       const a = map(item.points[0]);
       doc.setFontSize(
@@ -437,19 +465,30 @@ export function toPdf(p: Project): Uint8Array {
     }
   }
   doc.setFontSize(7);
-  doc.setTextColor(100);
+  doc.setTextColor(plotColor(p, '#646464'));
   doc.text(
     `${p.drawing.scale ? `Escala 1:${p.drawing.scale}` : 'Vista ajustada à folha'} · dimensões indicadas em cm · geometria pelo eixo da barra`,
     14,
     279,
   );
+  const raLayer =
+    p.layers.find((l) => l.id === 'layer:QUADRO_ACO') ?? p.layers[0];
+  const ra = resolvePlotStyle(p, {
+    layer: raLayer.name,
+    layerId: raLayer.id,
+    points: [],
+  });
+  if (!ra.include) return new Uint8Array(doc.output('arraybuffer'));
+  doc.setLineDashPattern([], 0);
   doc.addPage();
   title('Quadro de aço');
   let y = 39;
   const header = () => {
-    doc.setFillColor(236, 240, 248);
+    doc.setFillColor(
+      p.plotting?.preset === 'monochrome' ? '#ffffff' : plotColor(p, '#ecf0f8'),
+    );
     doc.rect(14, y - 6, 392, 10, 'F');
-    doc.setTextColor(30);
+    doc.setTextColor(ra.style.color);
     doc.setFontSize(9);
     [
       'Pos.',
@@ -473,7 +512,7 @@ export function toPdf(p: Project): Uint8Array {
       y = 39;
       header();
     }
-    doc.setTextColor(35);
+    doc.setTextColor(ra.style.color);
     doc.setFontSize(9);
     [
       r.mark,
@@ -487,7 +526,7 @@ export function toPdf(p: Project): Uint8Array {
     ].forEach((t, i) =>
       doc.text(t, [18, 44, 170, 205, 240, 275, 323, 370][i], y),
     );
-    doc.setDrawColor(225);
+    doc.setDrawColor(plotColor(p, '#e1e1e1'));
     doc.setLineWidth(0.1);
     doc.line(14, y + 3, 406, y + 3);
     y += 11;

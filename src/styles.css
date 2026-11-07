@@ -3174,3 +3174,45 @@ button.hierarchy-drawing {
   background: white;
   z-index: 1;
 }
+
+.plot-dialog {
+  width: min(1080px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+.plot-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.plot-comparison figure {
+  margin: 0;
+  min-width: 0;
+}
+.plot-comparison figcaption {
+  margin: 8px 0;
+  font-weight: 600;
+}
+.plot-preview {
+  display: block;
+  width: 100%;
+  height: 340px;
+  background: #fff;
+  border: 1px solid #b8bdcb;
+}
+.plot-fields {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.plot-fields summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+@media (max-width: 720px) {
+  .plot-comparison {
+    grid-template-columns: 1fr;
+  }
+  .plot-preview {
+    height: 240px;
+  }
+}

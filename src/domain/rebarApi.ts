@@ -47,6 +47,10 @@ export const REBAR_CAPABILITIES = Object.freeze({
   version: REBAR_API_VERSION,
   lengthUnit: 'mm',
   angleUnit: 'deg',
+  plotStyles: Object.freeze({
+    paperUnit: 'mm',
+    presets: ['color', 'monochrome', 'grayscale'] as const,
+  }),
   families: Object.freeze(['free', 'stirrup'] as const),
   operations: Object.freeze([
     'bar.create',
@@ -920,6 +924,7 @@ function perform(
             ...defined({
               layerId: c.layerId,
               style: c.style,
+              plot: c.plot,
               rotation: c.rotation,
               scale: c.scale,
               identification: c.identification,
@@ -950,6 +955,7 @@ function perform(
                 ...defined({
                   layerId: c.layerId,
                   style: c.style,
+                  plot: c.plot,
                   rotation: c.rotation,
                   scale: c.scale,
                   identification: c.identification,
@@ -1215,6 +1221,7 @@ export function rebarDefinition(bar: Bar): RebarDefinition {
   const common = {
     layerId: bar.layerId,
     style: bar.style,
+    plot: bar.plot,
     manufacturing: bar.manufacturing,
     mark: bar.mark,
     element: bar.element,

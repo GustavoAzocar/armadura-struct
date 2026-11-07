@@ -244,7 +244,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/15`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/16`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 
@@ -263,3 +263,7 @@ O formato 12 e os [pacotes v6](openstruct-detail-v6.schema.json) preservam rótu
 ### Perfis do ambiente CAD
 
 No gerenciador de layers, configure Exibir/Capturar/Editar e salve um perfil. Estados pertencem ao desenho ou à vista selecionada. Use Restaurar perfil para desfazer personalizações do ambiente; o aço permanece no quadro. Veja [AS-20](AS-20.md).
+
+### Impressão independente da tela
+
+Em **Gerenciar layers** ou **Layer e estilo** do objeto, expanda **Estilo de impressão** para configurar cores, penas em mm de papel, traços e inclusão na saída. Abra **Arquivo → Estilos de impressão** (`PLOT`) para os presets Colorido/Monocromático/Tons de cinza e a prévia comparativa. O CAD e os quantitativos permanecem independentes. A aba da folha mostra a composição final do PDF. No DXF do modelo, use a escala de referência escolhida para plotar os traços; detalhes e limites em [AS-21](AS-21.md).

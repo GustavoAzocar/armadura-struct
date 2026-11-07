@@ -36,7 +36,25 @@ export const drawingStyleSchema = z
     fillColor: color,
   })
   .strict();
+export const plotStyleSchema = drawingStyleSchema
+  .pick({
+    color: true,
+    fillColor: true,
+    lineWidth: true,
+    lineType: true,
+    lineScale: true,
+  })
+  .partial()
+  .extend({ include: z.boolean().optional() })
+  .strict();
+export const plotSettingsSchema = z
+  .object({
+    preset: z.enum(['color', 'monochrome', 'grayscale']),
+    referenceScale: z.number().finite().min(1).max(10000),
+  })
+  .strict();
 export const layerBindingShape = {
+  plot: plotStyleSchema.optional(),
   layerId: z.string().min(1).max(200).optional(),
   style: drawingStyleSchema.partial().optional(),
 };
@@ -50,5 +68,6 @@ export const drawingLayerSchema = z
       .max(200)
       .regex(/^[^<>/\\":;?*|=\x00-\x1f]+$/, 'Nome incompatível com layer DXF.'),
     ...drawingStyleSchema.shape,
+    plot: plotStyleSchema.optional(),
   })
   .strict();

@@ -8,8 +8,27 @@ export type DrawingStyle = {
   fill: 'none' | 'solid';
   fillColor: string;
 };
-export type LayerBinding = { layerId?: string; style?: Partial<DrawingStyle> };
-export type DrawingLayer = DrawingStyle & { id: string; name: string };
+/** Plot patterns and widths are in paper mm, independently of model/view scale. */
+export type PlotStyle = Partial<
+  Pick<
+    DrawingStyle,
+    'color' | 'fillColor' | 'lineWidth' | 'lineType' | 'lineScale'
+  >
+> & { include?: boolean };
+export type PlotSettings = {
+  preset: 'color' | 'monochrome' | 'grayscale';
+  referenceScale: number;
+};
+export type LayerBinding = {
+  layerId?: string;
+  style?: Partial<DrawingStyle>;
+  plot?: PlotStyle;
+};
+export type DrawingLayer = DrawingStyle & {
+  id: string;
+  name: string;
+  plot?: PlotStyle;
+};
 export type Point = { x: number; y: number };
 export type Bar = LayerBinding & {
   id: string;
@@ -209,7 +228,8 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/15';
+  schema: 'armadurastruct/16';
+  plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;
   layers: DrawingLayer[];
   id: string;

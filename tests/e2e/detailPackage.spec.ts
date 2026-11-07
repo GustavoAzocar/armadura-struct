@@ -95,7 +95,7 @@ test('native export/import preserves geometry and links, remaps collisions and p
   const pack = JSON.parse(
     readFileSync((await file.path())!, 'utf8'),
   ) as DetailPackage;
-  expect(pack.schema).toBe('openstruct.detail/8');
+  expect(pack.schema).toBe('openstruct.detail/9');
   expect(pack.objects.bars).toEqual(source.bars);
   const target = completeOwnership({
     ...emptyProject(),

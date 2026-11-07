@@ -1,3 +1,4 @@
+import { plotPrimitives } from './plotting';
 import { layerProjection } from './layerProfiles';
 import { detailTitle } from './detailQuantities';
 import type { Point, Primitive, Project, Sheet, SheetPlacement } from './types';
@@ -169,16 +170,8 @@ function localContent(
   project: Project,
   view: SheetPlacement,
 ): PaperPrimitive[] {
-  return sourceLines(project, view).map((line) => ({
+  return plotPrimitives(project, sourceLines(project, view)).map((line) => ({
     ...line,
-    ...(line.resolvedStyle
-      ? {
-          resolvedStyle: {
-            ...line.resolvedStyle,
-            lineScale: line.resolvedStyle.lineScale / view.scale,
-          },
-        }
-      : {}),
     text: line.text ? paperText(line.text) : undefined,
     points: line.points.map((p) => ({
       x: (p.x - view.modelOrigin.x) / view.scale,
@@ -411,9 +404,10 @@ export function composeSheet(
       const frame = rectPoints({ x: 0, y: 0, ...placement.frame }).map((p) =>
         localToPaper(p, placement),
       );
-      const lines = [...content, ...titles].map((l) =>
-          transformLocal(l, placement),
-        ),
+      const lines = [
+          ...content,
+          ...plotPrimitives(project, titles, 'paper', 'paper'),
+        ].map((l) => transformLocal(l, placement)),
         ink = lines.flatMap(paperPrimitiveBounds);
       if (!contained([...frame, ...ink], useful))
         issues.push({
@@ -450,7 +444,15 @@ export function composeSheet(
       message:
         'Há texto com caracteres fora do alfabeto latino suportado pelo PDF. Use caracteres latinos ou símbolos como Ø e °.',
     });
-  return { sheet, size, useful, seal, decorations, views, issues };
+  return {
+    sheet,
+    size,
+    useful,
+    seal,
+    decorations: plotPrimitives(project, decorations, 'paper', 'paper'),
+    views,
+    issues,
+  };
 }
 export function assertPaperExportable(project: Project, ids: string[]) {
   if (!ids.length)

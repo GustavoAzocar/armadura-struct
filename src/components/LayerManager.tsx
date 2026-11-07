@@ -1,3 +1,4 @@
+import PlotStyleFields from './PlotStyleFields';
 import {
   ensureProfiles,
   profileLabel,
@@ -7,11 +8,13 @@ import {
   applyLayerProfile,
 } from '../domain/layerProfiles';
 import { useMemo, useRef, useEffect, useState } from 'react';
-import type { DrawingLayer, Project } from '../domain/types';
+import type { DrawingLayer, PlotStyle, Project } from '../domain/types';
 import {
   assignLayer,
   createLayer,
   editLayers,
+  editLayerPlotStyles,
+  mergePlotStyle,
   layerUsage,
   removeLayer,
   LINE_TYPES,
@@ -39,6 +42,8 @@ export default function LayerManager({
     [name, setName] = useState('Novo layer'),
     [target, setTarget] = useState(''),
     [error, setError] = useState('');
+  const [plotPatch, setPlotPatch] = useState<PlotStyle>({});
+  const [resetPlot, setResetPlot] = useState(false);
   const [profileName, setProfileName] = useState('Meu perfil');
   const environment = ensureProfiles(project).layerEnvironment!;
   const close = useRef<HTMLButtonElement>(null);
@@ -60,6 +65,8 @@ export default function LayerManager({
   const select = (ids: string[]) => {
     setIds(ids);
     setPatch({});
+    setPlotPatch({});
+    setResetPlot(false);
     setError('');
   };
   const apply = (f: () => Project) => {
@@ -67,6 +74,8 @@ export default function LayerManager({
       const next = f();
       if (onChange(next)) {
         setPatch({});
+        setPlotPatch({});
+        setResetPlot(false);
         setError('');
         return true;
       }
@@ -319,6 +328,22 @@ export default function LayerManager({
           </div>
           <div className="layer-properties">
             <h3>{ids.length} layer(s) selecionado(s)</h3>
+            {first && (
+              <PlotStyleFields
+                value={mergePlotStyle(
+                  resetPlot ? undefined : first.plot,
+                  plotPatch,
+                )}
+                base={value ?? first}
+                onChange={(patch) =>
+                  setPlotPatch((old) => ({ ...old, ...patch }))
+                }
+                onReset={() => {
+                  setResetPlot(true);
+                  setPlotPatch({});
+                }}
+              />
+            )}
             {value && (
               <>
                 <label className="field">
@@ -428,8 +453,21 @@ export default function LayerManager({
                 </p>
                 <button
                   className="primary"
-                  disabled={!Object.keys(patch).length}
-                  onClick={() => apply(() => editLayers(project, ids, patch))}
+                  disabled={
+                    !Object.keys(patch).length &&
+                    !Object.keys(plotPatch).length &&
+                    !resetPlot
+                  }
+                  onClick={() =>
+                    apply(() => {
+                      let next = editLayers(project, ids, patch);
+                      if (resetPlot)
+                        next = editLayerPlotStyles(next, ids, {}, true);
+                      return Object.keys(plotPatch).length
+                        ? editLayerPlotStyles(next, ids, plotPatch)
+                        : next;
+                    })
+                  }
                 >
                   Aplicar aos layers selecionados
                 </button>

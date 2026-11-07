@@ -36,6 +36,7 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const PlotDialog = lazy(() => import('./components/PlotDialog'));
 const LayerManager = lazy(() => import('./components/LayerManager'));
 const ArmatureCloneDialog = lazy(
   () => import('./components/ArmatureCloneDialog'),
@@ -228,6 +229,7 @@ export default function App() {
     maskId?: string;
     projectId: string;
   } | null>(null);
+  const [plotOpen, setPlotOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
   const [exampleReviewOpen, setExampleReviewOpen] = useState(false);
@@ -1343,6 +1345,10 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'plot') {
+      setPlotOpen(true);
+      return;
+    }
     if (a === 'layers') {
       setLayersOpen(true);
       return;
@@ -1860,6 +1866,8 @@ export default function App() {
       C: 'copy',
       COPY: 'copy',
       LAYERS: 'layers',
+      PLOT: 'plot',
+      PLOTAGEM: 'plot',
       NIVEIS: 'layers',
       DUPLICAR: 'clone-armature',
       CLONAR: 'clone-armature',
@@ -2908,6 +2916,17 @@ export default function App() {
               );
               return true;
             }}
+          />
+        </Suspense>
+      )}
+      {plotOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Abrindo plotagem…</div>}
+        >
+          <PlotDialog
+            project={p}
+            onChange={(next) => commit(() => next)}
+            onClose={() => setPlotOpen(false)}
           />
         </Suspense>
       )}
