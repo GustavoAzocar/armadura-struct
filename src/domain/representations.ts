@@ -1,5 +1,6 @@
 import { geometry, sampled, rotate, format } from './geometry';
 import { quantityLabel, assemblyLabel } from './detailQuantities';
+import { barCaption } from './drafting';
 import type { Bar, Detail, Point, Primitive, Project } from './types';
 export function representationPoint(d: Detail, p: Point): Point {
   const v = rotate(
@@ -33,7 +34,33 @@ export function representationPrimitives(
     { layer: 'REBATIMENTOS', points: representationPoints(b, d) },
   ];
   const mode = d.identification ?? 'legacy';
-  if (mode !== 'none')
+  if (d.label && mode !== 'none') {
+    const mark =
+      d.label.omitPrefix && b.mark.startsWith(d.label.omitPrefix)
+        ? b.mark.slice(d.label.omitPrefix.length)
+        : b.mark;
+    out.push({
+      layer: 'IDENTIFICACAO',
+      points: [representationPoint(d, d.label.origin)],
+      text:
+        mode === 'mark'
+          ? mark
+          : barCaption(
+              {
+                ...b,
+                mark,
+                comment: undefined,
+                columnLevel: undefined,
+                showRibbed: false,
+              },
+              p,
+            ),
+      textHeight: d.label.height * (d.scale ?? 1),
+      textRotation: d.label.rotation + (d.rotation ?? 0),
+      textAlign: 'center',
+    });
+  }
+  if (mode !== 'none' && !d.label)
     out.push(
       text(
         mode === 'mark'
@@ -44,7 +71,7 @@ export function representationPrimitives(
       ),
     );
   const v = geometry(b).vertices;
-  for (let i = 0; i < v.length - 1; i++) {
+  for (let i = 0; d.showDimensions !== false && i < v.length - 1; i++) {
     if (b.kind === 'stirrup' && ![3, 4].includes(i)) continue;
     const a = v[i],
       c = v[i + 1];

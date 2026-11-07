@@ -1505,10 +1505,12 @@ export function DraftInspector({
 
 export function RepresentationInspector({
   representation: d,
+  onEditBar,
   onChange,
   onDelete,
 }: {
   representation: import('../domain/types').Detail;
+  onEditBar: () => void;
   onChange: (patch: Partial<import('../domain/types').Detail>) => void;
   onDelete: () => void;
 }) {
@@ -1560,6 +1562,53 @@ export function RepresentationInspector({
             <option value="mark">Somente posição</option>
             <option value="none">Sem identificação</option>
           </select>
+        </label>
+        <button onClick={onEditBar}>Editar armadura física</button>
+        {d.label && (
+          <fieldset className="compact-fields">
+            <legend>Chamada posicionada</legend>
+            <NumberField
+              label="X local da chamada"
+              value={d.label.origin.x}
+              onChange={(x) =>
+                onChange({
+                  label: { ...d.label!, origin: { ...d.label!.origin, x } },
+                })
+              }
+            />
+            <NumberField
+              label="Y local da chamada"
+              value={d.label.origin.y}
+              onChange={(y) =>
+                onChange({
+                  label: { ...d.label!, origin: { ...d.label!.origin, y } },
+                })
+              }
+            />
+            <NumberField
+              label="Rotação local da chamada"
+              value={d.label.rotation}
+              onChange={(rotation) =>
+                onChange({ label: { ...d.label!, rotation } })
+              }
+            />
+            <NumberField
+              label="Altura local da chamada"
+              min={0.001}
+              value={d.label.height}
+              onChange={(height) =>
+                onChange({ label: { ...d.label!, height } })
+              }
+            />
+          </fieldset>
+        )}
+        <label className="field">
+          <span>Cotas dos segmentos</span>
+          <input
+            type="checkbox"
+            checked={d.showDimensions !== false}
+            onChange={(e) => onChange({ showDimensions: e.target.checked })}
+          />
         </label>
         <button onClick={onDelete}>Excluir somente esta inserção</button>
       </div>

@@ -107,7 +107,13 @@ export function toDxf(p: Project): string {
         50,
         item.textRotation ?? 0,
         72,
-        item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO' ? 1 : 0,
+        item.textAlign === 'right'
+          ? 2
+          : item.textAlign === 'center' ||
+              (!item.textAlign &&
+                (item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'))
+            ? 1
+            : 0,
         11,
         a.x,
         21,
@@ -301,9 +307,10 @@ export function toPdf(p: Project): Uint8Array {
       doc.text(item.text.replace(/%%c/g, 'Ø'), a.x, a.y, {
         angle: item.textRotation ?? 0,
         align:
-          item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'
+          item.textAlign ??
+          (item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'
             ? 'center'
-            : 'left',
+            : 'left'),
       });
       continue;
     }

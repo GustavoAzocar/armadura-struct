@@ -1,3 +1,4 @@
+import { seedLegacyDemo } from './seedLegacyDemo';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 async function command(page: Page, value: string) {
@@ -16,6 +17,7 @@ async function saveProject(page: Page) {
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.busy-overlay')).toHaveCount(0);
+  await seedLegacyDemo(page);
 });
 test('CAD completo: desenhar, quantificar, rebater, distribuir, desfazer e reabrir', async ({
   page,

@@ -34,6 +34,14 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const ExampleReviewDialog = lazy(
+  () => import('./components/ExampleReviewDialog'),
+);
+import {
+  initialExampleProject,
+  INITIAL_EXAMPLE_ID,
+  INITIAL_EXAMPLE_SHEETS,
+} from './examples/initial';
 const NumberingDialog = lazy(() => import('./components/NumberingDialog'));
 const FabricationDialog = lazy(() => import('./components/FabricationDialog'));
 const DetailRepetitionDialog = lazy(
@@ -71,7 +79,6 @@ import {
 } from './components/Panels';
 import {
   decodeProject,
-  demoProject,
   emptyProject,
   newBar,
   nextMark,
@@ -198,7 +205,7 @@ const tools: Tool[] = [
 export default function App() {
   const [history, setHistory] = useState<History>(() => ({
     past: [],
-    present: demoProject(),
+    present: emptyProject(),
     future: [],
   }));
   const p = history.present;
@@ -214,6 +221,7 @@ export default function App() {
     maskId?: string;
     projectId: string;
   } | null>(null);
+  const [exampleReviewOpen, setExampleReviewOpen] = useState(false);
   const [numberingOpen, setNumberingOpen] = useState(false);
   const [fabricationOpen, setFabricationOpen] = useState(false);
   const [repetitionDetailId, setRepetitionDetailId] = useState<string>();
@@ -295,6 +303,7 @@ export default function App() {
       /* Optional navigation preference. */
     }
   }, [p.id, activeDetailId]);
+  const recoveryBlocked = useRef<string | undefined>(undefined);
   const [ready, setReady] = useState(false),
     [selected, setSelectedRaw] = useState<string[]>([]),
     [maskId, setMaskId] = useState<string | null>(null);
@@ -506,11 +515,20 @@ export default function App() {
         sidebar: key.startsWith('sheet:') ? 'sheets' : 'project',
       });
     }
+    if (p.id === INITIAL_EXAMPLE_ID) setSidebarTab('sheets');
     // File reopen starts outside isolated editing; cached cameras remain available.
     setDocuments({
       projectId: p.id,
-      active: 'model',
-      opened: (saved?.opened ?? []).filter((key) => validDocument(key)),
+      active:
+        p.id === INITIAL_EXAMPLE_ID
+          ? `sheet:${INITIAL_EXAMPLE_SHEETS[0]}`
+          : 'model',
+      opened: (
+        saved?.opened ??
+        (p.id === INITIAL_EXAMPLE_ID
+          ? INITIAL_EXAMPLE_SHEETS.map((id) => `sheet:${id}`)
+          : [])
+      ).filter((key) => validDocument(key)),
     });
     isolationRef.current = undefined;
     setIsolation(null);
@@ -583,13 +601,17 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     restore()
-      .then((raw) => {
+      .then(async (raw) => {
         if (raw && alive) {
           const project = decodeProject(raw);
           setHistory({ past: [], present: project, future: [] });
+        } else if (!raw) {
+          const project = await initialExampleProject();
+          if (alive) setHistory({ past: [], present: project, future: [] });
         }
       })
       .catch(() => {
+        recoveryBlocked.current = historyRef.current.present.id;
         if (alive)
           notify(
             'Não foi possível recuperar o projeto local. Abra uma cópia salva.',
@@ -603,7 +625,7 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || recoveryBlocked.current === p.id) return;
     setSaveState('Salvando…');
     const timer = setTimeout(() => {
       autosave(p)
@@ -2113,6 +2135,17 @@ export default function App() {
           if (patch.spacing !== undefined) setNewSpacing(patch.spacing);
         }}
       />
+      {p.id === INITIAL_EXAMPLE_ID && (
+        <div className="example-notice">
+          <span>
+            <strong>Exemplo ArmaduraStruct</strong> · Vigas e pilares · RA
+            original de referência; comprimentos das dobras em conferência.
+          </span>
+          <button onClick={() => setExampleReviewOpen(true)}>
+            Conferir exemplo
+          </button>
+        </div>
+      )}
       <div className="workspace">
         <main className="main-workspace">
           <div className="document-tabs">
@@ -2428,16 +2461,40 @@ export default function App() {
                 }}
                 onImport={() => action('import')}
                 onDemo={() => {
-                  commit(() => demoProject());
-                  select([]);
-                  setTool('select');
-                  setTimeout(() => canvas()?.fit(), 50);
+                  setBusy('Carregando Exemplo ArmaduraStruct…');
+                  void initialExampleProject()
+                    .then((project) => {
+                      commit(() => project);
+                      select([]);
+                      setTool('select');
+                      setDocuments({
+                        projectId: project.id,
+                        active: `sheet:${INITIAL_EXAMPLE_SHEETS[0]}`,
+                        opened: INITIAL_EXAMPLE_SHEETS.map(
+                          (id) => `sheet:${id}`,
+                        ),
+                      });
+                      setSidebarTab('sheets');
+                    })
+                    .catch((e) => notify(String(e)))
+                    .finally(() => setBusy(''));
                 }}
               />
             ) : selected.length === 1 &&
               p.details.some((d) => d.id === selected[0]) ? (
               <RepresentationInspector
                 representation={p.details.find((d) => d.id === selected[0])!}
+                onEditBar={() => {
+                  const r = p.details.find((d) => d.id === selected[0])!;
+                  const owner = p.hierarchy.objectDetails[r.barId];
+                  const drawing = p.hierarchy.drawings.find(
+                    (d) => d.detailId === owner,
+                  );
+                  if (drawing) {
+                    openDrawing(drawing.id);
+                    select([r.barId]);
+                  }
+                }}
                 onChange={(patch) =>
                   commitRebars([
                     {
@@ -2660,6 +2717,16 @@ export default function App() {
           <b>{busy || 'Abrindo projeto…'}</b>
           <span>Processamento local</span>
         </div>
+      )}
+      {exampleReviewOpen && p.id === INITIAL_EXAMPLE_ID && (
+        <Suspense
+          fallback={<div className="busy-overlay">Preparando conferência…</div>}
+        >
+          <ExampleReviewDialog
+            project={p}
+            onClose={() => setExampleReviewOpen(false)}
+          />
+        </Suspense>
       )}
       {detailTransfer && (
         <Suspense

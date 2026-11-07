@@ -1,0 +1,2682 @@
+{
+  "id": "example:armadurastruct:1",
+  "version": 1,
+  "title": "Exemplo ArmaduraStruct",
+  "sources": [
+    {
+      "key": "vigas",
+      "file": "Exemplo.dwg",
+      "sha256": "673a87c1a672a22ad1ddecc146593a92b446a6e4915eb878993953f6f61b30c8",
+      "plotUnitMm": 10,
+      "summaryAllowance": 0.1,
+      "summary": [
+        {
+          "steel": "CA-50",
+          "diameter": 6.3,
+          "totalLengthM": 12.8,
+          "grossWeightKg": 3.4
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 8,
+          "totalLengthM": 89.8,
+          "grossWeightKg": 39
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 10,
+          "totalLengthM": 55,
+          "grossWeightKg": 37.3
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 12.5,
+          "totalLengthM": 110.8,
+          "grossWeightKg": 117.5
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 16,
+          "totalLengthM": 105.7,
+          "grossWeightKg": 183.6
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 20,
+          "totalLengthM": 78.4,
+          "grossWeightKg": 212.7
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 25,
+          "totalLengthM": 9.7,
+          "grossWeightKg": 41.3
+        },
+        {
+          "steel": "CA-60",
+          "diameter": 5,
+          "totalLengthM": 584.1,
+          "grossWeightKg": 99
+        }
+      ],
+      "warnings": [
+        "71 ocorrência(s): HATCH — representação omitida ou simplificada.",
+        "360 ocorrência(s): POINT — representação omitida ou simplificada."
+      ]
+    },
+    {
+      "key": "pilares",
+      "file": "Exemplo - Pilar.dwg",
+      "sha256": "6ea1f5be31c843907fb659e029daf84c3dce688339d94725c453a825aa2de89a",
+      "plotUnitMm": 10,
+      "summaryAllowance": 0.1,
+      "summary": [
+        {
+          "steel": "CA-50",
+          "diameter": 10,
+          "totalLengthM": 115.8,
+          "grossWeightKg": 78.6
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 12.5,
+          "totalLengthM": 31.7,
+          "grossWeightKg": 33.6
+        },
+        {
+          "steel": "CA-50",
+          "diameter": 16,
+          "totalLengthM": 153.8,
+          "grossWeightKg": 267
+        },
+        {
+          "steel": "CA-60",
+          "diameter": 5,
+          "totalLengthM": 301.6,
+          "grossWeightKg": 51.1
+        }
+      ],
+      "warnings": [
+        "14 ocorrência(s): HATCH — representação omitida ou simplificada.",
+        "144 ocorrência(s): POINT — representação omitida ou simplificada.",
+        "14 ocorrência(s): WIPEOUT — representação omitida ou simplificada."
+      ]
+    }
+  ],
+  "positions": [
+    {
+      "key": "vigas:N1",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N1",
+      "nativeMark": "V-N1",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 469,
+      "cutLengthMm": 970,
+      "totalLengthMm": 454930,
+      "sourceRowHandles": ["C2", "C3", "C4", "C5", "C6"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:2B7",
+          "captionHandle": "2B7",
+          "element": "V12",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "2A6",
+            "2A7",
+            "2A8",
+            "2A9",
+            "2AA",
+            "2AB",
+            "2AC",
+            "2AE",
+            "2AF",
+            "2B1",
+            "2B2",
+            "2B3",
+            "2B4",
+            "2B5",
+            "2B6"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:37F",
+          "captionHandle": "37F",
+          "element": "V13",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "36E",
+            "36F",
+            "370",
+            "371",
+            "372",
+            "373",
+            "374",
+            "376",
+            "377",
+            "379",
+            "37A",
+            "37B",
+            "37C",
+            "37D",
+            "37E"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:4DD",
+          "captionHandle": "4DD",
+          "element": "V15",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "4CC",
+            "4CD",
+            "4CE",
+            "4CF",
+            "4D0",
+            "4D1",
+            "4D2",
+            "4D4",
+            "4D5",
+            "4D7",
+            "4D8",
+            "4D9",
+            "4DA",
+            "4DB",
+            "4DC"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:624",
+          "captionHandle": "624",
+          "element": "V17",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "613",
+            "614",
+            "615",
+            "616",
+            "617",
+            "618",
+            "619",
+            "61B",
+            "61C",
+            "61E",
+            "61F",
+            "620",
+            "621",
+            "622",
+            "623"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:782",
+          "captionHandle": "782",
+          "element": "V19",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "771",
+            "772",
+            "773",
+            "774",
+            "775",
+            "776",
+            "777",
+            "779",
+            "77A",
+            "77C",
+            "77D",
+            "77E",
+            "77F",
+            "780",
+            "781"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:9F2",
+          "captionHandle": "9F2",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "9E1",
+            "9E2",
+            "9E3",
+            "9E4",
+            "9E5",
+            "9E6",
+            "9E7",
+            "9E9",
+            "9EA",
+            "9EC",
+            "9ED",
+            "9EE",
+            "9EF",
+            "9F0",
+            "9F1"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:CCB",
+          "captionHandle": "CCB",
+          "element": "V24",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "CBA",
+            "CBB",
+            "CBC",
+            "CBD",
+            "CBE",
+            "CBF",
+            "CC0",
+            "CC2",
+            "CC3",
+            "CC5",
+            "CC6",
+            "CC7",
+            "CC8",
+            "CC9",
+            "CCA"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:F67",
+          "captionHandle": "F67",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "F56",
+            "F57",
+            "F58",
+            "F59",
+            "F5A",
+            "F5B",
+            "F5C",
+            "F5E",
+            "F5F",
+            "F61",
+            "F62",
+            "F63",
+            "F64",
+            "F65",
+            "F66"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N2",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N2",
+      "nativeMark": "V-N2",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 4,
+      "cutLengthMm": 2250,
+      "totalLengthMm": 9000,
+      "sourceRowHandles": ["C7", "C8", "C9", "CA", "CB"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:269",
+          "captionHandle": "269",
+          "element": "V12",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2250,
+          "traceHandles": ["268"]
+        },
+        {
+          "barId": "example:bar:vigas:332",
+          "captionHandle": "332",
+          "element": "V13",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2250,
+          "traceHandles": ["331"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N3",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N3",
+      "nativeMark": "V-N3",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 65,
+      "cutLengthMm": 770,
+      "totalLengthMm": 50050,
+      "sourceRowHandles": ["CC", "CD", "CE", "CF", "D0"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:403",
+          "captionHandle": "403",
+          "element": "V14",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 770,
+          "traceHandles": [
+            "3F2",
+            "3F3",
+            "3F4",
+            "3F5",
+            "3F6",
+            "3F7",
+            "3F8",
+            "3FA",
+            "3FB",
+            "3FD",
+            "3FE",
+            "3FF",
+            "400",
+            "401",
+            "402"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:561",
+          "captionHandle": "561",
+          "element": "V16",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 770,
+          "traceHandles": [
+            "550",
+            "551",
+            "552",
+            "553",
+            "554",
+            "555",
+            "556",
+            "558",
+            "559",
+            "55B",
+            "55C",
+            "55D",
+            "55E",
+            "55F",
+            "560"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:6A8",
+          "captionHandle": "6A8",
+          "element": "V18",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 770,
+          "traceHandles": [
+            "697",
+            "698",
+            "699",
+            "69A",
+            "69B",
+            "69C",
+            "69D",
+            "69F",
+            "6A0",
+            "6A2",
+            "6A3",
+            "6A4",
+            "6A5",
+            "6A6",
+            "6A7"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:806",
+          "captionHandle": "806",
+          "element": "V20",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 770,
+          "traceHandles": [
+            "7F5",
+            "7F6",
+            "7F7",
+            "7F8",
+            "7F9",
+            "7FA",
+            "7FB",
+            "7FD",
+            "7FE",
+            "800",
+            "801",
+            "802",
+            "803",
+            "804",
+            "805"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:BB0",
+          "captionHandle": "BB0",
+          "element": "V23",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 770,
+          "traceHandles": [
+            "B9F",
+            "BA0",
+            "BA1",
+            "BA2",
+            "BA3",
+            "BA4",
+            "BA5",
+            "BA7",
+            "BA8",
+            "BAA",
+            "BAB",
+            "BAC",
+            "BAD",
+            "BAE",
+            "BAF"
+          ]
+        },
+        {
+          "barId": "example:bar:vigas:D4F",
+          "captionHandle": "D4F",
+          "element": "V25",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 770,
+          "traceHandles": [
+            "D3E",
+            "D3F",
+            "D40",
+            "D41",
+            "D42",
+            "D43",
+            "D44",
+            "D46",
+            "D47",
+            "D49",
+            "D4A",
+            "D4B",
+            "D4C",
+            "D4D",
+            "D4E"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N4",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N4",
+      "nativeMark": "V-N4",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 8,
+      "cutLengthMm": 1680,
+      "totalLengthMm": 13440,
+      "sourceRowHandles": ["D1", "D2", "D3", "D4", "D5"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:3B7",
+          "captionHandle": "3B7",
+          "element": "V14",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["3B6"]
+        },
+        {
+          "barId": "example:bar:vigas:515",
+          "captionHandle": "515",
+          "element": "V16",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["514"]
+        },
+        {
+          "barId": "example:bar:vigas:65C",
+          "captionHandle": "65C",
+          "element": "V18",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["65B"]
+        },
+        {
+          "barId": "example:bar:vigas:7BA",
+          "captionHandle": "7BA",
+          "element": "V20",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["7B9"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N5",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N5",
+      "nativeMark": "V-N5",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 35,
+      "cutLengthMm": 1170,
+      "totalLengthMm": 40950,
+      "sourceRowHandles": ["D6", "D7", "D8", "D9", "DA"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:B27",
+          "captionHandle": "B27",
+          "element": "V22",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 1170,
+          "traceHandles": [
+            "B16",
+            "B17",
+            "B18",
+            "B19",
+            "B1A",
+            "B1B",
+            "B1C",
+            "B1E",
+            "B1F",
+            "B21",
+            "B22",
+            "B23",
+            "B24",
+            "B25",
+            "B26"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N6",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N6",
+      "nativeMark": "V-N6",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 2,
+      "cutLengthMm": 3120,
+      "totalLengthMm": 6240,
+      "sourceRowHandles": ["DB", "DC", "DD", "DE", "DF"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:C7A",
+          "captionHandle": "C7A",
+          "element": "V24",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 3120,
+          "traceHandles": ["C79"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N7",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N7",
+      "nativeMark": "V-N7",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 2,
+      "cutLengthMm": 2830,
+      "totalLengthMm": 5660,
+      "sourceRowHandles": ["E0", "E1", "E2", "E3", "E4"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:C7D",
+          "captionHandle": "C7D",
+          "element": "V24",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2830,
+          "traceHandles": ["C7C"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N8",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N8",
+      "nativeMark": "V-N8",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 2,
+      "cutLengthMm": 1940,
+      "totalLengthMm": 3880,
+      "sourceRowHandles": ["E5", "E6", "E7", "E8", "E9"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:D03",
+          "captionHandle": "D03",
+          "element": "V25",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1940,
+          "traceHandles": ["D02"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N9",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N9",
+      "nativeMark": "V-N9",
+      "steel": "CA-50",
+      "diameter": 6.3,
+      "quantity": 6,
+      "cutLengthMm": 2000,
+      "totalLengthMm": 12000,
+      "sourceRowHandles": ["EB", "EC", "ED", "EE", "EF"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:AB2",
+          "captionHandle": "AB2",
+          "element": "V22",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2000,
+          "traceHandles": ["AAD", "AAF", "AB0"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N10",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N10",
+      "nativeMark": "V-N10",
+      "steel": "CA-50",
+      "diameter": 6.3,
+      "quantity": 1,
+      "cutLengthMm": 810,
+      "totalLengthMm": 810,
+      "sourceRowHandles": ["F0", "F1", "F2", "F3", "F4"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:ABC",
+          "captionHandle": "ABC",
+          "element": "V22",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 810,
+          "traceHandles": ["AB5", "AB6", "AB7", "AB9", "ABA"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N11",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N11",
+      "nativeMark": "V-N11",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 8,
+      "cutLengthMm": 1680,
+      "totalLengthMm": 13440,
+      "sourceRowHandles": ["F5", "F6", "F7", "F8", "F9"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:3B3",
+          "captionHandle": "3B3",
+          "element": "V14",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["3B2"]
+        },
+        {
+          "barId": "example:bar:vigas:511",
+          "captionHandle": "511",
+          "element": "V16",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["510"]
+        },
+        {
+          "barId": "example:bar:vigas:658",
+          "captionHandle": "658",
+          "element": "V18",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["657"]
+        },
+        {
+          "barId": "example:bar:vigas:7B6",
+          "captionHandle": "7B6",
+          "element": "V20",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1680,
+          "traceHandles": ["7B5"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N12",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N12",
+      "nativeMark": "V-N12",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 2,
+      "cutLengthMm": 8400,
+      "totalLengthMm": 16800,
+      "sourceRowHandles": ["FA", "FB", "FC", "FD", "FE"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:962",
+          "captionHandle": "962",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 8400,
+          "traceHandles": ["95D", "95F", "960"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N13",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N13",
+      "nativeMark": "V-N13",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 2,
+      "cutLengthMm": 4490,
+      "totalLengthMm": 8980,
+      "sourceRowHandles": ["FF", "100", "101", "102", "103"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:966",
+          "captionHandle": "966",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 4490,
+          "traceHandles": ["965"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N14",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N14",
+      "nativeMark": "V-N14",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 4,
+      "cutLengthMm": 1940,
+      "totalLengthMm": 7760,
+      "sourceRowHandles": ["104", "105", "106", "107", "108"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:B5B",
+          "captionHandle": "B5B",
+          "element": "V23",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1940,
+          "traceHandles": ["B5A"]
+        },
+        {
+          "barId": "example:bar:vigas:CFF",
+          "captionHandle": "CFF",
+          "element": "V25",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1940,
+          "traceHandles": ["CFE"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N15",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N15",
+      "nativeMark": "V-N15",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 2,
+      "cutLengthMm": 2020,
+      "totalLengthMm": 4040,
+      "sourceRowHandles": ["109", "10A", "10B", "10C", "10D"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:B63",
+          "captionHandle": "B63",
+          "element": "V23",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2020,
+          "traceHandles": ["B5E", "B60", "B61"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N16",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N16",
+      "nativeMark": "V-N16",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 2,
+      "cutLengthMm": 8340,
+      "totalLengthMm": 16680,
+      "sourceRowHandles": ["10E", "10F", "110", "111", "112"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:C61",
+          "captionHandle": "C61",
+          "element": "V24",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 8340,
+          "traceHandles": ["C60"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N17",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N17",
+      "nativeMark": "V-N17",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 2,
+      "cutLengthMm": 6800,
+      "totalLengthMm": 13600,
+      "sourceRowHandles": ["113", "114", "115", "116", "117"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:C69",
+          "captionHandle": "C69",
+          "element": "V24",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 6800,
+          "traceHandles": ["C68"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N18",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N18",
+      "nativeMark": "V-N18",
+      "steel": "CA-50",
+      "diameter": 8,
+      "quantity": 2,
+      "cutLengthMm": 4250,
+      "totalLengthMm": 8500,
+      "sourceRowHandles": ["118", "119", "11A", "11B", "11C"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:EBF",
+          "captionHandle": "EBF",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 4250,
+          "traceHandles": ["EBA", "EBC", "EBD"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N19",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N19",
+      "nativeMark": "V-N19",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 2,
+      "cutLengthMm": 9940,
+      "totalLengthMm": 19880,
+      "sourceRowHandles": ["11D", "11E", "11F", "120", "121"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:96A",
+          "captionHandle": "96A",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 9940,
+          "traceHandles": ["969"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N20",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N20",
+      "nativeMark": "V-N20",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 2,
+      "cutLengthMm": 3340,
+      "totalLengthMm": 6680,
+      "sourceRowHandles": ["122", "123", "124", "125", "126"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:ACD",
+          "captionHandle": "ACD",
+          "element": "V22",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 3340,
+          "traceHandles": ["AC8", "ACA", "ACB"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N21",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N21",
+      "nativeMark": "V-N21",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 2,
+      "cutLengthMm": 4250,
+      "totalLengthMm": 8500,
+      "sourceRowHandles": ["127", "128", "129", "12A", "12B"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:C65",
+          "captionHandle": "C65",
+          "element": "V24",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 4250,
+          "traceHandles": ["C64"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N22",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N22",
+      "nativeMark": "V-N22",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 2,
+      "cutLengthMm": 9060,
+      "totalLengthMm": 18120,
+      "sourceRowHandles": ["12C", "12D", "12E", "12F", "130"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:EC3",
+          "captionHandle": "EC3",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 9060,
+          "traceHandles": ["EC2"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N23",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N23",
+      "nativeMark": "V-N23",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 1,
+      "cutLengthMm": 1840,
+      "totalLengthMm": 1840,
+      "sourceRowHandles": ["131", "132", "133", "134", "135"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:F78",
+          "captionHandle": "F78",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 25,
+          "declaredCutLengthMm": 1840,
+          "traceHandles": [
+            "F6C",
+            "F6E",
+            "F6F",
+            "F71",
+            "F72",
+            "F74",
+            "F75",
+            "F76",
+            "F77"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N24",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N24",
+      "nativeMark": "V-N24",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 4,
+      "cutLengthMm": 7180,
+      "totalLengthMm": 28720,
+      "sourceRowHandles": ["136", "137", "138", "139", "13A"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:255",
+          "captionHandle": "255",
+          "element": "V12",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 7180,
+          "traceHandles": ["254"]
+        },
+        {
+          "barId": "example:bar:vigas:31E",
+          "captionHandle": "31E",
+          "element": "V13",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 7180,
+          "traceHandles": ["31D"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N25",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N25",
+      "nativeMark": "V-N25",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 2,
+      "cutLengthMm": 7300,
+      "totalLengthMm": 14600,
+      "sourceRowHandles": ["13B", "13C", "13D", "13E", "13F"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:5CC",
+          "captionHandle": "5CC",
+          "element": "V17",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 7300,
+          "traceHandles": ["5C7", "5C9", "5CA"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N26",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N26",
+      "nativeMark": "V-N26",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 1,
+      "cutLengthMm": 2450,
+      "totalLengthMm": 2450,
+      "sourceRowHandles": ["140", "141", "142", "143", "144"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:96E",
+          "captionHandle": "96E",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2450,
+          "traceHandles": ["96D"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N27",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N27",
+      "nativeMark": "V-N27",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 1,
+      "cutLengthMm": 1830,
+      "totalLengthMm": 1830,
+      "sourceRowHandles": ["145", "146", "147", "148", "149"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:983",
+          "captionHandle": "983",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 1830,
+          "traceHandles": ["97E", "980", "981"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N28",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N28",
+      "nativeMark": "V-N28",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 2,
+      "cutLengthMm": 11970,
+      "totalLengthMm": 23940,
+      "sourceRowHandles": ["14A", "14B", "14C", "14D", "14E"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:98B",
+          "captionHandle": "98B",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 11970,
+          "traceHandles": ["986", "988", "989"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N29",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N29",
+      "nativeMark": "V-N29",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 2,
+      "cutLengthMm": 11680,
+      "totalLengthMm": 23360,
+      "sourceRowHandles": ["14F", "150", "151", "152", "153"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:9A0",
+          "captionHandle": "9A0",
+          "element": "V21",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 11680,
+          "traceHandles": ["99B", "99D", "99E"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N30",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N30",
+      "nativeMark": "V-N30",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 2,
+      "cutLengthMm": 4650,
+      "totalLengthMm": 9300,
+      "sourceRowHandles": ["154", "155", "156", "157", "158"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:AC5",
+          "captionHandle": "AC5",
+          "element": "V22",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 4650,
+          "traceHandles": ["ABD", "ABF", "AC0", "AC2", "AC3"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N31",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N31",
+      "nativeMark": "V-N31",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 2,
+      "cutLengthMm": 3320,
+      "totalLengthMm": 6640,
+      "sourceRowHandles": ["159", "15A", "15B", "15C", "15D"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:EC7",
+          "captionHandle": "EC7",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 3320,
+          "traceHandles": ["EC6"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N32",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N32",
+      "nativeMark": "V-N32",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 4,
+      "cutLengthMm": 7330,
+      "totalLengthMm": 29320,
+      "sourceRowHandles": ["15E", "15F", "160", "161", "162"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:47C",
+          "captionHandle": "47C",
+          "element": "V15",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 7330,
+          "traceHandles": ["477", "479", "47A"]
+        },
+        {
+          "barId": "example:bar:vigas:721",
+          "captionHandle": "721",
+          "element": "V19",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 7330,
+          "traceHandles": ["71C", "71E", "71F"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N33",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N33",
+      "nativeMark": "V-N33",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 2,
+      "cutLengthMm": 7770,
+      "totalLengthMm": 15540,
+      "sourceRowHandles": ["163", "164", "165", "166", "167"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:ECB",
+          "captionHandle": "ECB",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 7770,
+          "traceHandles": ["ECA"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N34",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N34",
+      "nativeMark": "V-N34",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 2,
+      "cutLengthMm": 2650,
+      "totalLengthMm": 5300,
+      "sourceRowHandles": ["168", "169", "16A", "16B", "16C"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:ECF",
+          "captionHandle": "ECF",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2650,
+          "traceHandles": ["ECE"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N35",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N35",
+      "nativeMark": "V-N35",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 1,
+      "cutLengthMm": 3250,
+      "totalLengthMm": 3250,
+      "sourceRowHandles": ["16D", "16E", "16F", "170", "171"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:EE1",
+          "captionHandle": "EE1",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 3250,
+          "traceHandles": ["EE0"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N36",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N36",
+      "nativeMark": "V-N36",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 2,
+      "cutLengthMm": 2490,
+      "totalLengthMm": 4980,
+      "sourceRowHandles": ["172", "173", "174", "175", "176"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:EF6",
+          "captionHandle": "EF6",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2490,
+          "traceHandles": ["EF1", "EF3", "EF4"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N37",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N37",
+      "nativeMark": "V-N37",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 2,
+      "cutLengthMm": 11960,
+      "totalLengthMm": 23920,
+      "sourceRowHandles": ["177", "178", "179", "17A", "17B"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:EFE",
+          "captionHandle": "EFE",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 11960,
+          "traceHandles": ["EF9", "EFB", "EFC"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N38",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N38",
+      "nativeMark": "V-N38",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 2,
+      "cutLengthMm": 11710,
+      "totalLengthMm": 23420,
+      "sourceRowHandles": ["17C", "17D", "17E", "17F", "180"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:F13",
+          "captionHandle": "F13",
+          "element": "V26",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 11710,
+          "traceHandles": ["F0E", "F10", "F11"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N39",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N39",
+      "nativeMark": "V-N39",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 2,
+      "cutLengthMm": 3020,
+      "totalLengthMm": 6040,
+      "sourceRowHandles": ["181", "182", "183", "184", "185"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:25D",
+          "captionHandle": "25D",
+          "element": "V12",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 3020,
+          "traceHandles": ["258", "25A", "25B"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N40",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N40",
+      "nativeMark": "V-N40",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 2,
+      "cutLengthMm": 2970,
+      "totalLengthMm": 5940,
+      "sourceRowHandles": ["186", "187", "188", "189", "18A"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:265",
+          "captionHandle": "265",
+          "element": "V12",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2970,
+          "traceHandles": ["260", "262", "263"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N41",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N41",
+      "nativeMark": "V-N41",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 2,
+      "cutLengthMm": 3060,
+      "totalLengthMm": 6120,
+      "sourceRowHandles": ["18B", "18C", "18D", "18E", "18F"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:326",
+          "captionHandle": "326",
+          "element": "V13",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 3060,
+          "traceHandles": ["321", "323", "324"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N42",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N42",
+      "nativeMark": "V-N42",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 2,
+      "cutLengthMm": 2980,
+      "totalLengthMm": 5960,
+      "sourceRowHandles": ["190", "191", "192", "193", "194"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:32E",
+          "captionHandle": "32E",
+          "element": "V13",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2980,
+          "traceHandles": ["329", "32B", "32C"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N43",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N43",
+      "nativeMark": "V-N43",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 1,
+      "cutLengthMm": 2310,
+      "totalLengthMm": 2310,
+      "sourceRowHandles": ["195", "196", "197", "198", "199"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:484",
+          "captionHandle": "484",
+          "element": "V15",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2310,
+          "traceHandles": ["47F", "481", "482"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N44",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N44",
+      "nativeMark": "V-N44",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 2,
+      "cutLengthMm": 8300,
+      "totalLengthMm": 16600,
+      "sourceRowHandles": ["19A", "19B", "19C", "19D", "19E"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:48F",
+          "captionHandle": "48F",
+          "element": "V15",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 8300,
+          "traceHandles": ["487", "489", "48A", "48C", "48D"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N45",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N45",
+      "nativeMark": "V-N45",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 2,
+      "cutLengthMm": 8260,
+      "totalLengthMm": 16520,
+      "sourceRowHandles": ["19F", "1A0", "1A1", "1A2", "1A3"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:5D7",
+          "captionHandle": "5D7",
+          "element": "V17",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 8260,
+          "traceHandles": ["5CF", "5D1", "5D2", "5D4", "5D5"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N46",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N46",
+      "nativeMark": "V-N46",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 1,
+      "cutLengthMm": 2310,
+      "totalLengthMm": 2310,
+      "sourceRowHandles": ["1A4", "1A5", "1A6", "1A7", "1A8"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:729",
+          "captionHandle": "729",
+          "element": "V19",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 2310,
+          "traceHandles": ["724", "726", "727"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N47",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N47",
+      "nativeMark": "V-N47",
+      "steel": "CA-50",
+      "diameter": 20,
+      "quantity": 2,
+      "cutLengthMm": 8310,
+      "totalLengthMm": 16620,
+      "sourceRowHandles": ["1A9", "1AA", "1AB", "1AC", "1AD"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:734",
+          "captionHandle": "734",
+          "element": "V19",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 8310,
+          "traceHandles": ["72C", "72E", "72F", "731", "732"]
+        }
+      ]
+    },
+    {
+      "key": "vigas:N48",
+      "sheetKey": "vigas",
+      "sheetId": "example:sheet:vigas",
+      "sourceMark": "N48",
+      "nativeMark": "V-N48",
+      "steel": "CA-50",
+      "diameter": 25,
+      "quantity": 2,
+      "cutLengthMm": 4870,
+      "totalLengthMm": 9740,
+      "sourceRowHandles": ["1AE", "1AF", "1B0", "1B1", "1B2"],
+      "occurrences": [
+        {
+          "barId": "example:bar:vigas:AD8",
+          "captionHandle": "AD8",
+          "element": "V22",
+          "floor": "Vigas · pavimento de referência",
+          "level": "",
+          "plotScale": 50,
+          "declaredCutLengthMm": 4870,
+          "traceHandles": ["AD0", "AD2", "AD3", "AD5", "AD6"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N1",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N1",
+      "nativeMark": "P-N1",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 223,
+      "cutLengthMm": 870,
+      "totalLengthMm": 194010,
+      "sourceRowHandles": ["BE", "BF", "C0", "C1", "C2"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:17E",
+          "captionHandle": "17E",
+          "element": "P1",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "16D",
+            "16E",
+            "16F",
+            "170",
+            "171",
+            "172",
+            "173",
+            "175",
+            "176",
+            "178",
+            "179",
+            "17A",
+            "17B",
+            "17C",
+            "17D"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:1D0",
+          "captionHandle": "1D0",
+          "element": "P1",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "1BF",
+            "1C0",
+            "1C1",
+            "1C2",
+            "1C3",
+            "1C4",
+            "1C5",
+            "1C7",
+            "1C8",
+            "1CA",
+            "1CB",
+            "1CC",
+            "1CD",
+            "1CE",
+            "1CF"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:222",
+          "captionHandle": "222",
+          "element": "P1",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "211",
+            "212",
+            "213",
+            "214",
+            "215",
+            "216",
+            "217",
+            "219",
+            "21A",
+            "21C",
+            "21D",
+            "21E",
+            "21F",
+            "220",
+            "221"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:29B",
+          "captionHandle": "29B",
+          "element": "P7",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "28A",
+            "28B",
+            "28C",
+            "28D",
+            "28E",
+            "28F",
+            "290",
+            "292",
+            "293",
+            "295",
+            "296",
+            "297",
+            "298",
+            "299",
+            "29A"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:300",
+          "captionHandle": "300",
+          "element": "P7",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "2EF",
+            "2F0",
+            "2F1",
+            "2F2",
+            "2F3",
+            "2F4",
+            "2F5",
+            "2F7",
+            "2F8",
+            "2FA",
+            "2FB",
+            "2FC",
+            "2FD",
+            "2FE",
+            "2FF"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:367",
+          "captionHandle": "367",
+          "element": "P7",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "356",
+            "357",
+            "358",
+            "359",
+            "35A",
+            "35B",
+            "35C",
+            "35E",
+            "35F",
+            "361",
+            "362",
+            "363",
+            "364",
+            "365",
+            "366"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:502",
+          "captionHandle": "502",
+          "element": "P13",
+          "floor": "TOPO RESERVATÓRIO",
+          "level": "L5",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "4F1",
+            "4F2",
+            "4F3",
+            "4F4",
+            "4F5",
+            "4F6",
+            "4F7",
+            "4F9",
+            "4FA",
+            "4FC",
+            "4FD",
+            "4FE",
+            "4FF",
+            "500",
+            "501"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:567",
+          "captionHandle": "567",
+          "element": "P13",
+          "floor": "BASE RESERVATÓRIO",
+          "level": "L4",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "556",
+            "557",
+            "558",
+            "559",
+            "55A",
+            "55B",
+            "55C",
+            "55E",
+            "55F",
+            "561",
+            "562",
+            "563",
+            "564",
+            "565",
+            "566"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:5D4",
+          "captionHandle": "5D4",
+          "element": "P13",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "5C3",
+            "5C4",
+            "5C5",
+            "5C6",
+            "5C7",
+            "5C8",
+            "5C9",
+            "5CB",
+            "5CC",
+            "5CE",
+            "5CF",
+            "5D0",
+            "5D1",
+            "5D2",
+            "5D3"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:63B",
+          "captionHandle": "63B",
+          "element": "P13",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "62A",
+            "62B",
+            "62C",
+            "62D",
+            "62E",
+            "62F",
+            "630",
+            "632",
+            "633",
+            "635",
+            "636",
+            "637",
+            "638",
+            "639",
+            "63A"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:691",
+          "captionHandle": "691",
+          "element": "P13",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 20,
+          "declaredCutLengthMm": 870,
+          "traceHandles": [
+            "680",
+            "681",
+            "682",
+            "683",
+            "684",
+            "685",
+            "686",
+            "688",
+            "689",
+            "68B",
+            "68C",
+            "68D",
+            "68E",
+            "68F",
+            "690"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N2",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N2",
+      "nativeMark": "P-N2",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 76,
+      "cutLengthMm": 290,
+      "totalLengthMm": 22040,
+      "sourceRowHandles": ["C3", "C4", "C5", "C6", "C7"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:2BC",
+          "captionHandle": "2BC",
+          "element": "P7",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 20,
+          "declaredCutLengthMm": 290,
+          "traceHandles": [
+            "280",
+            "281",
+            "282",
+            "283",
+            "284",
+            "285",
+            "286",
+            "287",
+            "288"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:323",
+          "captionHandle": "323",
+          "element": "P7",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 20,
+          "declaredCutLengthMm": 290,
+          "traceHandles": [
+            "2E5",
+            "2E6",
+            "2E7",
+            "2E8",
+            "2E9",
+            "2EA",
+            "2EB",
+            "2EC",
+            "2ED"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:38F",
+          "captionHandle": "38F",
+          "element": "P7",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 20,
+          "declaredCutLengthMm": 290,
+          "traceHandles": [
+            "34C",
+            "34D",
+            "34E",
+            "34F",
+            "350",
+            "351",
+            "352",
+            "353",
+            "354"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:5FA",
+          "captionHandle": "5FA",
+          "element": "P13",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 20,
+          "declaredCutLengthMm": 290,
+          "traceHandles": [
+            "5B9",
+            "5BA",
+            "5BB",
+            "5BC",
+            "5BD",
+            "5BE",
+            "5BF",
+            "5C0",
+            "5C1"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N3",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N3",
+      "nativeMark": "P-N3",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 34,
+      "cutLengthMm": 290,
+      "totalLengthMm": 9860,
+      "sourceRowHandles": ["C8", "C9", "CA", "CB", "CC"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:523",
+          "captionHandle": "523",
+          "element": "P13",
+          "floor": "TOPO RESERVATÓRIO",
+          "level": "L5",
+          "plotScale": 20,
+          "declaredCutLengthMm": 290,
+          "traceHandles": [
+            "4E7",
+            "4E8",
+            "4E9",
+            "4EA",
+            "4EB",
+            "4EC",
+            "4ED",
+            "4EE",
+            "4EF"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:58A",
+          "captionHandle": "58A",
+          "element": "P13",
+          "floor": "BASE RESERVATÓRIO",
+          "level": "L4",
+          "plotScale": 20,
+          "declaredCutLengthMm": 290,
+          "traceHandles": [
+            "54C",
+            "54D",
+            "54E",
+            "54F",
+            "550",
+            "551",
+            "552",
+            "553",
+            "554"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N4",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N4",
+      "nativeMark": "P-N4",
+      "steel": "CA-60",
+      "diameter": 5,
+      "quantity": 78,
+      "cutLengthMm": 970,
+      "totalLengthMm": 75660,
+      "sourceRowHandles": ["CD", "CE", "CF", "D0", "D1"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:3DC",
+          "captionHandle": "3DC",
+          "element": "P17",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 20,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "3CB",
+            "3CC",
+            "3CD",
+            "3CE",
+            "3CF",
+            "3D0",
+            "3D1",
+            "3D3",
+            "3D4",
+            "3D6",
+            "3D7",
+            "3D8",
+            "3D9",
+            "3DA",
+            "3DB"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:433",
+          "captionHandle": "433",
+          "element": "P17",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 20,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "422",
+            "423",
+            "424",
+            "425",
+            "426",
+            "427",
+            "428",
+            "42A",
+            "42B",
+            "42D",
+            "42E",
+            "42F",
+            "430",
+            "431",
+            "432"
+          ]
+        },
+        {
+          "barId": "example:bar:pilares:487",
+          "captionHandle": "487",
+          "element": "P17",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 20,
+          "declaredCutLengthMm": 970,
+          "traceHandles": [
+            "476",
+            "477",
+            "478",
+            "479",
+            "47A",
+            "47B",
+            "47C",
+            "47E",
+            "47F",
+            "481",
+            "482",
+            "483",
+            "484",
+            "485",
+            "486"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N5",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N5",
+      "nativeMark": "P-N5",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 4,
+      "cutLengthMm": 3430,
+      "totalLengthMm": 13720,
+      "sourceRowHandles": ["D3", "D4", "D5", "D6", "D7"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:183",
+          "captionHandle": "183",
+          "element": "P1",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 25,
+          "declaredCutLengthMm": 3430,
+          "traceHandles": ["181"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N6",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N6",
+      "nativeMark": "P-N6",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 6,
+      "cutLengthMm": 4110,
+      "totalLengthMm": 24660,
+      "sourceRowHandles": ["D8", "D9", "DA", "DB", "DC"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:1D5",
+          "captionHandle": "1D5",
+          "element": "P1",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 25,
+          "declaredCutLengthMm": 4110,
+          "traceHandles": ["1D3"]
+        },
+        {
+          "barId": "example:bar:pilares:438",
+          "captionHandle": "438",
+          "element": "P17",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 25,
+          "declaredCutLengthMm": 4110,
+          "traceHandles": ["436"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N7",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N7",
+      "nativeMark": "P-N7",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 8,
+      "cutLengthMm": 4470,
+      "totalLengthMm": 35760,
+      "sourceRowHandles": ["DD", "DE", "DF", "E0", "E1"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:1DA",
+          "captionHandle": "1DA",
+          "element": "P1",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 25,
+          "declaredCutLengthMm": 4470,
+          "traceHandles": ["1D6", "1D8"]
+        },
+        {
+          "barId": "example:bar:pilares:43D",
+          "captionHandle": "43D",
+          "element": "P17",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 25,
+          "declaredCutLengthMm": 4470,
+          "traceHandles": ["439", "43B"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N8",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N8",
+      "nativeMark": "P-N8",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 14,
+      "cutLengthMm": 1970,
+      "totalLengthMm": 27580,
+      "sourceRowHandles": ["E2", "E3", "E4", "E5", "E6"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:22E",
+          "captionHandle": "22E",
+          "element": "P1",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 25,
+          "declaredCutLengthMm": 1970,
+          "traceHandles": ["227", "229", "22A", "22C"]
+        },
+        {
+          "barId": "example:bar:pilares:493",
+          "captionHandle": "493",
+          "element": "P17",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 25,
+          "declaredCutLengthMm": 1970,
+          "traceHandles": ["48C", "48E", "48F", "491"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N9",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N9",
+      "nativeMark": "P-N9",
+      "steel": "CA-50",
+      "diameter": 10,
+      "quantity": 4,
+      "cutLengthMm": 3530,
+      "totalLengthMm": 14120,
+      "sourceRowHandles": ["E7", "E8", "E9", "EA", "EB"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:3E1",
+          "captionHandle": "3E1",
+          "element": "P17",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 25,
+          "declaredCutLengthMm": 3530,
+          "traceHandles": ["3DF"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N10",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N10",
+      "nativeMark": "P-N10",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 6,
+      "cutLengthMm": 1970,
+      "totalLengthMm": 11820,
+      "sourceRowHandles": ["EC", "ED", "EE", "EF", "F0"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:507",
+          "captionHandle": "507",
+          "element": "P13",
+          "floor": "TOPO RESERVATÓRIO",
+          "level": "L5",
+          "plotScale": 25,
+          "declaredCutLengthMm": 1970,
+          "traceHandles": ["505"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N11",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N11",
+      "nativeMark": "P-N11",
+      "steel": "CA-50",
+      "diameter": 12.5,
+      "quantity": 6,
+      "cutLengthMm": 3320,
+      "totalLengthMm": 19920,
+      "sourceRowHandles": ["F1", "F2", "F3", "F4", "F5"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:56E",
+          "captionHandle": "56E",
+          "element": "P13",
+          "floor": "BASE RESERVATÓRIO",
+          "level": "L4",
+          "plotScale": 25,
+          "declaredCutLengthMm": 3320,
+          "traceHandles": ["56A", "56C"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N12",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N12",
+      "nativeMark": "P-N12",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 8,
+      "cutLengthMm": 3030,
+      "totalLengthMm": 24240,
+      "sourceRowHandles": ["F6", "F7", "F8", "F9", "FA"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:2A0",
+          "captionHandle": "2A0",
+          "element": "P7",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 25,
+          "declaredCutLengthMm": 3030,
+          "traceHandles": ["29E"]
+        },
+        {
+          "barId": "example:bar:pilares:5D9",
+          "captionHandle": "5D9",
+          "element": "P13",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 25,
+          "declaredCutLengthMm": 3030,
+          "traceHandles": ["5D7"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N13",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N13",
+      "nativeMark": "P-N13",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 14,
+      "cutLengthMm": 4670,
+      "totalLengthMm": 65380,
+      "sourceRowHandles": ["FB", "FC", "FD", "FE", "FF"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:307",
+          "captionHandle": "307",
+          "element": "P7",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 25,
+          "declaredCutLengthMm": 4670,
+          "traceHandles": ["303", "305"]
+        },
+        {
+          "barId": "example:bar:pilares:645",
+          "captionHandle": "645",
+          "element": "P13",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 25,
+          "declaredCutLengthMm": 4670,
+          "traceHandles": ["641", "643"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N14",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N14",
+      "nativeMark": "P-N14",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 16,
+      "cutLengthMm": 2150,
+      "totalLengthMm": 34400,
+      "sourceRowHandles": ["100", "101", "102", "103", "104"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:373",
+          "captionHandle": "373",
+          "element": "P7",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 25,
+          "declaredCutLengthMm": 2150,
+          "traceHandles": ["36C", "36E", "36F", "371"]
+        },
+        {
+          "barId": "example:bar:pilares:69D",
+          "captionHandle": "69D",
+          "element": "P13",
+          "floor": "TÉRREO",
+          "level": "L1",
+          "plotScale": 25,
+          "declaredCutLengthMm": 2150,
+          "traceHandles": ["696", "698", "699", "69B"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N15",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N15",
+      "nativeMark": "P-N15",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 6,
+      "cutLengthMm": 3590,
+      "totalLengthMm": 21540,
+      "sourceRowHandles": ["105", "106", "107", "108", "109"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:5DE",
+          "captionHandle": "5DE",
+          "element": "P13",
+          "floor": "COBERTURA",
+          "level": "L3",
+          "plotScale": 25,
+          "declaredCutLengthMm": 3590,
+          "traceHandles": ["5DA", "5DC"]
+        }
+      ]
+    },
+    {
+      "key": "pilares:N16",
+      "sheetKey": "pilares",
+      "sheetId": "example:sheet:pilares",
+      "sourceMark": "N16",
+      "nativeMark": "P-N16",
+      "steel": "CA-50",
+      "diameter": 16,
+      "quantity": 2,
+      "cutLengthMm": 4110,
+      "totalLengthMm": 8220,
+      "sourceRowHandles": ["10A", "10B", "10C", "10D", "10E"],
+      "occurrences": [
+        {
+          "barId": "example:bar:pilares:640",
+          "captionHandle": "640",
+          "element": "P13",
+          "floor": "SUPERIOR",
+          "level": "L2",
+          "plotScale": 25,
+          "declaredCutLengthMm": 4110,
+          "traceHandles": ["63E"]
+        }
+      ]
+    }
+  ]
+}

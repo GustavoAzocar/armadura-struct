@@ -1,3 +1,4 @@
+import { seedLegacyDemo } from './seedLegacyDemo';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { demoProject } from '../../src/domain/model';
@@ -79,6 +80,7 @@ test('three sheets persist order, properties and view positions; duplicating and
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
+  await seedLegacyDemo(page);
   await expect(page.locator('.bar-row')).toHaveCount(3);
   const before = await save(page);
   await create(page, 'Armação 02');
@@ -180,6 +182,7 @@ test('sheet tabs retain independent zoom, pan and selected views, including clos
   page,
 }) => {
   await page.goto('/');
+  await seedLegacyDemo(page);
   await expect(page.locator('.bar-row')).toHaveCount(3);
   await manager(page);
   await page

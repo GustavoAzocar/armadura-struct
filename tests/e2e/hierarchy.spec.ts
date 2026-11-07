@@ -1,3 +1,4 @@
+import { seedLegacyDemo } from './seedLegacyDemo';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
@@ -60,7 +61,7 @@ test('hierarchy CRUD, same-named elements, ownership, reparenting and persistent
     detailId = before.hierarchy.details.find(
       (d: any) => d.name === 'V1 superior',
     ).id;
-  expect(before.schema).toBe('armadurastruct/11');
+  expect(before.schema).toBe('armadurastruct/12');
   expect(
     before.hierarchy.elements.filter((e: any) => e.name === 'V1'),
   ).toHaveLength(2);
@@ -140,6 +141,7 @@ test('moving selected content preserves geometry and protected deletion leaves t
   page,
 }) => {
   await page.goto('/');
+  await seedLegacyDemo(page);
   await expect(page.locator('.bar-row')).toHaveCount(3);
   const before = await save(page);
   await create(page, 'detalhamento', 'Montagem');

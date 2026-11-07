@@ -1,4 +1,4 @@
-import { representationPoints } from './representations';
+import { representationPoints, representationPoint } from './representations';
 import { renumberOptionsSchema } from './numbering';
 import {
   FABRICATION_RULES,
@@ -10,6 +10,7 @@ import { barQuantities, validateBarQuantity } from './detailQuantities';
 import { z } from 'zod';
 import {
   detailContentSchema,
+  representationLabelSchema,
   manufacturingSchema,
   quantitySourceSchema,
   newBar,
@@ -73,6 +74,7 @@ export const REBAR_CAPABILITIES = Object.freeze({
   maxBatchOperations: 10000,
   atomicBatches: true,
   representationsDoNotAddSteel: true,
+  placedRepresentationLabels: true,
 });
 const number = z.number().finite();
 const point = z.object({ x: number, y: number }).strict();
@@ -233,6 +235,8 @@ const commandSchema = z.discriminatedUnion('type', [
       type: z.literal('representation.create'),
       rotation: number.optional(),
       scale: number.positive().max(10000).optional(),
+      label: representationLabelSchema.optional(),
+      showDimensions: z.boolean().optional(),
       identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id: id.optional(),
       barId: id,
@@ -245,6 +249,8 @@ const commandSchema = z.discriminatedUnion('type', [
       type: z.literal('representation.update'),
       rotation: number.optional(),
       scale: number.positive().max(10000).optional(),
+      label: representationLabelSchema.optional(),
+      showDimensions: z.boolean().optional(),
       identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id,
       origin: point.optional(),
@@ -468,9 +474,10 @@ export function validateRebarChange(
     const bar = after.bars.find((b) => b.id === r.barId);
     if (
       bar &&
-      representationPoints(bar, r).some(
-        (p) => !Number.isFinite(p.x) || !Number.isFinite(p.y),
-      )
+      [
+        ...representationPoints(bar, r),
+        ...(r.label ? [representationPoint(r, r.label.origin)] : []),
+      ].some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y))
     )
       errors.push(
         issue(
@@ -747,6 +754,8 @@ function perform(
               rotation: c.rotation,
               scale: c.scale,
               identification: c.identification,
+              label: c.label,
+              showDimensions: c.showDimensions,
             }),
           },
         ],
@@ -773,6 +782,8 @@ function perform(
                   rotation: c.rotation,
                   scale: c.scale,
                   identification: c.identification,
+                  label: c.label,
+                  showDimensions: c.showDimensions,
                 }),
                 ...(c.origin ? { origin: c.origin } : {}),
                 ...(c.barId ? { barId: c.barId } : {}),

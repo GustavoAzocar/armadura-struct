@@ -3,5 +3,6 @@
 *.dwg binary
 *.dxf binary
 *.png binary
+*.pdf binary
 *.ico binary
 *.icns binary

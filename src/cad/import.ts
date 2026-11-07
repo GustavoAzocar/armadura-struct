@@ -114,6 +114,7 @@ export function normalizeCad(
       let text: string | undefined;
       let textHeight: number | undefined;
       let textRotation: number | undefined;
+      let textAlign: Primitive['textAlign'];
       const normal = e.extrusionDirection ?? {
         x: e.extrusionDirectionX ?? 0,
         y: e.extrusionDirectionY ?? 0,
@@ -182,13 +183,33 @@ export function normalizeCad(
       } else if (['TEXT', 'MTEXT', 'ATTRIB', 'ATTDEF'].includes(type)) {
         points = [e.startPoint ?? e.position ?? e.insertionPoint];
         text = String(e.text ?? '')
-          .replace(/\\P/g, ' ')
+          .replace(/\\P/g, '\n')
           .replace(/\\[A-Za-z][^;]*;/g, '')
           .replace(/[{}]/g, '')
           .replace(/%%c/gi, 'Ø');
         textHeight = e.textHeight ?? e.height ?? 2.5;
         textRotation =
           (e.rotation ?? 0) * (format === 'DWG' ? 180 / Math.PI : 1);
+        if (type === 'MTEXT') {
+          if (e.direction && Math.hypot(e.direction.x, e.direction.y) > 1e-8)
+            textRotation =
+              (Math.atan2(e.direction.y, e.direction.x) * 180) / Math.PI;
+          const attachment = e.attachmentPoint ?? 1;
+          textAlign = ['left', 'center', 'right'][
+            (attachment - 1) % 3
+          ] as Primitive['textAlign'];
+          const rows = text.split('\n').length;
+          const h = textHeight ?? 2.5;
+          const height = h * (1 + (rows - 1) * 1.3);
+          const offset =
+            attachment <= 3 ? -height : attachment <= 6 ? -height / 2 : 0;
+          points = [
+            add(
+              points[0],
+              rotate({ x: 0, y: offset + (rows - 1) * h * 1.3 }, textRotation),
+            ),
+          ];
+        }
       } else if (['SOLID', 'TRACE', '3DFACE'].includes(type)) {
         points =
           e.points ??
@@ -228,7 +249,7 @@ export function normalizeCad(
         );
         textRotation = (Math.atan2(axis.y - a.y, axis.x - a.x) * 180) / Math.PI;
       }
-      primitives.push({
+      const item = {
         layer,
         points: points.map((p) => {
           const { x, y } = apply(p);
@@ -238,7 +259,25 @@ export function normalizeCad(
         text,
         textHeight,
         textRotation,
-      });
+        textAlign,
+      };
+      if (text?.includes('\n')) {
+        text.split('\n').forEach((value, i) =>
+          primitives.push({
+            ...item,
+            text: value,
+            points: [
+              add(
+                item.points[0],
+                rotate(
+                  { x: 0, y: -i * (textHeight ?? 2.5) * 1.3 },
+                  textRotation ?? 0,
+                ),
+              ),
+            ],
+          }),
+        );
+      } else primitives.push(item);
     }
   };
   walk(db.entities ?? [], (p) => p, 0);

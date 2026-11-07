@@ -167,3 +167,33 @@ describe('máscaras CAD', () => {
     expect(() => parseDxf('AutoCAD Binary DXF', 'bin.dxf')).toThrow(/ASCII/);
   });
 });
+
+it('DWG MTEXT honors vertical direction, attachment and multiline table headings', () => {
+  const m = normalizeCad(
+    {
+      header: { INSUNITS: 4 },
+      entities: [
+        {
+          type: 'MTEXT',
+          layer: 'TEXTO',
+          insertionPoint: { x: 10, y: 20 },
+          direction: { x: 0, y: 1 },
+          rotation: 0,
+          attachmentPoint: 8,
+          textHeight: 2,
+          text: 'C.UNIT\\P(cm)',
+        },
+      ],
+    },
+    'table.dwg',
+    'DWG',
+  );
+  expect(m.primitives.map((p) => p.text)).toEqual(['C.UNIT', '(cm)']);
+  expect(
+    m.primitives.every(
+      (p) => p.textRotation === 90 && p.textAlign === 'center',
+    ),
+  ).toBe(true);
+  expect(m.primitives[0].points[0].x).toBeCloseTo(7.4);
+  expect(m.primitives[1].points[0].x).toBeCloseTo(10);
+});

@@ -1,3 +1,4 @@
+import { seedLegacyDemo } from './seedLegacyDemo';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 async function command(page: Page, value: string) {
@@ -66,6 +67,7 @@ test('workspace compacto mantém CAD amplo e recupera painéis recolhidos', asyn
 }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto('/');
+  await seedLegacyDemo(page);
   await page.locator('.bar-row').first().waitFor();
   const rect = (await page.getByTestId('cad-canvas').boundingBox())!;
   expect(rect.width).toBeGreaterThan(1366 * 0.8);

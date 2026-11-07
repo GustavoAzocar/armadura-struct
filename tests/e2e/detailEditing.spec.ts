@@ -1,3 +1,4 @@
+import { seedLegacyDemo } from './seedLegacyDemo';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
@@ -186,6 +187,7 @@ test('tree isolation protects history, file replacement and foreign objects, and
   page,
 }) => {
   await page.goto('/');
+  await seedLegacyDemo(page);
   await expect(page.locator('.bar-row')).toHaveCount(3);
   await selectBar(page, 'N1');
   await groupSelection(page, 'Montagem');
@@ -247,6 +249,7 @@ test('moving a selected group translates every owned geometry and keeps the phys
   page,
 }) => {
   await page.goto('/');
+  await seedLegacyDemo(page);
   await expect(page.locator('.bar-row')).toHaveCount(3);
   await selectBar(page, 'N1');
   await groupSelection(page, 'Translação');

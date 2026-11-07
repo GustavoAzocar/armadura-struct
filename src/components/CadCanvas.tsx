@@ -204,7 +204,16 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     () =>
       project.details.flatMap((d) => {
         const bar = barDefinitions.get(d.barId);
-        return bar ? insertedPoints(bar, d) : [];
+        return bar
+          ? [
+              ...insertedPoints(bar, d),
+              ...(d.label
+                ? representationPrimitives(bar, d, source)
+                    .filter((p) => p.text)
+                    .flatMap(primitiveBounds)
+                : []),
+            ]
+          : [];
       }),
     [project.details, barDefinitions, barGeometries],
   );
@@ -724,9 +733,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             fill={color}
             fontSize={Math.max(item.textHeight ?? 40, 10 * stroke)}
             textAnchor={
-              item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'
-                ? 'middle'
-                : 'start'
+              item.textAlign === 'right'
+                ? 'end'
+                : item.textAlign === 'center' ||
+                    (!item.textAlign &&
+                      (item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'))
+                  ? 'middle'
+                  : 'start'
             }
           >
             {item.text.replace(/%%c/g, 'Ø')}
@@ -824,6 +837,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                       fill={light ? '#7e899b' : '#8090aa'}
                       stroke="none"
                       fontSize={p.textHeight}
+                      textAnchor={
+                        p.textAlign === 'center'
+                          ? 'middle'
+                          : p.textAlign === 'right'
+                            ? 'end'
+                            : 'start'
+                      }
                     >
                       {p.text}
                     </text>
@@ -866,6 +886,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               <g key={d.id} data-representation-id={d.id}>
                 {!d.rotation &&
                 (d.scale ?? 1) === 1 &&
+                !d.label &&
+                d.showDimensions === undefined &&
                 (d.identification ?? 'legacy') === 'legacy'
                   ? renderBar(b, d.origin, true)
                   : renderPrimitives(

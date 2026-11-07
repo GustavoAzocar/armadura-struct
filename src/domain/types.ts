@@ -55,6 +55,15 @@ export type BarRepresentation = {
   rotation?: number;
   scale?: number;
   identification?: 'legacy' | 'primary' | 'mark' | 'none';
+  /** Optional local label placement, independent of the physical centerline. */
+  label?: {
+    origin: Point;
+    rotation: number;
+    height: number;
+    /** Hide this namespace only while the current mark still starts with it. */
+    omitPrefix?: string;
+  };
+  showDimensions?: boolean;
 };
 export type Detail = BarRepresentation;
 export type Floor = { id: string; name: string };
@@ -141,6 +150,7 @@ export type Primitive = {
   text?: string;
   textHeight?: number;
   textRotation?: number;
+  textAlign?: 'left' | 'center' | 'right';
 };
 export type Mask = {
   id: string;
@@ -178,7 +188,7 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/11';
+  schema: 'armadurastruct/12';
   id: string;
   hierarchy: ProjectHierarchy;
   numbering?: import('./marks').NumberingPolicy;

@@ -3019,3 +3019,65 @@ button.hierarchy-drawing {
   max-height: 340px;
   overflow: auto;
 }
+
+.example-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 12px;
+  font-size: 11px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.example-notice button {
+  flex-shrink: 0;
+  padding: 3px 8px;
+}
+.example-review {
+  width: min(1180px, 94vw);
+  max-height: 90vh;
+  padding: 20px;
+  color: var(--text);
+  background: var(--panel, #fff);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.example-review::backdrop {
+  background: #0008;
+}
+.example-review-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.example-review-heading h2 {
+  font-size: 17px;
+}
+.example-review p {
+  line-height: 1.5;
+}
+.example-review-table {
+  overflow: auto;
+  max-height: 42vh;
+  margin: 12px 0;
+}
+.example-review table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.example-review th,
+.example-review td {
+  text-align: left;
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--border);
+}
+.example-review th {
+  position: sticky;
+  top: 0;
+  background: var(--panel, #fff);
+}

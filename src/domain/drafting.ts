@@ -94,7 +94,12 @@ export function primitiveBounds(p: Primitive): Point[] {
     h = p.textHeight ?? 50,
     w = p.text.length * h * 0.65;
   const centered = ['COTAS', 'DISTRIBUICAO'].includes(p.layer),
-    left = centered ? -w / 2 : 0;
+    left =
+      p.textAlign === 'right'
+        ? -w
+        : p.textAlign === 'center' || (!p.textAlign && centered)
+          ? -w / 2
+          : 0;
   const angle = ((p.textRotation ?? 0) * Math.PI) / 180;
   return [
     { x: left, y: -h * 0.3 },

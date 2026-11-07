@@ -236,8 +236,18 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/11`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/12`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 
 O runtime Emscripten/Embind do LibreDWG Web 0.8.4 usa geração de funções JavaScript durante sua inicialização. A CSP permite `unsafe-eval` e `wasm-unsafe-eval` para esse leitor empacotado. Scripts e workers continuam restritos à origem local; não há execução de scripts contidos no desenho nem carregamento de bibliotecas de um CDN. A configuração equivalente é exercitada nos testes do build de produção.
+
+## Exemplo inicial de vigas e pilares
+
+Sem recuperação local, o aplicativo abre **Exemplo ArmaduraStruct** nas abas **01 · Vigas** e **02 · Pilares**. Para carregá-lo novamente, use **Projeto → Carregar projeto de exemplo**; Desfazer recupera o projeto anterior. **Novo projeto** cria um arquivo vazio.
+
+Duplo clique na vista da folha abre o desenho composto. Selecione uma inserção e use **Editar armadura física** para alterar quantidade, bitola ou vértices; o quadro e as inserções vinculadas acompanham a mudança. O domínio mantém 108 ocorrências, agrupadas em 64 posições, sem multiplicar o aço pelas vistas. As fôrmas, cotas de montagem e tabelas originais são máscaras de referência.
+
+**Conferir exemplo** apresenta as 64 posições por identidade física, as divergências de comprimento e o resumo líquido/+10%, com CSV. As quantidades originais fecham, mas 34 comprimentos desenvolvidos divergem além do arredondamento de 5 mm. Consulte a [conferência completa e convenções](examples/initial/README.md).
+
+O formato 12 e os [pacotes v6](openstruct-detail-v6.schema.json) preservam rótulos locais de inserção (`label.origin`, `rotation`, `height`, `omitPrefix`) e a opção `showDimensions`. Origem/altura usam unidades físicas locais; a transformação da inserção é aplicada uma vez. O rótulo compacto mostra quantidade, posição, bitola e C calculado; omite metadados de montagem para caber na prancha. O prefixo só é ocultado se ainda existir na marca, portanto renumerar mantém os vínculos.

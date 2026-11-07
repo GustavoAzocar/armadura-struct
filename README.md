@@ -15,7 +15,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
 - Gerenciador de pranchas com folhas A0–A4, orientação, revisão, notas, ordenação, duplicação de layout e vistas vinculadas; abas de folhas e desenhos com navegação independente.
 - Inserção e atualização seletiva de detalhamentos por JSON, comparação antes/depois, identificação pela origem, mapeamento de posições, reassociação de vínculos e preservação das vistas.
-- Pacotes abertos `openstruct.detail/5` (`.osdetail.json`), com leitura de v1/v2/v3/v4, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
+- Pacotes abertos `openstruct.detail/6` (`.osdetail.json`), com leitura de v1/v2/v3/v4/v5, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
 - [Renumeração espacial](docs/AS-55.md), com prévia, prefixo, início, escopo, reservas e preservações, usando posições de fabricação estáveis.
 - [Composição da quantidade e montagem](docs/AS-56.md): peças por grupo × multiplicador da armadura × repetições do detalhe, origem manual/por faixa, descrição fatorada, observação, indicação de nervura e lance.
 - [Posições de fabricação](docs/AS-54.md): agrupamento assistido de barras equivalentes, prévia, representante, contribuições rastreáveis no quadro e separação automática da ocorrência alterada; sem fundir elementos ou duplicar aço.
@@ -69,7 +69,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 
 ## Primeiros passos
 
-1. Abra o exemplo incluído ou crie um projeto.
+1. Na primeira abertura, conheça o **[Exemplo ArmaduraStruct](docs/examples/initial/README.md)**: duas pranchas de vigas e pilares, 64 posições e 1.181 peças. Use **Conferir exemplo** para comparar a RA original com os comprimentos e pesos calculados. Projetos recuperados têm prioridade; **Novo projeto** continua vazio.
 2. Importe sua fôrma com **Importar máscara**. Confira a unidade no painel e uma distância conhecida com **Medir**.
 3. Use **Barra livre**, **Estribo** ou **Seguir fôrma**. As coordenadas e propriedades geométricas são em **mm**.
 4. Selecione a posição para editar aço, bitola, quantidade e geometria. Ajuste o mandril e os ganchos para o projeto.

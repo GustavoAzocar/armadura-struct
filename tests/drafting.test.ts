@@ -150,7 +150,7 @@ describe('drafting, quantities and persisted project compatibility', () => {
       annotations: undefined,
     };
     const p = decodeProject(JSON.stringify(legacy));
-    expect(p.schema).toBe('armadurastruct/11');
+    expect(p.schema).toBe('armadurastruct/12');
     expect(p.bars).toEqual(legacy.bars);
     expect(p.annotations).toEqual([]);
     expect(p.polylines).toEqual([]);

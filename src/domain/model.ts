@@ -202,6 +202,14 @@ const barSchema = z
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   })
   .strict();
+export const representationLabelSchema = z
+  .object({
+    origin: point,
+    rotation: number,
+    height: number.positive().max(100000),
+    omitPrefix: z.string().max(40).optional(),
+  })
+  .strict();
 const schema = z.object({
   schema: z.enum([
     'armadurastruct/1',
@@ -215,6 +223,7 @@ const schema = z.object({
     'armadurastruct/9',
     'armadurastruct/10',
     'armadurastruct/11',
+    'armadurastruct/12',
   ]),
   numbering: numberingPolicySchema.optional(),
   sheets: z
@@ -329,6 +338,8 @@ const schema = z.object({
         origin: point,
         rotation: number.optional(),
         scale: number.positive().max(10000).optional(),
+        label: representationLabelSchema.optional(),
+        showDimensions: z.boolean().optional(),
         identification: z
           .enum(['legacy', 'primary', 'mark', 'none'])
           .optional(),
@@ -350,6 +361,7 @@ const schema = z.object({
               text: z.string().optional(),
               textHeight: number.optional(),
               textRotation: number.optional(),
+              textAlign: z.enum(['left', 'center', 'right']).optional(),
             }),
           )
           .max(100000),
@@ -396,7 +408,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/8' ||
     parsed.schema === 'armadurastruct/9' ||
     parsed.schema === 'armadurastruct/10' ||
-    parsed.schema === 'armadurastruct/11';
+    parsed.schema === 'armadurastruct/11' ||
+    parsed.schema === 'armadurastruct/12';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -434,13 +447,16 @@ export function decodeProject(
   while (occupied.has(sheetId)) sheetId += '-';
   if (
     parsed.numbering &&
-    !['armadurastruct/10', 'armadurastruct/11'].includes(parsed.schema)
+    !['armadurastruct/10', 'armadurastruct/11', 'armadurastruct/12'].includes(
+      parsed.schema,
+    )
   )
     throw new Error('Política de numeração exige formato 10.');
   const v9 =
     parsed.schema === 'armadurastruct/9' ||
     parsed.schema === 'armadurastruct/10' ||
-    parsed.schema === 'armadurastruct/11';
+    parsed.schema === 'armadurastruct/11' ||
+    parsed.schema === 'armadurastruct/12';
   if (
     !v9 &&
     [...parsed.bars, ...(parsed.scheduleLock?.bars ?? [])].some(hasArmatureData)
@@ -515,7 +531,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/11',
+    schema: 'armadurastruct/12',
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -577,7 +593,7 @@ export function decodeProject(
   if (new Set(primaries).size !== primaries.length)
     throw new Error('Uma armadura só pode ter uma descrição principal.');
   if (
-    parsed.schema !== 'armadurastruct/11' &&
+    !['armadurastruct/11', 'armadurastruct/12'].includes(parsed.schema) &&
     p.details.some(
       (d) =>
         d.rotation ||
@@ -586,6 +602,11 @@ export function decodeProject(
     )
   )
     throw new Error('Representações transformadas exigem formato 11.');
+  if (
+    parsed.schema !== 'armadurastruct/12' &&
+    p.details.some((d) => d.label || d.showDimensions !== undefined)
+  )
+    throw new Error('Posicionamento de rótulo exige formato 12.');
   validateHierarchy(p);
   if (p.scheduleLock?.quantities) {
     const ids = new Set(p.scheduleLock.bars.map((b) => b.id));
@@ -658,7 +679,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/11',
+    schema: 'armadurastruct/12',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),
