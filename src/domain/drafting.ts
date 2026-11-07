@@ -218,24 +218,27 @@ export function distributionOrigins(b: Bar, limit = 200): Point[] {
     );
   });
 }
-export function distributionPrimitives(b: Bar): Primitive[] {
+export function distributionPrimitives(
+  b: Bar,
+  paperTextHeight?: number,
+): Primitive[] {
   if (!b.distribution) return [];
   const start = distributionStart(b),
     end = b.distribution.end,
     u = unit(sub(end, start)),
     n = normal(u),
-    h = 50;
+    h = paperTextHeight ?? 50;
   const pts = distributionOrigins(b);
   const result = [
     line([start, end], 'DISTRIBUICAO'),
     ...pts.map((p) =>
-      line([sub(p, mul(n, 25)), add(p, mul(n, 25))], 'DISTRIBUICAO'),
+      line([sub(p, mul(n, h / 2)), add(p, mul(n, h / 2))], 'DISTRIBUICAO'),
     ),
   ];
   result.push(
     text(
       `${b.quantity} ${b.mark} c/${format(distance(start, end) / Math.max(1, b.quantity - 1) / 10, 1)}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
-      add(mul(add(start, end), 0.5), mul(n, 65)),
+      add(mul(add(start, end), 0.5), mul(n, h * 1.3)),
       h,
       angleOf(u),
       'DISTRIBUICAO',

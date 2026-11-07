@@ -26,10 +26,10 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Divisão de barras em trechos retos com traspasse informado pelo projetista; união geométrica de duas poligonais compatíveis com extremidades coincidentes.
 - Cotas ortogonais/alinhadas, cortes gráficos retos/em arco e chamadas com identificação vinculada à posição; edição, movimentação e exportação DXF/PDF.
 - Relação de aço automática ou bloqueada para conferência, atualização explícita e renumeração mantendo os vínculos.
-- Dados de pavimento/revisão e PDF A3 em escala selecionada ou ajustado à folha.
+- Espaço de papel em mm, folhas A0–A4/personalizadas, margens, reserva de selo e vistas com escala/rotação próprias; PDF vetorial fiel à composição e validação de transbordamento.
 - Máscaras **DXF ASCII e DWG**, com escala, unidade, posição, rotação, opacidade, camadas e relatório de importação.
 - Quadro com posição, elemento, aço, bitola, quantidade, comprimento unitário/total e peso teórico.
-- Projeto `.armstruct.json` com máscaras incorporadas, recuperação automática local e exportação DXF, PDF A3 e CSV.
+- Projeto `.armstruct.json` com máscaras incorporadas, recuperação automática local e exportação DXF, PDF vetorial das folhas e CSV.
 
 ## Executar
 
@@ -69,7 +69,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 6. Em **Pranchas**, crie folhas, coloque desenhos e abra suas vistas com duplo clique para editar. Duplicar folhas/vistas reutiliza os dados de aço.
 7. Salve o projeto e exporte os desenhos e quantitativos.
 
-Veja [o guia de comandos e convenções](docs/GUIA.md) e os [contratos e a validação do gerenciador de pranchas](docs/AS-04.md).
+Veja [o guia de comandos e convenções](docs/GUIA.md) e os [contratos e a validação da composição em escala](docs/AS-05.md).
 
 ## Convenções e limites desta versão
 
@@ -80,11 +80,11 @@ Veja [o guia de comandos e convenções](docs/GUIA.md) e os [contratos e a valid
 - DWG é lido pelo LibreDWG. A compatibilidade depende da versão e das entidades do arquivo. Há suporte a entidades 2D comuns e blocos; **não é uma reprodução integral do AutoCAD**. Confira os avisos. Xrefs externas, objetos proxy, hachuras, splines, sólidos 3D, estilos e layouts de impressão não são integralmente reproduzidos. Apenas o espaço de modelo é usado.
 - Limites de importação: 30 MB por máscara, 100 mil entidades expandidas, até 20 máscaras. Projetos de até 100 MB; até 500 vértices por barra. Desenhos grandes devem ser simplificados para uso como referência.
 - DXF de saída contém entidades CAD simples e curvas discretizadas, sem os vínculos paramétricos próprios do `.armstruct.json`. Não há exportação DWG.
-- PDF A3 oferece ajuste à folha e escalas 1:10 a 1:200, com quadro em páginas seguintes. A exportação recusa uma escala que corte o desenho. Imprima em tamanho real (100%) para preservar a escala. O gerenciador mostra uma prévia de layout com múltiplas vistas, ajustadas aos seus quadros. Exportar esses layouts como pranchas em escala e compor carimbos personalizados continua sendo uma etapa futura; PDF/DXF atuais abrangem o desenho geral.
+- O PDF exporta a folha ativa ou todas as folhas na ordem do gerenciador, com formatos/orientações próprios e escala declarada por vista. Uma barra de 1000 mm mede 20 mm em 1:50 e 10 mm em 1:100; mudar a escala não altera o modelo ou o peso. Imprima em tamanho real (100%). Transbordamento da área útil/do quadro ou sobreposição à reserva do selo bloqueia a exportação. O selo tem campos básicos; modelos CAD de carimbo personalizados e quadros de aço colocados na folha ficam para tarefas futuras. DXF e CSV continuam globais.
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos nos formatos 1, 2 e 3 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo agora é `armadurastruct/4`, com folhas, hierarquia e vínculos validados. Versões anteriores do aplicativo não abrem esse formato.
+- Projetos nos formatos 1, 2, 3 e 4 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo agora é `armadurastruct/5`, com composição, folhas, hierarquia e vínculos validados. Versões anteriores do aplicativo não abrem esse formato.
 - O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
 
 ## Verificar e compilar

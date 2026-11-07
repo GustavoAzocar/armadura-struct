@@ -1047,7 +1047,31 @@ export default function App() {
       notify((e as Error).message);
     }
   };
+  const exportPaper = async (ids?: string[]) => {
+    try {
+      const { toSheetPdf } = await import('./lib/exports');
+      const data = toSheetPdf(historyRef.current.present, ids);
+      const saved = await saveFile(
+        `${safeName(p.name)}-pranchas.pdf`,
+        data,
+        'application/pdf',
+        'pdf',
+      );
+      if (saved)
+        notify('PDF vetorial exportado. Imprima em tamanho real (100%).');
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível exportar as folhas.',
+      );
+    }
+  };
   const action = async (a: Action) => {
+    if (a === 'pdf') {
+      await exportPaper(activeSheet ? [activeSheet.id] : undefined);
+      return;
+    }
     if (activeSheet && a === 'delete') {
       if (selectedView) {
         commit((p) => removePlacement(p, selectedView));
@@ -1320,17 +1344,13 @@ export default function App() {
       if (a === 'dimensions') setDimensions(!dimensions);
       if (a === 'schedule') setPage('schedule');
       if (a === 'help') setModal('help');
-      if (['pdf', 'dxf', 'csv'].includes(a)) {
-        const { toCsv, toDxf, toPdf } = await import('./lib/exports');
-        const data = a === 'pdf' ? toPdf(p) : a === 'dxf' ? toDxf(p) : toCsv(p);
+      if (['dxf', 'csv'].includes(a)) {
+        const { toCsv, toDxf } = await import('./lib/exports');
+        const data = a === 'dxf' ? toDxf(p) : toCsv(p);
         const saved = await saveFile(
           `${safeName(p.name)}.${a}`,
           data,
-          a === 'pdf'
-            ? 'application/pdf'
-            : a === 'csv'
-              ? 'text/csv'
-              : 'application/dxf',
+          a === 'csv' ? 'text/csv' : 'application/dxf',
           a,
         );
         if (saved) notify(`Exportação ${a.toUpperCase()} concluída.`);
@@ -1776,10 +1796,14 @@ export default function App() {
               </button>
               <button
                 onClick={() => action('pdf')}
-                title="Exportar PDF do desenho geral"
+                title={
+                  activeSheet
+                    ? 'Exportar esta folha em PDF'
+                    : 'Exportar todas as folhas em PDF'
+                }
               >
                 <ArrowDownToLine size={14} />
-                <span>{activeSheet ? 'PDF do modelo' : 'Exportar PDF'}</span>
+                <span>{activeSheet ? 'PDF desta folha' : 'Exportar PDF'}</span>
               </button>
             </div>
           </div>
@@ -1960,6 +1984,7 @@ export default function App() {
                 selectedView={selectedView}
                 onSelectView={setSelectedView}
                 onChange={commitLayout}
+                onExportAll={() => exportPaper()}
                 onOpenSheet={(id) => {
                   switchDocument(`sheet:${id}`);
                   setSidebarTab('sheets');

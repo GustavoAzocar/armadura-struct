@@ -2,6 +2,12 @@
 
 ## Em desenvolvimento
 
+- AS-05: composição vetorial em mm de papel com vistas em escalas independentes, origens no modelo e rotação; PDF com uma página por folha, no formato/orientação definidos e com escala declarada por vista.
+- Formatos A0–A4 e personalizado (50–5.000 mm por lado), margens editáveis, reserva de selo inferior direita e campos básicos de projeto/folha/revisão/notas.
+- Mesmas primitivas de papel na tela e no PDF; textos/cotas com altura mínima de 2 mm, padrão de 2,5 mm. A escala não modifica comprimentos nem pesos do modelo.
+- Sinalização de conteúdo fora do quadro/área útil ou sobre o selo e bloqueio de PDF antes da gravação. Redimensionar papel/quadro mantém as escalas; centralizar mantém a escala e ajustar escala é um comando explícito.
+- Formato 5 com migração de projetos 1/2/3/4; preservação de objetos físicos, IDs, vínculos e posições de folha. As prévias antigas recebem escala fixa; o valor antigo é guardado em `legacyScale`.
+
 - AS-04: gerenciador compacto de pranchas; folhas vazias A0–A4 com orientação, revisão/notas, renomeação, ordenação, duplicação de layout e exclusão sem remover armaduras.
 - Vistas com IDs próprios e referências aos desenhos existentes; posição, rotação e quadro de prévia em mm de papel, arraste, duplicação/retirada e lista de desenhos não colocados.
 - Abas por folha e desenho preservam câmera, seleção e comando em andamento; edição de desenhos reaproveita a proteção da AS-02 e atualiza todas as vistas. Fechar uma aba preserva sua sessão durante o uso; câmeras e abas abertas são preferências locais.

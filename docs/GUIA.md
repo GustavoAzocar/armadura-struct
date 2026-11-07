@@ -16,7 +16,7 @@ Clique no nome de um nó para editar seu nome; em elementos e detalhamentos, alt
 
 A pesquisa localiza pavimentos, elementos, detalhamentos, posições, máscaras e textos de anotações. Clique no detalhamento encontrado para ativá-lo e consultar seus objetos nas listas abaixo. A pesquisa abre temporariamente os ancestrais; limpar a busca recupera a expansão anterior. O estado da árvore e o detalhamento ativo são lembrados por projeto neste dispositivo, inclusive ao alternar as abas laterais.
 
-Na visão geral, **CAD, quadro e exportações abrangem o projeto inteiro**. Escolher o detalhamento ativo organiza a edição e as listas; entrar na edição isolada restringe apenas a visualização/edição do CAD. O quadro e as exportações continuam globais. Pavimento é uma entidade de organização, independente dos layers CAD das máscaras.
+Na visão geral, **CAD, quadro de aço, DXF e CSV abrangem o projeto inteiro**. Escolher o detalhamento ativo organiza a edição e as listas; entrar na edição isolada restringe apenas a visualização/edição do CAD. O PDF usa as vistas colocadas nas folhas selecionadas para exportação. Pavimento é uma entidade de organização, independente dos layers CAD das máscaras.
 
 ### Agrupar e editar isoladamente
 
@@ -40,23 +40,29 @@ Abra **Pranchas** no painel lateral. Digite o nome e use **+** para criar uma fo
 
 Em **Colocar desenho**, escolha um desenho existente. Uma vista é uma referência ao desenho do detalhamento, com ID e posição próprios; não cria novas peças. **Duplicar vista** e **Duplicar layout** reutilizam a definição física. **Retirar vista** remove somente essa colocação. Excluir a folha remove suas vistas, mantendo desenhos e objetos no modelo; até a última folha pode ser excluída. **Desfazer/Refazer** restaura as operações. A lista de **Desenhos não colocados** inclui desenhos sem nenhuma vista, inclusive os de detalhes recém-criados.
 
-A folha mostra uma **prévia de layout**. Arraste o quadro de uma vista para posicioná-la ou selecione-a e informe X/Y, largura, altura e rotação no painel. As coordenadas são em mm no papel, a partir do canto inferior esquerdo. O conteúdo é ajustado ao quadro para organizar o layout; esse ajuste não define escala técnica de impressão. Roda aplica zoom, botão do meio arrasta a câmera, **Ajustar folha** enquadra o papel. Uma vista pode ficar fora do papel; reposicione-a pelo painel quando necessário.
+A folha usa **milímetros reais no espaço de papel**, com origem no canto inferior esquerdo. Arraste o quadro de uma vista ou informe X/Y, largura, altura e rotação. A escala é informada em **Escala da vista 1:N**: uma barra física de 1000 mm mede 20 mm no papel em 1:50 e 10 mm em 1:100. Mudar escala ou papel não altera comprimentos, quantidades ou pesos.
+
+**Centralizar conteúdo** altera apenas a origem do modelo dentro do quadro e mantém a escala. **Ajustar escala ao quadro** escolhe explicitamente uma escala que caiba com textos legíveis. Redimensionar o papel ou o quadro não escolhe outra escala automaticamente. A altura de **Texto no papel** tem padrão 2,5 mm e mínimo 2 mm; cotas conservam seus valores físicos. **Origem no modelo** informa o ponto físico que será colocado na origem da vista no papel, antes da rotação.
+
+Escolha A0–A4 ou **Personalizado**. Neste último, informe os lados A/B (50 a 5.000 mm); retrato/paisagem coloca o lado maior na vertical/horizontal. Em **Área útil e reserva do selo**, ajuste as quatro margens e ative/configure o selo. O selo ocupa o canto inferior direito da área útil e apresenta projeto, folha, autor, revisão e notas. Se os textos não couberem, aumente sua reserva ou reduza as notas.
+
+O painel de validação e o contorno vermelho identificam transbordamento do quadro, da área útil e invasão da reserva do selo. O conteúdo permanece visível para correção; o PDF é bloqueado enquanto houver problemas, sem recorte silencioso. As guias tracejadas/seleção são auxiliares e não são impressas. Roda aplica zoom, botão do meio arrasta a câmera e **Ajustar folha** enquadra o papel; o zoom da tela é independente da escala de impressão.
 
 Use **duplo clique na vista**, o botão de abrir desenho na lista de vistas, um desenho não colocado ou o botão ⌗ na árvore para abrir o desenho em sua própria aba. A edição é isolada no detalhamento original e segue as proteções da AS-02. Alterar bitola, quantidade ou geometria atualiza todas as vistas do desenho. **Concluir edição** retorna à aba de origem; se ela tiver sido excluída, retorna à visão geral.
 
 Cada aba mantém zoom/pan, seleção, detalhamento ativo, modo de edição, ferramenta, pontos do comando em andamento e texto digitado. O quadro de aço continua global e mantém o contexto da aba ao ser consultado. Fechar pelo **×** fecha somente a aba; reabri-la durante a sessão recupera seu estado. Os nomes, a ordem, as propriedades, posições e referências das folhas fazem parte do arquivo JSON. As câmeras e abas abertas são preferências locais; reabrir o aplicativo começa na visão geral, com ferramentas em Selecionar e sem comandos pendentes.
 
-O PDF/DXF atual ainda exporta o desenho geral, e o CSV/RA abrange todo o modelo. A exportação dos novos layouts como pranchas em escala e com carimbos será tratada na etapa de composição de pranchas.
+**PDF desta folha** exporta a folha ativa. Fora de uma aba de folha, **Exportar PDF** exporta todas na ordem do gerenciador; também há **Exportar todas as folhas em PDF** no painel. Cada página usa o formato e a orientação da folha, com as mesmas geometrias vetoriais exibidas no espaço de papel. Imprima em **tamanho real (100%)**, desativando ajuste/redução na impressora. Desenhos não colocados não entram nas folhas. O PDF de composição não adiciona páginas automáticas de quadro de aço; CSV/RA e DXF permanecem globais.
 
-![Gerenciador de pranchas e vistas vinculadas](sheets.png)
+![Composição de uma barra em duas escalas independentes](paper-composition.png)
 
-### Formato 4 e compatibilidade
+### Formato 5 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
 
-No modelo, `hierarchy.details` contém os detalhamentos compostos e `hierarchy.objectDetails` associa os objetos por ID. `details` mantém exclusivamente os rebatimentos gráficos das barras. `hierarchy.drawings` identifica desenhos lógicos dos detalhamentos; `sheets` cadastra as folhas na ordem de documentação e `hierarchy.placements` associa vistas a `sheetId`/`drawingId`, separadas das origens físicas e dos rebatimentos. Um desenho pode existir sem colocação. Projetos 1/2 recebem uma folha inicial e, havendo objetos, uma vista do desenho migrado; projetos 3 mantêm IDs, origens, rotação e escala dos posicionamentos na folha inicial. A migração não move os objetos do CAD.
+No modelo, `hierarchy.details` contém os detalhamentos compostos e `hierarchy.objectDetails` associa os objetos por ID. `details` mantém exclusivamente os rebatimentos gráficos das barras. `hierarchy.drawings` identifica desenhos lógicos dos detalhamentos; `sheets` cadastra as folhas na ordem de documentação e `hierarchy.placements` associa vistas a `sheetId`/`drawingId`, separadas das origens físicas e dos rebatimentos. Um desenho pode existir sem colocação. Projetos 1/2 recebem uma folha inicial e, havendo objetos, uma vista do desenho migrado; projetos 3 mantêm IDs, origens, rotação e escala dos posicionamentos na folha inicial. A migração não move os objetos do CAD. Ao abrir formatos 1–4, o enquadramento antigo recebe uma escala fixa e uma origem no modelo; o valor de escala antigo, que não controlava a prévia da AS-04, fica em `legacyScale` para rastreabilidade. Posições, rotações, quadros e IDs das vistas são mantidos. Vistas antigas fora da nova área útil precisam ser reposicionadas antes da impressão.
 
-Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hierarquia. Arquivos v3/v4 com vínculos inválidos são recusados, em vez de descartar objetos silenciosamente. Mantenha uma cópia do JSON antigo se precisar abri-lo em uma versão anterior do aplicativo.
+Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hierarquia. Arquivos v3/v4/v5 com vínculos inválidos são recusados, em vez de descartar objetos silenciosamente. Mantenha uma cópia do JSON antigo se precisar abri-lo em uma versão anterior do aplicativo.
 
 ## Mouse e seleção
 
@@ -146,7 +152,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável e as máscaras normalizadas; os bytes originais do CAD não são armazenados. DXF e PDF são saídas para documentação. Em **Propriedades** sem seleção, informe a revisão e escolha a escala do PDF: ajuste à folha ou 1:10, 1:20, 1:25, 1:50, 1:75, 1:100 ou 1:200. A exportação avisa se o desenho não couber na escala escolhida. Imprima em tamanho real (100%). Guarde o projeto JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3 são migrados ao abrir, e os novos salvamentos usam o formato `armadurastruct/4`.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/5`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

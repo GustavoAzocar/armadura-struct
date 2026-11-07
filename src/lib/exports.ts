@@ -6,6 +6,11 @@ import { version as appVersion } from '../../package.json';
 import { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
 export { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
 import type { Point, Project } from '../domain/types';
+import {
+  assertPaperExportable,
+  paperInk,
+  paperLineWidth,
+} from '../domain/paper';
 export function assertExportable(p: Project) {
   const annotationIssue = p.annotations.map(annotationError).find(Boolean);
   if (annotationIssue)
@@ -358,5 +363,65 @@ export function toPdf(p: Project): Uint8Array {
     18,
     y + 26,
   );
+  return new Uint8Array(doc.output('arraybuffer'));
+}
+
+/** Vector paper-space PDF: one page per sheet, using exactly the preview primitives. */
+export function toSheetPdf(
+  p: Project,
+  sheetIds = p.sheets.map((s) => s.id),
+): Uint8Array {
+  assertExportable(p);
+  const compositions = assertPaperExportable(p, sheetIds);
+  const first = compositions[0];
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: [first.size.width, first.size.height],
+    orientation: first.sheet.orientation,
+    precision: 8,
+  });
+  doc.setProperties({
+    title: p.name,
+    author: p.author,
+    creator: `ArmaduraStruct ${appVersion}`,
+    subject: 'Pranchas - imprimir em tamanho real (100%)',
+  });
+  compositions.forEach((page, index) => {
+    if (index)
+      doc.addPage([page.size.width, page.size.height], page.sheet.orientation);
+    doc.setFont('helvetica', 'normal');
+    for (const line of [
+      ...page.decorations,
+      ...page.views.flatMap((v) => v.lines),
+    ]) {
+      doc.setDrawColor(paperInk(line.layer));
+      doc.setTextColor(paperInk(line.layer));
+      doc.setLineWidth(paperLineWidth(line.layer));
+      if (line.text) {
+        const at = line.points[0];
+        doc.setFontSize(((line.textHeight ?? 2.5) * 72) / 25.4);
+        doc.text(line.text, at.x, page.size.height - at.y, {
+          angle: line.textRotation ?? 0,
+          align:
+            line.textAlign ??
+            (['COTAS', 'DISTRIBUICAO'].includes(line.layer)
+              ? 'center'
+              : 'left'),
+        });
+      } else {
+        const pts =
+          line.closed && line.points.length
+            ? [...line.points, line.points[0]]
+            : line.points;
+        for (let i = 1; i < pts.length; i++)
+          doc.line(
+            pts[i - 1].x,
+            page.size.height - pts[i - 1].y,
+            pts[i].x,
+            page.size.height - pts[i].y,
+          );
+      }
+    }
+  });
   return new Uint8Array(doc.output('arraybuffer'));
 }

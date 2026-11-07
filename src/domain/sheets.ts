@@ -6,28 +6,15 @@ import {
   type SheetPlacement,
 } from './types';
 
-const paper: Record<SheetFormat, [number, number]> = {
-  A0: [841, 1189],
-  A1: [594, 841],
-  A2: [420, 594],
-  A3: [297, 420],
-  A4: [210, 297],
-};
-export function sheetSize(sheet: Pick<Sheet, 'format' | 'orientation'>) {
-  const [short, long] = paper[sheet.format];
-  return sheet.orientation === 'landscape'
-    ? { width: long, height: short }
-    : { width: short, height: long };
-}
-export function initialSheet(id: string, revision = '00'): Sheet {
-  return {
-    id,
-    name: 'Folha 1',
-    format: 'A3',
-    orientation: 'landscape',
-    properties: { revision, notes: '' },
-  };
-}
+import {
+  initialSheet,
+  sheetSize,
+  paper,
+  validateSheetLayout,
+} from './paperFormat';
+import { fitPlacement, alignPlacement } from './paper';
+export { initialSheet, sheetSize } from './paperFormat';
+
 function title(name: string) {
   const value = name.trim();
   if (!value || value.length > 100)
@@ -53,8 +40,9 @@ export function updateSheet(
 ): Project {
   const sheet = requireSheet(p, id);
   const next = { ...sheet, ...patch, name: title(patch.name ?? sheet.name) };
+  validateSheetLayout(next);
   if (
-    !paper[next.format] ||
+    (next.format !== 'custom' && !paper[next.format]) ||
     !['portrait', 'landscape'].includes(next.orientation)
   )
     throw new Error('Formato ou orientação inválidos.');
@@ -82,6 +70,9 @@ export function duplicateSheet(p: Project, id: string) {
     id: nextId,
     name: title(`${source.name.slice(0, 92)} (cópia)`),
     properties: { ...source.properties },
+    customSize: { ...source.customSize },
+    margins: { ...source.margins },
+    seal: { ...source.seal },
   };
   const sheets = [...p.sheets];
   sheets.splice(sheets.findIndex((s) => s.id === id) + 1, 0, copy);
@@ -102,6 +93,7 @@ export function duplicateSheet(p: Project, id: string) {
               sheetId: nextId,
               origin: { ...v.origin },
               frame: { ...v.frame },
+              modelOrigin: { ...v.modelOrigin },
             })),
         ],
       },
@@ -135,32 +127,54 @@ export function placeDrawing(p: Project, sheetId: string, drawingId: string) {
     sheetId,
     drawingId,
     origin: {
-      x: 15 + (count % 2) * (width + 10),
-      y: 15 + (Math.floor(count / 2) % 2) * (height + 10),
+      x: sheet.margins.left + 5 + (count % 2) * (width + 10),
+      y:
+        sheet.margins.bottom +
+        (sheet.seal.enabled ? sheet.seal.height : 0) +
+        5 +
+        (Math.floor(count / 2) % 2) * (height + 10),
     },
     rotation: 0,
-    scale: 1,
+    scale: 50,
+    modelOrigin: { x: 0, y: 0 },
+    textHeight: 2.5,
+    title: '',
     frame: { width, height },
   };
   // Additional views may overlap, but never change or clone their source objects.
   view.origin.x = Math.min(view.origin.x, size.width - width - 10);
   view.origin.y = Math.min(view.origin.y, size.height - height - 10);
-  return {
-    id: view.id,
-    project: {
-      ...p,
-      hierarchy: {
-        ...p.hierarchy,
-        placements: [...p.hierarchy.placements, view],
-      },
+  const project = {
+    ...p,
+    hierarchy: {
+      ...p.hierarchy,
+      placements: [...p.hierarchy.placements, view],
     },
   };
+  try {
+    return { id: view.id, project: fitPlacement(project, view.id) };
+  } catch {
+    try {
+      return { id: view.id, project: alignPlacement(project, view.id) };
+    } catch {
+      return { id: view.id, project };
+    } // Keep the reference editable; composition reports the source error.
+  }
 }
 export function updatePlacement(
   p: Project,
   id: string,
   patch: Partial<
-    Pick<SheetPlacement, 'origin' | 'rotation' | 'scale' | 'frame'>
+    Pick<
+      SheetPlacement,
+      | 'origin'
+      | 'rotation'
+      | 'scale'
+      | 'frame'
+      | 'modelOrigin'
+      | 'textHeight'
+      | 'title'
+    >
   >,
 ): Project {
   const view = p.hierarchy.placements.find((v) => v.id === id);
@@ -174,8 +188,14 @@ export function updatePlacement(
       next.scale,
       next.frame.width,
       next.frame.height,
+      next.modelOrigin.x,
+      next.modelOrigin.y,
+      next.textHeight,
     ].every(Number.isFinite) ||
     next.scale <= 0 ||
+    next.textHeight < 2 ||
+    next.textHeight > 10 ||
+    next.title.length > 200 ||
     next.frame.width <= 0 ||
     next.frame.height <= 0 ||
     next.frame.width > 100000 ||
@@ -210,6 +230,7 @@ export function duplicatePlacement(p: Project, id: string) {
     id: uid(),
     origin: { x: source.origin.x + 10, y: source.origin.y + 10 },
     frame: { ...source.frame },
+    modelOrigin: { ...source.modelOrigin },
   };
   return {
     id: view.id,

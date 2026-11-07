@@ -30,12 +30,15 @@ export type DrawingDetail = {
   grouped?: boolean;
 };
 export type DetailDrawing = { id: string; detailId: string; name: string };
-export type SheetFormat = 'A0' | 'A1' | 'A2' | 'A3' | 'A4';
+export type SheetFormat = 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'custom';
 export type Sheet = {
   id: string;
   name: string;
   format: SheetFormat;
   orientation: 'portrait' | 'landscape';
+  customSize: { width: number; height: number };
+  margins: { left: number; right: number; top: number; bottom: number };
+  seal: { enabled: boolean; width: number; height: number };
   properties: { revision: string; notes: string };
 };
 /** Paper placement is independent of physical geometry and representation origins. */
@@ -46,8 +49,15 @@ export type SheetPlacement = {
   /** Millimeters on paper, measured from the lower left corner. */
   origin: Point;
   rotation: number;
+  /** Denominator N in 1:N. Model coordinates are always physical millimeters. */
   scale: number;
-  /** Preview frame on paper; does not rescale the physical definition. */
+  /** The model point that maps to origin on paper, before view rotation. */
+  modelOrigin: Point;
+  textHeight: number;
+  title: string;
+  /** Unused scale metadata from the old fit-to-frame preview, for traceability. */
+  legacyScale?: number;
+  /** Paper frame, independent of the physical definition; overflow is never clipped. */
   frame: { width: number; height: number };
 };
 export type ProjectHierarchy = {
@@ -103,7 +113,7 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/4';
+  schema: 'armadurastruct/5';
   id: string;
   hierarchy: ProjectHierarchy;
   /** Array order is the document order, independent of tab opening order. */

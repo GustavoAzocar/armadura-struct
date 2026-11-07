@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Copy, Plus, ArrowUp, ArrowDown, X, ExternalLink } from 'lucide-react';
 import type { Project, SheetFormat } from '../domain/types';
 import { detailPath } from '../domain/hierarchy';
@@ -15,6 +15,8 @@ import {
   updateSheet,
 } from '../domain/sheets';
 import { NumberField, TextField } from './Panels';
+import { SheetPaperFields, ViewPaperFields } from './PaperFields';
+import { composeSheet } from '../domain/paper';
 
 type Props = {
   project: Project;
@@ -25,6 +27,7 @@ type Props = {
   onOpenSheet: (id: string) => void;
   onOpenDrawing: (id: string) => void;
   locked: boolean;
+  onExportAll: () => void;
 };
 export default function SheetManager({
   project: p,
@@ -35,12 +38,17 @@ export default function SheetManager({
   onOpenSheet,
   onOpenDrawing,
   locked,
+  onExportAll,
 }: Props) {
   const [newName, setNewName] = useState('');
   const sheet = p.sheets.find((s) => s.id === sheetId);
   const views = p.hierarchy.placements.filter((v) => v.sheetId === sheetId);
   const view = views.find((v) => v.id === selectedView);
   const unplaced = unplacedDrawings(p);
+  const composition = useMemo(
+    () => (sheet ? composeSheet(p, sheet.id) : undefined),
+    [p, sheet],
+  );
   const add = () => {
     const result = createSheet(
       p,
@@ -140,8 +148,10 @@ export default function SheetManager({
                   )
                 }
               >
-                {['A0', 'A1', 'A2', 'A3', 'A4'].map((f) => (
-                  <option key={f}>{f}</option>
+                {['A0', 'A1', 'A2', 'A3', 'A4', 'custom'].map((f) => (
+                  <option key={f} value={f}>
+                    {f === 'custom' ? 'Personalizado' : f}
+                  </option>
                 ))}
               </select>
             </label>
@@ -162,6 +172,7 @@ export default function SheetManager({
                 <option value="portrait">Retrato</option>
               </select>
             </label>
+            <SheetPaperFields sheet={sheet} onChange={onChange} />
             <TextField
               label="Revisão da folha"
               maxLength={40}
@@ -272,6 +283,7 @@ export default function SheetManager({
             {view && (
               <fieldset disabled={locked} className="sheet-properties">
                 <legend>Vista selecionada · mm no papel</legend>
+                <ViewPaperFields view={view} onChange={onChange} />
                 <NumberField
                   label="Vista X"
                   value={view.origin.x}
@@ -363,6 +375,38 @@ export default function SheetManager({
             </label>
           </>
         )}
+        {composition && (
+          <div
+            className={`paper-validation ${composition.issues.length ? 'invalid' : ''}`}
+            role="region"
+            aria-label="Validação da composição"
+          >
+            <b>
+              {composition.issues.length
+                ? `${composition.issues.length} problema(s) de composição`
+                : 'Composição válida para PDF'}
+            </b>
+            {composition.issues.map((issue, i) => (
+              <button
+                key={i}
+                onClick={() => issue.viewId && onSelectView(issue.viewId)}
+              >
+                {issue.message}
+              </button>
+            ))}
+            <p className="field-help">
+              Não há recorte silencioso: transbordamentos bloqueiam a
+              exportação.
+            </p>
+          </div>
+        )}
+        <button
+          className="paper-export-all"
+          onClick={onExportAll}
+          disabled={!p.sheets.length}
+        >
+          Exportar todas as folhas em PDF
+        </button>
         <h3>Desenhos não colocados ({unplaced.length})</h3>
         <div className="unplaced-drawings">
           {unplaced.map((d) => (
@@ -384,8 +428,9 @@ export default function SheetManager({
           </p>
         )}
         <p className="field-help">
-          As vistas mostram uma prévia ajustada ao quadro. A exportação atual
-          continua usando o desenho geral do projeto.
+          O PDF usa as mesmas geometrias do espaço de papel e declara a escala
+          de cada vista. Imprima em tamanho real (100%). Desenhos não colocados
+          não entram nas folhas.
         </p>
       </div>
     </div>

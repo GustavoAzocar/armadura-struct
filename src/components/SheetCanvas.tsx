@@ -1,17 +1,19 @@
 import {
   forwardRef,
   useEffect,
-  useId,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import type { Point, Project, Sheet } from '../domain/types';
-import { bounds } from '../domain/geometry';
-import { primitiveBounds } from '../domain/drafting';
-import { drawingPrimitives } from '../domain/drawingPrimitives';
-import { detailEditorView } from '../domain/detailEditing';
+import {
+  composeSheet,
+  PAPER_FONT,
+  paperInk,
+  paperLineWidth,
+  type PaperPrimitive,
+} from '../domain/paper';
 import { sheetSize } from '../domain/sheets';
 import type { CadHandle, CadState, Camera } from './CadCanvas';
 
@@ -40,7 +42,6 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
 ) {
   const host = useRef<HTMLDivElement>(null),
     svg = useRef<SVGSVGElement>(null);
-  const clipPrefix = useId().replace(/:/g, '');
   const lastViewHit = useRef<string | undefined>(undefined);
   const paper = sheetSize(sheet);
   const [size, setSize] = useState({ w: 900, h: 600 });
@@ -57,32 +58,10 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
   const placements = project.hierarchy.placements.filter(
     (v) => v.sheetId === sheet.id,
   );
-  const preview = useMemo(() => {
-    const result = new Map<
-      string,
-      {
-        lines: ReturnType<typeof drawingPrimitives>;
-        box: ReturnType<typeof bounds>;
-      }
-    >();
-    for (const placement of project.hierarchy.placements) {
-      if (placement.sheetId !== sheet.id || result.has(placement.drawingId))
-        continue;
-      const drawing = project.hierarchy.drawings.find(
-        (d) => d.id === placement.drawingId,
-      );
-      if (!drawing) continue;
-      const lines = drawingPrimitives(
-        detailEditorView(project, drawing.detailId),
-        project,
-      );
-      result.set(drawing.id, {
-        lines,
-        box: bounds(lines.flatMap(primitiveBounds)),
-      });
-    }
-    return result;
-  }, [project, sheet.id]);
+  const composition = useMemo(
+    () => composeSheet(project, sheet.id),
+    [project, sheet],
+  );
   const fit = () =>
     setView({
       x: paper.width / 2,
@@ -112,18 +91,27 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
       firstFit.current = false;
     }
   }, [size.w, size.h]);
+  const lastPaperSize = useRef(`${paper.width}:${paper.height}`);
   useEffect(() => {
-    if (!initialState) fit();
-  }, [sheet.format, sheet.orientation]);
+    const key = `${paper.width}:${paper.height}`;
+    if (!initialState || lastPaperSize.current !== key) fit();
+    lastPaperSize.current = key;
+  }, [paper.width, paper.height]);
   const screenPoint = (e: { clientX: number; clientY: number }) => {
     const rect = svg.current!.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
   return (
     <div className="sheet-canvas-host" ref={host}>
+      {composition.issues.length > 0 && (
+        <div className="paper-issues" role="status">
+          {composition.issues.length} problema(s) de composição · PDF bloqueado.
+          Confira o gerenciador.
+        </div>
+      )}
       <div className="sheet-preview-label">
         {sheet.name} · {sheet.format} · {paper.width} × {paper.height} mm ·
-        Prévia de layout
+        Espaço de papel · mm reais
       </div>
       <svg
         ref={svg}
@@ -215,16 +203,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
             width={paper.width}
             height={paper.height}
           />
-          <rect
-            x={10}
-            y={10}
-            width={paper.width - 20}
-            height={paper.height - 20}
-            fill="none"
-            stroke="#cbd0d9"
-            strokeWidth={0.35}
-            pointerEvents="none"
-          />
+          <PaperLines lines={composition.decorations} />
           {!placements.length && (
             <text
               x={paper.width / 2}
@@ -237,82 +216,26 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
               Folha vazia · coloque um desenho pelo gerenciador
             </text>
           )}
-          {placements.map((v) => {
-            const data = preview.get(v.drawingId),
-              drawing = project.hierarchy.drawings.find(
-                (d) => d.id === v.drawingId,
-              );
-            if (!data || !drawing) return null;
+          {composition.views.map(({ placement: v, lines, frame }) => {
             const delta = drag?.id === v.id ? drag.delta : { x: 0, y: 0 };
-            const { width: w, height: h } = v.frame,
-              b = data.box;
-            const scale = Math.max(
-              0.000001,
-              Math.min(
-                (w - 6) / Math.max(1, b.width),
-                (h - 10) / Math.max(1, b.height),
-              ),
-            );
-            const title = `${project.hierarchy.details.find((d) => d.id === drawing.detailId)?.name} · ${drawing.name}`;
-            const clipId = `${clipPrefix}-${v.id}`;
+            const invalid = composition.issues.some((i) => i.viewId === v.id);
             return (
               <g
                 key={v.id}
                 data-view-id={v.id}
                 data-testid="sheet-view"
-                transform={`translate(${v.origin.x + delta.x} ${v.origin.y + delta.y}) rotate(${v.rotation})`}
-                className={v.id === selectedView ? 'selected' : ''}
+                transform={`translate(${delta.x} ${delta.y})`}
+                className={`${v.id === selectedView ? 'selected' : ''} ${invalid ? 'invalid' : ''}`}
               >
-                <title>{title} · duplo clique para editar o desenho</title>
-                <rect className="sheet-view-frame" width={w} height={h} />
-                <clipPath id={clipId}>
-                  <rect
-                    x={2}
-                    y={2}
-                    width={Math.max(1, w - 4)}
-                    height={Math.max(1, h - 4)}
-                  />
-                </clipPath>
-                <g clipPath={`url(#${clipId})`} pointerEvents="none">
-                  <g
-                    transform={`translate(${w / 2} ${h / 2 - 2}) scale(${scale}) translate(${-b.x - b.width / 2} ${-b.y - b.height / 2})`}
-                  >
-                    {data.lines.map((line, i) =>
-                      line.text ? (
-                        <text
-                          key={i}
-                          transform={`translate(${line.points[0]?.x ?? 0} ${line.points[0]?.y ?? 0}) rotate(${line.textRotation ?? 0}) scale(1 -1)`}
-                          fontSize={line.textHeight ?? 40}
-                          fill="#31405e"
-                        >
-                          {line.text.replace(/%%c/g, 'Ø')}
-                        </text>
-                      ) : (
-                        <path
-                          key={i}
-                          d={
-                            line.points
-                              .map((p, j) => `${j ? 'L' : 'M'}${p.x},${p.y}`)
-                              .join(' ') + (line.closed ? ' Z' : '')
-                          }
-                          fill="none"
-                          stroke={
-                            line.layer === 'MASCARA' ? '#a9afbb' : '#30477f'
-                          }
-                          strokeWidth={0.25 / scale}
-                        />
-                      ),
-                    )}
-                  </g>
-                  <text
-                    x={3}
-                    y={-h + 4}
-                    transform="scale(1 -1)"
-                    fontSize={Math.min(3, h / 5)}
-                    fill="#5d677c"
-                  >
-                    {title}
-                  </text>
+                <title>
+                  Escala 1:{v.scale} · duplo clique para editar o desenho
+                </title>
+                <polygon
+                  className="sheet-view-frame"
+                  points={frame.map((p) => `${p.x},${p.y}`).join(' ')}
+                />
+                <g pointerEvents="none">
+                  <PaperLines lines={lines} />
                 </g>
               </g>
             );
@@ -329,3 +252,47 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
     </div>
   );
 });
+
+function PaperLines({ lines }: { lines: PaperPrimitive[] }) {
+  return (
+    <>
+      {lines.map((line, i) =>
+        line.text ? (
+          <text
+            key={i}
+            data-layer={line.layer}
+            transform={`translate(${line.points[0]?.x ?? 0} ${line.points[0]?.y ?? 0}) rotate(${line.textRotation ?? 0}) scale(1 -1)`}
+            fontFamily={PAPER_FONT}
+            fontSize={line.textHeight ?? 2.5}
+            fill={paperInk(line.layer)}
+            textAnchor={
+              (line.textAlign ??
+                (['COTAS', 'DISTRIBUICAO'].includes(line.layer)
+                  ? 'center'
+                  : 'left')) === 'center'
+                ? 'middle'
+                : line.textAlign === 'right'
+                  ? 'end'
+                  : 'start'
+            }
+          >
+            {line.text}
+          </text>
+        ) : (
+          <path
+            key={i}
+            data-layer={line.layer}
+            d={
+              line.points
+                .map((p, j) => `${j ? 'L' : 'M'}${p.x},${p.y}`)
+                .join(' ') + (line.closed ? ' Z' : '')
+            }
+            fill="none"
+            stroke={paperInk(line.layer)}
+            strokeWidth={paperLineWidth(line.layer)}
+          />
+        ),
+      )}
+    </>
+  );
+}

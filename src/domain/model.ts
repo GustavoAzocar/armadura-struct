@@ -8,6 +8,8 @@ import {
   validateHierarchy,
 } from './hierarchy';
 import { initialSheet, placeDrawing } from './sheets';
+import { fitPlacement } from './paper';
+import { validateSheetLayout } from './paperFormat';
 const number = z.number().finite();
 const point = z.object({ x: number, y: number });
 const identity = z.string().min(1).max(200);
@@ -41,6 +43,10 @@ const hierarchySchema = z.object({
         id: identity,
         drawingId: identity,
         sheetId: identity.optional(),
+        modelOrigin: point.optional(),
+        textHeight: number.min(2).max(10).optional(),
+        title: z.string().max(200).optional(),
+        legacyScale: number.positive().optional(),
         frame: z
           .object({
             width: number.positive().max(100000),
@@ -85,12 +91,34 @@ const schema = z.object({
     'armadurastruct/2',
     'armadurastruct/3',
     'armadurastruct/4',
+    'armadurastruct/5',
   ]),
   sheets: z
     .array(
       z.object({
         ...named,
-        format: z.enum(['A0', 'A1', 'A2', 'A3', 'A4']),
+        format: z.enum(['A0', 'A1', 'A2', 'A3', 'A4', 'custom']),
+        customSize: z
+          .object({
+            width: number.min(50).max(5000),
+            height: number.min(50).max(5000),
+          })
+          .optional(),
+        margins: z
+          .object({
+            left: number.nonnegative(),
+            right: number.nonnegative(),
+            top: number.nonnegative(),
+            bottom: number.nonnegative(),
+          })
+          .optional(),
+        seal: z
+          .object({
+            enabled: z.boolean(),
+            width: number.positive().max(5000),
+            height: number.positive().max(5000),
+          })
+          .optional(),
         orientation: z.enum(['portrait', 'landscape']),
         properties: z.object({
           revision: z.string().max(40),
@@ -184,7 +212,8 @@ export function decodeProject(raw: string): Project {
   const parsed = schema.parse(JSON.parse(raw));
   const modern =
     parsed.schema === 'armadurastruct/3' ||
-    parsed.schema === 'armadurastruct/4';
+    parsed.schema === 'armadurastruct/4' ||
+    parsed.schema === 'armadurastruct/5';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -220,7 +249,18 @@ export function decodeProject(raw: string): Project {
   );
   let sheetId = `${id}:sheet`;
   while (occupied.has(sheetId)) sheetId += '-';
-  const v4 = parsed.schema === 'armadurastruct/4';
+  const v5 = parsed.schema === 'armadurastruct/5';
+  const v4 = parsed.schema === 'armadurastruct/4' || v5;
+  if (
+    v5 &&
+    (!parsed.sheets ||
+      parsed.sheets.some((s) => !s.customSize || !s.margins || !s.seal) ||
+      hierarchy.placements.some(
+        (v) =>
+          !v.modelOrigin || v.textHeight === undefined || v.title === undefined,
+      ))
+  )
+    throw new Error('Projeto v5 com composição incompleta.');
   if (
     v4 &&
     (!parsed.sheets || hierarchy.placements.some((v) => !v.sheetId || !v.frame))
@@ -230,6 +270,10 @@ export function decodeProject(raw: string): Project {
     ...v,
     sheetId: v4 ? v.sheetId! : sheetId,
     frame: v.frame ?? { width: 160, height: 100 },
+    modelOrigin: v.modelOrigin ?? { x: 0, y: 0 },
+    textHeight: v.textHeight ?? 2.5,
+    title: v.title ?? '',
+    ...(!v5 ? { legacyScale: v.scale } : {}),
   }));
   if (
     !modern &&
@@ -251,18 +295,29 @@ export function decodeProject(raw: string): Project {
       origin: { x: 0, y: 0 },
       rotation: 0,
       scale: 1,
+      modelOrigin: { x: 0, y: 0 },
+      textHeight: 2.5,
+      title: '',
+      legacyScale: 1,
       frame: { width: 160, height: 100 },
     });
   }
-  const p: Project = {
+  let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/4',
+    schema: 'armadurastruct/5',
     sheets: v4
-      ? parsed.sheets!
+      ? parsed.sheets!.map((s) => ({
+          ...initialSheet(s.id),
+          ...s,
+          customSize: s.customSize ?? { width: 210, height: 297 },
+          margins: s.margins ?? { left: 10, right: 10, top: 10, bottom: 10 },
+          seal: s.seal ?? { enabled: false, width: 160, height: 40 },
+        }))
       : [initialSheet(sheetId, parsed.drawing.revision)],
     hierarchy: { ...hierarchy, placements },
   };
+  for (const sheet of p.sheets) validateSheetLayout(sheet);
   const ids = p.bars.map((b) => b.id);
   if (new Set(ids).size !== ids.length)
     throw new Error('IDs de armadura duplicados.');
@@ -289,6 +344,23 @@ export function decodeProject(raw: string): Project {
   if (p.annotations.some((a) => a.barId && !ids.includes(a.barId)))
     throw new Error('Chamada sem armadura correspondente.');
   validateHierarchy(p);
+  if (!v5)
+    for (const view of p.hierarchy.placements) {
+      try {
+        p = fitPlacement(p, view.id);
+      } catch {
+        // A tiny legacy frame remains editable and reports overflow; never drop content.
+        p = {
+          ...p,
+          hierarchy: {
+            ...p.hierarchy,
+            placements: p.hierarchy.placements.map((v) =>
+              v.id === view.id ? { ...v, scale: 50 } : v,
+            ),
+          },
+        };
+      }
+    }
   return p;
 }
 export function newBar(mark: string): Bar {
@@ -328,7 +400,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/4',
+    schema: 'armadurastruct/5',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),

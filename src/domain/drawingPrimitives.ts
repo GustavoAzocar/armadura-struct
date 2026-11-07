@@ -10,19 +10,31 @@ import type { Point, Primitive, Project } from './types';
 export function drawingPrimitives(
   p: Project,
   references: Project = p,
+  options: { minTextHeight?: number } = {},
 ): Primitive[] {
+  const h = options.minTextHeight ?? 40;
+  const offset = (legacy: number, factor: number) =>
+    options.minTextHeight === undefined ? legacy : h * factor;
   const lines = p.masks
     .flatMap(maskPrimitives)
     .map((l) => ({ ...l, layer: 'MASCARA' }));
   lines.push(
     ...p.polylines.map((l) => ({ ...l, layer: 'DESENHO' })),
-    ...p.annotations.flatMap((a) => annotationPrimitives(a, references)),
+    ...p.annotations.flatMap((a) =>
+      annotationPrimitives(
+        {
+          ...a,
+          textHeight: options.minTextHeight ?? a.textHeight,
+        },
+        references,
+      ),
+    ),
   );
   const label = (text: string, at: Point, layer: string) => ({
     layer,
     points: [at],
     text,
-    textHeight: 40,
+    textHeight: h,
   });
   for (const b of p.bars) {
     if (b.distribution?.render === 'bars') lines.push(...repeatedGeometry(b));
@@ -34,7 +46,7 @@ export function drawingPrimitives(
     lines.push(
       label(
         `${b.mark} - ${b.quantity} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
-        { x: b.origin.x, y: b.origin.y - 100 },
+        { x: b.origin.x, y: b.origin.y - offset(100, 1.8) },
         'IDENTIFICACAO',
       ),
     );
@@ -42,19 +54,19 @@ export function drawingPrimitives(
       lines.push(
         label(
           format(b.width / 10),
-          world({ x: b.width / 2, y: b.height + 45 }, b),
+          world({ x: b.width / 2, y: b.height + offset(45, 1.1) }, b),
           'COTAS',
         ),
       );
       lines.push(
         label(
           format(b.height / 10),
-          world({ x: -60, y: b.height / 2 }, b),
+          world({ x: -offset(60, 1.2), y: b.height / 2 }, b),
           'COTAS',
         ),
       );
     }
-    lines.push(...distributionPrimitives(b));
+    lines.push(...distributionPrimitives(b, options.minTextHeight));
   }
   for (const d of p.details) {
     const b = references.bars.find((b) => b.id === d.barId);
@@ -69,7 +81,7 @@ export function drawingPrimitives(
     lines.push(
       label(
         `${b.mark} - ${b.quantity} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm`,
-        { x: d.origin.x, y: d.origin.y - 110 },
+        { x: d.origin.x, y: d.origin.y - offset(110, 1.8) },
         'IDENTIFICACAO',
       ),
     );
@@ -83,7 +95,7 @@ export function drawingPrimitives(
           format(Math.hypot(a.x - c.x, a.y - c.y) / 10),
           {
             x: d.origin.x + (a.x + c.x) / 2,
-            y: d.origin.y + (a.y + c.y) / 2 + 40,
+            y: d.origin.y + (a.y + c.y) / 2 + offset(40, 1.1),
           },
           'COTAS',
         ),

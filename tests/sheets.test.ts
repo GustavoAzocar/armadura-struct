@@ -37,7 +37,7 @@ const steel = (p: Project) => ({
   schedule: schedule(p),
 });
 
-describe('version 4 paper documents', () => {
+describe('versioned paper documents', () => {
   it.each(['armadurastruct/1', 'armadurastruct/2', 'armadurastruct/3'])(
     'migrates %s without moving or duplicating any physical or graphical object',
     (schema) => {
@@ -68,7 +68,7 @@ describe('version 4 paper documents', () => {
       };
       const raw = JSON.stringify(old),
         p = decodeProject(raw);
-      expect(p.schema).toBe('armadurastruct/4');
+      expect(p.schema).toBe('armadurastruct/5');
       expect(p.sheets).toHaveLength(1);
       for (const field of [
         'bars',
@@ -88,9 +88,11 @@ describe('version 4 paper documents', () => {
         expect(p.hierarchy.objectDetails).toEqual(
           source.hierarchy.objectDetails,
         );
-        expect(p.hierarchy.placements[0]).toMatchObject(
-          old.hierarchy!.placements[0],
-        );
+        const { scale, ...placement } = old.hierarchy!.placements[0];
+        expect(p.hierarchy.placements[0]).toMatchObject({
+          ...placement,
+          legacyScale: scale,
+        });
       }
       expect(decodeProject(raw)).toEqual(p);
       expect(decodeProject(JSON.stringify(p))).toEqual(p);

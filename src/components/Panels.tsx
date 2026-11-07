@@ -647,34 +647,10 @@ export function Inspector({
                   onProject({ drawing: { ...project.drawing, revision } })
                 }
               />
-              <label className="field">
-                <span>Escala da prancha PDF</span>
-                <select
-                  aria-label="Escala da prancha PDF"
-                  value={project.drawing.scale}
-                  onChange={(e) =>
-                    onProject({
-                      drawing: {
-                        ...project.drawing,
-                        scale: Number(e.target.value),
-                      },
-                    })
-                  }
-                >
-                  {[0, 10, 20, 25, 50, 75, 100, 200].map((n) => (
-                    <option key={n} value={n}>
-                      {n ? `1:${n}` : 'Ajustar à folha'}
-                    </option>
-                  ))}
-                  {![0, 10, 20, 25, 50, 75, 100, 200].includes(
-                    project.drawing.scale,
-                  ) && (
-                    <option value={project.drawing.scale}>
-                      1:{project.drawing.scale}
-                    </option>
-                  )}
-                </select>
-              </label>
+              <p className="field-help">
+                Defina o formato da folha e a escala de cada vista na aba
+                Pranchas.
+              </p>
               <TextField
                 label="Comentários"
                 value={project.notes}
