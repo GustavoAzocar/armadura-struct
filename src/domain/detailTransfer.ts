@@ -1,3 +1,4 @@
+import { fabricationPositions, groupFabrication } from './fabrication';
 import { repetitionNames } from './detailQuantities';
 import type {
   Bar,
@@ -643,6 +644,33 @@ export function previewDetailTransfer(
       },
     };
     next = completeOwnership(next, detailId);
+    // Import only owned/explicitly resolved occurrences; never merge by a mark/name.
+    for (const position of fabricationPositions(source)) {
+      const ids = position.barIds
+        .map((id) => sourceToLocal.get(id))
+        .filter((id): id is string => !!id);
+      if (ids.length < 2) continue;
+      const first = next.bars.find((b) => b.id === ids[0])!;
+      let mark = first.mark;
+      if (
+        fabricationPositions(next).some(
+          (g) => g.mark === mark && g.barIds.some((id) => !ids.includes(id)),
+        )
+      ) {
+        let n = 1;
+        while (next.bars.some((b) => b.mark === `N${n}`)) n++;
+        mark = `N${n}`;
+      }
+      const lock = next.scheduleLock;
+      next = {
+        ...groupFabrication(next, ids, ids[0], position.reverse, mark),
+        scheduleLock: lock,
+      };
+    }
+
+    for (const entry of plan.bars)
+      if (entry.after)
+        entry.after = next.bars.find((b) => b.id === entry.localId);
     const drawingIds = new Set(
       next.hierarchy.drawings
         .filter((d) => d.detailId === detailId)

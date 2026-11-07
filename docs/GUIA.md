@@ -118,7 +118,13 @@ Nomes vinculados a elementos existentes acompanham renomeação/mudança de pavi
 
 ![Configuração de repetição com quantitativo antes/depois](detail-repetition.png)
 
-### Formato 7 e compatibilidade
+### Posições de fabricação
+
+Use **Elementos → Posições de fabricação** para conferir equivalências, selecionar ocorrências, escolher representante e compartilhar uma posição. A comparação considera forma, aço, bitola, mandril, gancho, especificações de pontas e variante; o percurso reverso é configurável e a reflexão não é normalizada. Cancelar conserva o projeto; aplicar/desagrupar ocupa uma etapa de desfazer e recalcula a RA. O quadro soma os comprimentos reais e permite expandir as contribuições por origem. Quantidades continuam por ocorrência/detalhe, sem multiplicação pelas vistas.
+
+Alterar uma ocorrência separa sua posição quando a fabricação deixa de coincidir; chamadas mantêm o ID original. Para luvas, roscas/cabeças e variante, expanda **Propriedades → Fabricação**. São especificações por código, sem acréscimo automático de comprimento ou verificação resistente. Consulte [AS-54: uso, regras, contrato e limites](AS-54.md).
+
+### Formato 8 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
 
@@ -214,7 +220,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/7`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/8`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

@@ -1,7 +1,14 @@
+import {
+  FABRICATION_RULES,
+  groupFabrication,
+  ungroupFabrication,
+  validateFabrication,
+} from './fabrication';
 import { barQuantities } from './detailQuantities';
 import { z } from 'zod';
 import {
   detailContentSchema,
+  manufacturingSchema,
   newBar,
   nextMark,
   scheduleChanged,
@@ -41,12 +48,15 @@ export const REBAR_CAPABILITIES = Object.freeze({
     'bar.split',
     'bar.join',
     'bar.renumber',
+    'fabrication.group',
+    'fabrication.ungroup',
     'distribution.set',
     'distribution.remove',
     'representation.create',
     'representation.update',
     'representation.delete',
   ] as const),
+  fabrication: FABRICATION_RULES,
   distributionsPerPosition: 1,
   maxBatchOperations: 10000,
   atomicBatches: true,
@@ -56,6 +66,7 @@ const number = z.number().finite();
 const point = z.object({ x: number, y: number }).strict();
 const id = z.string().min(1).max(200);
 const common = {
+  manufacturing: manufacturingSchema.optional(),
   mark: z.string().trim().min(1).max(40).optional(),
   element: z.string().max(100).optional(),
   origin: point.optional(),
@@ -159,6 +170,21 @@ const commandSchema = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('bar.join'), ids: z.tuple([id, id]) }).strict(),
   z.object({ type: z.literal('bar.renumber') }).strict(),
+  z
+    .object({
+      type: z.literal('fabrication.group'),
+      ids: z.array(id).min(2).max(10000),
+      representativeId: id,
+      reverse: z.boolean().optional(),
+      mark: common.mark,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('fabrication.ungroup'),
+      ids: z.array(id).min(1).max(10000),
+    })
+    .strict(),
   z
     .object({
       type: z.literal('distribution.set'),
@@ -324,18 +350,14 @@ export function validateRebarChange(
       ),
     );
   const old = new Map(before.bars.map((b) => [b.id, b]));
-  const marks = new Set<string>();
+  try {
+    validateFabrication(after);
+  } catch (e) {
+    errors.push(
+      issue('MARK_CONFLICT', (e as Error).message, 'fabricationPositions'),
+    );
+  }
   for (const b of after.bars) {
-    if (marks.has(b.mark))
-      errors.push(
-        issue(
-          'MARK_CONFLICT',
-          'Cada posição deve ter uma identificação única.',
-          'mark',
-          b.id,
-        ),
-      );
-    marks.add(b.mark);
     if (same(old.get(b.id), b)) continue;
     const valid = detailContentSchema.shape.bars.element.safeParse(b);
     if (!valid.success) {
@@ -570,6 +592,21 @@ function perform(
     c.ids.forEach((id) => barById(p, id));
     next = joinBars(p, c.ids);
     touched.push(...c.ids);
+  } else if (c.type === 'fabrication.group') {
+    c.ids.forEach((id) => barById(p, id));
+    barById(p, c.representativeId);
+    next = groupFabrication(
+      p,
+      c.ids,
+      c.representativeId,
+      c.reverse ?? true,
+      c.mark,
+    );
+    touched.push(...c.ids);
+  } else if (c.type === 'fabrication.ungroup') {
+    c.ids.forEach((id) => barById(p, id));
+    next = ungroupFabrication(p, c.ids);
+    touched.push(...c.ids);
   } else if (c.type === 'bar.renumber') {
     next = renumber(p);
     touched.push(...p.bars.map((b) => b.id));
@@ -713,6 +750,17 @@ export function executeRebarBatch(
               : undefined,
           ),
         );
+      if (
+        options.scopeDetailId &&
+        (parsed.data.type === 'fabrication.group' ||
+          parsed.data.type === 'fabrication.ungroup')
+      )
+        fail(
+          'INVALID_FIELD',
+          'Conclua a edição isolada antes de organizar posições de fabricação.',
+          'scopeDetailId',
+          options.scopeDetailId,
+        );
       const result = perform(next, parsed.data);
       const errors = validateRebarChange(
         next,
@@ -733,9 +781,9 @@ export function executeRebarBatch(
       scheduleLock: createScheduleLock(project, 'comparison'),
     });
     const scheduleInvalidated =
-      options.schedule === 'invalidate-lock' &&
-      steelChanged &&
-      !!project.scheduleLock;
+      !!project.scheduleLock &&
+      (!next.scheduleLock ||
+        (options.schedule === 'invalidate-lock' && steelChanged));
     if (scheduleInvalidated) next = { ...next, scheduleLock: undefined };
     if (options.scopeDetailId) {
       const errors = validateRebarChange(project, next, options.scopeDetailId);
@@ -838,6 +886,7 @@ export function applyRebarBatch(
 /** Adapter for existing Bar persistence; unused fields never leak across family boundaries. */
 export function rebarDefinition(bar: Bar): RebarDefinition {
   const common = {
+    manufacturing: bar.manufacturing,
     mark: bar.mark,
     element: bar.element,
     origin: bar.origin,

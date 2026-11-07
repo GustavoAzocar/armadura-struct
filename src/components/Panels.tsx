@@ -23,7 +23,11 @@ import {
   Unlink,
 } from 'lucide-react';
 import { distance, format, geometry, path, bounds } from '../domain/geometry';
-import { schedule, scheduleChanged } from '../domain/model';
+import {
+  schedule,
+  scheduleChanged,
+  scheduleQuantityLabel,
+} from '../domain/model';
 import type {
   Annotation,
   DraftPolyline,
@@ -315,6 +319,94 @@ export function Inspector({
               {barQuantities(project, bar).repetitions} repetições ={' '}
               {barQuantities(project, bar).quantity} peças efetivas.
             </p>
+            <details className="manufacturing-fields">
+              <summary>Fabricação · terminações e variante</summary>
+              <label className="field">
+                <span>Variante de fabricação</span>
+                <input
+                  aria-label="Variante de fabricação"
+                  maxLength={100}
+                  value={bar.manufacturing?.variant ?? ''}
+                  onChange={(e) =>
+                    onBar({
+                      manufacturing: {
+                        ...bar.manufacturing,
+                        variant: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              {(['start', 'end'] as const).map((end) => (
+                <div key={end}>
+                  <label className="field">
+                    <span>
+                      {end === 'start' ? 'Início' : 'Fim'} · especificação (ex.:
+                      LUVA-M20)
+                    </span>
+                    <input
+                      aria-label={`Especificação de fabricação ${end === 'start' ? 'início' : 'fim'}`}
+                      maxLength={100}
+                      value={bar.manufacturing?.[end]?.code ?? ''}
+                      onChange={(e) =>
+                        onBar({
+                          manufacturing: {
+                            ...bar.manufacturing,
+                            [end]: {
+                              kind: e.target.value
+                                ? bar.manufacturing?.[end]?.kind ===
+                                    'threaded' ||
+                                  bar.manufacturing?.[end]?.kind === 'headed'
+                                  ? bar.manufacturing[end]!.kind
+                                  : 'coupler'
+                                : 'plain',
+                              code: e.target.value,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Tipo da terminação</span>
+                    <select
+                      aria-label={`Tipo de terminação ${end === 'start' ? 'início' : 'fim'}`}
+                      disabled={!bar.manufacturing?.[end]?.code}
+                      value={bar.manufacturing?.[end]?.kind ?? 'plain'}
+                      onChange={(e) =>
+                        onBar({
+                          manufacturing: {
+                            ...bar.manufacturing,
+                            [end]: {
+                              kind: e.target.value as
+                                | 'plain'
+                                | 'coupler'
+                                | 'threaded'
+                                | 'headed',
+                              code:
+                                e.target.value === 'plain'
+                                  ? ''
+                                  : (bar.manufacturing?.[end]?.code ?? ''),
+                            },
+                          },
+                        })
+                      }
+                    >
+                      <option value="plain">Livre</option>
+                      <option value="coupler">Luva</option>
+                      <option value="threaded">Rosca</option>
+                      <option value="headed">Cabeça</option>
+                    </select>
+                  </label>
+                </div>
+              ))}
+              <p className="field-help">
+                O código identifica a terminação/luva. Não acrescenta
+                comprimento nem verifica resistência. Ganchos continuam
+                definidos na geometria. Editar uma peça pode separá-la da
+                posição compartilhada.
+              </p>
+            </details>
             <Section title="Geometria e dobras">
               {bar.kind === 'stirrup' && (
                 <>
@@ -1006,7 +1098,9 @@ export function Schedule({
         </h1>
         <p>
           Cada posição contabilizada uma vez. Rebatimentos compartilham os
-          mesmos dados.
+          mesmos dados. Posições equivalentes somam ocorrências sem fundir seus
+          elementos. Um asterisco no comprimento indica pequenas diferenças
+          dentro da grade de comparação; totais usam cada comprimento real.
         </p>
       </div>
       <div className="schedule-stats">
@@ -1057,7 +1151,7 @@ export function Schedule({
           <tbody>
             {rows.map((r) => (
               <tr
-                key={r.bar.id}
+                key={r.positionId}
                 onClick={() => onSelect(r.bar.id)}
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -1072,16 +1166,47 @@ export function Schedule({
                 <td>
                   <ShapePreview bar={r.bar} />
                 </td>
-                <td>{r.element}</td>
+                <td>
+                  {r.element}
+                  {r.contributions.length > 1 && (
+                    <details
+                      className="fabrication-contributions"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <summary>
+                        {r.contributions.length} ocorrências · origens
+                      </summary>
+                      {r.contributions.map((c) => (
+                        <p key={c.barId}>
+                          <button onClick={() => onSelect(c.barId)}>
+                            {c.barId}
+                          </button>
+                          <br />
+                          {c.origin}
+                          <br />
+                          {c.baseQuantity} × {c.repetitions} = {c.quantity}{' '}
+                          peças · {format(c.unitLength, 6)} m ·{' '}
+                          {format(c.weight, 4)} kg
+                        </p>
+                      ))}
+                    </details>
+                  )}
+                </td>
                 <td>
                   {r.steel} / {format(r.diameter, r.diameter % 1 ? 1 : 0)}
                 </td>
                 <td title="Quantidade base × repetições = quantidade efetiva">
-                  {r.repetitions > 1
-                    ? `${r.baseQuantity} × ${r.repetitions} = ${r.quantity}`
-                    : r.quantity}
+                  {scheduleQuantityLabel(r)}
                 </td>
-                <td>{r.errors.length ? 'Revisar' : format(r.unitLength, 3)}</td>
+                <td
+                  title={`Intervalo real: ${r.unitLengthRange.join(' – ')} m`}
+                >
+                  {r.errors.length ? 'Revisar' : format(r.unitLength, 3)}
+                  {r.unitLengthRange[1] - r.unitLengthRange[0] > 1e-9
+                    ? ' *'
+                    : ''}
+                </td>
                 <td>{r.errors.length ? '—' : format(r.totalLength, 3)}</td>
                 <td>{r.errors.length ? '—' : format(r.weight, 2)}</td>
               </tr>

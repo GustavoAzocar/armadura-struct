@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { fabricationPositions, validateFabrication } from './fabrication';
 import { quantityContext } from './detailQuantities';
 import { geometry, vertices, world } from './geometry';
 import { uid, type Bar, type Project, type ScheduleRow } from './types';
@@ -117,30 +118,59 @@ const hierarchySchema = z.object({
     .record(z.string(), z.object({ projectId: identity, objectId: identity }))
     .optional(),
 });
-const barSchema = z.object({
-  id: z.string(),
-  mark: z.string().min(1).max(40),
-  element: z.string().max(100),
-  kind: z.enum(['free', 'stirrup']),
-  origin: point,
-  rotation: number,
-  points: z.array(point).min(2).max(500),
-  width: number.positive(),
-  height: number.positive(),
-  hook: number.nonnegative(),
-  diameter: number.positive().max(100),
-  mandrel: number.positive().max(2000),
-  steel: z.enum(['CA-50', 'CA-60']),
-  quantity: z.number().int().min(1).max(100000),
-  distribution: z
-    .object({
-      start: point.optional(),
-      end: point,
-      render: z.enum(['ticks', 'bars']).optional(),
-    })
-    .optional(),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-});
+export const terminationSchema = z
+  .object({
+    kind: z.enum(['plain', 'coupler', 'threaded', 'headed']),
+    code: z.string().trim().max(100),
+  })
+  .strict()
+  .refine(
+    (v) => (v.kind === 'plain' ? v.code.length === 0 : v.code.length > 0),
+    'Identifique a especificação da terminação/luva.',
+  );
+export const manufacturingSchema = z
+  .object({
+    start: terminationSchema.optional(),
+    end: terminationSchema.optional(),
+    variant: z.string().trim().max(100).optional(),
+  })
+  .strict();
+export const fabricationPositionSchema = z
+  .object({
+    id: z.string().min(1).max(500),
+    mark: z.string().min(1).max(40),
+    barIds: z.array(identity).min(1).max(10000),
+    reverse: z.boolean(),
+    signature: z.string().max(200000),
+  })
+  .strict();
+const barSchema = z
+  .object({
+    manufacturing: manufacturingSchema.optional(),
+    id: z.string(),
+    mark: z.string().min(1).max(40),
+    element: z.string().max(100),
+    kind: z.enum(['free', 'stirrup']),
+    origin: point,
+    rotation: number,
+    points: z.array(point).min(2).max(500),
+    width: number.positive(),
+    height: number.positive(),
+    hook: number.nonnegative(),
+    diameter: number.positive().max(100),
+    mandrel: number.positive().max(2000),
+    steel: z.enum(['CA-50', 'CA-60']),
+    quantity: z.number().int().min(1).max(100000),
+    distribution: z
+      .object({
+        start: point.optional(),
+        end: point,
+        render: z.enum(['ticks', 'bars']).optional(),
+      })
+      .optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  })
+  .strict();
 const schema = z.object({
   schema: z.enum([
     'armadurastruct/1',
@@ -150,6 +180,7 @@ const schema = z.object({
     'armadurastruct/5',
     'armadurastruct/6',
     'armadurastruct/7',
+    'armadurastruct/8',
   ]),
   sheets: z
     .array(
@@ -192,6 +223,10 @@ const schema = z.object({
   author: z.string().max(150),
   notes: z.string().max(5000),
   bars: z.array(barSchema).max(10000),
+  fabricationPositions: z
+    .array(fabricationPositionSchema)
+    .max(10000)
+    .optional(),
   polylines: z
     .array(
       z.object({
@@ -233,7 +268,13 @@ const schema = z.object({
   scheduleLock: z
     .object({
       at: z.string(),
+      origins: z.record(z.string(), z.string()).optional(),
+      detailIds: z.record(z.string(), z.string()).optional(),
       bars: z.array(barSchema).max(10000),
+      fabricationPositions: z
+        .array(fabricationPositionSchema)
+        .max(10000)
+        .optional(),
       quantities: z
         .record(
           z.string(),
@@ -305,7 +346,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/4' ||
     parsed.schema === 'armadurastruct/5' ||
     parsed.schema === 'armadurastruct/6' ||
-    parsed.schema === 'armadurastruct/7';
+    parsed.schema === 'armadurastruct/7' ||
+    parsed.schema === 'armadurastruct/8';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -341,7 +383,12 @@ export function decodeProject(
   );
   let sheetId = `${id}:sheet`;
   while (occupied.has(sheetId)) sheetId += '-';
-  const v7 = parsed.schema === 'armadurastruct/7';
+  const v8 = parsed.schema === 'armadurastruct/8';
+  if (v8 && !parsed.fabricationPositions)
+    throw new Error('Projeto v8 sem posições de fabricação.');
+  if (!v8 && parsed.fabricationPositions?.some((g) => g.barIds.length > 1))
+    throw new Error('Posições compartilhadas exigem formato 8.');
+  const v7 = parsed.schema === 'armadurastruct/7' || v8;
   if (!v7 && parsed.hierarchy?.details.some((d) => d.repetition))
     throw new Error('Repetição de detalhamento exige o formato 7.');
   const v6 = parsed.schema === 'armadurastruct/6' || v7;
@@ -403,7 +450,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/7',
+    schema: 'armadurastruct/8',
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -423,8 +470,14 @@ export function decodeProject(
   const ids = p.bars.map((b) => b.id);
   if (new Set(ids).size !== ids.length)
     throw new Error('IDs de armadura duplicados.');
-  if (new Set(p.bars.map((b) => b.mark)).size !== p.bars.length)
-    throw new Error('Cada posição deve ter uma identificação única.');
+  p = { ...p, fabricationPositions: fabricationPositions(p) };
+  validateFabrication(p);
+  if (p.scheduleLock) {
+    validateFabrication({
+      bars: p.scheduleLock.bars,
+      fabricationPositions: p.scheduleLock.fabricationPositions,
+    });
+  }
   if (
     !options.allowOrphanReferences &&
     p.details.some((d) => !ids.includes(d.barId))
@@ -523,7 +576,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/7',
+    schema: 'armadurastruct/8',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),
@@ -531,6 +584,7 @@ export const emptyProject = (): Project => {
     author: '',
     notes: '',
     bars: [],
+    fabricationPositions: [],
     details: [],
     masks: [],
     annotations: [],
@@ -545,42 +599,109 @@ export function createScheduleLock(
   return {
     at,
     bars: structuredClone(p.bars),
+    fabricationPositions: structuredClone(fabricationPositions(p)),
+    detailIds: Object.fromEntries(
+      p.bars.map((b) => [b.id, p.hierarchy.objectDetails[b.id]]),
+    ),
+    origins: Object.fromEntries(
+      p.bars.map((b) => [b.id, contributionOrigin(p, b.id)]),
+    ),
     quantities: Object.fromEntries(
       p.bars.map((b) => [b.id, quantityContext(p, b)]),
     ),
   };
 }
+export function contributionOrigin(p: Project, id: string) {
+  const d = p.hierarchy.details.find(
+    (d) => d.id === p.hierarchy.objectDetails[id],
+  );
+  const e = p.hierarchy.elements.find((e) => e.id === d?.elementId);
+  const f = p.hierarchy.floors.find((f) => f.id === e?.floorId);
+  const lineage = p.hierarchy.objectOrigins[id];
+  return `${[f?.name, e?.name, d?.name].filter(Boolean).join(' / ')} · ${lineage ? `${lineage.projectId}/${lineage.objectId}` : `${p.id}/${id}`}`;
+}
 export function schedule(p: Project): ScheduleRow[] {
-  return (p.scheduleLock?.bars ?? p.bars).map((bar) => {
-    const g = geometry(bar),
-      context = p.scheduleLock
-        ? (p.scheduleLock.quantities?.[bar.id] ?? {
-            repetitions: 1,
-            detailTitle: '',
-          })
-        : quantityContext(p, bar),
-      quantity = bar.quantity * context.repetitions,
-      totalLength = (g.length * quantity) / 1000;
-    return {
-      mark: bar.mark,
-      element: context.detailTitle || bar.element,
-      steel: bar.steel,
-      diameter: bar.diameter,
-      quantity,
-      baseQuantity: bar.quantity,
-      repetitions: context.repetitions,
-      unitLength: g.length / 1000,
-      totalLength,
-      weight: totalLength * ((Math.PI * (bar.diameter / 1000) ** 2) / 4) * 7850,
-      errors: [
-        ...g.errors,
-        ...(!Number.isFinite(totalLength)
-          ? ['Quantidade/comprimento excede os limites numéricos.']
-          : []),
-      ],
-      bar,
-    };
-  });
+  const snapshot = p.scheduleLock ?? p;
+  const bars = new Map(snapshot.bars.map((b) => [b.id, b]));
+  return fabricationPositions(snapshot)
+    .filter((g) => g.barIds.some((id) => bars.has(id)))
+    .map((position) => {
+      const members = position.barIds
+        .map((id) => bars.get(id)!)
+        .filter(Boolean);
+      const bar = members[0];
+      const contributions = members.map((b) => {
+        const g = geometry(b),
+          context = p.scheduleLock
+            ? (p.scheduleLock.quantities?.[b.id] ?? {
+                repetitions: 1,
+                detailTitle: '',
+              })
+            : quantityContext(p, b);
+        const quantity = b.quantity * context.repetitions,
+          totalLength = (g.length * quantity) / 1000;
+        return {
+          barId: b.id,
+          detailId:
+            p.scheduleLock?.detailIds?.[b.id] ??
+            p.hierarchy.objectDetails[b.id] ??
+            '',
+          origin:
+            p.scheduleLock?.origins?.[b.id] ?? contributionOrigin(p, b.id),
+          baseQuantity: b.quantity,
+          repetitions: context.repetitions,
+          quantity,
+          unitLength: g.length / 1000,
+          totalLength,
+          weight:
+            ((totalLength * Math.PI * (b.diameter / 1000) ** 2) / 4) * 7850,
+        };
+      });
+      const quantity = contributions.reduce((n, c) => n + c.quantity, 0),
+        totalLength = contributions.reduce((n, c) => n + c.totalLength, 0),
+        weight = contributions.reduce((n, c) => n + c.weight, 0);
+      const names = members.map(
+        (b) =>
+          (p.scheduleLock?.quantities?.[b.id] ?? quantityContext(p, b))
+            .detailTitle || b.element,
+      );
+      return {
+        positionId: position.id,
+        contributions,
+        unitLengthRange: [
+          Math.min(...contributions.map((c) => c.unitLength)),
+          Math.max(...contributions.map((c) => c.unitLength)),
+        ],
+        mark: position.mark,
+        element: [...new Set(names)].join(' / '),
+        steel: bar.steel,
+        diameter: bar.diameter,
+        quantity,
+        baseQuantity: contributions.reduce((n, c) => n + c.baseQuantity, 0),
+        repetitions: contributions.every(
+          (c) => c.repetitions === contributions[0].repetitions,
+        )
+          ? contributions[0].repetitions
+          : null,
+        unitLength: geometry(bar).length / 1000,
+        totalLength,
+        weight,
+        errors: [
+          ...new Set(members.flatMap((b) => geometry(b).errors)),
+          ...(!Number.isFinite(totalLength) || !Number.isFinite(weight)
+            ? ['Quantidade/comprimento excede os limites numéricos.']
+            : []),
+        ],
+        bar,
+      };
+    });
+}
+export function scheduleQuantityLabel(r: ScheduleRow) {
+  return r.contributions.length > 1
+    ? `${r.contributions.map((c) => (c.repetitions > 1 ? `${c.baseQuantity}×${c.repetitions}` : c.baseQuantity)).join(' + ')} = ${r.quantity}`
+    : (r.repetitions ?? 1) > 1
+      ? `${r.baseQuantity} × ${r.repetitions} = ${r.quantity}`
+      : String(r.quantity);
 }
 export function scheduleChanged(p: Project) {
   const fingerprint = (
@@ -601,16 +722,20 @@ export function scheduleChanged(p: Project) {
         height: b.height,
         hook: b.hook,
         mandrel: b.mandrel,
+        manufacturing: b.manufacturing,
         repetitions: quantities?.[b.id]?.repetitions ?? 1,
         detailTitle: quantities?.[b.id]?.detailTitle ?? '',
       })),
     );
   return (
-    !!p.scheduleLock &&
-    fingerprint(
-      p.bars,
-      Object.fromEntries(p.bars.map((b) => [b.id, quantityContext(p, b)])),
-    ) !== fingerprint(p.scheduleLock.bars, p.scheduleLock.quantities)
+    (!!p.scheduleLock &&
+      fingerprint(
+        p.bars,
+        Object.fromEntries(p.bars.map((b) => [b.id, quantityContext(p, b)])),
+      ) !== fingerprint(p.scheduleLock.bars, p.scheduleLock.quantities)) ||
+    (!!p.scheduleLock &&
+      JSON.stringify(fabricationPositions(p)) !==
+        JSON.stringify(fabricationPositions(p.scheduleLock)))
   );
 }
 export function projectPoints(p: Project) {

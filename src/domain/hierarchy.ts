@@ -1,3 +1,4 @@
+import { reconcileFabrication } from './fabrication';
 import { uid, type Project, type ProjectHierarchy } from './types';
 
 export type HierarchyKind = 'floor' | 'element' | 'detail';
@@ -90,10 +91,10 @@ export function completeOwnership(
   const objectOrigins = Object.fromEntries(
     Object.entries(h.objectOrigins).filter(([id]) => live.has(id)),
   );
-  return {
+  return reconcileFabrication({
     ...project,
     hierarchy: { ...h, objectDetails: owners, objectOrigins },
-  };
+  });
 }
 
 function cleanName(name: string) {

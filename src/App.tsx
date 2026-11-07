@@ -34,6 +34,7 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const FabricationDialog = lazy(() => import('./components/FabricationDialog'));
 const DetailRepetitionDialog = lazy(
   () => import('./components/DetailRepetitionDialog'),
 );
@@ -211,6 +212,7 @@ export default function App() {
     maskId?: string;
     projectId: string;
   } | null>(null);
+  const [fabricationOpen, setFabricationOpen] = useState(false);
   const [repetitionDetailId, setRepetitionDetailId] = useState<string>();
   const detailRequest = useRef<{
     mode: 'insert' | 'replace';
@@ -1278,6 +1280,16 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'fabrication') {
+      if (isolationRef.current) {
+        notify(
+          'Conclua a edição isolada antes de organizar as posições de fabricação.',
+        );
+        return;
+      }
+      setFabricationOpen(true);
+      return;
+    }
     if (a === 'detail-repetition') {
       if (isolationRef.current) {
         notify(
@@ -1813,13 +1825,19 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (detailTransfer || cadInterpretation || repetitionDetailId) {
+      if (
+        detailTransfer ||
+        cadInterpretation ||
+        repetitionDetailId ||
+        fabricationOpen
+      ) {
         if (e.key === 'Escape') {
           e.preventDefault();
           setDetailTransfer(null);
           detailRequest.current = null;
           setCadInterpretation(null);
           setRepetitionDetailId(undefined);
+          setFabricationOpen(false);
         } else if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -2646,6 +2664,29 @@ export default function App() {
               setSidebarOpen(true);
               notify(
                 'Posição física criada por atribuição explícita. A máscara foi preservada como referência.',
+              );
+              return true;
+            }}
+          />
+        </Suspense>
+      )}
+      {fabricationOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Comparando posições…</div>}
+        >
+          <FabricationDialog
+            project={p}
+            onClose={() => setFabricationOpen(false)}
+            onApply={(result) => {
+              if (isolationRef.current) {
+                notify('Conclua a edição isolada.');
+                return false;
+              }
+              if (!commit((current) => applyRebarBatch(current, result)))
+                return false;
+              setFabricationOpen(false);
+              notify(
+                'Posições de fabricação atualizadas. Ocorrências, vistas e quantidades preservadas.',
               );
               return true;
             }}

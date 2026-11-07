@@ -2964,3 +2964,36 @@ button.hierarchy-drawing {
     grid-template-columns: 1fr;
   }
 }
+
+.fabrication-modal {
+  max-width: 1000px;
+}
+.fabrication-search {
+  width: 100%;
+  margin-bottom: 8px;
+}
+.fabrication-contributions {
+  max-width: 420px;
+  font-size: 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.fabrication-contributions summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.fabrication-contributions button {
+  font-size: 10px;
+}
+.manufacturing-fields {
+  padding: 8px;
+  font-size: 11px;
+}
+.manufacturing-fields > summary {
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.fabrication-preview {
+  max-height: 190px;
+  overflow: auto;
+}

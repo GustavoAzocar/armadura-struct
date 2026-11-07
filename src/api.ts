@@ -24,3 +24,18 @@ export {
 } from './domain/detailRepetition';
 export { barQuantities, detailTitle } from './domain/detailQuantities';
 export type { DetailRepetition } from './domain/types';
+
+export {
+  FABRICATION_RULES,
+  fabricationSignature,
+  fabricationPositions,
+  fabricationCandidates,
+  previewFabrication,
+  groupFabrication,
+  ungroupFabrication,
+} from './domain/fabrication';
+export type {
+  FabricationPosition,
+  BarTermination,
+  ScheduleContribution,
+} from './domain/types';

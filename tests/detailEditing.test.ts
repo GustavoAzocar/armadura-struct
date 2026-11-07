@@ -62,9 +62,9 @@ describe('semantic detail grouping', () => {
         'line',
       ]),
     );
-    expect(schedule(p)).toEqual(schedule(before));
+    expect(physicalSchedule(p)).toEqual(physicalSchedule(before));
     expect(exportLines(p)).toEqual(exportLines(before));
-    expect(toCsv(p)).toEqual(toCsv(before));
+    expect(physicalCsv(p)).toEqual(physicalCsv(before));
     expect(decodeProject(JSON.stringify(p))).toEqual(p);
     expect(before.hierarchy.details).toHaveLength(1);
   });
@@ -77,7 +77,7 @@ describe('semantic detail grouping', () => {
     expect(loose.hierarchy.drawings).toBe(p.hierarchy.drawings);
     expect(loose.hierarchy.placements).toBe(p.hierarchy.placements);
     expect(loose.bars).toBe(p.bars);
-    expect(schedule(loose)).toEqual(schedule(p));
+    expect(physicalSchedule(loose)).toEqual(physicalSchedule(p));
     expect(scheduleChanged(loose)).toBe(false);
     expect(expandDetailSelection(loose, [p.bars[0].id])).toEqual([
       p.bars[0].id,
@@ -110,7 +110,7 @@ describe('semantic detail grouping', () => {
     expect(detailObjectIds(next.project, next.id)).toEqual(
       detailObjectIds(p, id),
     );
-    expect(schedule(next.project)).toEqual(schedule(p));
+    expect(physicalSchedule(next.project)).toEqual(physicalSchedule(p));
   });
 
   it('rejects empty/missing selections and retains older schema-3 details with no grouped flag', () => {
@@ -216,3 +216,18 @@ describe('isolated editing writes and history', () => {
     expect(reopened.bars[0].quantity).toBe(10);
   });
 });
+
+function physicalSchedule(p: Parameters<typeof schedule>[0]) {
+  return schedule(p).map(({ contributions, ...r }) => ({
+    ...r,
+    contributions: contributions.map(
+      ({ origin: _origin, detailId: _detail, ...c }) => c,
+    ),
+  }));
+}
+
+function physicalCsv(p: Parameters<typeof toCsv>[0]) {
+  return toCsv(p)
+    .split('\r\n')
+    .map((r) => r.split(';').slice(0, 10).join(';'));
+}

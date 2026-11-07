@@ -1,6 +1,10 @@
 import { jsPDF } from 'jspdf';
 import { bounds, format } from '../domain/geometry';
-import { schedule, scheduleChanged } from '../domain/model';
+import {
+  schedule,
+  scheduleChanged,
+  scheduleQuantityLabel,
+} from '../domain/model';
 import { annotationError, primitiveBounds } from '../domain/drafting';
 import { version as appVersion } from '../../package.json';
 import { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
@@ -140,7 +144,7 @@ export function toDxf(p: Project): string {
     'POS   ACO   DIAM   BASE x REP = QTD   C.UNIT   C.TOTAL   PESO(kg)',
     ...schedule(p).map(
       (r) =>
-        `${r.mark}   ${r.steel}   ${r.diameter}   ${r.baseQuantity} x ${r.repetitions} = ${r.quantity}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
+        `${r.mark}   ${r.steel}   ${r.diameter}   ${scheduleQuantityLabel(r).replace(/×/g, 'x')}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
     ),
   ]) {
     put(
@@ -184,6 +188,11 @@ export function toCsv(p: Project) {
         'Comprimento unitário (m)',
         'Comprimento total (m)',
         'Peso teórico (kg)',
+        'ID da posição de fabricação',
+        'Contribuições por ocorrência (JSON)',
+        'Fórmula da quantidade',
+        'C. unit. mínimo (m)',
+        'C. unit. máximo (m)',
       ],
       ...schedule(p).map((r) => [
         r.mark,
@@ -191,11 +200,18 @@ export function toCsv(p: Project) {
         r.steel,
         r.diameter,
         r.baseQuantity,
-        r.repetitions,
+        r.contributions.length > 1
+          ? r.contributions.map((c) => c.repetitions).join('/')
+          : r.repetitions,
         r.quantity,
         format(r.unitLength, 3),
         format(r.totalLength, 3),
         format(r.weight, 2),
+        r.positionId,
+        JSON.stringify(r.contributions),
+        scheduleQuantityLabel(r),
+        String(r.unitLengthRange[0]),
+        String(r.unitLengthRange[1]),
       ]),
     ]
       .map((row) => row.map(safe).join(';'))
@@ -325,7 +341,7 @@ export function toPdf(p: Project): Uint8Array {
       r.element.slice(0, 55),
       r.steel,
       String(r.diameter),
-      `${r.baseQuantity}x${r.repetitions}=${r.quantity}`,
+      String(r.quantity),
       format(r.unitLength, 3),
       format(r.totalLength, 3),
       format(r.weight, 2),

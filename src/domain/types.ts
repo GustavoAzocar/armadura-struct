@@ -16,6 +16,23 @@ export type Bar = {
   quantity: number;
   distribution?: { start?: Point; end: Point; render?: 'ticks' | 'bars' };
   color: string;
+  /** Fabrication specifications; no implicit added geometry or cut allowance. */
+  manufacturing?: {
+    start?: BarTermination;
+    end?: BarTermination;
+    variant?: string;
+  };
+};
+export type BarTermination = {
+  kind: 'plain' | 'coupler' | 'threaded' | 'headed';
+  code: string;
+};
+export type FabricationPosition = {
+  id: string;
+  mark: string;
+  barIds: string[];
+  reverse: boolean;
+  signature: string;
 };
 /** A graphical rebatimento; never another physical bar or composite detail. */
 export type BarRepresentation = { id: string; barId: string; origin: Point };
@@ -141,7 +158,7 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/7';
+  schema: 'armadurastruct/8';
   id: string;
   hierarchy: ProjectHierarchy;
   /** Array order is the document order, independent of tab opening order. */
@@ -150,6 +167,7 @@ export type Project = {
   author: string;
   notes: string;
   bars: Bar[];
+  fabricationPositions?: FabricationPosition[];
   details: Detail[];
   masks: Mask[];
   annotations: Annotation[];
@@ -158,6 +176,9 @@ export type Project = {
   scheduleLock?: {
     at: string;
     bars: Bar[];
+    fabricationPositions?: FabricationPosition[];
+    origins?: Record<string, string>;
+    detailIds?: Record<string, string>;
     quantities?: Record<string, { repetitions: number; detailTitle: string }>;
   };
 };
@@ -194,14 +215,29 @@ export type Geometry = {
   errors: string[];
   vertices: Point[];
 };
+export type ScheduleContribution = {
+  barId: string;
+  detailId: string;
+  origin: string;
+  baseQuantity: number;
+  repetitions: number;
+  quantity: number;
+  unitLength: number;
+  totalLength: number;
+  weight: number;
+};
 export type ScheduleRow = {
+  positionId: string;
+  contributions: ScheduleContribution[];
+  unitLengthRange: [number, number];
   mark: string;
   element: string;
   steel: string;
   diameter: number;
   quantity: number;
   baseQuantity: number;
-  repetitions: number;
+  /** Null for a fabrication position with contributions using different detail factors. */
+  repetitions: number | null;
   unitLength: number;
   totalLength: number;
   weight: number;

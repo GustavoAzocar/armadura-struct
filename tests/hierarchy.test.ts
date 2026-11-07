@@ -46,7 +46,7 @@ describe('versioned hierarchy and physical quantities', () => {
       const legacy = { ...source, schema, id: undefined, hierarchy: undefined };
       const raw = JSON.stringify(legacy),
         migrated = decodeProject(raw);
-      expect(migrated.schema).toBe('armadurastruct/7');
+      expect(migrated.schema).toBe('armadurastruct/8');
       for (const field of [
         'bars',
         'details',
@@ -67,9 +67,9 @@ describe('versioned hierarchy and physical quantities', () => {
           source.polylines.length +
           source.masks.length,
       );
-      expect(schedule(migrated)).toEqual(schedule(source));
+      expect(physicalSchedule(migrated)).toEqual(physicalSchedule(source));
       expect(scheduleChanged(migrated)).toBe(false);
-      expect(toCsv(migrated)).toEqual(toCsv(source));
+      expect(physicalCsv(migrated)).toEqual(physicalCsv(source));
       expect(exportLines(migrated)).toEqual(exportLines(source));
       expect(decodeProject(raw)).toEqual(migrated);
       expect(decodeProject(JSON.stringify(migrated))).toEqual(migrated);
@@ -139,7 +139,7 @@ describe('versioned hierarchy and physical quantities', () => {
     expect(next.hierarchy.placements).toEqual(
       other.project.hierarchy.placements,
     );
-    expect(schedule(next)).toEqual(schedule(p));
+    expect(physicalSchedule(next)).toEqual(physicalSchedule(p));
     expect(decodeProject(JSON.stringify(next))).toEqual(next);
     // History is immutable: undo can restore the old snapshot exactly.
     expect(p.hierarchy.elements[0].name).toBe('Geral');
@@ -158,7 +158,7 @@ describe('versioned hierarchy and physical quantities', () => {
     );
     expect(moved.bars).toBe(p.bars);
     expect(exportLines(moved)).toEqual(exportLines(p));
-    expect(schedule(moved)).toEqual(schedule(p));
+    expect(physicalSchedule(moved)).toEqual(physicalSchedule(p));
     expect(scheduleChanged(moved)).toBe(false);
   });
 
@@ -234,7 +234,7 @@ describe('versioned hierarchy and physical quantities', () => {
       'floor',
       other.project.hierarchy.floors[1].id,
     );
-    expect(schedule(next)).toEqual(schedule(p));
+    expect(physicalSchedule(next)).toEqual(physicalSchedule(p));
     expect(next.hierarchy).toEqual(p.hierarchy);
     expect(() => createHierarchyNode(p, 'element', 'V2', 'missing')).toThrow(
       /inexistente/,
@@ -275,3 +275,18 @@ describe('versioned hierarchy and physical quantities', () => {
     expect(() => decodeProject(JSON.stringify(p))).toThrow();
   });
 });
+
+function physicalSchedule(p: Parameters<typeof schedule>[0]) {
+  return schedule(p).map(({ contributions, ...r }) => ({
+    ...r,
+    contributions: contributions.map(
+      ({ origin: _origin, detailId: _detail, ...c }) => c,
+    ),
+  }));
+}
+
+function physicalCsv(p: Parameters<typeof toCsv>[0]) {
+  return toCsv(p)
+    .split('\r\n')
+    .map((r) => r.split(';').slice(0, 10).join(';'));
+}

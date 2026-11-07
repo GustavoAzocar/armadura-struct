@@ -68,7 +68,7 @@ describe('versioned paper documents', () => {
       };
       const raw = JSON.stringify(old),
         p = decodeProject(raw);
-      expect(p.schema).toBe('armadurastruct/7');
+      expect(p.schema).toBe('armadurastruct/8');
       expect(p.sheets).toHaveLength(1);
       for (const field of [
         'bars',
@@ -80,7 +80,7 @@ describe('versioned paper documents', () => {
         'scheduleLock',
       ] as const)
         expect(p[field]).toEqual(source[field]);
-      expect(schedule(p)).toEqual(schedule(source));
+      expect(physicalSchedule(p)).toEqual(physicalSchedule(source));
       expect(scheduleChanged(p)).toBe(false);
       expect(p.hierarchy.placements[0].sheetId).toBe(p.sheets[0].id);
       if (schema === 'armadurastruct/3') {
@@ -239,3 +239,12 @@ describe('versioned paper documents', () => {
     expect(() => decodeProject(JSON.stringify(raw))).toThrow();
   });
 });
+
+function physicalSchedule(p: Parameters<typeof schedule>[0]) {
+  return schedule(p).map(({ contributions, ...r }) => ({
+    ...r,
+    contributions: contributions.map(
+      ({ origin: _origin, detailId: _detail, ...c }) => c,
+    ),
+  }));
+}

@@ -1,9 +1,11 @@
+import { fabricationPositions } from './fabrication';
 import { z } from 'zod';
 import {
   decodeProject,
   detailContentSchema,
   exchangeMetadataSchema,
   repetitionSchema,
+  fabricationPositionSchema,
 } from './model';
 import { contentObjects } from './hierarchy';
 import { detailOrigin, objectOrigin } from './detailTransfer';
@@ -11,13 +13,21 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/2' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/3' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
 export const detailPackageSchema = z
   .object({
-    schema: z.enum(['openstruct.detail/1', 'openstruct.detail/2']),
+    schema: z.enum([
+      'openstruct.detail/1',
+      'openstruct.detail/2',
+      'openstruct.detail/3',
+    ]),
+    fabricationPositions: z
+      .array(fabricationPositionSchema)
+      .max(10000)
+      .optional(),
     units: z
       .object({ length: z.enum(['mm', 'cm', 'm']), angle: z.literal('deg') })
       .strict(),
@@ -114,6 +124,14 @@ export function detailPackageProject(value: DetailPackage): Project {
   );
   if (pack.schema === 'openstruct.detail/1' && pack.context.detail.repetition)
     throw new Error('Repetições exigem pacote openstruct.detail/2.');
+  if (
+    pack.schema !== 'openstruct.detail/3' &&
+    (pack.fabricationPositions ||
+      [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
+  )
+    throw new Error(
+      'Posições de fabricação/terminações exigem pacote openstruct.detail/3.',
+    );
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -202,7 +220,8 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/7',
+      schema: 'armadurastruct/8',
+      fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
       name: c.project.name,
       author: pack.producer.app,
@@ -232,7 +251,13 @@ export function readDetailPackage(raw: unknown): {
   project: Project;
 } {
   const input = typeof raw === 'string' ? JSON.parse(raw) : raw;
-  if (!['openstruct.detail/1', DETAIL_PACKAGE_SCHEMA].includes(input?.schema))
+  if (
+    ![
+      'openstruct.detail/1',
+      'openstruct.detail/2',
+      DETAIL_PACKAGE_SCHEMA,
+    ].includes(input?.schema)
+  )
     throw new Error(
       `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA}.`,
     );
@@ -279,6 +304,14 @@ export function createDetailPackage(
   );
   const mm: DetailPackage = {
     schema: DETAIL_PACKAGE_SCHEMA,
+    fabricationPositions: fabricationPositions(project)
+      .map((g) => ({
+        ...g,
+        barIds: g.barIds.filter((id) =>
+          [...objects.bars, ...dependencies].some((b) => b.id === id),
+        ),
+      }))
+      .filter((g) => g.barIds.length),
     units: { length: options.unit ?? 'mm', angle: 'deg' },
     origin: detailOrigin(project, detailId),
     context: {

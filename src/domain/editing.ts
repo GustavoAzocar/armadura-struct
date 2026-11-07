@@ -1,3 +1,4 @@
+import { fabricationPositions } from './fabrication';
 import {
   add,
   distance,
@@ -60,12 +61,28 @@ export function splitBar(
       const first: Bar = {
         ...bar,
         points: [...bar.points.slice(0, leg + 1), end],
+        ...(bar.manufacturing
+          ? {
+              manufacturing: {
+                ...bar.manufacturing,
+                end: { kind: 'plain', code: '' },
+              },
+            }
+          : {}),
       };
       const second: Bar = {
         ...bar,
         id: uid(),
         mark: nextMark(project),
         origin: world(start, bar),
+        ...(bar.manufacturing
+          ? {
+              manufacturing: {
+                ...bar.manufacturing,
+                start: { kind: 'plain', code: '' },
+              },
+            }
+          : {}),
         points: [start, ...bar.points.slice(leg + 1)].map((p) => sub(p, start)),
       };
       const errors = [...geometry(first).errors, ...geometry(second).errors];
@@ -96,6 +113,18 @@ export function joinBars(project: Project, ids: string[]): Project {
       'Selecione exatamente duas barras com Shift para emendar as poligonais.',
     );
   const [a, b] = bars;
+  if (
+    bars.some(
+      (b) =>
+        b.manufacturing?.variant ||
+        [b.manufacturing?.start, b.manufacturing?.end].some(
+          (t) => t && t.kind !== 'plain',
+        ),
+    )
+  )
+    throw new Error(
+      'A união de peças com terminações/luvas ou variantes exige revisão explícita das especificações.',
+    );
   const ownerA = project.hierarchy.objectDetails[a.id],
     ownerB = project.hierarchy.objectDetails[b.id];
   if (ownerA && ownerB && ownerA !== ownerB)
@@ -189,9 +218,17 @@ export function translateBar(bar: Bar, delta: Point): Bar {
 }
 
 export function renumber(project: Project): Project {
+  const positions = fabricationPositions(project).map((g, i) => ({
+    ...g,
+    mark: `N${i + 1}`,
+  }));
+  const names = new Map(
+    positions.flatMap((g) => g.barIds.map((id) => [id, g.mark])),
+  );
   return {
     ...project,
-    bars: project.bars.map((b, i) => ({ ...b, mark: `N${i + 1}` })),
+    fabricationPositions: positions,
+    bars: project.bars.map((b) => ({ ...b, mark: names.get(b.id)! })),
   };
 }
 

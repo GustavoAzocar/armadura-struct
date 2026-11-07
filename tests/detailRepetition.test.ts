@@ -220,20 +220,20 @@ describe('repetição de elementos e levantamento consistente', () => {
       const q = decodeProject(
         JSON.stringify({ ...p, schema: `armadurastruct/${v}` }),
       );
-      expect(q.schema).toBe('armadurastruct/7');
+      expect(q.schema).toBe('armadurastruct/8');
       expect(q.bars).toEqual(p.bars);
       expect(pieces(q)).toBe(4);
       expect(weight(q)).toBeCloseTo(weight(p), 10);
     }
   });
-  it('exporta pacote v2 com repetição e lê v1 sem inventar multiplicador', () => {
+  it('exporta pacote vigente com repetição e lê v1 sem inventar multiplicador', () => {
     const { p, id } = fixture();
     const q = repeated(p, id);
     const pack = createDetailPackage(q, id, {
       producer: { app: 'test', version: '1' },
       unit: 'cm',
     });
-    expect(pack.schema).toBe('openstruct.detail/2');
+    expect(pack.schema).toBe('openstruct.detail/3');
     expect(pieces(detailPackageProject(pack))).toBe(12);
     expect(pieces(readDetailPackage(JSON.stringify(pack)).project)).toBe(12);
     expect(() =>
@@ -244,7 +244,11 @@ describe('repetição de elementos e levantamento consistente', () => {
     });
     expect(
       pieces(
-        readDetailPackage({ ...native, schema: 'openstruct.detail/1' }).project,
+        readDetailPackage({
+          ...native,
+          fabricationPositions: undefined,
+          schema: 'openstruct.detail/1',
+        }).project,
       ),
     ).toBe(4);
   });

@@ -38,6 +38,7 @@ function barKey(b: Bar) {
     diameter: b.diameter,
     mandrel: b.mandrel,
     steel: b.steel,
+    manufacturing: b.manufacturing,
     quantity: b.quantity,
     ...(b.kind === 'free'
       ? { points: b.points.map((p) => sub(p, first)) }

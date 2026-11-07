@@ -2,6 +2,11 @@
 
 ## Em desenvolvimento
 
+- AS-54: entidades de posição de fabricação separadas das ocorrências, assinatura canônica por forma/aço/bitola/mandril/gancho/terminações/variante, percurso reverso explícito e reflexão conservadora.
+- Prévia de equivalências com representante, pesquisa, seleção de contribuições, agrupar/desagrupar e uma operação de histórico. Editar uma peça separa somente sua ocorrência; marcas compartilhadas conservam os IDs das chamadas.
+- Quadro/CSV/DXF/PDF consolidados com somas reais por ocorrência, rastreabilidade, repetições independentes e snapshot de fabricação na RA. Campos compactos de especificação de pontas/luvas/variantes.
+- Formato nativo 8 (migração 1–7), pacote `openstruct.detail/3` (leitura v1/v2), associação preservada na importação seletiva e operações atômicas `fabrication.group`/`fabrication.ungroup` na API 1.0. Exemplo executável, contrato, documentação e testes AS-54.
+
 - AS-03: repetição inteira por detalhamento, lista de elementos vinculados/nomes livres, título automático e levantamento com quantidade base, fator e quantidade efetiva. Vistas/rebatimentos adicionais não acrescentam aço.
 - Reunião assistida de detalhes com posições físicas idênticas, escolha do representante, retirada controlada das definições duplicadas, redirecionamento de desenhos/vistas e reassociação de vínculos externos; comparação e uma etapa de desfazer/refazer.
 - Formato 7, migração dos formatos 1–6, contexto congelado da RA e pacote `openstruct.detail/2` para transportar a repetição. Leitura de pacotes v1 permanece disponível sem multiplicador.

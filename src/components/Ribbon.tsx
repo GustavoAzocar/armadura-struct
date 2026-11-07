@@ -74,7 +74,8 @@ export type Action =
   | 'update-detail'
   | 'export-detail'
   | 'interpret-cad'
-  | 'detail-repetition';
+  | 'detail-repetition'
+  | 'fabrication';
 // Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
@@ -203,6 +204,7 @@ export default function Ribbon({
         items: [
           item('insert-detail', 'Inserir detalhamento', FolderOpen),
           item('update-detail', 'Atualizar detalhamento', RefreshCw),
+          item('fabrication', 'Posições de fabricação', Combine),
           item('detail-repetition', 'Repetições do detalhamento', Copy),
           item('group', 'Agrupar em detalhamento', Combine, 1),
           item('edit-detail', 'Editar detalhamento', Shapes),
@@ -339,6 +341,7 @@ export default function Ribbon({
                           (isolated &&
                             [
                               'detail-repetition',
+                              'fabrication',
                               'insert-detail',
                               'update-detail',
                               'new',
