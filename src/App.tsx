@@ -34,6 +34,7 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const LayerManager = lazy(() => import('./components/LayerManager'));
 const ArmatureCloneDialog = lazy(
   () => import('./components/ArmatureCloneDialog'),
 );
@@ -225,6 +226,7 @@ export default function App() {
     maskId?: string;
     projectId: string;
   } | null>(null);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
   const [exampleReviewOpen, setExampleReviewOpen] = useState(false);
   const [numberingOpen, setNumberingOpen] = useState(false);
@@ -662,7 +664,9 @@ export default function App() {
           (next.bars !== h.present.bars ||
             next.details !== h.present.details ||
             next.annotations !== h.present.annotations ||
-            next.polylines !== h.present.polylines)
+            next.polylines !== h.present.polylines ||
+            next.layers !== h.present.layers ||
+            next.masks !== h.present.masks)
         ) {
           const issues = validateRebarChange(h.present, complete);
           if (issues.length) throw new RebarApiError(issues);
@@ -1316,6 +1320,16 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'layers') {
+      if (isolationRef.current) {
+        notify(
+          'Conclua a edição isolada antes de editar o catálogo global de layers.',
+        );
+        return;
+      }
+      setLayersOpen(true);
+      return;
+    }
     if (a === 'clone-armature') {
       const barIds = p.bars
         .filter((b) => selected.includes(b.id))
@@ -1826,6 +1840,8 @@ export default function App() {
       MOVE: 'move',
       C: 'copy',
       COPY: 'copy',
+      LAYERS: 'layers',
+      NIVEIS: 'layers',
       DUPLICAR: 'clone-armature',
       CLONAR: 'clone-armature',
       DUPLICARARMADURA: 'clone-armature',
@@ -2487,6 +2503,7 @@ export default function App() {
             ) : selected.length === 1 &&
               p.details.some((d) => d.id === selected[0]) ? (
               <RepresentationInspector
+                project={p}
                 representation={p.details.find((d) => d.id === selected[0])!}
                 onEditBar={() => {
                   const r = p.details.find((d) => d.id === selected[0])!;
@@ -2870,6 +2887,19 @@ export default function App() {
               );
               return true;
             }}
+          />
+        </Suspense>
+      )}
+      {layersOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Abrindo layers…</div>}
+        >
+          <LayerManager
+            project={p}
+            objectIds={selected.length ? selected : maskId ? [maskId] : []}
+            onChange={(next) => commit(() => next)}
+            onSelect={(ids) => select(ids)}
+            onClose={() => setLayersOpen(false)}
           />
         </Suspense>
       )}

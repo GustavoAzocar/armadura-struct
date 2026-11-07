@@ -15,7 +15,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
 - Gerenciador de pranchas com folhas A0–A4, orientação, revisão, notas, ordenação, duplicação de layout e vistas vinculadas; abas de folhas e desenhos com navegação independente.
 - Inserção e atualização seletiva de detalhamentos por JSON, comparação antes/depois, identificação pela origem, mapeamento de posições, reassociação de vínculos e preservação das vistas.
-- Pacotes abertos `openstruct.detail/7` (`.osdetail.json`), com leitura de v1/v2/v3/v4/v5/v6, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
+- Pacotes abertos `openstruct.detail/8` (`.osdetail.json`), com leitura de v1/v2/v3/v4/v5/v6/v7, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
 - [Renumeração espacial](docs/AS-55.md), com prévia, prefixo, início, escopo, reservas e preservações, usando posições de fabricação estáveis.
 - [Composição da quantidade e montagem](docs/AS-56.md): peças por grupo × multiplicador da armadura × repetições do detalhe, origem manual/por faixa, descrição fatorada, observação, indicação de nervura e lance.
 - [Posições de fabricação](docs/AS-54.md): agrupamento assistido de barras equivalentes, prévia, representante, contribuições rastreáveis no quadro e separação automática da ocorrência alterada; sem fundir elementos ou duplicar aço.
@@ -28,6 +28,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Comandos pelo mouse ou teclado, coordenadas absolutas/relativas/polares, ortogonal e encaixes em extremidades e pontos médios.
 - Seleção por clique ou janela, edição de vértices por alças, mover, copiar, girar, espelhar, excluir e desfazer/refazer.
 - Ferramenta **Seguir fôrma**: desloca uma linha/polilinha da máscara pelo cobrimento mais meio diâmetro; permite editar os vértices e conferir as terminações.
+- [Layers nativos](docs/AS-19.md) com IDs, estilos ByLayer/overrides, edição em lote, reassociação e importação/exportação DXF com RGB e tipos de linha.
 - [Cópia completa de armaduras](docs/AS-53.md), com novos IDs, remapeamento de inserções/chamadas/auxiliares e escolha explícita para vínculos compartilhados.
 - [Representações independentes](docs/AS-52.md) da mesma armadura, com origem, rotação, escala e identificação próprias, sem duplicar quantidades.
 - Polilinhas de desenho e conversão de contornos próprios ou importados em barras editáveis.

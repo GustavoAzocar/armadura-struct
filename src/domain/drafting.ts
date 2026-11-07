@@ -93,7 +93,7 @@ export function primitiveBounds(p: Primitive): Point[] {
   const anchor = p.points[0],
     h = p.textHeight ?? 50,
     w = p.text.length * h * 0.65;
-  const centered = ['COTAS', 'DISTRIBUICAO'].includes(p.layer),
+  const centered = ['COTAS', 'DISTRIBUICAO'].includes(p.role ?? p.layer),
     left =
       p.textAlign === 'right'
         ? -w

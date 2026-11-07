@@ -1,3 +1,4 @@
+import { dashArray } from '../domain/layers';
 import {
   forwardRef,
   useEffect,
@@ -264,10 +265,10 @@ function PaperLines({ lines }: { lines: PaperPrimitive[] }) {
             transform={`translate(${line.points[0]?.x ?? 0} ${line.points[0]?.y ?? 0}) rotate(${line.textRotation ?? 0}) scale(1 -1)`}
             fontFamily={PAPER_FONT}
             fontSize={line.textHeight ?? 2.5}
-            fill={paperInk(line.layer)}
+            fill={line.resolvedStyle?.color ?? paperInk(line.layer)}
             textAnchor={
               (line.textAlign ??
-                (['COTAS', 'DISTRIBUICAO'].includes(line.layer)
+                (['COTAS', 'DISTRIBUICAO'].includes(line.role ?? line.layer)
                   ? 'center'
                   : 'left')) === 'center'
                 ? 'middle'
@@ -287,9 +288,18 @@ function PaperLines({ lines }: { lines: PaperPrimitive[] }) {
                 .map((p, j) => `${j ? 'L' : 'M'}${p.x},${p.y}`)
                 .join(' ') + (line.closed ? ' Z' : '')
             }
-            fill="none"
-            stroke={paperInk(line.layer)}
-            strokeWidth={paperLineWidth(line.layer)}
+            fill={
+              line.closed && line.resolvedStyle?.fill === 'solid'
+                ? line.resolvedStyle.fillColor
+                : 'none'
+            }
+            stroke={line.resolvedStyle?.color ?? paperInk(line.layer)}
+            strokeWidth={
+              line.resolvedStyle?.lineWidth ?? paperLineWidth(line.layer)
+            }
+            strokeDasharray={
+              dashArray(line.resolvedStyle).join(' ') || undefined
+            }
           />
         ),
       )}

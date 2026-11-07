@@ -1,5 +1,17 @@
+export type DrawingStyle = {
+  color: string;
+  /** Signed dash/gap lengths in model mm; zero denotes a dot. */
+  lineType: { name: string; pattern: number[] };
+  lineScale: number;
+  /** Pen width in paper mm, independent of model scale. */
+  lineWidth: number;
+  fill: 'none' | 'solid';
+  fillColor: string;
+};
+export type LayerBinding = { layerId?: string; style?: Partial<DrawingStyle> };
+export type DrawingLayer = DrawingStyle & { id: string; name: string };
 export type Point = { x: number; y: number };
-export type Bar = {
+export type Bar = LayerBinding & {
   id: string;
   mark: string;
   element: string;
@@ -48,7 +60,7 @@ export type FabricationPosition = {
   signature: string;
 };
 /** A graphical rebatimento; never another physical bar or composite detail. */
-export type BarRepresentation = {
+export type BarRepresentation = LayerBinding & {
   id: string;
   barId: string;
   origin: Point;
@@ -143,8 +155,11 @@ export type ProjectHierarchy = {
   /** Import lineage follows the object even when it moves to another local detail. */
   objectOrigins: Record<string, ObjectOrigin>;
 };
-export type Primitive = {
+export type Primitive = LayerBinding & {
   layer: string;
+  /** Original semantic role remains stable when a catalog layer is renamed. */
+  role?: string;
+  resolvedStyle?: DrawingStyle;
   points: Point[];
   closed?: boolean;
   text?: string;
@@ -152,10 +167,12 @@ export type Primitive = {
   textRotation?: number;
   textAlign?: 'left' | 'center' | 'right';
 };
-export type Mask = {
+export type Mask = LayerBinding & {
   id: string;
   name: string;
   format: 'DXF' | 'DWG' | 'DEMO';
+  /** Import staging; adopted into Project.layers at the transaction boundary. */
+  layerDefinitions?: DrawingLayer[];
   primitives: Primitive[];
   layers: Record<string, boolean>;
   visible: boolean;
@@ -172,7 +189,7 @@ export type AnnotationKind =
   | 'leader'
   | 'section'
   | 'section-arc';
-export type Annotation = {
+export type Annotation = LayerBinding & {
   id: string;
   kind: AnnotationKind;
   points: Point[];
@@ -183,7 +200,7 @@ export type Annotation = {
   textHeight: number;
   color: string;
 };
-export type DraftPolyline = {
+export type DraftPolyline = LayerBinding & {
   id: string;
   /** Explicit armature dependencies, including shared auxiliary geometry. */
   barIds?: string[];
@@ -192,7 +209,8 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/13';
+  schema: 'armadurastruct/14';
+  layers: DrawingLayer[];
   id: string;
   hierarchy: ProjectHierarchy;
   numbering?: import('./marks').NumberingPolicy;

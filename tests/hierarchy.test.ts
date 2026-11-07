@@ -46,7 +46,7 @@ describe('versioned hierarchy and physical quantities', () => {
       const legacy = { ...source, schema, id: undefined, hierarchy: undefined };
       const raw = JSON.stringify(legacy),
         migrated = decodeProject(raw);
-      expect(migrated.schema).toBe('armadurastruct/13');
+      expect(migrated.schema).toBe('armadurastruct/14');
       for (const field of [
         'bars',
         'details',
@@ -56,7 +56,9 @@ describe('versioned hierarchy and physical quantities', () => {
         'drawing',
         'scheduleLock',
       ] as const)
-        expect(migrated[field]).toEqual(source[field]);
+        if (field === 'annotations' || field === 'polylines')
+          expect(migrated[field]).toMatchObject(source[field]);
+        else expect(migrated[field]).toEqual(source[field]);
       expect(migrated.hierarchy.floors).toHaveLength(1);
       expect(migrated.hierarchy.details).toHaveLength(1);
       expect(migrated.hierarchy.floors[0].name).toBe(source.drawing.floor);

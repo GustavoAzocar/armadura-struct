@@ -1,3 +1,5 @@
+import { dashArray } from '../domain/layers';
+import type { Primitive } from '../domain/types';
 import { quantitySourceLabel } from '../domain/detailQuantities';
 import { jsPDF } from 'jspdf';
 import { bounds, format } from '../domain/geometry';
@@ -34,18 +36,52 @@ export function assertExportable(p: Project) {
       `Corrija a geometria de ${invalid.map((r) => r.mark).join(', ')} antes de exportar.`,
     );
 }
-/** ASCII DXF R12: interoperable primitive geometry, modelspace in millimeters. */
+/** UTF-8 DXF 2007: native and reference layers, ByLayer and explicit overrides. */
 export function toDxf(p: Project): string {
   assertExportable(p);
-  const out: (string | number)[] = [];
-  const put = (...pairs: (string | number)[]) => out.push(...pairs);
+  const out: (string | number)[] = [],
+    put = (...pairs: (string | number)[]) => out.push(...pairs);
   const clean = (s: string) =>
-    s
-      .replace(/[\r\n]/g, ' ')
-      .replace(/Ø/g, '%%c')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^\x20-\x7E]/g, '?');
+    s.replace(/[\r\n\x00-\x1f]/g, ' ').replace(/Ø/g, '%%c');
+  const lines = exportLines(p);
+  const weights = [
+    0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106,
+    120, 140, 158, 200, 211,
+  ];
+  for (const s of [
+    ...p.layers,
+    ...lines.map((l) => l.resolvedStyle).filter((s) => s !== undefined),
+  ])
+    if (
+      !weights.includes(Math.round(s.lineWidth * 100)) ||
+      Math.abs(s.lineWidth * 100 - Math.round(s.lineWidth * 100)) > 1e-7
+    )
+      throw new Error(
+        `Espessura ${s.lineWidth} mm não suportada no DXF. Use uma pena CAD, como 0,18 / 0,25 / 0,35 / 0,50 / 0,70 mm.`,
+      );
+  const types: { name: string; pattern: number[] }[] = [];
+  const typeName = (t: { name: string; pattern: number[] }) => {
+    const same = types.find(
+      (x) =>
+        x.name.toUpperCase() === t.name.toUpperCase() &&
+        JSON.stringify(x.pattern) === JSON.stringify(t.pattern),
+    );
+    if (same) return same.name;
+    let name = clean(t.name),
+      n = 2;
+    while (types.some((x) => x.name.toUpperCase() === name.toUpperCase()))
+      name = `${clean(t.name)}_${n++}`;
+    types.push({ ...t, name });
+    return name;
+  };
+  const layerTypes = new Map(p.layers.map((l) => [l.id, typeName(l.lineType)]));
+  const overrides = new Map(
+    lines.map((l) => [
+      l,
+      l.style?.lineType ? typeName(l.style.lineType) : undefined,
+    ]),
+  );
+  typeName({ name: 'CONTINUOUS', pattern: [] });
   put(
     0,
     'SECTION',
@@ -54,7 +90,7 @@ export function toDxf(p: Project): string {
     9,
     '$ACADVER',
     1,
-    'AC1009',
+    'AC1021',
     9,
     '$INSUNITS',
     70,
@@ -65,35 +101,77 @@ export function toDxf(p: Project): string {
     'SECTION',
     2,
     'TABLES',
-    0,
-    'TABLE',
-    2,
-    'LAYER',
-    70,
-    10,
   );
-  for (const [name, color] of [
-    ['MASCARA', 8],
-    ['ARMADURAS', 5],
-    ['REBATIMENTOS', 4],
-    ['IDENTIFICACAO', 7],
-    ['COTAS', 8],
-    ['DISTRIBUICAO', 3],
-    ['QUADRO_ACO', 7],
-    ['DESENHO', 8],
-    ['CORTES', 6],
-    ['CHAMADAS', 7],
-  ])
-    put(0, 'LAYER', 2, name, 70, 0, 62, color, 6, 'CONTINUOUS');
+  put(0, 'TABLE', 2, 'LTYPE', 5, '10', 70, types.length);
+  for (const t of types) {
+    put(
+      0,
+      'LTYPE',
+      100,
+      'AcDbSymbolTableRecord',
+      100,
+      'AcDbLinetypeTableRecord',
+      2,
+      clean(t.name),
+      70,
+      0,
+      3,
+      clean(t.name),
+      72,
+      65,
+      73,
+      t.pattern.length,
+      40,
+      t.pattern.reduce((s, n) => s + Math.abs(n), 0),
+    );
+    for (const n of t.pattern) put(49, n, 74, 0);
+  }
+  put(0, 'ENDTAB', 0, 'TABLE', 2, 'LAYER', 5, '11', 70, p.layers.length);
+  for (const l of p.layers)
+    put(
+      0,
+      'LAYER',
+      100,
+      'AcDbSymbolTableRecord',
+      100,
+      'AcDbLayerTableRecord',
+      2,
+      clean(l.name),
+      70,
+      0,
+      62,
+      7,
+      420,
+      parseInt(l.color.slice(1), 16),
+      6,
+      layerTypes.get(l.id) ?? 'CONTINUOUS',
+      370,
+      Math.round(l.lineWidth * 100),
+    );
   put(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
-  for (const item of exportLines(p)) {
+  const common = (item: Primitive) => {
+    put(100, 'AcDbEntity', 8, clean(item.layer));
+    if (item.style?.color) put(420, parseInt(item.style.color.slice(1), 16));
+    else put(62, 256);
+    put(
+      6,
+      overrides.get(item) ?? 'BYLAYER',
+      48,
+      item.resolvedStyle?.lineScale ?? 1,
+      370,
+      item.style?.lineWidth !== undefined
+        ? Math.round(item.style.lineWidth * 100)
+        : -1,
+    );
+  };
+  for (const item of lines) {
     if (item.text) {
       const a = item.points[0];
+      put(0, 'TEXT');
+      common(item);
       put(
-        0,
-        'TEXT',
-        8,
-        item.layer,
+        100,
+        'AcDbText',
         10,
         a.x,
         20,
@@ -111,7 +189,7 @@ export function toDxf(p: Project): string {
           ? 2
           : item.textAlign === 'center' ||
               (!item.textAlign &&
-                (item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'))
+                ['COTAS', 'DISTRIBUICAO'].includes(item.role ?? item.layer))
             ? 1
             : 0,
         11,
@@ -120,29 +198,57 @@ export function toDxf(p: Project): string {
         a.y,
         31,
         0,
+        100,
+        'AcDbText',
       );
       continue;
     }
-    const pts = item.closed ? [...item.points, item.points[0]] : item.points;
-    for (let i = 0; i < pts.length - 1; i++)
+    if (item.points.length < 2) continue;
+    put(0, 'LWPOLYLINE');
+    common(item);
+    put(100, 'AcDbPolyline', 90, item.points.length, 70, item.closed ? 1 : 0);
+    for (const v of item.points) put(10, v.x, 20, v.y);
+    if (item.closed && item.resolvedStyle?.fill === 'solid') {
+      put(0, 'HATCH');
+      common({
+        ...item,
+        style: { ...item.style, color: item.resolvedStyle.fillColor },
+      });
       put(
-        0,
-        'LINE',
-        8,
-        item.layer,
+        100,
+        'AcDbHatch',
         10,
-        pts[i].x,
+        0,
         20,
-        pts[i].y,
+        0,
         30,
         0,
-        11,
-        pts[i + 1].x,
-        21,
-        pts[i + 1].y,
-        31,
+        210,
         0,
+        220,
+        0,
+        230,
+        1,
+        2,
+        'SOLID',
+        70,
+        1,
+        71,
+        0,
+        91,
+        1,
+        92,
+        2,
+        72,
+        0,
+        73,
+        1,
+        93,
+        item.points.length,
       );
+      for (const v of item.points) put(10, v.x, 20, v.y);
+      put(97, 0, 75, 0, 76, 1, 98, 0);
+    }
   }
   const box = bounds(exportLines(p).flatMap((l) => l.points));
   let y = box.y - 400;
@@ -158,7 +264,7 @@ export function toDxf(p: Project): string {
       0,
       'TEXT',
       8,
-      'QUADRO_ACO',
+      (p.layers.find((l) => l.id === 'layer:QUADRO_ACO') ?? p.layers[0]).name,
       10,
       box.x,
       20,
@@ -296,9 +402,15 @@ export function toPdf(p: Project): Uint8Array {
         : item.layer === 'ARMADURAS'
           ? [30, 70, 145]
           : [50, 65, 85];
-    doc.setDrawColor(c[0], c[1], c[2]);
-    doc.setTextColor(c[0], c[1], c[2]);
-    doc.setLineWidth(item.layer === 'MASCARA' ? 0.12 : 0.3);
+    if (item.resolvedStyle) {
+      doc.setDrawColor(item.resolvedStyle.color);
+      doc.setTextColor(item.resolvedStyle.color);
+    } else {
+      doc.setDrawColor(c[0], c[1], c[2]);
+      doc.setTextColor(c[0], c[1], c[2]);
+    }
+    doc.setLineWidth(item.resolvedStyle?.lineWidth ?? 0.3);
+    doc.setLineDashPattern(dashArray(item.resolvedStyle, s), 0);
     if (item.text) {
       const a = map(item.points[0]);
       doc.setFontSize(
@@ -308,12 +420,15 @@ export function toPdf(p: Project): Uint8Array {
         angle: item.textRotation ?? 0,
         align:
           item.textAlign ??
-          (item.layer === 'COTAS' || item.layer === 'DISTRIBUICAO'
+          ((item.role ?? item.layer) === 'COTAS' ||
+          (item.role ?? item.layer) === 'DISTRIBUICAO'
             ? 'center'
             : 'left'),
       });
       continue;
     }
+    if (item.closed && item.resolvedStyle?.fill === 'solid')
+      pdfFill(doc, item.points.map(map), item.resolvedStyle.fillColor);
     const pts = item.closed ? [...item.points, item.points[0]] : item.points;
     for (let i = 0; i < pts.length - 1; i++) {
       const a = map(pts[i]),
@@ -438,9 +553,12 @@ export function toSheetPdf(
       ...page.decorations,
       ...page.views.flatMap((v) => v.lines),
     ]) {
-      doc.setDrawColor(paperInk(line.layer));
-      doc.setTextColor(paperInk(line.layer));
-      doc.setLineWidth(paperLineWidth(line.layer));
+      doc.setDrawColor(line.resolvedStyle?.color ?? paperInk(line.layer));
+      doc.setTextColor(line.resolvedStyle?.color ?? paperInk(line.layer));
+      doc.setLineWidth(
+        line.resolvedStyle?.lineWidth ?? paperLineWidth(line.layer),
+      );
+      doc.setLineDashPattern(dashArray(line.resolvedStyle), 0);
       if (line.text) {
         const at = line.points[0];
         doc.setFontSize(((line.textHeight ?? 2.5) * 72) / 25.4);
@@ -448,11 +566,17 @@ export function toSheetPdf(
           angle: line.textRotation ?? 0,
           align:
             line.textAlign ??
-            (['COTAS', 'DISTRIBUICAO'].includes(line.layer)
+            (['COTAS', 'DISTRIBUICAO'].includes(line.role ?? line.layer)
               ? 'center'
               : 'left'),
         });
       } else {
+        if (line.closed && line.resolvedStyle?.fill === 'solid')
+          pdfFill(
+            doc,
+            line.points.map((v) => ({ x: v.x, y: page.size.height - v.y })),
+            line.resolvedStyle.fillColor,
+          );
         const pts =
           line.closed && line.points.length
             ? [...line.points, line.points[0]]
@@ -468,4 +592,13 @@ export function toSheetPdf(
     }
   });
   return new Uint8Array(doc.output('arraybuffer'));
+}
+
+function pdfFill(doc: jsPDF, points: Point[], color: string) {
+  if (points.length < 3) return;
+  doc.setFillColor(color);
+  doc.moveTo(points[0].x, points[0].y);
+  for (const p of points.slice(1)) doc.lineTo(p.x, p.y);
+  doc.close();
+  doc.fill();
 }

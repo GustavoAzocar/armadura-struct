@@ -67,3 +67,15 @@ export {
   ArmatureCloneError,
 } from './domain/editing';
 export type { ArmatureCloneOptions } from './domain/editing';
+
+export {
+  defaultLayers,
+  createLayer,
+  editLayers,
+  assignLayer,
+  removeLayer,
+  layerUsage,
+  resolveStyle,
+  LINE_TYPES,
+} from './domain/layers';
+export type { DrawingLayer, DrawingStyle, LayerBinding } from './domain/types';

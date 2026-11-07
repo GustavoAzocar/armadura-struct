@@ -1,3 +1,5 @@
+import { defaultLayers, completeLayers, validateLayers } from './layers';
+import { drawingLayerSchema, layerBindingShape } from './layerSchema';
 import { armatureReferences } from './armatureReferences';
 import { representationPoints } from './representations';
 import { nextFreeMark, numberingPolicySchema } from './marks';
@@ -177,6 +179,7 @@ export const armatureDataSchema = {
 };
 const barSchema = z
   .object({
+    ...layerBindingShape,
     ...armatureDataSchema,
     manufacturing: manufacturingSchema.optional(),
     id: z.string(),
@@ -226,7 +229,9 @@ const schema = z.object({
     'armadurastruct/11',
     'armadurastruct/12',
     'armadurastruct/13',
+    'armadurastruct/14',
   ]),
+  layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
   numbering: numberingPolicySchema.optional(),
   sheets: z
     .array(
@@ -276,6 +281,7 @@ const schema = z.object({
   polylines: z
     .array(
       z.object({
+        ...layerBindingShape,
         id: z.string(),
         points: z.array(point).min(2).max(500),
         barIds: z
@@ -292,6 +298,7 @@ const schema = z.object({
   annotations: z
     .array(
       z.object({
+        ...layerBindingShape,
         id: z.string(),
         kind: z.enum([
           'dimension-aligned',
@@ -345,6 +352,7 @@ const schema = z.object({
   details: z
     .array(
       z.object({
+        ...layerBindingShape,
         id: z.string(),
         barId: z.string(),
         origin: point,
@@ -361,12 +369,15 @@ const schema = z.object({
   masks: z
     .array(
       z.object({
+        ...layerBindingShape,
         id: z.string(),
         name: z.string().max(200),
         format: z.enum(['DXF', 'DWG', 'DEMO']),
+        layerDefinitions: z.array(drawingLayerSchema).max(2000).optional(),
         primitives: z
           .array(
             z.object({
+              ...layerBindingShape,
               layer: z.string(),
               points: z.array(point).max(100000),
               closed: z.boolean().optional(),
@@ -411,6 +422,8 @@ export function decodeProject(
       'Para importar um pacote OpenStruct, use Elementos → Inserir detalhamento no projeto de destino.',
     );
   const parsed = schema.parse(input);
+  if (parsed.schema === 'armadurastruct/14' && !parsed.layers)
+    throw new Error('Projeto v14 sem catálogo de layers.');
   const modern =
     parsed.schema === 'armadurastruct/3' ||
     parsed.schema === 'armadurastruct/4' ||
@@ -422,7 +435,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/10' ||
     parsed.schema === 'armadurastruct/11' ||
     parsed.schema === 'armadurastruct/12' ||
-    parsed.schema === 'armadurastruct/13';
+    parsed.schema === 'armadurastruct/13' ||
+    parsed.schema === 'armadurastruct/14';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -465,6 +479,7 @@ export function decodeProject(
       'armadurastruct/11',
       'armadurastruct/12',
       'armadurastruct/13',
+      'armadurastruct/14',
     ].includes(parsed.schema)
   )
     throw new Error('Política de numeração exige formato 10.');
@@ -473,7 +488,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/10' ||
     parsed.schema === 'armadurastruct/11' ||
     parsed.schema === 'armadurastruct/12' ||
-    parsed.schema === 'armadurastruct/13';
+    parsed.schema === 'armadurastruct/13' ||
+    parsed.schema === 'armadurastruct/14';
   if (
     !v9 &&
     [...parsed.bars, ...(parsed.scheduleLock?.bars ?? [])].some(hasArmatureData)
@@ -548,7 +564,8 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/13',
+    schema: 'armadurastruct/14',
+    layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -606,15 +623,37 @@ export function decodeProject(
     )
   )
     throw new Error('Chamada sem armadura correspondente.');
+  if (parsed.schema !== 'armadurastruct/14') {
+    const preserve = <
+      T extends {
+        layerId?: string;
+        color: string;
+        style?: import('./types').LayerBinding['style'];
+      },
+    >(
+      o: T,
+    ): T => (!o.layerId ? { ...o, style: { color: o.color, ...o.style } } : o);
+    p = {
+      ...p,
+      bars: p.bars.map(preserve),
+      annotations: p.annotations.map(preserve),
+      polylines: p.polylines.map(preserve),
+    };
+  }
+  p = completeLayers(p);
+  validateLayers(p);
   const primaries = p.details
     .filter((d) => d.identification === 'primary')
     .map((d) => d.barId);
   if (new Set(primaries).size !== primaries.length)
     throw new Error('Uma armadura só pode ter uma descrição principal.');
   if (
-    !['armadurastruct/11', 'armadurastruct/12', 'armadurastruct/13'].includes(
-      parsed.schema,
-    ) &&
+    ![
+      'armadurastruct/11',
+      'armadurastruct/12',
+      'armadurastruct/13',
+      'armadurastruct/14',
+    ].includes(parsed.schema) &&
     p.details.some(
       (d) =>
         d.rotation ||
@@ -624,12 +663,14 @@ export function decodeProject(
   )
     throw new Error('Representações transformadas exigem formato 11.');
   if (
-    !['armadurastruct/12', 'armadurastruct/13'].includes(parsed.schema) &&
+    !['armadurastruct/12', 'armadurastruct/13', 'armadurastruct/14'].includes(
+      parsed.schema,
+    ) &&
     p.details.some((d) => d.label || d.showDimensions !== undefined)
   )
     throw new Error('Posicionamento de rótulo exige formato 12.');
   if (
-    parsed.schema !== 'armadurastruct/13' &&
+    !['armadurastruct/13', 'armadurastruct/14'].includes(parsed.schema) &&
     [...p.annotations, ...p.polylines].some((o) => o.barIds !== undefined)
   )
     throw new Error('Vínculos auxiliares exigem formato 13.');
@@ -670,6 +711,7 @@ export function decodeProject(
 }
 export function newBar(mark: string): Bar {
   return {
+    layerId: 'layer:ARMADURAS',
     id: uid(),
     mark,
     element: 'Geral',
@@ -705,7 +747,8 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/13',
+    schema: 'armadurastruct/14',
+    layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),

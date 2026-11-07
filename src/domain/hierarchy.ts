@@ -1,3 +1,4 @@
+import { completeLayers } from './layers';
 import { armatureReferences } from './armatureReferences';
 import { recalculateBarQuantity } from './detailQuantities';
 import { reconcileFabrication } from './fabrication';
@@ -69,6 +70,7 @@ export function completeOwnership(
   project: Project,
   activeDetailId = project.hierarchy.details[0].id,
 ): Project {
+  project = completeLayers(project);
   const h = project.hierarchy;
   if (!h.details.some((d) => d.id === activeDetailId))
     throw new Error('Detalhamento de destino inexistente.');

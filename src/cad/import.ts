@@ -1,3 +1,5 @@
+import { cadLayers, cadOverrides, dxfStyleTables } from './layerStyles';
+import { defaultLayers } from '../domain/layers';
 import DxfParser from 'dxf-parser';
 import { add, mul, rotate, sub } from '../domain/geometry';
 import { uid, type Mask, type Point, type Primitive } from '../domain/types';
@@ -20,7 +22,16 @@ export function parseDxf(text: string, name: string): Mask {
     );
   const d = new DxfParser().parseSync(text);
   if (!d) throw new Error('DXF vazio ou inválido.');
-  return normalizeCad(d as unknown as Raw, name, 'DXF');
+  const styles = dxfStyleTables(text);
+  return normalizeCad(
+    {
+      ...d,
+      entities: [...(d.entities ?? []), ...styles.hatches],
+      styleTables: styles,
+    } as unknown as Raw,
+    name,
+    'DXF',
+  );
 }
 function arc(center: Point, r: number, a: number, angle: number) {
   const n = Math.min(
@@ -72,13 +83,43 @@ export function normalizeCad(
 ): Mask {
   const primitives: Primitive[] = [];
   const omitted: Record<string, number> = {};
-  const warnings: string[] = [];
+  const warnings: string[] = [...(db.styleTables?.warnings ?? [])];
   const unitCode = Number(db.header?.$INSUNITS ?? db.header?.INSUNITS ?? 0),
     [sourceUnit, scale] = units[unitCode] ?? ['não declarada', 1];
   if (!units[unitCode])
     warnings.push(
       'Unidade não reconhecida: confira a escala da máscara. Foi adotado 1 unidade = 1 mm.',
     );
+  const maskId = uid();
+  const globalLineScale = Number(
+    db.header?.$LTSCALE ?? db.header?.LTSCALE ?? 1,
+  );
+  const lineUnit =
+    scale *
+    (Number.isFinite(globalLineScale) && globalLineScale > 0
+      ? globalLineScale
+      : 1);
+  const layerDefinitions = cadLayers(db, maskId, lineUnit, warnings);
+  const types =
+    db.styleTables?.types ??
+    db.tables?.lineType?.lineTypes ??
+    Object.fromEntries(
+      (db.tables?.LTYPE?.entries ?? []).map((l: Raw) => [l.name, l]),
+    );
+  const layerByName = new Map(layerDefinitions.map((l) => [l.name, l]));
+  const ensureLayer = (name: string) => {
+    let l = layerByName.get(name);
+    if (!l) {
+      l = {
+        ...defaultLayers()[8],
+        id: `${maskId}:layer:${layerByName.size}`,
+        name,
+      };
+      layerByName.set(name, l);
+      layerDefinitions.push(l);
+    }
+    return l;
+  };
   const blocks: Record<string, Raw> = { ...db.blocks };
   for (const b of db.tables?.BLOCK_RECORD?.entries ?? []) blocks[b.name] = b;
   let visited = 0;
@@ -90,6 +131,7 @@ export function normalizeCad(
     transform: Transform,
     depth: number,
     parentLayer = '0',
+    parentStyle: Primitive['style'] = {},
   ) => {
     if (depth > 12) {
       missing('bloco recursivo');
@@ -109,6 +151,22 @@ export function normalizeCad(
       if (e.inPaperSpace || e.isInPaperSpace) continue;
       const type = String(e.type),
         layer = e.layer && e.layer !== '0' ? String(e.layer) : parentLayer;
+      const ownStyle = cadOverrides(
+        {
+          ...e,
+          trueColor: e.trueColor ?? db.styleTables?.trueColors?.[e.handle],
+        },
+        types,
+        lineUnit,
+        warnings,
+      );
+      const style = { ...ownStyle };
+      if (e.colorIndex === 0 && !ownStyle.color && parentStyle?.color)
+        style.color = parentStyle.color;
+      if (e.lineType === 'BYBLOCK' && parentStyle?.lineType)
+        style.lineType = parentStyle.lineType;
+      if (e.lineweight === -2 && parentStyle?.lineWidth !== undefined)
+        style.lineWidth = parentStyle.lineWidth;
       let points: Point[] = [];
       let closed = false;
       let text: string | undefined;
@@ -152,7 +210,10 @@ export function normalizeCad(
               if (normal.z < 0) v = { x: -v.x, y: v.y };
               return transform(v);
             };
-            walk(block.entities ?? [], child, depth + 1, layer);
+            walk(block.entities ?? [], child, depth + 1, layer, {
+              ...ensureLayer(layer),
+              ...style,
+            });
           }
         continue;
       }
@@ -210,12 +271,12 @@ export function normalizeCad(
             ),
           ];
         }
-      } else if (['SOLID', 'TRACE', '3DFACE'].includes(type)) {
+      } else if (['SOLID', 'TRACE', '3DFACE', 'SOLID-POLYGON'].includes(type)) {
         points =
           e.points ??
           e.vertices ??
           (e.corner1 ? [e.corner1, e.corner2, e.corner3, e.corner4] : []);
-        if (type !== '3DFACE' && points.length === 4)
+        if (['SOLID', 'TRACE'].includes(type) && points.length === 4)
           points = [points[0], points[1], points[3], points[2]];
         closed = true;
       } else {
@@ -250,6 +311,16 @@ export function normalizeCad(
         textRotation = (Math.atan2(axis.y - a.y, axis.x - a.x) * 180) / Math.PI;
       }
       const item = {
+        layerId: ensureLayer(layer).id,
+        style: {
+          ...style,
+          ...(['SOLID', 'TRACE', 'SOLID-POLYGON'].includes(type)
+            ? {
+                fill: 'solid' as const,
+                fillColor: style.color ?? ensureLayer(layer).color,
+              }
+            : {}),
+        },
         layer,
         points: points.map((p) => {
           const { x, y } = apply(p);
@@ -290,12 +361,28 @@ export function normalizeCad(
       'Nenhuma entidade 2D suportada foi encontrada no espaço de modelo.',
     );
   return {
-    id: uid(),
+    id: maskId,
+    layerDefinitions,
     name,
     format,
     primitives,
     layers: Object.fromEntries(
-      [...new Set(primitives.map((p) => p.layer))].map((l) => [l, true]),
+      [...new Set(primitives.map((p) => p.layer))].map((l) => {
+        const r =
+          db.styleTables?.layers?.[l] ??
+          db.tables?.layer?.layers?.[l] ??
+          db.tables?.LAYER?.entries?.find((r: Raw) => r.name === l);
+        return [
+          l,
+          !(
+            r?.off ||
+            r?.frozen ||
+            r?.visible === false ||
+            r?.colorIndex < 0 ||
+            (r?.flags ?? 0) & 1
+          ),
+        ];
+      }),
     ),
     visible: true,
     opacity: 0.45,

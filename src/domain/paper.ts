@@ -93,7 +93,7 @@ export function paperPrimitiveBounds(p: PaperPrimitive): Point[] {
     anchor = p.points[0];
   const align =
     p.textAlign ??
-    (['COTAS', 'DISTRIBUICAO'].includes(p.layer) ? 'center' : 'left');
+    (['COTAS', 'DISTRIBUICAO'].includes(p.role ?? p.layer) ? 'center' : 'left');
   const left = align === 'center' ? -w / 2 : align === 'right' ? -w : 0;
   return [
     { x: left, y: -h * 0.25 },
@@ -166,6 +166,14 @@ function localContent(
 ): PaperPrimitive[] {
   return sourceLines(project, view).map((line) => ({
     ...line,
+    ...(line.resolvedStyle
+      ? {
+          resolvedStyle: {
+            ...line.resolvedStyle,
+            lineScale: line.resolvedStyle.lineScale / view.scale,
+          },
+        }
+      : {}),
     text: line.text ? paperText(line.text) : undefined,
     points: line.points.map((p) => ({
       x: (p.x - view.modelOrigin.x) / view.scale,

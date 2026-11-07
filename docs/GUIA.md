@@ -136,6 +136,10 @@ Expanda **Montagem · nervura, observação e lance** para registrar informaçõ
 
 Use **Renumerar** para configurar prefixo, início, reservas, preservações e escopo e conferir antes/depois. A ordem padrão é de cima para baixo, da direita para a esquerda, pela inserção física do representante de fabricação. Vistas não criam posições novas. Posições compartilhadas fora do escopo ficam protegidas. Aplicar é uma operação de histórico e salva a política usada para a próxima marca livre. Consulte [AS-55](AS-55.md) para as regras exatas e a API.
 
+### Layers e estilos
+
+Use **Desenho → Gerenciar layers** (`LAYERS`/`NIVEIS`). Crie/renomeie layers, filtre em uso/sem uso e selecione várias linhas para aplicar apenas os campos alterados em uma transação. Atribua o layer aos objetos selecionados pelo gerenciador. Nas propriedades individuais, **Layer e estilo** permite ByLayer ou overrides; **Restaurar estilo ByLayer** limpa os estilos próprios. Excluir um layer em uso exige reassociação. As referências conservam seus layers de origem e o filtro local de visibilidade. Veja [AS-19](AS-19.md), com unidades e limites de importação/exportação DXF/PDF.
+
 ### Duplicar uma armadura completa
 
 Selecione a armadura e use **Elementos → Duplicar completa** (`DUPLICAR`), ou **Copiar** (`C`) com dois pontos. Inserções, chamadas e auxiliares vinculados acompanham com novos IDs. A prévia permite escolher posição livre/equivalente e exige decisão para vínculos compartilhados. Em **Propriedades → Vínculos de cópia**, associe anotações e linhas auxiliares explicitamente; geometria avulsa só acompanha se selecionada. A operação inteira pode ser desfeita/refeita. Consulte [AS-53](AS-53.md), com o exemplo executável `npm run example:clone`.
@@ -240,7 +244,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/13`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/14`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

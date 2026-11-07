@@ -1,3 +1,5 @@
+import LayerInspector from './LayerInspector';
+import { resolveStyle } from '../domain/layers';
 import {
   quantityLabel,
   barQuantities,
@@ -211,6 +213,16 @@ export function Inspector({
         <span>{bar ? 'ARMADURA' : mask ? 'MÁSCARA' : 'PROJETO'}</span>
       </div>
       <div className="panel-scroll">
+        {(bar || mask) && (
+          <Section title="Layer e estilo" initial={false}>
+            <LayerInspector
+              project={project}
+              object={bar ?? mask!}
+              role={bar ? 'ARMADURAS' : 'MASCARA'}
+              onChange={(patch) => (bar ? onBar(patch) : onMask(patch))}
+            />
+          </Section>
+        )}
         {bar ? (
           <>
             <div className="object-heading">
@@ -322,8 +334,13 @@ export function Inspector({
                   <input
                     type="color"
                     aria-label="Cor da posição"
-                    value={bar.color}
-                    onChange={(e) => onBar({ color: e.target.value })}
+                    value={resolveStyle(project, bar, 'ARMADURAS').color}
+                    onChange={(e) =>
+                      onBar({
+                        color: e.target.value,
+                        style: { ...bar.style, color: e.target.value },
+                      })
+                    }
                   />
                 </label>
               </div>
@@ -1412,6 +1429,24 @@ export function DraftInspector({
         <b>{annotation ? annotationNames[annotation.kind] : 'Polilinha CAD'}</b>
       </div>
       <div className="panel-scroll">
+        <Section title="Layer e estilo" initial={false}>
+          <LayerInspector
+            project={project}
+            object={object}
+            role={
+              annotation
+                ? annotation.kind.startsWith('dimension')
+                  ? 'COTAS'
+                  : annotation.kind.startsWith('section')
+                    ? 'CORTES'
+                    : 'CHAMADAS'
+                : 'DESENHO'
+            }
+            onChange={(patch) =>
+              annotation ? onAnnotation(patch) : onPolyline(patch)
+            }
+          />
+        </Section>
         {annotation && annotationError(annotation) && (
           <p className="geometry-warning" role="alert">
             {annotationError(annotation)}
@@ -1537,11 +1572,13 @@ export function DraftInspector({
 }
 
 export function RepresentationInspector({
+  project,
   representation: d,
   onEditBar,
   onChange,
   onDelete,
 }: {
+  project: Project;
   representation: import('../domain/types').Detail;
   onEditBar: () => void;
   onChange: (patch: Partial<import('../domain/types').Detail>) => void;
@@ -1553,6 +1590,14 @@ export function RepresentationInspector({
         <b>Representação da armadura</b>
       </div>
       <div className="panel-scroll">
+        <Section title="Layer e estilo" initial={false}>
+          <LayerInspector
+            project={project}
+            object={d}
+            role="REBATIMENTOS"
+            onChange={onChange}
+          />
+        </Section>
         <p className="field-help">
           ID {d.id} · armadura {d.barId}. Transformações gráficas não alteram
           comprimentos ou aço.

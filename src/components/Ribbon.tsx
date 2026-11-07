@@ -76,7 +76,8 @@ export type Action =
   | 'interpret-cad'
   | 'detail-repetition'
   | 'fabrication'
-  | 'clone-armature';
+  | 'clone-armature'
+  | 'layers';
 // Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
@@ -157,6 +158,7 @@ export default function Ribbon({
       { name: 'Ajuda', items: [item('help', 'Guia de uso', HelpCircle)] },
     ],
     Desenho: [
+      { name: 'Layers', items: [item('layers', 'Gerenciar layers', Layers)] },
       {
         name: 'Desenhar',
         items: [
@@ -342,6 +344,7 @@ export default function Ribbon({
                           (!!t.selection && selected < t.selection) ||
                           (isolated &&
                             [
+                              'layers',
                               'detail-repetition',
                               'fabrication',
                               'insert-detail',

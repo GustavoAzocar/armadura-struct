@@ -1,3 +1,4 @@
+import { mergeLayers, remapLayer } from './layers';
 import {
   armatureReferenceEdges,
   armatureReferences,
@@ -241,6 +242,23 @@ export function previewDetailTransfer(
       detailId = created.id;
     }
     plan.targetDetailId = detailId;
+    const importedLayers = mergeLayers(next, source.layers);
+    next = importedLayers.project;
+    plan.warnings.push(...importedLayers.warnings);
+    source = {
+      ...source,
+      layers: next.layers,
+      bars: source.bars.map((o) => remapLayer(o, importedLayers.map)),
+      details: source.details.map((o) => remapLayer(o, importedLayers.map)),
+      annotations: source.annotations.map((o) =>
+        remapLayer(o, importedLayers.map),
+      ),
+      polylines: source.polylines.map((o) => remapLayer(o, importedLayers.map)),
+      masks: source.masks.map((o) => ({
+        ...remapLayer(o, importedLayers.map),
+        primitives: o.primitives.map((q) => remapLayer(q, importedLayers.map)),
+      })),
+    };
     const ownsSource = (id: string) =>
       source.hierarchy.objectDetails[id] === incoming.id;
     const ownsOld = (id: string) =>

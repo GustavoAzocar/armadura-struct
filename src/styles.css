@@ -3100,3 +3100,77 @@ button.hierarchy-drawing {
   border: 1px solid var(--border);
   border-radius: 4px;
 }
+
+.layer-manager {
+  width: min(920px, 95vw);
+}
+.layer-manager-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.layer-list {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid #dbe1ef;
+}
+.layer-list table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.layer-list th,
+.layer-list td {
+  padding: 5px;
+  text-align: left;
+  border-bottom: 1px solid #eef0f5;
+}
+.layer-list tr.selected {
+  background: #edf0ff;
+}
+.layer-list button {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  text-align: left;
+  word-break: break-word;
+}
+.layer-list i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border: 1px solid #9aa3b4;
+}
+.layer-new {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.layer-properties fieldset {
+  margin-top: 18px;
+  border: 1px solid #dbe1ef;
+}
+.layer-inspector {
+  display: grid;
+  gap: 8px;
+}
+.layer-inspector input[type='color'] {
+  height: 28px;
+  width: 100%;
+}
+@media (max-width: 700px) {
+  .layer-manager-grid {
+    grid-template-columns: 1fr;
+  }
+  .layer-list {
+    max-height: 180px;
+  }
+}
+.layer-list thead {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}

@@ -27,6 +27,8 @@ const knownBarFields = new Set([
   'quantity',
   'distribution',
   'color',
+  'layerId',
+  'style',
   'manufacturing',
   'multiplier',
   'quantitySource',

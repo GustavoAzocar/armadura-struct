@@ -68,7 +68,7 @@ describe('versioned paper documents', () => {
       };
       const raw = JSON.stringify(old),
         p = decodeProject(raw);
-      expect(p.schema).toBe('armadurastruct/13');
+      expect(p.schema).toBe('armadurastruct/14');
       expect(p.sheets).toHaveLength(1);
       for (const field of [
         'bars',
@@ -79,7 +79,9 @@ describe('versioned paper documents', () => {
         'drawing',
         'scheduleLock',
       ] as const)
-        expect(p[field]).toEqual(source[field]);
+        if (field === 'annotations' || field === 'polylines')
+          expect(p[field]).toMatchObject(source[field]);
+        else expect(p[field]).toEqual(source[field]);
       expect(physicalSchedule(p)).toEqual(physicalSchedule(source));
       expect(scheduleChanged(p)).toBe(false);
       expect(p.hierarchy.placements[0].sheetId).toBe(p.sheets[0].id);

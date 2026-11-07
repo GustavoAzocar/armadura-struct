@@ -1,3 +1,5 @@
+import { drawingLayerSchema } from './layerSchema';
+import { defaultLayers } from './layers';
 import { armatureReferences } from './armatureReferences';
 import { hasArmatureData } from './detailQuantities';
 import { fabricationPositions } from './fabrication';
@@ -15,7 +17,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/7' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/8' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -29,7 +31,9 @@ export const detailPackageSchema = z
       'openstruct.detail/5',
       'openstruct.detail/6',
       'openstruct.detail/7',
+      'openstruct.detail/8',
     ]),
+    layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
       .array(fabricationPositionSchema)
       .max(10000)
@@ -99,12 +103,36 @@ function scaleBar(b: Bar, k: number): Bar {
 function scaleContent(value: DetailPackage, k: number): DetailPackage {
   const point = (p: Point) => mul(p, k),
     o = value.objects;
+  const styled = <
+    T extends { style?: import('./types').LayerBinding['style'] },
+  >(
+    v: T,
+  ): T =>
+    v.style?.lineType
+      ? {
+          ...v,
+          style: {
+            ...v.style,
+            lineType: {
+              ...v.style.lineType,
+              pattern: v.style.lineType.pattern.map((n) => n * k),
+            },
+          },
+        }
+      : v;
   return {
     ...value,
+    layers: value.layers?.map((l) => ({
+      ...l,
+      lineType: {
+        ...l.lineType,
+        pattern: l.lineType.pattern.map((n) => n * k),
+      },
+    })),
     objects: {
-      bars: o.bars.map((b) => scaleBar(b, k)),
+      bars: o.bars.map((b) => styled(scaleBar(b, k))),
       details: o.details.map((d) => ({
-        ...d,
+        ...styled(d),
         origin: point(d.origin),
         ...(d.label
           ? {
@@ -117,25 +145,25 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
           : {}),
       })),
       annotations: o.annotations.map((a) => ({
-        ...a,
+        ...styled(a),
         points: a.points.map(point),
         textHeight: a.textHeight * k,
       })),
       polylines: o.polylines.map((l) => ({
-        ...l,
+        ...styled(l),
         points: l.points.map(point),
       })),
       masks: o.masks.map((m) => ({
-        ...m,
+        ...styled(m),
         origin: point(m.origin),
         primitives: m.primitives.map((p) => ({
-          ...p,
+          ...styled(p),
           points: p.points.map(point),
           textHeight: (p.textHeight ?? 2.5) * k,
         })),
       })),
     },
-    dependencies: value.dependencies.map((b) => scaleBar(b, k)),
+    dependencies: value.dependencies.map((b) => styled(scaleBar(b, k))),
   };
 }
 
@@ -154,6 +182,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/5',
       'openstruct.detail/6',
       'openstruct.detail/7',
+      'openstruct.detail/8',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -167,6 +196,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/5',
       'openstruct.detail/6',
       'openstruct.detail/7',
+      'openstruct.detail/8',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -178,6 +208,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/5',
       'openstruct.detail/6',
       'openstruct.detail/7',
+      'openstruct.detail/8',
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -188,12 +219,16 @@ export function detailPackageProject(value: DetailPackage): Project {
   )
     throw new Error('Representações transformadas exigem pacote v5.');
   if (
-    !['openstruct.detail/6', 'openstruct.detail/7'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/6',
+      'openstruct.detail/7',
+      'openstruct.detail/8',
+    ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
     throw new Error('Posicionamento de rótulo exige pacote v6.');
   if (
-    pack.schema !== 'openstruct.detail/7' &&
+    !['openstruct.detail/7', 'openstruct.detail/8'].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
     )
@@ -289,7 +324,8 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/13',
+      schema: 'armadurastruct/14',
+      layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
       name: c.project.name,
@@ -328,6 +364,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/4',
       'openstruct.detail/5',
       'openstruct.detail/6',
+      'openstruct.detail/7',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -335,6 +372,8 @@ export function readDetailPackage(raw: unknown): {
       `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA}.`,
     );
   const pack = detailPackageSchema.parse(input);
+  if (pack.schema === 'openstruct.detail/8' && !pack.layers)
+    throw new Error('Pacote v8 sem catálogo de layers.');
   if (pack.schema === 'openstruct.detail/1' && pack.context.detail.repetition)
     throw new Error('Repetições exigem pacote openstruct.detail/2.');
   return { package: pack, project: detailPackageProject(pack) };
@@ -377,6 +416,7 @@ export function createDetailPackage(
   );
   const mm: DetailPackage = {
     schema: DETAIL_PACKAGE_SCHEMA,
+    layers: project.layers,
     fabricationPositions: fabricationPositions(project)
       .map((g) => ({
         ...g,

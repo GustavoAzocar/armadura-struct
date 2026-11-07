@@ -1,3 +1,4 @@
+import { stylePrimitive } from './layers';
 import {
   representationPrimitives,
   showsPhysicalDescription,
@@ -20,11 +21,13 @@ export function drawingPrimitives(
   const h = options.minTextHeight ?? 40;
   const offset = (legacy: number, factor: number) =>
     options.minTextHeight === undefined ? legacy : h * factor;
-  const lines = p.masks
-    .flatMap(maskPrimitives)
-    .map((l) => ({ ...l, layer: 'MASCARA' }));
+  const lines = p.masks.flatMap((m) =>
+    maskPrimitives(m).map((l) => stylePrimitive(references, m, l)),
+  );
   lines.push(
-    ...p.polylines.map((l) => ({ ...l, layer: 'DESENHO' })),
+    ...p.polylines.map((l) =>
+      stylePrimitive(references, l, { ...l, layer: 'DESENHO' }),
+    ),
     ...p.annotations.flatMap((a) =>
       annotationPrimitives(
         {
@@ -32,7 +35,7 @@ export function drawingPrimitives(
           textHeight: options.minTextHeight ?? a.textHeight,
         },
         references,
-      ),
+      ).map((item) => stylePrimitive(references, a, item)),
     ),
   );
   const label = (text: string, at: Point, layer: string) => ({
@@ -42,6 +45,7 @@ export function drawingPrimitives(
     textHeight: h,
   });
   for (const b of p.bars) {
+    const start = lines.length;
     if (b.distribution?.render === 'bars') lines.push(...repeatedGeometry(b));
     else
       lines.push({
@@ -73,10 +77,17 @@ export function drawingPrimitives(
       );
     }
     lines.push(...distributionPrimitives(b, options.minTextHeight, references));
+    for (let i = start; i < lines.length; i++)
+      lines[i] = stylePrimitive(references, b, lines[i], 'ARMADURAS');
   }
   for (const d of p.details) {
     const b = references.bars.find((b) => b.id === d.barId);
-    if (b) lines.push(...representationPrimitives(b, d, references, h));
+    if (b)
+      lines.push(
+        ...representationPrimitives(b, d, references, h).map((item) =>
+          stylePrimitive(references, d, item, 'REBATIMENTOS'),
+        ),
+      );
   }
   for (const d of p.hierarchy.details.filter((d) => d.repetition)) {
     const bars = p.bars.filter((b) => p.hierarchy.objectDetails[b.id] === d.id);

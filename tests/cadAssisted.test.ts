@@ -104,7 +104,7 @@ describe('atribuição assistida CAD', () => {
     const p = completeOwnership({ ...emptyProject(), masks: [mask] });
     expect(p.bars).toEqual([]);
     expect(schedule(p)).toEqual([]);
-    expect(decodeProject(JSON.stringify(p)).masks).toEqual([mask]);
+    expect(decodeProject(JSON.stringify(p)).masks).toEqual(p.masks);
   });
   it('exige seleção, propriedades físicas e confirmação explícitas', () => {
     const { project, input, detailId } = fixture();

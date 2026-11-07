@@ -114,6 +114,8 @@ export function previewCadInterpretation(
     );
     const bar: Bar = {
       ...newBar(input.mark.trim()),
+      layerId: contour.layerId,
+      style: contour.style,
       element: element?.name ?? '',
       origin: points[0],
       points: points.map((p) => sub(p, points[0])),
@@ -142,6 +144,8 @@ export function previewCadInterpretation(
       annotations.push({
         id: uid(),
         kind: 'leader',
+        layerId: text.layerId,
+        style: text.style,
         barId: bar.id,
         label: text.text,
         points: [points[0], { x: label.x - 100, y: label.y }, label],

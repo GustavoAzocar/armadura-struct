@@ -1,3 +1,5 @@
+import { validateLayers } from './layers';
+import { layerBindingShape } from './layerSchema';
 import { armatureReferences } from './armatureReferences';
 import { representationPoints, representationPoint } from './representations';
 import { renumberOptionsSchema } from './numbering';
@@ -80,6 +82,7 @@ export const REBAR_CAPABILITIES = Object.freeze({
   atomicBatches: true,
   representationsDoNotAddSteel: true,
   placedRepresentationLabels: true,
+  nativeLayerStyles: true,
   deepArmatureCopy: true,
   sharedClonePolicies: ['keep', 'clone-set'] as const,
 });
@@ -87,6 +90,7 @@ const number = z.number().finite();
 const point = z.object({ x: number, y: number }).strict();
 const id = z.string().min(1).max(200);
 const common = {
+  ...layerBindingShape,
   multiplier: z.number().int().min(1).max(10000).optional(),
   quantitySource: quantitySourceSchema.optional(),
   quantityDisplay: z.enum(['factored', 'total']).optional(),
@@ -266,6 +270,7 @@ const commandSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('representation.create'),
+      ...layerBindingShape,
       rotation: number.optional(),
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
@@ -280,6 +285,7 @@ const commandSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('representation.update'),
+      ...layerBindingShape,
       rotation: number.optional(),
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
@@ -402,6 +408,11 @@ export function validateRebarChange(
   scopeDetailId?: string,
 ): RebarIssue[] {
   const errors: RebarIssue[] = [];
+  try {
+    validateLayers(after);
+  } catch (e) {
+    errors.push(issue('INVALID_FIELD', (e as Error).message, 'layers'));
+  }
   try {
     validateHierarchy(after);
   } catch (e) {
@@ -663,6 +674,9 @@ function perform(
       ...newBar(c.definition.mark ?? nextMark(p)),
       element: element.name,
       ...defined(c.definition),
+      ...(!c.definition.layerId && c.definition.color !== undefined
+        ? { style: { color: c.definition.color, ...c.definition.style } }
+        : {}),
       id,
     };
     next = own({ ...p, bars: [...p.bars, b] }, id, c.detailId);
@@ -706,7 +720,13 @@ function perform(
         'patch.kind',
         c.id,
       );
-    next = replace(p, { ...b, ...defined(c.patch) });
+    next = replace(p, {
+      ...b,
+      ...defined(c.patch),
+      ...(c.patch.color !== undefined
+        ? { style: { ...b.style, color: c.patch.color, ...c.patch.style } }
+        : {}),
+    });
     touched.push(c.id);
   } else if (c.type === 'bar.delete') {
     barById(p, c.id);
@@ -896,6 +916,8 @@ function perform(
             barId: c.barId,
             origin: c.origin,
             ...defined({
+              layerId: c.layerId,
+              style: c.style,
               rotation: c.rotation,
               scale: c.scale,
               identification: c.identification,
@@ -924,6 +946,8 @@ function perform(
             ? {
                 ...r,
                 ...defined({
+                  layerId: c.layerId,
+                  style: c.style,
                   rotation: c.rotation,
                   scale: c.scale,
                   identification: c.identification,
@@ -1186,6 +1210,8 @@ export function applyRebarBatch(
 /** Adapter for existing Bar persistence; unused fields never leak across family boundaries. */
 export function rebarDefinition(bar: Bar): RebarDefinition {
   const common = {
+    layerId: bar.layerId,
+    style: bar.style,
     manufacturing: bar.manufacturing,
     mark: bar.mark,
     element: bar.element,
