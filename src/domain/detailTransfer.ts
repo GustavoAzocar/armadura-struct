@@ -1,3 +1,4 @@
+import { nextFreeMark } from './marks';
 import { fabricationPositions, groupFabrication } from './fabrication';
 import { repetitionNames } from './detailQuantities';
 import type {
@@ -469,14 +470,16 @@ export function previewDetailTransfer(
       target.bars.filter((b) => !removed.has(b.id)).map((b) => b.mark),
     );
     const uniqueMark = (preferred: string) => {
-      if (!marks.has(preferred)) {
+      if (
+        !marks.has(preferred) &&
+        !target.numbering?.reserved.includes(preferred)
+      ) {
         marks.add(preferred);
         return preferred;
       }
-      let n = 1;
-      while (marks.has(`N${n}`)) n++;
-      marks.add(`N${n}`);
-      return `N${n}`;
+      const mark = nextFreeMark(target, marks);
+      marks.add(mark);
+      return mark;
     };
     const replacements = new Map<string, Bar>();
     for (const [sourceId, localId] of sourceToLocal) {
@@ -658,9 +661,7 @@ export function previewDetailTransfer(
           (g) => g.mark === mark && g.barIds.some((id) => !ids.includes(id)),
         )
       ) {
-        let n = 1;
-        while (next.bars.some((b) => b.mark === `N${n}`)) n++;
-        mark = `N${n}`;
+        mark = nextFreeMark(next);
       }
       const lock = next.scheduleLock;
       next = {

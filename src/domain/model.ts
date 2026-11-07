@@ -1,3 +1,4 @@
+import { nextFreeMark, numberingPolicySchema } from './marks';
 import { z } from 'zod';
 import { fabricationPositions, validateFabrication } from './fabrication';
 import {
@@ -211,7 +212,9 @@ const schema = z.object({
     'armadurastruct/7',
     'armadurastruct/8',
     'armadurastruct/9',
+    'armadurastruct/10',
   ]),
+  numbering: numberingPolicySchema.optional(),
   sheets: z
     .array(
       z.object({
@@ -378,7 +381,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/6' ||
     parsed.schema === 'armadurastruct/7' ||
     parsed.schema === 'armadurastruct/8' ||
-    parsed.schema === 'armadurastruct/9';
+    parsed.schema === 'armadurastruct/9' ||
+    parsed.schema === 'armadurastruct/10';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -414,7 +418,11 @@ export function decodeProject(
   );
   let sheetId = `${id}:sheet`;
   while (occupied.has(sheetId)) sheetId += '-';
-  const v9 = parsed.schema === 'armadurastruct/9';
+  if (parsed.numbering && parsed.schema !== 'armadurastruct/10')
+    throw new Error('Política de numeração exige formato 10.');
+  const v9 =
+    parsed.schema === 'armadurastruct/9' ||
+    parsed.schema === 'armadurastruct/10';
   if (
     !v9 &&
     [...parsed.bars, ...(parsed.scheduleLock?.bars ?? [])].some(hasArmatureData)
@@ -489,7 +497,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/9',
+    schema: 'armadurastruct/10',
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -605,9 +613,7 @@ export function newBar(mark: string): Bar {
   };
 }
 export function nextMark(p: Project) {
-  let i = 1;
-  while (p.bars.some((b) => b.mark === `N${i}`)) i++;
-  return `N${i}`;
+  return nextFreeMark(p);
 }
 export const emptyProject = (): Project => {
   const id = uid();
@@ -619,7 +625,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/9',
+    schema: 'armadurastruct/10',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),

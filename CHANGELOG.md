@@ -2,6 +2,8 @@
 
 ## Em desenvolvimento
 
+- AS-55: renumeração espacial determinística por posição de fabricação, prévia antes/depois, prefixo/início, quatro sentidos, escopos, marcas reservadas/preservadas e política comum da próxima marca livre. Formato nativo 10, migração 1–9, IDs e quantitativos preservados.
+
 - AS-56: base por grupo, multiplicador inteiro por armadura e quantidade efetiva, compostos com a repetição do detalhe uma única vez. Origem manual ou faixa com quantidade fixa/espaçamento registrado; base controlada é recalculada e protegida de edição ambígua.
 - Observação, indicação/opção de texto por nervura e referência textual ao lance nas propriedades, consultas, chamadas, rebatimentos e saídas; preferência gráfica por quantidade fatorada ou total, sem alterar o aço.
 - Formato nativo 9 (migração 1–8), pacote `openstruct.detail/4` (leitura v1/v2/v3), contribuições de fabricação e snapshots com fatores/metadados, API comum, exemplo executável e testes AS-56.

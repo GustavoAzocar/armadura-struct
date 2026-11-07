@@ -1,3 +1,4 @@
+import { nextFreeMark } from './marks';
 import { geometry, vertices } from './geometry';
 import { uid, type Bar, type FabricationPosition, type Project } from './types';
 
@@ -161,10 +162,9 @@ export function reconcileFabrication(p: Project): Project {
     mapped = new Set<string>();
   const marks = new Set(p.bars.map((b) => b.mark));
   const nextMark = () => {
-    let i = 1;
-    while (marks.has(`N${i}`)) i++;
-    marks.add(`N${i}`);
-    return `N${i}`;
+    const mark = nextFreeMark(p, marks);
+    marks.add(mark);
+    return mark;
   };
   for (const g of p.fabricationPositions ?? []) {
     const live = g.barIds.filter((id) => bars.has(id));
@@ -309,9 +309,7 @@ export function ungroupFabrication(p: Project, ids: string[]): Project {
       const b = p.bars.find((b) => b.id === id)!;
       let mark = b.mark;
       if (remaining.length || i > 0) {
-        let n = 1;
-        while (marks.has(`N${n}`)) n++;
-        mark = `N${n}`;
+        mark = nextFreeMark(p, marks);
         marks.add(mark);
       }
       const bar = { ...b, mark };

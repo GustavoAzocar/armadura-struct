@@ -34,6 +34,7 @@ const DetailTransferDialog = lazy(
 const CadInterpretDialog = lazy(
   () => import('./components/CadInterpretDialog'),
 );
+const NumberingDialog = lazy(() => import('./components/NumberingDialog'));
 const FabricationDialog = lazy(() => import('./components/FabricationDialog'));
 const DetailRepetitionDialog = lazy(
   () => import('./components/DetailRepetitionDialog'),
@@ -212,6 +213,7 @@ export default function App() {
     maskId?: string;
     projectId: string;
   } | null>(null);
+  const [numberingOpen, setNumberingOpen] = useState(false);
   const [fabricationOpen, setFabricationOpen] = useState(false);
   const [repetitionDetailId, setRepetitionDetailId] = useState<string>();
   const detailRequest = useRef<{
@@ -1538,10 +1540,8 @@ export default function App() {
         );
       }
       if (a === 'renumber') {
-        if (!commitRebars([{ type: 'bar.renumber' }])) return;
-        notify(
-          'Posições renumeradas; chamadas e rebatimentos mantiveram os vínculos.',
-        );
+        setNumberingOpen(true);
+        return;
       }
       if (a === 'join') {
         const next = applyRebarBatch(
@@ -1856,7 +1856,8 @@ export default function App() {
         detailTransfer ||
         cadInterpretation ||
         repetitionDetailId ||
-        fabricationOpen
+        fabricationOpen ||
+        numberingOpen
       ) {
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -1865,6 +1866,7 @@ export default function App() {
           setCadInterpretation(null);
           setRepetitionDetailId(undefined);
           setFabricationOpen(false);
+          setNumberingOpen(false);
         } else if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -2691,6 +2693,27 @@ export default function App() {
               setSidebarOpen(true);
               notify(
                 'Posição física criada por atribuição explícita. A máscara foi preservada como referência.',
+              );
+              return true;
+            }}
+          />
+        </Suspense>
+      )}
+      {numberingOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Preparando numeração…</div>}
+        >
+          <NumberingDialog
+            project={p}
+            detailId={activeDetailId}
+            selected={selected}
+            onClose={() => setNumberingOpen(false)}
+            onApply={(result) => {
+              if (!commit((current) => applyRebarBatch(current, result)))
+                return false;
+              setNumberingOpen(false);
+              notify(
+                'Posições renumeradas. Geometria, vínculos e quantitativos preservados.',
               );
               return true;
             }}

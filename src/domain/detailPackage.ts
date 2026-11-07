@@ -234,7 +234,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/9',
+      schema: 'armadurastruct/10',
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
       name: c.project.name,

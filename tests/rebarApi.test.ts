@@ -517,7 +517,7 @@ describe('API executável e transacional de armaduras', () => {
       { type: 'bar.transform', id: 'bar', operation: 'mirror' },
       { type: 'bar.renumber' },
     ]);
-    expect(p.bars.map((b) => b.mark)).toEqual(['N1', 'N2']);
+    expect(p.bars.map((b) => b.mark)).toEqual(['N2', 'N1']);
   });
   it('rejeita aplicação de um lote executado sobre um estado anterior', () => {
     const p = create(),

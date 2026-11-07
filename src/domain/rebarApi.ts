@@ -1,3 +1,4 @@
+import { renumberOptionsSchema } from './numbering';
 import {
   FABRICATION_RULES,
   groupFabrication,
@@ -186,7 +187,12 @@ const commandSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ type: z.literal('bar.join'), ids: z.tuple([id, id]) }).strict(),
-  z.object({ type: z.literal('bar.renumber') }).strict(),
+  z
+    .object({
+      type: z.literal('bar.renumber'),
+      options: renumberOptionsSchema.optional(),
+    })
+    .strict(),
   z
     .object({
       type: z.literal('fabrication.group'),
@@ -375,6 +381,13 @@ export function validateRebarChange(
     );
   }
   for (const b of after.bars) {
+    if (
+      after.numbering?.reserved.includes(b.mark) &&
+      old.get(b.id)?.mark !== b.mark
+    )
+      errors.push(
+        issue('MARK_CONFLICT', 'A marca está reservada.', 'mark', b.id),
+      );
     if (same(old.get(b.id), b)) continue;
     const valid = detailContentSchema.shape.bars.element.safeParse(b);
     if (!valid.success) {
@@ -651,7 +664,7 @@ function perform(
     next = ungroupFabrication(p, c.ids);
     touched.push(...c.ids);
   } else if (c.type === 'bar.renumber') {
-    next = renumber(p);
+    next = renumber(p, c.options);
     touched.push(...p.bars.map((b) => b.id));
   } else if (c.type === 'distribution.set') {
     const b = barById(p, c.barId),
@@ -815,7 +828,8 @@ export function executeRebarBatch(
       if (
         options.scopeDetailId &&
         (parsed.data.type === 'fabrication.group' ||
-          parsed.data.type === 'fabrication.ungroup')
+          parsed.data.type === 'fabrication.ungroup' ||
+          parsed.data.type === 'bar.renumber')
       )
         fail(
           'INVALID_FIELD',

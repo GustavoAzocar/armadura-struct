@@ -1,5 +1,5 @@
+import { previewRenumber, type RenumberOptions } from './numbering';
 export { quantityForSpacing } from './detailQuantities';
-import { fabricationPositions } from './fabrication';
 import {
   add,
   distance,
@@ -209,19 +209,8 @@ export function translateBar(bar: Bar, delta: Point): Bar {
   };
 }
 
-export function renumber(project: Project): Project {
-  const positions = fabricationPositions(project).map((g, i) => ({
-    ...g,
-    mark: `N${i + 1}`,
-  }));
-  const names = new Map(
-    positions.flatMap((g) => g.barIds.map((id) => [id, g.mark])),
-  );
-  return {
-    ...project,
-    fabricationPositions: positions,
-    bars: project.bars.map((b) => ({ ...b, mark: names.get(b.id)! })),
-  };
+export function renumber(project: Project, options: RenumberOptions = {}) {
+  return previewRenumber(project, options).project;
 }
 
 /** Transform geometry and its distribution together about the bar origin. */

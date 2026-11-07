@@ -3014,3 +3014,8 @@ button.hierarchy-drawing {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.numbering-preview {
+  max-height: 340px;
+  overflow: auto;
+}

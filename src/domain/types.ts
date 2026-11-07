@@ -171,9 +171,10 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/9';
+  schema: 'armadurastruct/10';
   id: string;
   hierarchy: ProjectHierarchy;
+  numbering?: import('./marks').NumberingPolicy;
   /** Array order is the document order, independent of tab opening order. */
   sheets: Sheet[];
   name: string;
