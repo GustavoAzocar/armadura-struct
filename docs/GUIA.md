@@ -56,13 +56,33 @@ Cada aba mantém zoom/pan, seleção, detalhamento ativo, modo de edição, ferr
 
 ![Composição de uma barra em duas escalas independentes](paper-composition.png)
 
-### Formato 5 e compatibilidade
+### Inserir ou atualizar um detalhamento
+
+Na guia **Elementos**, use **Inserir detalhamento** ou **Atualizar detalhamento** e selecione um arquivo `.armstruct.json`/JSON do ArmaduraStruct. Esse fluxo lê somente a origem para comparação; **Abrir projeto** continua sendo a troca do projeto inteiro. Conclua uma edição isolada antes de importar uma revisão.
+
+Escolha o **Detalhamento recebido** pelo caminho completo. Para inserir, escolha o elemento local e a folha de destino, ou **Não colocar agora**. Somente os objetos do detalhamento selecionado são importados; os outros pavimentos/detalhes do arquivo não entram no modelo. As posições físicas novas entram uma vez no levantamento. Se essa mesma origem já existir, use Atualizar ou coloque outra vista do desenho existente.
+
+A atualização propõe um destino apenas quando há uma correspondência única de IDs de origem: projeto, pavimento, elemento e detalhamento. Nomes iguais, inclusive V1 em pavimentos diferentes, não estabelecem equivalência. Se não houver uma correspondência única, escolha explicitamente o destino. Uma troca de origem diferente exige confirmação no diálogo; posições já pertencentes a outro detalhe local não são duplicadas ou sobrescritas automaticamente.
+
+Em **Posição local preservada**, confira ou altere o mapeamento de cada posição recebida. **Nova posição** cria um novo ID; preservar uma posição mantém seu ID e sua marca local, atualizando os dados recebidos. Não há associação automática por marca/N1. Marcas novas que colidam com posições existentes recebem uma identificação N livre, mostrada na comparação. Posições locais ausentes podem ser removidas ou mantidas com seus gráficos vinculados.
+
+**Vínculos a reassociar** lista chamadas, cotas e rebatimentos que se referem a posições externas ou removidas. Escolha uma posição recebida/local, importe explicitamente uma dependência, desvincule uma anotação ou remova o objeto gráfico. Uma anotação desvinculada conserva sua geometria; chamadas/cortes sem texto próprio conservam a identificação anterior como texto. Um rebatimento precisa de uma posição válida ou de remoção explícita. Importar/atualizar uma dependência afeta o aço e aparece na comparação, uma única vez mesmo que várias chamadas a utilizem. Vincular uma posição local existente não altera seus dados físicos. Nenhum vínculo pendente é gravado.
+
+Antes de **Aplicar detalhamento**, confira quantidades, bitolas, aço, comprimentos/peso, contagens de objetos e prévias antes/depois. A substituição atualiza máscaras, polilinhas, cotas, chamadas e rebatimentos do detalhe segundo a revisão recebida; gráficos locais ausentes serão removidos, exceto os vinculados a posições locais explicitamente mantidas. Para conservar notas/polilinhas soltas, mova-as para outro detalhe antes de substituir.
+
+Os desenhos lógicos e suas vistas permanecem vinculados ao mesmo detalhe local. Posição no papel, escala, rotação e quadros são preservados. **Centralizar conteúdo nas vistas** altera apenas a origem no modelo de cada vista; é opcional e não escolhe outra escala. Confira os avisos de enquadramento: um desenho maior pode exigir ajuste no gerenciador e o PDF mantém sua validação de transbordamento.
+
+Quando houver alteração de dados físicos/da RA, uma RA bloqueada será desbloqueada e recalculada com o modelo atualizado. Alterações somente gráficas preservam o bloqueio; um bloqueio que já estava desatualizado continua precisando de conferência. **Cancelar** não muda o projeto. **Aplicar** produz uma única etapa de Desfazer/Refazer, incluindo vistas, origem e bloqueio da RA. Salvar/reabrir mantém os vínculos de origem para a próxima revisão.
+
+![Comparação antes/depois de uma revisão](detail-transfer.png)
+
+### Formato 6 e compatibilidade
 
 Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
 
 No modelo, `hierarchy.details` contém os detalhamentos compostos e `hierarchy.objectDetails` associa os objetos por ID. `details` mantém exclusivamente os rebatimentos gráficos das barras. `hierarchy.drawings` identifica desenhos lógicos dos detalhamentos; `sheets` cadastra as folhas na ordem de documentação e `hierarchy.placements` associa vistas a `sheetId`/`drawingId`, separadas das origens físicas e dos rebatimentos. Um desenho pode existir sem colocação. Projetos 1/2 recebem uma folha inicial e, havendo objetos, uma vista do desenho migrado; projetos 3 mantêm IDs, origens, rotação e escala dos posicionamentos na folha inicial. A migração não move os objetos do CAD. Ao abrir formatos 1–4, o enquadramento antigo recebe uma escala fixa e uma origem no modelo; o valor de escala antigo, que não controlava a prévia da AS-04, fica em `legacyScale` para rastreabilidade. Posições, rotações, quadros e IDs das vistas são mantidos. Vistas antigas fora da nova área útil precisam ser reposicionadas antes da impressão.
 
-Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hierarquia. Arquivos v3/v4/v5 com vínculos inválidos são recusados, em vez de descartar objetos silenciosamente. Mantenha uma cópia do JSON antigo se precisar abri-lo em uma versão anterior do aplicativo.
+Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hierarquia. Arquivos v3/v4/v5/v6 com vínculos inválidos são recusados, em vez de descartar objetos silenciosamente. Mantenha uma cópia do JSON antigo se precisar abri-lo em uma versão anterior do aplicativo.
 
 ## Mouse e seleção
 
@@ -152,7 +172,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/5`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/6`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

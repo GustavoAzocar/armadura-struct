@@ -150,7 +150,11 @@ export function assertDetailEdit(
     fail();
   const oldDetail = before.hierarchy.details.find((d) => d.id === detailId),
     newDetail = after.hierarchy.details.find((d) => d.id === detailId);
-  if (oldDetail?.elementId !== newDetail?.elementId) fail();
+  if (
+    oldDetail?.elementId !== newDetail?.elementId ||
+    !same(oldDetail?.source, newDetail?.source)
+  )
+    fail();
   const oldObjects = new Map(contentObjects(before).map((o) => [o.id, o]));
   const newObjects = new Map(contentObjects(after).map((o) => [o.id, o]));
   for (const [id, object] of oldObjects) {
@@ -158,7 +162,12 @@ export function assertDetailEdit(
       newOwner = after.hierarchy.objectDetails[id];
     if (
       oldOwner !== detailId &&
-      (oldOwner !== newOwner || !same(object, newObjects.get(id)))
+      (oldOwner !== newOwner ||
+        !same(object, newObjects.get(id)) ||
+        !same(
+          before.hierarchy.objectOrigins[id],
+          after.hierarchy.objectOrigins[id],
+        ))
     )
       fail();
     if (oldOwner === detailId && newObjects.has(id) && newOwner !== detailId)

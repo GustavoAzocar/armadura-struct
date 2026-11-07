@@ -29,6 +29,19 @@ const hierarchySchema = z.object({
         ...named,
         elementId: identity,
         grouped: z.boolean().optional(),
+        source: z
+          .object({
+            origin: z.object({
+              projectId: identity,
+              floorId: identity,
+              elementId: identity,
+              detailId: identity,
+            }),
+            projectName: z.string().max(150),
+            path: z.string().max(500),
+            revision: z.string().max(40),
+          })
+          .optional(),
       }),
     )
     .min(1)
@@ -60,6 +73,9 @@ const hierarchySchema = z.object({
     )
     .max(10000),
   objectDetails: z.record(z.string(), identity),
+  objectOrigins: z
+    .record(z.string(), z.object({ projectId: identity, objectId: identity }))
+    .optional(),
 });
 const barSchema = z.object({
   id: z.string(),
@@ -92,6 +108,7 @@ const schema = z.object({
     'armadurastruct/3',
     'armadurastruct/4',
     'armadurastruct/5',
+    'armadurastruct/6',
   ]),
   sheets: z
     .array(
@@ -208,12 +225,16 @@ const schema = z.object({
     )
     .max(20),
 });
-export function decodeProject(raw: string): Project {
+export function decodeProject(
+  raw: string,
+  options: { allowOrphanReferences?: boolean } = {},
+): Project {
   const parsed = schema.parse(JSON.parse(raw));
   const modern =
     parsed.schema === 'armadurastruct/3' ||
     parsed.schema === 'armadurastruct/4' ||
-    parsed.schema === 'armadurastruct/5';
+    parsed.schema === 'armadurastruct/5' ||
+    parsed.schema === 'armadurastruct/6';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -249,7 +270,10 @@ export function decodeProject(raw: string): Project {
   );
   let sheetId = `${id}:sheet`;
   while (occupied.has(sheetId)) sheetId += '-';
-  const v5 = parsed.schema === 'armadurastruct/5';
+  const v6 = parsed.schema === 'armadurastruct/6';
+  const v5 = parsed.schema === 'armadurastruct/5' || v6;
+  if (v6 && !parsed.hierarchy?.objectOrigins)
+    throw new Error('Projeto v6 sem identidades de origem.');
   const v4 = parsed.schema === 'armadurastruct/4' || v5;
   if (
     v5 &&
@@ -305,7 +329,7 @@ export function decodeProject(raw: string): Project {
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/5',
+    schema: 'armadurastruct/6',
     sheets: v4
       ? parsed.sheets!.map((s) => ({
           ...initialSheet(s.id),
@@ -315,7 +339,11 @@ export function decodeProject(raw: string): Project {
           seal: s.seal ?? { enabled: false, width: 160, height: 40 },
         }))
       : [initialSheet(sheetId, parsed.drawing.revision)],
-    hierarchy: { ...hierarchy, placements },
+    hierarchy: {
+      ...hierarchy,
+      placements,
+      objectOrigins: hierarchy.objectOrigins ?? {},
+    },
   };
   for (const sheet of p.sheets) validateSheetLayout(sheet);
   const ids = p.bars.map((b) => b.id);
@@ -323,7 +351,10 @@ export function decodeProject(raw: string): Project {
     throw new Error('IDs de armadura duplicados.');
   if (new Set(p.bars.map((b) => b.mark)).size !== p.bars.length)
     throw new Error('Cada posição deve ter uma identificação única.');
-  if (p.details.some((d) => !ids.includes(d.barId)))
+  if (
+    !options.allowOrphanReferences &&
+    p.details.some((d) => !ids.includes(d.barId))
+  )
     throw new Error('Rebatimento sem armadura correspondente.');
   if (
     new Set(p.details.map((d) => d.id)).size !== p.details.length ||
@@ -341,7 +372,10 @@ export function decodeProject(raw: string): Project {
   ].map((o) => o.id);
   if (new Set(allIds).size !== allIds.length)
     throw new Error('Identificadores de objetos duplicados.');
-  if (p.annotations.some((a) => a.barId && !ids.includes(a.barId)))
+  if (
+    !options.allowOrphanReferences &&
+    p.annotations.some((a) => a.barId && !ids.includes(a.barId))
+  )
     throw new Error('Chamada sem armadura correspondente.');
   validateHierarchy(p);
   if (!v5)
@@ -400,7 +434,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/5',
+    schema: 'armadurastruct/6',
     sheets: [initialSheet(`${id}:sheet`)],
     id,
     hierarchy: initialHierarchy(content, id),

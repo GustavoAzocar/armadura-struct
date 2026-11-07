@@ -22,12 +22,26 @@ export type BarRepresentation = { id: string; barId: string; origin: Point };
 export type Detail = BarRepresentation;
 export type Floor = { id: string; name: string };
 export type StructuralElement = { id: string; floorId: string; name: string };
+export type ObjectOrigin = { projectId: string; objectId: string };
+export type DetailOrigin = {
+  projectId: string;
+  floorId: string;
+  elementId: string;
+  detailId: string;
+};
+export type DetailSource = {
+  origin: DetailOrigin;
+  projectName: string;
+  path: string;
+  revision: string;
+};
 export type DrawingDetail = {
   id: string;
   elementId: string;
   name: string;
   /** Visual selection as a unit; false/absent keeps individually selectable objects. */
   grouped?: boolean;
+  source?: DetailSource;
 };
 export type DetailDrawing = { id: string; detailId: string; name: string };
 export type SheetFormat = 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'custom';
@@ -68,6 +82,8 @@ export type ProjectHierarchy = {
   placements: SheetPlacement[];
   /** Every physical or graphical object has one owning composite detail. */
   objectDetails: Record<string, string>;
+  /** Import lineage follows the object even when it moves to another local detail. */
+  objectOrigins: Record<string, ObjectOrigin>;
 };
 export type Primitive = {
   layer: string;
@@ -113,7 +129,7 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/5';
+  schema: 'armadurastruct/6';
   id: string;
   hierarchy: ProjectHierarchy;
   /** Array order is the document order, independent of tab opening order. */

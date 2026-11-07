@@ -45,6 +45,7 @@ export function initialHierarchy(
     details: [{ id: detailId, elementId, name: 'Detalhamento 1' }],
     drawings: [{ id: drawingId, detailId, name: 'Desenho principal' }],
     placements: [],
+    objectOrigins: {},
     objectDetails: Object.fromEntries(
       contentObjects(project).map((o) => [o.id, detailId]),
     ),
@@ -86,7 +87,13 @@ export function completeOwnership(
       (reference && Object.hasOwn(owners, reference) && owners[reference]) ||
       activeDetailId;
   }
-  return { ...project, hierarchy: { ...h, objectDetails: owners } };
+  const objectOrigins = Object.fromEntries(
+    Object.entries(h.objectOrigins).filter(([id]) => live.has(id)),
+  );
+  return {
+    ...project,
+    hierarchy: { ...h, objectDetails: owners, objectOrigins },
+  };
 }
 
 function cleanName(name: string) {
@@ -304,6 +311,8 @@ export function validateHierarchy(project: Project) {
   )
     throw new Error('Vínculo de hierarquia inexistente.');
   const objects = new Set(contentObjects(project).map((o) => o.id));
+  if (Object.keys(h.objectOrigins).some((id) => !objects.has(id)))
+    throw new Error('Origem de objeto sem objeto local correspondente.');
   if (
     [...objects].some((id) => !details.has(h.objectDetails[id])) ||
     Object.keys(h.objectDetails).some((id) => !objects.has(id))

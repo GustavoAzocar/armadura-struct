@@ -14,6 +14,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 - Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
 - Gerenciador de pranchas com folhas A0–A4, orientação, revisão, notas, ordenação, duplicação de layout e vistas vinculadas; abas de folhas e desenhos com navegação independente.
+- Inserção e atualização seletiva de detalhamentos por JSON, comparação antes/depois, identificação pela origem, mapeamento de posições, reassociação de vínculos e preservação das vistas.
 - Agrupamento semântico com seleção do conjunto e edição isolada por duplo clique; navegação e conclusão mantêm os demais detalhamentos protegidos e o quadro global vinculado.
 - Faixa de comandos compacta, painel lateral único com abas Projeto/Propriedades/Pranchas, recolhimento dos painéis e modo Foco no CAD. Fundo claro/escuro, pan, zoom, enquadramento e grade.
 - Barras livres por vértices; estribos retangulares com ganchos de 135°, bitola, mandril, quantidade e dimensões editáveis.
@@ -69,7 +70,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 6. Em **Pranchas**, crie folhas, coloque desenhos e abra suas vistas com duplo clique para editar. Duplicar folhas/vistas reutiliza os dados de aço.
 7. Salve o projeto e exporte os desenhos e quantitativos.
 
-Veja [o guia de comandos e convenções](docs/GUIA.md) e os [contratos e a validação da composição em escala](docs/AS-05.md).
+Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composição em escala](docs/AS-05.md) e os [contratos da atualização seletiva](docs/AS-08.md).
 
 ## Convenções e limites desta versão
 
@@ -84,7 +85,7 @@ Veja [o guia de comandos e convenções](docs/GUIA.md) e os [contratos e a valid
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos nos formatos 1, 2, 3 e 4 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo agora é `armadurastruct/5`, com composição, folhas, hierarquia e vínculos validados. Versões anteriores do aplicativo não abrem esse formato.
+- Projetos nos formatos 1, 2, 3, 4 e 5 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo agora é `armadurastruct/6`, com origem dos detalhamentos/objetos, composição, folhas, hierarquia e vínculos validados. Versões anteriores do aplicativo não abrem esse formato.
 - O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
 
 ## Verificar e compilar

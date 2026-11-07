@@ -2701,3 +2701,185 @@ button.hierarchy-drawing {
   stroke: #bc4053;
   stroke-dasharray: 2 1;
 }
+
+.detail-transfer-modal {
+  width: min(1080px, calc(100vw - 32px));
+  max-height: calc(100dvh - 36px);
+  overflow: auto;
+  padding: 20px;
+}
+.detail-transfer-modal h2 {
+  margin: 5px 0;
+  font-size: 18px;
+}
+.detail-transfer-modal h3 {
+  font-size: 12px;
+  margin: 15px 0 7px;
+}
+.transfer-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.detail-transfer-modal .field {
+  margin: 4px 0;
+}
+.detail-transfer-modal .field input,
+.detail-transfer-modal .field select {
+  padding: 6px;
+  height: 30px;
+  font-size: 11px;
+}
+.transfer-origin {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f1f4fb;
+  padding: 8px;
+  margin: 10px 0;
+  font-size: 11px;
+}
+.transfer-origin code {
+  font-size: 9px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: #5e6b86;
+}
+.transfer-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  margin: 7px 0;
+}
+.transfer-checkbox input {
+  flex-shrink: 0;
+}
+.origin-consent {
+  padding: 8px;
+  background: #fff5dd;
+  border: 1px solid #ead39d;
+}
+.transfer-table-scroll {
+  overflow-x: auto;
+  max-height: 265px;
+  overflow-y: auto;
+}
+.transfer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.transfer-table th {
+  position: sticky;
+  top: 0;
+  background: #edf1f8;
+  text-align: left;
+  padding: 7px;
+}
+.transfer-table td {
+  padding: 7px;
+  border-bottom: 1px solid #e2e7ef;
+}
+.transfer-table td small {
+  display: block;
+  color: #7c87a0;
+  font-size: 9px;
+}
+.transfer-table select {
+  max-width: 235px;
+  padding: 5px;
+  font-size: 11px;
+}
+.transfer-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  padding: 10px;
+  background: #f1f5fc;
+  margin: 10px 0;
+}
+.transfer-summary strong {
+  color: #a15f18;
+}
+.transfer-reference {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 40%);
+  gap: 10px;
+  border: 1px solid #e3c3c8;
+  border-radius: 3px;
+  padding: 7px;
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+.transfer-reference.resolved {
+  border-color: #c6d8ca;
+}
+.transfer-reference small {
+  display: block;
+  font-size: 9px;
+  color: #6c7891;
+  overflow-wrap: anywhere;
+  margin-top: 3px;
+}
+.transfer-reference select {
+  min-width: 0;
+  width: 100%;
+  align-self: center;
+  font-size: 11px;
+  padding: 5px;
+}
+.transfer-previews {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.transfer-previews figure {
+  margin: 5px 0;
+  padding: 5px;
+  border: 1px solid #e0e6f1;
+  border-radius: 3px;
+  min-width: 0;
+}
+.transfer-previews figcaption {
+  font-size: 10px;
+  color: #63718a;
+  padding: 4px;
+}
+.transfer-previews svg {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  background: #fcfdff;
+}
+.transfer-errors {
+  padding: 8px;
+  background: #fff0f1;
+  border: 1px solid #dfabb2;
+  color: #9d3446;
+  font-size: 11px;
+}
+.transfer-errors p {
+  margin: 4px 0;
+}
+.transfer-warnings {
+  font-size: 11px;
+  padding: 6px;
+  color: #966111;
+}
+.transfer-warnings summary {
+  cursor: pointer;
+}
+.transfer-retained {
+  border: 1px solid #e7dfcf;
+  padding: 8px;
+}
+@media (max-width: 780px) {
+  .transfer-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  .transfer-reference {
+    grid-template-columns: 1fr;
+  }
+}

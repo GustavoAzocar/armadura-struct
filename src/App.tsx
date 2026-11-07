@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   ArrowDownToLine,
   Check,
@@ -21,6 +28,13 @@ import {
   RefreshCw,
   Shapes,
 } from 'lucide-react';
+const DetailTransferDialog = lazy(
+  () => import('./components/DetailTransferDialog'),
+);
+import {
+  applyDetailTransfer,
+  type TransferPlan,
+} from './domain/detailTransfer';
 import Ribbon, { type Action } from './components/Ribbon';
 import CadCanvas, {
   type CadHandle,
@@ -66,6 +80,7 @@ import {
 import {
   autosave,
   readDocumentWorkspace,
+  readProjectFile,
   saveDocumentWorkspace,
   importMask,
   pickNativeFile,
@@ -173,6 +188,17 @@ export default function App() {
     future: [],
   }));
   const p = history.present;
+  const [detailTransfer, setDetailTransfer] = useState<{
+    source: Project;
+    fileName: string;
+    mode: 'insert' | 'replace';
+    projectId: string;
+  } | null>(null);
+  const detailRequest = useRef<{
+    mode: 'insert' | 'replace';
+    projectId: string;
+  } | null>(null);
+  const detailInput = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<{
     projectId: string;
     active: string;
@@ -1067,7 +1093,102 @@ export default function App() {
       );
     }
   };
+  const onDetailFile = async (file: File, request = detailRequest.current) => {
+    if (!request) return;
+    setBusy(`Lendo origem: ${file.name}…`);
+    try {
+      const source = await readProjectFile(file, true);
+      if (
+        detailRequest.current !== request ||
+        historyRef.current.present.id !== request.projectId ||
+        isolationRef.current
+      ) {
+        notify(
+          'A origem não foi aberta porque o projeto ou o contexto de edição mudou. Conclua a edição e tente novamente.',
+        );
+        return;
+      }
+      setDetailTransfer({
+        source,
+        fileName: file.name,
+        mode: request.mode,
+        projectId: request.projectId,
+      });
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível ler a origem do detalhamento.',
+      );
+    } finally {
+      setBusy('');
+    }
+  };
+  const startDetailTransfer = async (mode: 'insert' | 'replace') => {
+    if (isolationRef.current) {
+      notify('Conclua a edição isolada antes de importar uma revisão.');
+      return;
+    }
+    const request = { mode, projectId: historyRef.current.present.id };
+    detailRequest.current = request;
+    try {
+      const file = await pickNativeFile(['json']);
+      if (file === undefined) detailInput.current?.click();
+      else if (file) await onDetailFile(file, request);
+    } catch (error) {
+      detailRequest.current = null;
+      notify(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível abrir o arquivo de origem.',
+      );
+    }
+  };
+  const acceptDetailTransfer = (plan: TransferPlan) => {
+    if (
+      isolationRef.current ||
+      historyRef.current.present.id !== detailTransfer?.projectId
+    ) {
+      notify(
+        'Conclua a edição e abra novamente a comparação no projeto de destino.',
+      );
+      return false;
+    }
+    if (!commit((current) => applyDetailTransfer(current, plan))) return false;
+    const wasInsert = plan.mode === 'insert';
+    setDetailTransfer(null);
+    detailRequest.current = null;
+    setSelectedRaw([]);
+    setMaskId(null);
+    setDraft([]);
+    setToolRaw('select');
+    setPage('drawing');
+    setContext({
+      projectId: historyRef.current.present.id,
+      detailId: plan.targetDetailId!,
+    });
+    setSidebarOpen(true);
+    setSidebarTab(activeSheet ? 'sheets' : 'project');
+    if (wasInsert) {
+      const placed = plan.project?.hierarchy.placements.find((v) =>
+        plan.affectedViews.includes(v.id),
+      );
+      if (placed) {
+        switchDocument(`sheet:${placed.sheetId}`);
+        setSelectedView(placed.id);
+        setSidebarTab('sheets');
+      } else requestAnimationFrame(() => canvas()?.fit());
+    }
+    notify(
+      `Detalhamento aplicado. ${plan.affectedViews.length} vista(s) vinculada(s) atualizada(s).${plan.raInvalidated ? ' RA desbloqueada e recalculada.' : ''}`,
+    );
+    return true;
+  };
   const action = async (a: Action) => {
+    if (a === 'insert-detail' || a === 'update-detail') {
+      await startDetailTransfer(a === 'insert-detail' ? 'insert' : 'replace');
+      return;
+    }
     if (a === 'pdf') {
       await exportPaper(activeSheet ? [activeSheet.id] : undefined);
       return;
@@ -1397,9 +1518,7 @@ export default function App() {
   };
   const onProjectFile = async (file: File) => {
     try {
-      if (file.size > 100 * 1024 * 1024)
-        throw new Error('Use um projeto de até 100 MB.');
-      const next = decodeProject(await file.text());
+      const next = await readProjectFile(file);
       if (!commit(() => next)) return;
       select([]);
       setTool('select');
@@ -1490,6 +1609,19 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (detailTransfer) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setDetailTransfer(null);
+          detailRequest.current = null;
+        } else if (
+          (e.ctrlKey || e.metaKey) &&
+          ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+        )
+          e.preventDefault();
+        return;
+      }
+
       const typing = (e.target as HTMLElement)?.closest(
         'input,textarea,select',
       );
@@ -1585,6 +1717,18 @@ export default function App() {
           const f = e.target.files?.[0];
           e.target.value = '';
           if (f) onMaskFile(f);
+        }}
+      />
+      <input
+        ref={detailInput}
+        type="file"
+        hidden
+        accept=".json"
+        data-testid="detail-transfer-input"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) onDetailFile(file);
         }}
       />
       <input
@@ -2195,6 +2339,29 @@ export default function App() {
           <span>Processamento local</span>
         </div>
       )}
+      {detailTransfer && (
+        <Suspense
+          fallback={<div className="busy-overlay">Preparando comparação…</div>}
+        >
+          <DetailTransferDialog
+            project={p}
+            source={detailTransfer.source}
+            fileName={detailTransfer.fileName}
+            mode={detailTransfer.mode}
+            elementId={
+              p.hierarchy.details.find((d) => d.id === activeDetailId)!
+                .elementId
+            }
+            activeDetailId={activeDetailId}
+            sheetId={activeSheet?.id}
+            onApply={acceptDetailTransfer}
+            onClose={() => {
+              setDetailTransfer(null);
+              detailRequest.current = null;
+            }}
+          />
+        </Suspense>
+      )}
       {modal && (
         <div
           className="modal-backdrop"
@@ -2405,9 +2572,9 @@ export default function App() {
                   </p>
                   <p>
                     <b>04 · Entregue o desenho</b>Salve o projeto completo e
-                    exporte DXF, prancha PDF e CSV. Escolha a escala do PDF nas
-                    propriedades do projeto; o DXF preserva a geometria em mm.
-                    Atualize a RA se estiver bloqueada e desatualizada.
+                    exporte DXF, prancha PDF e CSV. Configure a escala por vista
+                    na aba Pranchas; o DXF preserva a geometria em mm. Atualize
+                    a RA se estiver bloqueada e desatualizada.
                   </p>
                 </div>
                 <div className="shortcut-grid">

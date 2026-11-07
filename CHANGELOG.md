@@ -2,6 +2,12 @@
 
 ## Em desenvolvimento
 
+- AS-08: Inserir detalhamento e Atualizar detalhamento a partir de outro JSON, com seleção da origem/destino, comparação de posições, pesos, objetos e prévias antes/depois, sem trocar o projeto aberto.
+- Reconhecimento por identidade de projeto/pavimento/elemento/detalhamento e origem dos objetos; homônimos não são associados pelo nome. Posições preservadas mantêm IDs e marcas locais; novas marcas são resolvidas sem colidir com as existentes.
+- Reassociação explícita de chamadas/rebatimentos, importação controlada de dependências e bloqueio de aplicação com vínculos pendentes. Cancelar não altera o modelo/histórico; a aplicação é uma única transação reversível.
+- Preservação de desenhos/vistas e de posição/escala/rotação; centralização opcional do conteúdo e avisos de enquadramento. Dados físicos/da RA alterados desbloqueiam e recalculam a RA; alterações somente gráficas preservam seu bloqueio.
+- Formato 6 com proveniência por detalhamento/objeto, migração dos formatos 1–5 e validação de referências. Abertura normal continua estrita; a leitura seletiva permite resolver referências de origem sem definição antes de aplicar.
+
 - AS-05: composição vetorial em mm de papel com vistas em escalas independentes, origens no modelo e rotação; PDF com uma página por folha, no formato/orientação definidos e com escala declarada por vista.
 - Formatos A0–A4 e personalizado (50–5.000 mm por lado), margens editáveis, reserva de selo inferior direita e campos básicos de projeto/folha/revisão/notas.
 - Mesmas primitivas de papel na tela e no PDF; textos/cotas com altura mínima de 2 mm, padrão de 2,5 mm. A escala não modifica comprimentos nem pesos do modelo.

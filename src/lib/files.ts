@@ -1,5 +1,6 @@
 import { isTauri } from '@tauri-apps/api/core';
 import type { Mask, Project } from '../domain/types';
+import { decodeProject } from '../domain/model';
 import type { CadState } from '../components/CadCanvas';
 
 export type DocumentWorkspace = {
@@ -64,6 +65,17 @@ export function saveDocumentWorkspace(
   } catch {
     /* Navigation preferences are optional. */
   }
+}
+/** Full opens are strict; selective transfers expose missing bar references for explicit mapping. */
+export async function readProjectFile(
+  file: File,
+  forDetailTransfer = false,
+): Promise<Project> {
+  if (file.size > 100 * 1024 * 1024)
+    throw new Error('Use um projeto de até 100 MB.');
+  return decodeProject(await file.text(), {
+    allowOrphanReferences: forDetailTransfer,
+  });
 }
 export async function pickNativeFile(
   extensions: string[],
