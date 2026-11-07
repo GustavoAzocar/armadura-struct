@@ -8,7 +8,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 [![Validação e build](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml)
 
-**Versão 0.2.0 — ambiente CAD compacto e ferramentas de detalhamento.** Aplicação desktop Tauri para Linux e Windows, também executável no navegador para desenvolvimento. Os arquivos e os cálculos são processados localmente.
+**Versão 0.3.0 — projetos hierárquicos, pranchas em escala, intercâmbio aberto e perfis de layers.** Aplicação desktop Tauri para Linux e Windows, também executável no navegador para desenvolvimento. Os arquivos e os cálculos são processados localmente.
 
 ## Recursos
 
@@ -96,7 +96,7 @@ Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composi
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos nos formatos 1–10 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/11`, com composição da quantidade, dados de montagem, posições de fabricação e repetição por detalhamento, contexto da RA bloqueada, origens, composição e vínculos validados. Aplicativos antigos não abrem esse formato. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
+- Projetos nos formatos 1–14 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/15`, com composição da quantidade, dados de montagem, posições de fabricação e repetição por detalhamento, contexto da RA bloqueada, origens, composição, vínculos validados e perfis de layers por desenho/vista. Aplicativos antigos não abrem esse formato; mantenha cópias dos originais. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
 - O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
 
 ## Verificar e compilar
@@ -141,7 +141,7 @@ GPL-3.0-or-later. Consulte [LICENSE](LICENSE) e [THIRD_PARTY_NOTICES.md](THIRD_P
 
 ## Instalação pelo Launcher
 
-Instale pelo [Struct Launcher](https://openstruct.com.br/launcher). Os pacotes assinados de Windows e Linux ficam no [hub de distribuição](https://github.com/ricardocorsini/openstruct-catalog/releases/tag/armadurastruct-v0.2.0). O código permanece neste repositório, sob a tag correspondente. Consulte [o fluxo de publicação](docs/RELEASES.md).
+Instale pelo [Struct Launcher](https://openstruct.com.br/launcher). Os pacotes assinados de Windows e Linux ficam no [hub de distribuição](https://github.com/ricardocorsini/openstruct-catalog/releases/tag/armadurastruct-v0.3.0). O código permanece neste repositório, sob a tag correspondente. Consulte [o fluxo de publicação](docs/RELEASES.md).
 
 ## Identidade
 

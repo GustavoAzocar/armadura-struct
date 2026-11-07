@@ -1,6 +1,12 @@
 # Histórico de versões
 
-## Em desenvolvimento
+## 0.3.0 · 2026-11-07
+
+- AS-20: perfis de layers independentes por desenho e vista, com Exibir/Capturar/Editar, presets Conferência/Armaduras/Fôrma e perfis personalizados. Seleção, encaixes, alças e transações respeitam a proteção; o PDF segue a visibilidade de cada vista sem alterar o quadro de aço.
+- AS-19: layers nativos com IDs estáveis, estilos ByLayer e overrides, edição/reassociação em lote e importação/exportação DXF 2007 com RGB, tipos de linha e penas. CAD, papel, PDF e DXF compartilham a resolução dos estilos.
+- AS-53: cópia completa das armaduras com novos IDs e marcas, remapeamento de inserções, chamadas e auxiliares, prévia e políticas explícitas para vínculos compartilhados e posições equivalentes; uma transação de desfazer/refazer.
+- Exemplo inicial executável de vigas e pilares, com duas pranchas, 64 posições, 1.181 peças e conferência da relação de aço de referência. Projetos recuperados mantêm prioridade e Novo projeto continua vazio.
+- Formato nativo atual `armadurastruct/15`, com leitura e migração dos formatos 1–14; pacote de detalhamento `openstruct.detail/8`, com leitura v1–v7. Os marcos de formato abaixo documentam a evolução dos recursos desta versão. Aplicativos anteriores não abrem projetos salvos no novo formato; mantenha cópias dos originais.
 
 - AS-52: representações independentes por ID, origem/rotação/escala gráfica, política de identificação e descrição principal explícita; seleção, edição e exclusão por inserção. Transformações comuns para CAD, snaps, enquadramento e PDF/DXF, sem aço adicional. Formato nativo 11 e pacote v5, com migração dos rebatimentos legados.
 

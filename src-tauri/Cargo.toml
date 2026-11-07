@@ -1,6 +1,6 @@
 [package]
 name = "armadurastruct"
-version = "0.2.0"
+version = "0.3.0"
 description = "Editor CAD de armaduras - OpenStruct"
 authors = ["Ricardo Corsini", "OpenStruct contributors"]
 edition = "2021"
