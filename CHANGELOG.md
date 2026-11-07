@@ -2,6 +2,8 @@
 
 ## Em desenvolvimento
 
+- AS-02: agrupamento visual por detalhamento, seleção do conjunto, duplo clique no CAD/árvore, edição isolada com caminho de navegação e Concluir edição.
+- Proteção de objetos externos em seleção, comandos, histórico e gravações assíncronas; desagrupar preserva dados físicos, IDs, vínculos e quantitativos. O deslocamento de um conjunto inclui suas chamadas, rebatimentos e demais geometrias associadas.
 - AS-01: pavimentos, elementos e detalhamentos compostos com identidades estáveis; criação, edição, movimentação, exclusão de nós vazios e pesquisa no navegador compacto.
 - Migração determinística dos formatos 1/2 para 3 sem transformar os objetos físicos ou rebatimentos nem alterar quantitativos; validação das referências ao reabrir.
 - Objetos novos pertencem ao detalhamento ativo; transferência de barras inclui seus rebatimentos e chamadas. Desenhos lógicos e posicionamentos de folha ficam separados da geometria física.

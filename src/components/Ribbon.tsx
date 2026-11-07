@@ -65,7 +65,12 @@ export type Action =
   | 'lock-schedule'
   | 'renumber'
   | 'sidebar'
-  | 'focus';
+  | 'focus'
+  | 'group'
+  | 'ungroup'
+  | 'edit-detail'
+  | 'finish-detail';
+// Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
   label: string;
@@ -96,6 +101,8 @@ export default function Ribbon({
   setCollapsed,
   settings,
   onSettings,
+  isolated = false,
+  groupSelected = false,
 }: {
   tab: string;
   setTab: (s: string) => void;
@@ -108,6 +115,8 @@ export default function Ribbon({
   setCollapsed: (v: boolean) => void;
   settings: CreationSettings;
   onSettings: (p: Partial<CreationSettings>) => void;
+  isolated?: boolean;
+  groupSelected?: boolean;
 }) {
   const groups: Record<
     string,
@@ -173,6 +182,14 @@ export default function Ribbon({
       },
     ],
     Elementos: [
+      {
+        name: 'Detalhamento',
+        items: [
+          item('group', 'Agrupar em detalhamento', Combine, 1),
+          item('edit-detail', 'Editar detalhamento', Shapes),
+          item('ungroup', 'Desagrupar seleção', Shapes, 1),
+        ],
+      },
       {
         name: 'Selecionar',
         items: [
@@ -300,6 +317,29 @@ export default function Ribbon({
                         aria-pressed={!!active[t.action]}
                         disabled={
                           (!!t.selection && selected < t.selection) ||
+                          (isolated &&
+                            [
+                              'new',
+                              'open',
+                              'renumber',
+                              'group',
+                              'ungroup',
+                              'edit-detail',
+                              'lock-schedule',
+                              'refresh-schedule',
+                            ].includes(t.action)) ||
+                          (groupSelected &&
+                            [
+                              'copy',
+                              'rotate',
+                              'mirror',
+                              'split',
+                              'join',
+                              'detail',
+                              'range',
+                              'repeat',
+                              'distribute',
+                            ].includes(t.action)) ||
                           (t.action === 'undo' && !canUndo) ||
                           (t.action === 'redo' && !canRedo)
                         }

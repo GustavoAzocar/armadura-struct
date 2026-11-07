@@ -21,7 +21,13 @@ const hierarchySchema = z.object({
     .min(1)
     .max(10000),
   details: z
-    .array(z.object({ ...named, elementId: identity }))
+    .array(
+      z.object({
+        ...named,
+        elementId: identity,
+        grouped: z.boolean().optional(),
+      }),
+    )
     .min(1)
     .max(10000),
   drawings: z

@@ -37,6 +37,11 @@ import {
   distributionPrimitives,
 } from '../domain/drafting';
 import { projectPoints } from '../domain/model';
+import {
+  detailEditorView,
+  groupedDetailForObject,
+  toggleDetailSelection,
+} from '../domain/detailEditing';
 import type { Bar, Point, Primitive, Project, Tool } from '../domain/types';
 export type CadHandle = { fit: () => void; zoom: (factor: number) => void };
 type Props = {
@@ -56,10 +61,12 @@ type Props = {
   setTool: (t: Tool) => void;
   onCursor: (p: Point) => void;
   showDimensions: boolean;
+  isolatedDetailId?: string;
+  onEditDetail: (id: string) => void;
 };
 export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const {
-    project,
+    project: source,
     tool,
     selected,
     setSelected,
@@ -70,6 +77,25 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     ortho,
     light,
   } = props;
+  const project = useMemo(
+    () => detailEditorView(source, props.isolatedDetailId),
+    [source, props.isolatedDetailId],
+  );
+  const lastHit = useRef<string | null>(null);
+  const overview = useRef<{
+    projectId: string;
+    view: { x: number; y: number; s: number };
+  } | null>(null);
+  const groupedIds = useMemo(
+    () =>
+      new Set(
+        source.hierarchy.details.filter((d) => d.grouped).map((d) => d.id),
+      ),
+    [source.hierarchy.details],
+  );
+  const individual = (id: string) =>
+    !!props.isolatedDetailId ||
+    !groupedIds.has(source.hierarchy.objectDetails[id]);
   const host = useRef<HTMLDivElement>(null),
     svg = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 900, h: 600 });
@@ -139,22 +165,110 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     () =>
       project.annotations.map((a) => ({
         annotation: a,
-        items: annotationPrimitives(a, project),
+        items: annotationPrimitives(a, source),
       })),
     [project],
   );
   const barGeometries = useMemo(
-    () => new Map(project.bars.map((b) => [b.id, geometry(b)])),
-    [project.bars],
+    () => new Map(source.bars.map((b) => [b.id, geometry(b)])),
+    [source.bars],
+  );
+  const barDefinitions = useMemo(
+    () => new Map(source.bars.map((b) => [b.id, b])),
+    [source.bars],
+  );
+  const representationPoints = useMemo(
+    () =>
+      project.details.flatMap((d) => {
+        const bar = barDefinitions.get(d.barId);
+        return bar
+          ? sampled(barGeometries.get(bar.id)!.segments).map((v) =>
+              add(v, d.origin),
+            )
+          : [];
+      }),
+    [project.details, barDefinitions, barGeometries],
   );
   const allPoints = useMemo(
     () => [
       ...projectPoints(project),
+      ...representationPoints,
       ...annotations.flatMap((a) => a.items.flatMap(primitiveBounds)),
       ...masks.flatMap((m) => m.items.flatMap(primitiveBounds)),
     ],
-    [project, masks, annotations],
+    [project, masks, annotations, representationPoints],
   );
+  const groupBoxes = useMemo(() => {
+    if (props.isolatedDetailId) return [];
+    const grouped = new Map(
+      source.hierarchy.details.filter((d) => d.grouped).map((d) => [d.id, d]),
+    );
+    const boxes = new Map<
+      string,
+      { x: number; y: number; right: number; top: number }
+    >();
+    const addPoints = (id: string, points: Point[]) => {
+      const owner = source.hierarchy.objectDetails[id];
+      if (!grouped.has(owner)) return;
+      for (const point of points) {
+        const old = boxes.get(owner);
+        if (old) {
+          old.x = Math.min(old.x, point.x);
+          old.y = Math.min(old.y, point.y);
+          old.right = Math.max(old.right, point.x);
+          old.top = Math.max(old.top, point.y);
+        } else
+          boxes.set(owner, {
+            x: point.x,
+            y: point.y,
+            right: point.x,
+            top: point.y,
+          });
+      }
+    };
+    for (const bar of project.bars) {
+      const pts = sampled(barGeometries.get(bar.id)!.segments);
+      const origins = bar.distribution
+        ? distributionOrigins(bar)
+        : [bar.origin];
+      for (const origin of origins)
+        addPoints(
+          bar.id,
+          pts.map((v) => world(v, { ...bar, origin })),
+        );
+    }
+    for (const d of project.details) {
+      const bar = barDefinitions.get(d.barId);
+      if (bar)
+        addPoints(
+          d.id,
+          sampled(barGeometries.get(bar.id)!.segments).map((v) =>
+            add(v, d.origin),
+          ),
+        );
+    }
+    for (const line of project.polylines) addPoints(line.id, line.points);
+    for (const a of annotations)
+      for (const item of a.items)
+        addPoints(a.annotation.id, primitiveBounds(item));
+    for (const m of masks)
+      for (const item of m.items) addPoints(m.mask.id, primitiveBounds(item));
+    return [...boxes].map(([id, box]) => ({
+      id,
+      name: grouped.get(id)!.name,
+      ...box,
+      width: box.right - box.x,
+      height: box.top - box.y,
+    }));
+  }, [
+    project,
+    source.hierarchy,
+    barGeometries,
+    barDefinitions,
+    annotations,
+    masks,
+    props.isolatedDetailId,
+  ]);
   const fit = () => {
     const b = bounds(allPoints);
     const s = Math.max(
@@ -179,6 +293,19 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   useEffect(() => {
     if (size.w > 0) fit();
   }, [project.masks.length, size.w === 900]); // fit after a new reference, not after every edit
+  useEffect(() => {
+    setGrip(null);
+    setDrag(null);
+    setMarquee(null);
+    if (props.isolatedDetailId) {
+      if (!overview.current) overview.current = { projectId: project.id, view };
+      fit();
+    } else if (overview.current) {
+      if (overview.current.projectId === project.id)
+        setView(overview.current.view);
+      overview.current = null;
+    }
+  }, [props.isolatedDetailId, project.id]);
   const scr = (p: Point) => ({
     x: (p.x - view.x) * view.s + size.w / 2,
     y: (view.y - p.y) * view.s + size.h / 2,
@@ -252,7 +379,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     }
     if (tool === 'select') {
       for (const b of project.bars.filter(
-        (b) => selected.includes(b.id) && b.kind === 'free',
+        (b) => selected.includes(b.id) && b.kind === 'free' && individual(b.id),
       ))
         for (let i = 0; i < b.points.length; i++)
           if (distance(world(b.points[i], b), p) < 9 / view.s) {
@@ -314,25 +441,45 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       }
       if (!hit) {
         for (const d of project.details) {
-          const b = project.bars.find((b) => b.id === d.barId);
+          const b = barDefinitions.get(d.barId);
           if (!b) continue;
           const pts = sampled(geometry(b).segments).map((v) =>
             add(v, d.origin),
           );
           for (let i = 1; i < pts.length; i++)
             if (distance(p, nearest(p, pts[i - 1], pts[i])) < best) {
-              hit = b.id;
+              hit =
+                !props.isolatedDetailId ||
+                source.hierarchy.objectDetails[b.id] === props.isolatedDetailId
+                  ? b.id
+                  : d.id;
               break;
             }
         }
       }
+      if (!hit) {
+        const box = groupBoxes.find(
+          (b) =>
+            p.x >= b.x - 12 / view.s &&
+            p.x <= b.right + 12 / view.s &&
+            p.y >= b.y - 12 / view.s &&
+            p.y <= b.top + 24 / view.s,
+        );
+        if (box)
+          hit = Object.keys(source.hierarchy.objectDetails).find(
+            (id) => source.hierarchy.objectDetails[id] === box.id,
+          );
+      }
+      lastHit.current = hit || null;
       if (hit) {
         setSelected(
-          e.shiftKey
-            ? selected.includes(hit)
-              ? selected.filter((id) => id !== hit)
-              : [...selected, hit]
-            : [hit],
+          toggleDetailSelection(
+            source,
+            selected,
+            hit,
+            e.shiftKey,
+            props.isolatedDetailId,
+          ),
         );
       } else {
         if (!e.shiftKey) setSelected([]);
@@ -357,7 +504,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           }
         }
       if (tool === 'convert')
-        for (const item of project.polylines) {
+        for (const item of project.polylines.filter((l) => individual(l.id))) {
           const pts = item.closed
             ? [...item.points, item.points[0]]
             : item.points;
@@ -518,6 +665,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           })}
         {active &&
           !isDetail &&
+          individual(b.id) &&
           b.kind === 'free' &&
           g.vertices.map((p, i) => (
             <rect
@@ -583,6 +731,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
+        onDoubleClick={() => {
+          if (tool !== 'select' || props.isolatedDetailId || !lastHit.current)
+            return;
+          const detail = groupedDetailForObject(source, lastHit.current);
+          if (detail) props.onEditDetail(detail.id);
+        }}
         onPointerCancel={() => {
           setDrag(null);
           setGrip(null);
@@ -680,9 +834,42 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             </g>
           ))}
           {project.details.map((d) => {
-            const b = project.bars.find((b) => b.id === d.barId);
+            const b = barDefinitions.get(d.barId);
             return b ? renderBar(b, d.origin, true) : null;
           })}
+          {groupBoxes.map((box) => (
+            <g
+              key={box.id}
+              data-testid="cad-detail-group"
+              data-detail-id={box.id}
+              pointerEvents="none"
+            >
+              <rect
+                x={box.x - 12 * stroke}
+                y={box.y - 12 * stroke}
+                width={box.width + 24 * stroke}
+                height={box.height + 24 * stroke}
+                fill="none"
+                stroke={light ? '#536fbb' : '#87a5ec'}
+                opacity={
+                  selected.some(
+                    (id) => source.hierarchy.objectDetails[id] === box.id,
+                  )
+                    ? 1
+                    : 0.4
+                }
+                strokeWidth={stroke}
+                strokeDasharray={`${5 * stroke} ${4 * stroke}`}
+              />
+              <text
+                transform={`translate(${box.x} ${box.top + 18 * stroke}) scale(1 -1)`}
+                fill={light ? '#3e5694' : '#9db7f1'}
+                fontSize={textSize}
+              >
+                {box.name}
+              </text>
+            </g>
+          ))}
           {project.bars
             .filter((b) => b.distribution)
             .map((b) => (

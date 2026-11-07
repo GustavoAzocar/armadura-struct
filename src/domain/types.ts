@@ -22,7 +22,13 @@ export type BarRepresentation = { id: string; barId: string; origin: Point };
 export type Detail = BarRepresentation;
 export type Floor = { id: string; name: string };
 export type StructuralElement = { id: string; floorId: string; name: string };
-export type DrawingDetail = { id: string; elementId: string; name: string };
+export type DrawingDetail = {
+  id: string;
+  elementId: string;
+  name: string;
+  /** Visual selection as a unit; false/absent keeps individually selectable objects. */
+  grouped?: boolean;
+};
 export type DetailDrawing = { id: string; detailId: string; name: string };
 /** Paper placement is independent of physical geometry and representation origins. */
 export type SheetPlacement = {

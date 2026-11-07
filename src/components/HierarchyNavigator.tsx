@@ -38,6 +38,8 @@ export default function HierarchyNavigator({
   selected,
   search,
   onSearch,
+  onEditDetail,
+  onSelectDetail,
 }: {
   project: Project;
   activeDetailId: string;
@@ -46,6 +48,8 @@ export default function HierarchyNavigator({
   selected: string[];
   search: string;
   onSearch: (text: string) => void;
+  onEditDetail: (id: string) => void;
+  onSelectDetail: (id: string) => void;
 }) {
   const h = project.hierarchy;
   const index = useMemo(() => {
@@ -201,6 +205,9 @@ export default function HierarchyNavigator({
             className="hierarchy-name"
             title={title}
             aria-label={`Editar ${nouns[kind]} ${title}`}
+            onDoubleClick={() => {
+              if (kind === 'detail') onEditDetail(id);
+            }}
             onClick={() => {
               begin(kind, id);
               if (kind === 'detail') onActive(id);
@@ -209,6 +216,16 @@ export default function HierarchyNavigator({
             {title}
           </button>
           <small>{count}</small>
+          {kind === 'detail' && (
+            <button
+              type="button"
+              className="detail-edit-button"
+              aria-label={`Abrir edição isolada de ${title}`}
+              onClick={() => onEditDetail(id)}
+            >
+              ↗
+            </button>
+          )}
         </div>
         {expanded && <div className="hierarchy-children">{children}</div>}
       </div>
@@ -397,6 +414,11 @@ export default function HierarchyNavigator({
             </label>
           )}
           <div className="hierarchy-tools">
+            {editor.id && editor.kind === 'detail' && (
+              <button type="button" onClick={() => onSelectDetail(editor.id!)}>
+                Selecionar conjunto
+              </button>
+            )}
             <button type="submit">
               {editor.id ? 'Salvar alterações' : `Criar ${nouns[editor.kind]}`}
             </button>

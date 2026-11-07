@@ -19,6 +19,7 @@ import {
   Focus,
   LockKeyhole,
   RefreshCw,
+  Shapes,
 } from 'lucide-react';
 import Ribbon, { type Action } from './components/Ribbon';
 import CadCanvas, { type CadHandle } from './components/CadCanvas';
@@ -73,6 +74,15 @@ import {
 } from './domain/editing';
 import { annotationError } from './domain/drafting';
 import { completeOwnership, detailPath } from './domain/hierarchy';
+import {
+  assertDetailEdit,
+  canEditDetailChange,
+  detailObjectIds,
+  expandDetailSelection,
+  groupInDetail,
+  groupedDetailForObject,
+  setDetailGrouped,
+} from './domain/detailEditing';
 import { version as appVersion } from '../package.json';
 type History = { past: Project[]; present: Project; future: Project[] };
 const prompts: Record<Tool, string> = {
@@ -132,6 +142,22 @@ export default function App() {
     future: [],
   }));
   const p = history.present;
+  const historyRef = useRef(history);
+  // Reject writes synchronously, including callbacks completing after a context switch.
+  historyRef.current = history;
+  const [isolation, setIsolation] = useState<{
+    projectId: string;
+    detailId: string;
+  } | null>(null);
+  const isolatedDetailId =
+    isolation?.projectId === p.id &&
+    p.hierarchy.details.some((d) => d.id === isolation.detailId)
+      ? isolation.detailId
+      : undefined;
+  const canUndo = canEditDetailChange(p, history.past.at(-1), isolatedDetailId);
+  const canRedo = canEditDetailChange(p, history.future[0], isolatedDetailId);
+  const isolationRef = useRef(isolatedDetailId);
+  isolationRef.current = isolatedDetailId;
   const [context, setContext] = useState<{
     projectId: string;
     detailId: string;
@@ -145,13 +171,15 @@ export default function App() {
       /* Use the first detail. */
     }
   }
-  const activeDetailId = p.hierarchy.details.some(
-    (d) => d.id === preferredDetail,
-  )
-    ? preferredDetail
-    : p.hierarchy.details[0].id;
-  const activateDetail = (detailId: string) =>
+  const activeDetailId =
+    isolatedDetailId ||
+    (p.hierarchy.details.some((d) => d.id === preferredDetail)
+      ? preferredDetail
+      : p.hierarchy.details[0].id);
+  const activateDetail = (detailId: string) => {
+    if (isolationRef.current && detailId !== isolationRef.current) return;
     setContext({ projectId: p.id, detailId });
+  };
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -181,7 +209,9 @@ export default function App() {
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(''),
     [saveState, setSaveState] = useState('Salvo neste computador');
-  const [modal, setModal] = useState<'new' | 'help' | 'split' | null>(null),
+  const [modal, setModal] = useState<'new' | 'help' | 'split' | 'group' | null>(
+      null,
+    ),
     [newName, setNewName] = useState('Novo projeto'),
     [cover, setCover] = useState(30),
     [newDiameter, setNewDiameter] = useState(8),
@@ -199,6 +229,8 @@ export default function App() {
     () => localStorage.getItem('armadurastruct.ribbon') === 'collapsed',
   );
   const [focus, setFocus] = useState(false);
+  const [groupName, setGroupName] = useState('Detalhamento'),
+    [groupElementId, setGroupElementId] = useState('');
   useEffect(
     () =>
       localStorage.setItem(
@@ -224,10 +256,34 @@ export default function App() {
     if (cursorReadout.current)
       cursorReadout.current.textContent = `X ${format(point.x, 1)}   Y ${format(point.y, 1)}   mm`;
   }, []);
-  const chosen = p.bars.find((b) => b.id === selected[0]),
-    mask = p.masks.find((m) => m.id === maskId);
-  const annotation = p.annotations.find((a) => a.id === selected[0]);
-  const polyline = p.polylines.find((a) => a.id === selected[0]);
+  const selectedOwners = new Set(
+    selected.map((id) => p.hierarchy.objectDetails[id]),
+  );
+  const selectedGroups = !isolatedDetailId
+    ? p.hierarchy.details.filter((d) => d.grouped && selectedOwners.has(d.id))
+    : [];
+  const groupSelection = selectedGroups.length > 0;
+  const selectedGroup =
+    selectedGroups.length === 1 &&
+    selected.every(
+      (id) => p.hierarchy.objectDetails[id] === selectedGroups[0].id,
+    )
+      ? selectedGroups[0]
+      : undefined;
+  const editable = (id: string) =>
+    !isolatedDetailId || p.hierarchy.objectDetails[id] === isolatedDetailId;
+  const chosen = !groupSelection
+      ? p.bars.find((b) => b.id === selected[0] && editable(b.id))
+      : undefined,
+    mask = !groupSelection
+      ? p.masks.find((m) => m.id === maskId && editable(m.id))
+      : undefined;
+  const annotation = !groupSelection
+    ? p.annotations.find((a) => a.id === selected[0] && editable(a.id))
+    : undefined;
+  const polyline = !groupSelection
+    ? p.polylines.find((a) => a.id === selected[0] && editable(a.id))
+    : undefined;
   const notify = (s: string) => {
     setToast(s);
     setMessage(s);
@@ -276,26 +332,56 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [p, ready]);
   const commit = useCallback(
-    (change: (current: Project) => Project) =>
-      setHistory((h) => {
+    (change: (current: Project) => Project) => {
+      try {
+        const h = historyRef.current;
         const next = change(h.present);
+        const scope = isolationRef.current;
         const target =
-          next.id === h.present.id &&
+          scope ||
+          (next.id === h.present.id &&
           next.hierarchy.details.some((d) => d.id === activeDetailId)
             ? activeDetailId
-            : next.hierarchy.details[0].id;
-        return {
+            : next.hierarchy.details[0].id);
+        const complete = completeOwnership(next, target);
+        if (scope) assertDetailEdit(h.present, complete, scope);
+        const updated = {
           past: [...h.past.slice(-39), h.present],
-          present: completeOwnership(next, target),
+          present: complete,
           future: [],
         };
-      }),
+        historyRef.current = updated;
+        setHistory(updated);
+        return true;
+      } catch (e) {
+        notify(
+          e instanceof Error
+            ? e.message
+            : 'Não foi possível alterar o detalhamento.',
+        );
+        return false;
+      }
+    },
     [activeDetailId],
   );
   const select = (ids: string[]) => {
-    setSelectedRaw(ids);
+    const current = historyRef.current.present;
+    const scope = isolationRef.current;
+    if (
+      scope &&
+      ids.some((id) => current.hierarchy.objectDetails[id] !== scope)
+    ) {
+      setSelectedRaw([]);
+      setMaskId(null);
+      notify(
+        'Os objetos de outro detalhamento estão protegidos. Conclua a edição para selecioná-los.',
+      );
+      return;
+    }
+    const next = expandDetailSelection(current, ids, scope);
+    setSelectedRaw(next);
     setMaskId(null);
-    const owner = p.hierarchy.objectDetails[ids[0]];
+    const owner = current.hierarchy.objectDetails[next[0]];
     if (owner) activateDetail(owner);
     if (ids.length) setSidebarTab('properties');
   };
@@ -304,6 +390,34 @@ export default function App() {
     setDraft([]);
     setPage('drawing');
     setMessage(prompts[t]);
+  };
+  const beginDetailEdit = (detailId: string) => {
+    const current = historyRef.current.present;
+    if (
+      isolationRef.current ||
+      !current.hierarchy.details.some((d) => d.id === detailId)
+    )
+      return;
+    isolationRef.current = detailId;
+    setIsolation({ projectId: current.id, detailId });
+    setContext({ projectId: current.id, detailId });
+    setSelectedRaw([]);
+    setMaskId(null);
+    setModal(null);
+    setTool('select');
+    notify('Edição isolada. Os demais detalhamentos estão protegidos.');
+  };
+  const finishDetailEdit = () => {
+    const current = historyRef.current.present,
+      id = isolationRef.current;
+    isolationRef.current = undefined;
+    setIsolation(null);
+    setTool('select');
+    setMaskId(null);
+    setSelectedRaw(id ? detailObjectIds(current, id) : []);
+    notify(
+      'Edição concluída. Desenhos e quantitativos usam os dados atualizados.',
+    );
   };
   const editBar = (id: string, patch: Partial<Bar>) => {
     if (
@@ -527,6 +641,16 @@ export default function App() {
               ? { ...a, points: a.points.map((v) => add(v, delta)) }
               : a,
           ),
+          details: p.details.map((d) =>
+            selected.includes(d.id)
+              ? { ...d, origin: add(d.origin, delta) }
+              : d,
+          ),
+          masks: p.masks.map((m) =>
+            selected.includes(m.id)
+              ? { ...m, origin: add(m.origin, delta) }
+              : m,
+          ),
         };
       commit(() => next);
       if (tool === 'copy') select(selectedIds);
@@ -643,6 +767,79 @@ export default function App() {
     }
   };
   const action = async (a: Action) => {
+    if (
+      isolationRef.current &&
+      [
+        'new',
+        'open',
+        'renumber',
+        'group',
+        'ungroup',
+        'lock-schedule',
+        'refresh-schedule',
+      ].includes(a)
+    ) {
+      notify('Conclua a edição isolada antes de usar este comando.');
+      return;
+    }
+    if (
+      groupSelection &&
+      [
+        'copy',
+        'rotate',
+        'mirror',
+        'split',
+        'join',
+        'detail',
+        'range',
+        'repeat',
+        'distribute',
+      ].includes(a)
+    ) {
+      notify(
+        'Abra o detalhamento para editar ou copiar objetos individualmente.',
+      );
+      return;
+    }
+    if (a === 'finish-detail') {
+      finishDetailEdit();
+      return;
+    }
+    if (a === 'edit-detail') {
+      beginDetailEdit(selectedGroup?.id || activeDetailId);
+      return;
+    }
+    if (a === 'group') {
+      if (!selected.length && !maskId) {
+        notify('Selecione os objetos a agrupar.');
+        return;
+      }
+      setGroupName('Detalhamento');
+      setGroupElementId(
+        p.hierarchy.details.find((d) => d.id === activeDetailId)!.elementId,
+      );
+      setModal('group');
+      return;
+    }
+    if (a === 'ungroup') {
+      const groups = selectedGroups;
+      if (!groups.length) {
+        notify('Selecione um detalhamento agrupado.');
+        return;
+      }
+      if (
+        commit((current) =>
+          groups.reduce(
+            (next, d) => setDetailGrouped(next, d.id, false),
+            current,
+          ),
+        )
+      )
+        notify(
+          'Seleção desagrupada. As armaduras e seus quantitativos foram preservados.',
+        );
+      return;
+    }
     if (a === 'convert' && polyline) {
       setTool('convert');
       return;
@@ -692,7 +889,7 @@ export default function App() {
       }
       if (a === 'join') {
         const next = joinBars(p, selected);
-        commit(() => next);
+        if (!commit(() => next)) return;
         select([next.bars.find((b) => selected.includes(b.id))!.id]);
         notify(
           'Poligonais emendadas em uma única barra. Para emendas com traspasse, use Dividir barra.',
@@ -706,27 +903,43 @@ export default function App() {
       }
       if (a === 'undo') {
         setDraft([]);
-        setHistory((h) =>
-          h.past.length
-            ? {
-                past: h.past.slice(0, -1),
-                present: h.past.at(-1)!,
-                future: [h.present, ...h.future],
-              }
-            : h,
-        );
+        const h = historyRef.current;
+        if (
+          !canEditDetailChange(h.present, h.past.at(-1), isolationRef.current)
+        ) {
+          notify(
+            'Não há alterações deste detalhamento para desfazer. Conclua a edição para acessar o histórico geral.',
+          );
+          return;
+        }
+        const updated = h.past.length
+          ? {
+              past: h.past.slice(0, -1),
+              present: h.past.at(-1)!,
+              future: [h.present, ...h.future],
+            }
+          : h;
+        historyRef.current = updated;
+        setHistory(updated);
       }
       if (a === 'redo') {
         setDraft([]);
-        setHistory((h) =>
-          h.future.length
-            ? {
-                past: [...h.past, h.present],
-                present: h.future[0],
-                future: h.future.slice(1),
-              }
-            : h,
-        );
+        const h = historyRef.current;
+        if (
+          !canEditDetailChange(h.present, h.future[0], isolationRef.current)
+        ) {
+          notify('Não há alterações deste detalhamento para refazer.');
+          return;
+        }
+        const updated = h.future.length
+          ? {
+              past: [...h.past, h.present],
+              present: h.future[0],
+              future: h.future.slice(1),
+            }
+          : h;
+        historyRef.current = updated;
+        setHistory(updated);
       }
       if (a === 'new') setModal('new');
       if (a === 'open') {
@@ -753,7 +966,10 @@ export default function App() {
         commit((p) => ({
           ...p,
           bars: p.bars.filter((b) => !selected.includes(b.id)),
-          details: p.details.filter((d) => !selected.includes(d.barId)),
+          details: p.details.filter(
+            (d) => !selected.includes(d.barId) && !selected.includes(d.id),
+          ),
+          masks: p.masks.filter((m) => !selected.includes(m.id)),
           annotations: p.annotations.filter(
             (a) =>
               !selected.includes(a.id) && !selected.includes(a.barId ?? ''),
@@ -821,6 +1037,7 @@ export default function App() {
     }
   };
   const onMaskFile = async (file: File) => {
+    const importDetailId = activeDetailId;
     if (p.masks.length >= 20) {
       notify('O limite desta versão é de 20 máscaras por projeto.');
       return;
@@ -828,7 +1045,15 @@ export default function App() {
     setBusy(`Lendo ${file.name}…`);
     try {
       const mask = await importMask(file);
-      commit((p) => ({ ...p, masks: [...p.masks, mask] }));
+      if (
+        !commit((p) =>
+          completeOwnership(
+            { ...p, masks: [...p.masks, mask] },
+            importDetailId,
+          ),
+        )
+      )
+        return;
       select([]);
       setMaskId(mask.id);
       setSidebarOpen(true);
@@ -848,7 +1073,7 @@ export default function App() {
       if (file.size > 100 * 1024 * 1024)
         throw new Error('Use um projeto de até 100 MB.');
       const next = decodeProject(await file.text());
-      commit(() => next);
+      if (!commit(() => next)) return;
       select([]);
       setTool('select');
       setTimeout(() => cad.current?.fit(), 50);
@@ -901,6 +1126,10 @@ export default function App() {
       Q: 'schedule',
       FORMA: 'follow',
       IMPORTAR: 'import',
+      AGRUPAR: 'group',
+      DESAGRUPAR: 'ungroup',
+      EDITARDETALHE: 'edit-detail',
+      CONCLUIR: 'finish-detail',
     };
     if (aliases[value.toUpperCase()]) {
       action(aliases[value.toUpperCase()]);
@@ -1083,7 +1312,7 @@ export default function App() {
           <button
             aria-label="Desfazer"
             title="Desfazer · Ctrl+Z"
-            disabled={!history.past.length}
+            disabled={!canUndo}
             onClick={() => action('undo')}
           >
             <Undo2 size={15} />
@@ -1091,7 +1320,7 @@ export default function App() {
           <button
             aria-label="Refazer"
             title="Refazer · Ctrl+Y"
-            disabled={!history.future.length}
+            disabled={!canRedo}
             onClick={() => action('redo')}
           >
             <Redo2 size={15} />
@@ -1138,8 +1367,10 @@ export default function App() {
           focus,
         }}
         selected={selected.length}
-        canUndo={!!history.past.length}
-        canRedo={!!history.future.length}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        isolated={!!isolatedDetailId}
+        groupSelected={groupSelection}
         collapsed={ribbonCollapsed || focus}
         setCollapsed={(v) => {
           setRibbonCollapsed(v);
@@ -1200,6 +1431,24 @@ export default function App() {
               </button>
             </div>
           </div>
+          {isolatedDetailId && (
+            <div
+              className="isolation-bar"
+              role="region"
+              aria-label="Edição isolada"
+            >
+              <nav aria-label="Caminho de edição">
+                <span>Projeto</span>
+                <b title={detailPath(p, isolatedDetailId)}>
+                  {detailPath(p, isolatedDetailId)}
+                </b>
+              </nav>
+              <span className="isolation-hint">
+                Demais detalhamentos protegidos
+              </span>
+              <button onClick={finishDetailEdit}>Concluir edição</button>
+            </div>
+          )}
           {page === 'drawing' ? (
             <>
               {tool === 'follow' && (
@@ -1220,6 +1469,8 @@ export default function App() {
               <CadCanvas
                 ref={cad}
                 project={p}
+                isolatedDetailId={isolatedDetailId}
+                onEditDetail={beginDetailEdit}
                 tool={tool}
                 selected={selected}
                 setSelected={select}
@@ -1326,6 +1577,9 @@ export default function App() {
                 key={p.id}
                 project={p}
                 activeDetailId={activeDetailId}
+                isolatedDetailId={isolatedDetailId}
+                onEditDetail={beginDetailEdit}
+                onSelectDetail={(id) => select(detailObjectIds(p, id))}
                 onActiveDetail={activateDetail}
                 onHierarchy={(next) => commit(() => next)}
                 selected={selected}
@@ -1361,6 +1615,47 @@ export default function App() {
                   setTimeout(() => cad.current?.fit(), 50);
                 }}
               />
+            ) : groupSelection ? (
+              <div className="inspector detail-inspector">
+                <div className="panel-heading">
+                  <Shapes size={15} />
+                  <b>Detalhamento selecionado</b>
+                </div>
+                <div className="panel-scroll">
+                  <h3>
+                    {selectedGroup?.name ||
+                      `${selectedGroups.length} detalhamentos`}
+                  </h3>
+                  {selectedGroup && (
+                    <p className="field-help">
+                      {detailPath(p, selectedGroup.id)}
+                    </p>
+                  )}
+                  <p>{selected.length} objetos selecionados como conjunto.</p>
+                  <p className="field-help">
+                    Abra a edição isolada para alterar as peças, cotas e
+                    chamadas.
+                  </p>
+                  {selectedGroup && (
+                    <button
+                      className="primary detail-edit-action"
+                      onClick={() => beginDetailEdit(selectedGroup.id)}
+                    >
+                      Editar detalhamento isoladamente
+                    </button>
+                  )}
+                  <button
+                    className="detail-edit-action"
+                    onClick={() => action('ungroup')}
+                  >
+                    Desagrupar seleção
+                  </button>
+                  <p className="field-help">
+                    Desagrupar mantém as armaduras, os vínculos e o levantamento
+                    de aço.
+                  </p>
+                </div>
+              </div>
             ) : annotation || polyline ? (
               <DraftInspector
                 annotation={annotation}
@@ -1383,6 +1678,17 @@ export default function App() {
                   }))
                 }
               />
+            ) : isolatedDetailId && !chosen && !mask ? (
+              <div className="inspector">
+                <div className="panel-heading">
+                  <Shapes size={15} />
+                  <b>Edição do detalhamento</b>
+                </div>
+                <p className="isolation-empty">
+                  Selecione um objeto deste detalhamento para editar suas
+                  propriedades. Use Concluir edição para voltar ao projeto.
+                </p>
+              </div>
             ) : (
               <Inspector
                 project={p}
@@ -1480,11 +1786,13 @@ export default function App() {
             role="dialog"
             aria-modal="true"
             aria-label={
-              modal === 'new'
-                ? 'Novo projeto'
-                : modal === 'split'
-                  ? 'Dividir barra'
-                  : 'Guia de uso'
+              modal === 'group'
+                ? 'Agrupar em detalhamento'
+                : modal === 'new'
+                  ? 'Novo projeto'
+                  : modal === 'split'
+                    ? 'Dividir barra'
+                    : 'Guia de uso'
             }
           >
             <button
@@ -1494,7 +1802,80 @@ export default function App() {
             >
               <X size={19} />
             </button>
-            {modal === 'split' && chosen ? (
+            {modal === 'group' ? (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  try {
+                    const current = historyRef.current.present;
+                    const grouped = groupInDetail(
+                      current,
+                      maskId ? [maskId] : selected,
+                      groupName,
+                      groupElementId,
+                    );
+                    if (!commit(() => grouped.project)) return;
+                    setContext({ projectId: current.id, detailId: grouped.id });
+                    setSelectedRaw(
+                      detailObjectIds(grouped.project, grouped.id),
+                    );
+                    setMaskId(null);
+                    setModal(null);
+                    setTool('select');
+                    setSidebarTab('properties');
+                    notify(
+                      'Objetos agrupados sem alterar o aço. Duplo clique no conjunto abre a edição isolada.',
+                    );
+                  } catch (e) {
+                    notify(
+                      e instanceof Error
+                        ? e.message
+                        : 'Não foi possível agrupar.',
+                    );
+                  }
+                }}
+              >
+                <h2>Agrupar em detalhamento</h2>
+                <p>Os objetos mantêm seus IDs, coordenadas e dados físicos.</p>
+                <label className="field">
+                  <span>Nome do detalhamento</span>
+                  <input
+                    autoFocus
+                    aria-label="Nome do novo detalhamento"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    required
+                    maxLength={100}
+                  />
+                </label>
+                <label className="field">
+                  <span>Elemento estrutural</span>
+                  <select
+                    aria-label="Elemento do novo detalhamento"
+                    value={groupElementId}
+                    onChange={(e) => setGroupElementId(e.target.value)}
+                  >
+                    {p.hierarchy.elements.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {
+                          p.hierarchy.floors.find((f) => f.id === e.floorId)
+                            ?.name
+                        }{' '}
+                        / {e.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="modal-actions">
+                  <button type="button" onClick={() => setModal(null)}>
+                    Cancelar
+                  </button>
+                  <button className="primary" type="submit">
+                    Agrupar objetos
+                  </button>
+                </div>
+              </form>
+            ) : modal === 'split' && chosen ? (
               <>
                 <span className="eyebrow">{chosen.mark} · EDIÇÃO DA BARRA</span>
                 <h2>Dividir barra</h2>
@@ -1529,7 +1910,7 @@ export default function App() {
                     onClick={() => {
                       try {
                         const next = splitBar(p, chosen.id, splitAt, lap);
-                        commit(() => next);
+                        if (!commit(() => next)) return;
                         setModal(null);
                         notify(
                           'Barra dividida. As duas posições e o traspasse já entram no quantitativo.',

@@ -1,5 +1,6 @@
 import { annotationError } from '../domain/drafting';
 import HierarchyNavigator from './HierarchyNavigator';
+import { toggleDetailSelection } from '../domain/detailEditing';
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -714,6 +715,9 @@ export function ProjectTree({
   activeDetailId,
   onActiveDetail,
   onHierarchy,
+  isolatedDetailId,
+  onEditDetail,
+  onSelectDetail,
 }: {
   project: Project;
   selected: string[];
@@ -727,6 +731,9 @@ export function ProjectTree({
   activeDetailId: string;
   onActiveDetail: (id: string) => void;
   onHierarchy: (project: Project) => void;
+  isolatedDetailId?: string;
+  onEditDetail: (id: string) => void;
+  onSelectDetail: (id: string) => void;
 }) {
   const treeKey = `armadurastruct.contentTree.${project.id}`;
   const [groups, setGroups] = useState<{ bars: boolean; masks: boolean }>(
@@ -798,16 +805,20 @@ export function ProjectTree({
         </small>
       </div>
       <div className="panel-scroll">
-        <HierarchyNavigator
-          key={project.id}
-          project={project}
-          activeDetailId={activeDetailId}
-          onActive={onActiveDetail}
-          onChange={onHierarchy}
-          selected={maskId ? [maskId] : selected}
-          search={search}
-          onSearch={setSearch}
-        />
+        {!isolatedDetailId && (
+          <HierarchyNavigator
+            key={project.id}
+            project={project}
+            activeDetailId={activeDetailId}
+            onActive={onActiveDetail}
+            onChange={onHierarchy}
+            selected={maskId ? [maskId] : selected}
+            search={search}
+            onSearch={setSearch}
+            onEditDetail={onEditDetail}
+            onSelectDetail={onSelectDetail}
+          />
+        )}
         <p className="tree-content-caption">Objetos do detalhamento ativo</p>
         <button
           className="tree-section"
@@ -862,11 +873,13 @@ export function ProjectTree({
                 className={`bar-row ${selected.includes(b.id) ? 'selected' : ''}`}
                 onClick={(e) =>
                   onSelect(
-                    e.shiftKey
-                      ? selected.includes(b.id)
-                        ? selected.filter((id) => id !== b.id)
-                        : [...selected, b.id]
-                      : [b.id],
+                    toggleDetailSelection(
+                      project,
+                      selected,
+                      b.id,
+                      e.shiftKey,
+                      isolatedDetailId,
+                    ),
                   )
                 }
               >
@@ -903,7 +916,17 @@ export function ProjectTree({
                 <button
                   key={l.id}
                   className={selected.includes(l.id) ? 'selected' : ''}
-                  onClick={() => onSelect([l.id])}
+                  onClick={(e) =>
+                    onSelect(
+                      toggleDetailSelection(
+                        project,
+                        selected,
+                        l.id,
+                        e.shiftKey,
+                        isolatedDetailId,
+                      ),
+                    )
+                  }
                 >
                   Polilinha {i + 1} · {l.points.length} vértices
                 </button>
@@ -912,7 +935,17 @@ export function ProjectTree({
                 <button
                   key={a.id}
                   className={selected.includes(a.id) ? 'selected' : ''}
-                  onClick={() => onSelect([a.id])}
+                  onClick={(e) =>
+                    onSelect(
+                      toggleDetailSelection(
+                        project,
+                        selected,
+                        a.id,
+                        e.shiftKey,
+                        isolatedDetailId,
+                      ),
+                    )
+                  }
                 >
                   {annotationNames[a.kind]} {i + 1}
                   {a.barId
@@ -957,7 +990,11 @@ export function ProjectTree({
           </small>
         )}
       </div>
-      <button className="example-button" onClick={onDemo}>
+      <button
+        className="example-button"
+        disabled={!!isolatedDetailId}
+        onClick={onDemo}
+      >
         Carregar projeto de exemplo
       </button>
     </aside>

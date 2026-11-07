@@ -13,6 +13,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 ## Recursos
 
 - Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
+- Agrupamento semântico com seleção do conjunto e edição isolada por duplo clique; navegação e conclusão mantêm os demais detalhamentos protegidos e o quadro global vinculado.
 - Faixa de comandos compacta, painel lateral único com abas Projeto/Propriedades, recolhimento dos painéis e modo Foco no CAD. Fundo claro/escuro, pan, zoom, enquadramento e grade.
 - Barras livres por vértices; estribos retangulares com ganchos de 135°, bitola, mandril, quantidade e dimensões editáveis.
 - Comandos pelo mouse ou teclado, coordenadas absolutas/relativas/polares, ortogonal e encaixes em extremidades e pontos médios.

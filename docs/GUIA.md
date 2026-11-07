@@ -16,7 +16,23 @@ Clique no nome de um nó para editar seu nome; em elementos e detalhamentos, alt
 
 A pesquisa localiza pavimentos, elementos, detalhamentos, posições, máscaras e textos de anotações. Clique no detalhamento encontrado para ativá-lo e consultar seus objetos nas listas abaixo. A pesquisa abre temporariamente os ancestrais; limpar a busca recupera a expansão anterior. O estado da árvore e o detalhamento ativo são lembrados por projeto neste dispositivo, inclusive ao alternar as abas laterais.
 
-O **CAD, o quadro e as exportações continuam abrangendo o projeto inteiro** nesta etapa. O detalhamento ativo organiza a edição e as listas; ele não oculta geometria nem filtra materiais. Pavimento é uma entidade de organização, independente dos layers CAD das máscaras.
+Na visão geral, **CAD, quadro e exportações abrangem o projeto inteiro**. Escolher o detalhamento ativo organiza a edição e as listas; entrar na edição isolada restringe apenas a visualização/edição do CAD. O quadro e as exportações continuam globais. Pavimento é uma entidade de organização, independente dos layers CAD das máscaras.
+
+### Agrupar e editar isoladamente
+
+Selecione as barras, cotas, polilinhas e chamadas pelo CAD ou por **Shift + clique** nas listas da árvore. Em **Elementos → Agrupar em detalhamento** (comando `AGRUPAR`), informe o nome e o elemento estrutural. O conjunto recebe um detalhamento da hierarquia; os objetos conservam seus IDs, geometria e dados físicos. Rebatimentos e chamadas vinculados às barras selecionadas acompanham a associação.
+
+Na visão geral, clicar num membro seleciona o conjunto; **Shift + clique** alterna sua seleção inteira. A caixa tracejada identifica o grupo. **Mover** desloca suas geometrias juntas. Para alterar, copiar, girar ou espelhar peças individualmente, abra a edição isolada.
+
+Use **duplo clique no conjunto no CAD**, duplo clique no nome do detalhamento na árvore ou o botão de abrir edição ao lado do nome. Também há **Elementos → Editar detalhamento** e o comando `EDITARDETALHE`. O CAD enquadra o detalhe e exibe somente seus objetos. O caminho no topo identifica o contexto; os outros detalhes ficam protegidos contra seleção e alteração. Novos objetos entram no detalhe em edição.
+
+Altere bitola, quantidade ou geometria em **Propriedades**. As representações usam a mesma definição física e são atualizadas sem criar cópias de aço. O quadro permanece global; linhas de outros detalhes são apenas consultáveis durante a edição isolada. Se a RA estiver bloqueada, conclua a edição e use **Atualizar RA** para conferir o levantamento. Renumeração e mudanças globais também exigem concluir a edição.
+
+**Concluir edição** (comando `CONCLUIR`) retorna à visão geral e recupera a câmera anterior. As alterações já integram o modelo, o salvamento e o histórico; não dependem desse botão para serem gravadas. Durante a edição isolada, desfazer/refazer aceita apenas operações que preservem os demais detalhes. Depois de concluir, o histórico geral volta a ficar acessível. O modo isolado é temporário: reabrir o JSON retorna à visão geral, preservando grupos e vínculos.
+
+**Desagrupar seleção** (`DESAGRUPAR`) devolve a seleção individual aos membros e mantém o detalhamento na hierarquia. Não converte barras em linhas, não apaga seus dados e não altera o peso. Excluir objetos físicos é uma operação diferente. O agrupamento visual usa o campo opcional `hierarchy.details[].grouped` no formato 3; arquivos anteriores sem esse campo continuam com seleção individual.
+
+![Edição isolada de um detalhamento](detail-editing.png)
 
 ### Formato 3 e compatibilidade
 

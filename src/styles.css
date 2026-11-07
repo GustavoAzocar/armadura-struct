@@ -2311,3 +2311,77 @@ svg {
     max-width: 150px;
   }
 }
+
+/* AS-02: isolated detail editing, always reachable with the ribbon collapsed. */
+.isolation-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  min-height: 35px;
+  padding: 5px 12px;
+  background: #e9efff;
+  border-bottom: 1px solid #cbd7f5;
+  color: #304b8d;
+}
+.isolation-bar nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+}
+.isolation-bar nav b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.isolation-bar nav > span::after {
+  content: ' /';
+}
+.isolation-bar > button {
+  padding: 5px 10px;
+  background: #3448d1;
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.isolation-hint {
+  font-size: 10px;
+}
+.detail-inspector h3 {
+  margin: 12px 0 8px;
+}
+.detail-inspector .panel-scroll {
+  padding: 0 12px 12px;
+}
+.detail-edit-action {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.detail-edit-action.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.isolation-empty {
+  padding: 12px;
+  line-height: 1.6;
+}
+.detail-edit-button {
+  width: 22px;
+  color: var(--accent);
+  font-size: 14px;
+}
+@media (max-width: 1200px) {
+  .isolation-hint {
+    display: none;
+  }
+}
