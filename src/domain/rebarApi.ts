@@ -1,3 +1,4 @@
+import { transformSelection, selectionTransformSchema } from './transforms';
 import { assertVisibilityEdit } from './visibility';
 import { assertLayerEdit } from './layerProfiles';
 import { validateLayers } from './layers';
@@ -62,6 +63,7 @@ export const REBAR_CAPABILITIES = Object.freeze({
     'armature.clone',
     'armature.bind',
     'bar.transform',
+    'selection.transform',
     'bar.split',
     'bar.join',
     'bar.renumber',
@@ -130,6 +132,7 @@ const definition = z.discriminatedUnion('kind', [
     .object({
       ...common,
       kind: z.literal('stirrup'),
+      stirrupMirrored: z.boolean().optional(),
       width: number.positive(),
       height: number.positive(),
       hook: number.nonnegative(),
@@ -149,6 +152,7 @@ const patch = z.discriminatedUnion('kind', [
     .object({
       ...optionalCommon,
       kind: z.literal('stirrup'),
+      stirrupMirrored: z.boolean().optional(),
       width: number.positive().optional(),
       height: number.positive().optional(),
       hook: number.nonnegative().optional(),
@@ -165,6 +169,14 @@ const distribution = z
 const sharedPolicy = z.enum(['keep', 'clone-set']);
 const positionPolicy = z.enum(['new', 'equivalent']);
 const commandSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('selection.transform'),
+      ids: z.array(id).min(1).max(30000),
+      transform: selectionTransformSchema,
+      associated: z.boolean().optional(),
+    })
+    .strict(),
   z
     .object({
       type: z.literal('armature.clone'),
@@ -278,6 +290,7 @@ const commandSchema = z.discriminatedUnion('type', [
       type: z.literal('representation.create'),
       ...layerBindingShape,
       rotation: number.optional(),
+      mirrored: z.boolean().optional(),
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
       showDimensions: z.boolean().optional(),
@@ -293,6 +306,7 @@ const commandSchema = z.discriminatedUnion('type', [
       type: z.literal('representation.update'),
       ...layerBindingShape,
       rotation: number.optional(),
+      mirrored: z.boolean().optional(),
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
       showDimensions: z.boolean().optional(),
@@ -652,6 +666,7 @@ function replace(p: Project, b: Bar): Project {
 function perform(
   p: Project,
   c: RebarCommand,
+  options?: RebarOptions,
 ): { project: Project; ids: string[] } {
   let next = p;
   const touched: string[] = [];
@@ -844,6 +859,13 @@ function perform(
       ),
     };
     touched.push(...c.objectIds);
+  } else if (c.type === 'selection.transform') {
+    next = transformSelection(p, c.ids, c.transform, {
+      associated: c.associated,
+      layerContext: options?.layerContext,
+      scopeDetailId: options?.scopeDetailId,
+    });
+    touched.push(...c.ids);
   } else if (c.type === 'bar.transform') {
     next = replace(p, transformBar(barById(p, c.id), c.operation));
     touched.push(c.id);
@@ -927,6 +949,7 @@ function perform(
               style: c.style,
               plot: c.plot,
               rotation: c.rotation,
+              mirrored: c.mirrored,
               scale: c.scale,
               identification: c.identification,
               label: c.label,
@@ -958,6 +981,7 @@ function perform(
                   style: c.style,
                   plot: c.plot,
                   rotation: c.rotation,
+                  mirrored: c.mirrored,
                   scale: c.scale,
                   identification: c.identification,
                   label: c.label,
@@ -1094,7 +1118,7 @@ export function executeRebarBatch(
           'scopeDetailId',
           options.scopeDetailId,
         );
-      const result = perform(next, parsed.data);
+      const result = perform(next, parsed.data, options);
       assertLayerEdit(next, result.project, options.layerContext ?? 'model');
       assertVisibilityEdit(
         next,
@@ -1251,6 +1275,7 @@ export function rebarDefinition(bar: Bar): RebarDefinition {
     : {
         ...common,
         kind: 'stirrup',
+        stirrupMirrored: bar.stirrupMirrored,
         width: bar.width,
         height: bar.height,
         hook: bar.hook,

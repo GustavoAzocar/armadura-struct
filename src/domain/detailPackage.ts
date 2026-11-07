@@ -17,7 +17,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/9' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/10' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -33,6 +33,7 @@ export const detailPackageSchema = z
       'openstruct.detail/7',
       'openstruct.detail/8',
       'openstruct.detail/9',
+      'openstruct.detail/10',
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -185,6 +186,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/7',
       'openstruct.detail/8',
       'openstruct.detail/9',
+      'openstruct.detail/10',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -200,6 +202,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/7',
       'openstruct.detail/8',
       'openstruct.detail/9',
+      'openstruct.detail/10',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -213,6 +216,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/7',
       'openstruct.detail/8',
       'openstruct.detail/9',
+      'openstruct.detail/10',
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -228,6 +232,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/7',
       'openstruct.detail/8',
       'openstruct.detail/9',
+      'openstruct.detail/10',
     ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -237,6 +242,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/7',
       'openstruct.detail/8',
       'openstruct.detail/9',
+      'openstruct.detail/10',
     ].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
@@ -244,7 +250,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   )
     throw new Error('Vínculos auxiliares exigem pacote v7.');
   if (
-    pack.schema !== 'openstruct.detail/9' &&
+    !['openstruct.detail/9', 'openstruct.detail/10'].includes(pack.schema) &&
     (pack.layers?.some((l) => l.plot) ||
       [
         ...contentObjects(pack.objects),
@@ -253,6 +259,15 @@ export function detailPackageProject(value: DetailPackage): Project {
       ].some((o) => o.plot))
   )
     throw new Error('Estilos de impressão exigem pacote v9.');
+  if (
+    pack.schema !== 'openstruct.detail/10' &&
+    ([...pack.objects.bars, ...pack.dependencies].some(
+      (b) => b.stirrupMirrored !== undefined,
+    ) ||
+      pack.objects.details.some((d) => d.mirrored !== undefined) ||
+      pack.objects.annotations.some((a) => a.frameRotation !== undefined))
+  )
+    throw new Error('Transformações orientadas exigem pacote v10.');
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -343,7 +358,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/16',
+      schema: 'armadurastruct/18',
       layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
@@ -385,6 +400,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/6',
       'openstruct.detail/7',
       'openstruct.detail/8',
+      'openstruct.detail/9',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -393,7 +409,11 @@ export function readDetailPackage(raw: unknown): {
     );
   const pack = detailPackageSchema.parse(input);
   if (
-    ['openstruct.detail/8', 'openstruct.detail/9'].includes(pack.schema) &&
+    [
+      'openstruct.detail/8',
+      'openstruct.detail/9',
+      'openstruct.detail/10',
+    ].includes(pack.schema) &&
     !pack.layers
   )
     throw new Error('Pacote v8 sem catálogo de layers.');

@@ -110,3 +110,6 @@ export {
   visibilityProjection,
   visibilityReasons,
 } from './domain/visibility';
+
+export { transformSelection, angleByPoints } from './domain/transforms';
+export type { SelectionTransform } from './domain/transforms';

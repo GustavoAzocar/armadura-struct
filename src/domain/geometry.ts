@@ -34,7 +34,7 @@ export function vertices(bar: Bar): Point[] {
   if (bar.kind === 'free') return bar.points;
   const r = (bar.mandrel + bar.diameter) / 2;
   const h = (bar.hook + r * Math.tan((3 * Math.PI) / 8)) / Math.SQRT2;
-  return [
+  const points = [
     { x: h, y: h },
     { x: 0, y: 0 },
     { x: bar.width, y: 0 },
@@ -43,6 +43,9 @@ export function vertices(bar: Bar): Point[] {
     { x: 0, y: 0 },
     { x: h, y: h },
   ];
+  return bar.stirrupMirrored
+    ? points.map((p) => ({ x: p.x, y: -p.y }))
+    : points;
 }
 /** Physical centerline: trim straight legs by R tan(theta/2), then insert circular bends. */
 export function geometry(bar: Bar): Geometry {

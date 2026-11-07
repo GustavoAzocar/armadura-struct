@@ -15,6 +15,7 @@ const knownBarFields = new Set([
   'mark',
   'element',
   'kind',
+  'stirrupMirrored',
   'origin',
   'rotation',
   'points',

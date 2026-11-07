@@ -543,3 +543,10 @@ export function cloneArmatureGraph(p: Project, options: ArmatureCloneOptions) {
     createdIds: plan.objectIds.map(remap),
   };
 }
+
+export {
+  transformSelection,
+  angleByPoints,
+  transformPoint,
+  selectionTransformIds,
+} from './transforms';

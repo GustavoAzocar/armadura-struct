@@ -318,7 +318,7 @@ describe('AS-22 · visibilidade por objeto e contexto', () => {
           details: version < 11 ? [] : p.details,
         }),
       );
-      expect(q.schema).toBe('armadurastruct/17');
+      expect(q.schema).toBe('armadurastruct/18');
       expect(q.bars).toEqual(p.bars);
       expect(mass(q)).toBe(mass(p));
       expect(visibilityState(q, 'model').hiddenIds).toEqual([]);

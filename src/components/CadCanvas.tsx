@@ -73,6 +73,10 @@ export type CadHandle = {
   getState: () => CadState;
 };
 type Props = {
+  previewLines?: Primitive[];
+  previewBase?: Point;
+  onContextRequest: (ids: string[], point: Point, screen: Point) => void;
+  commandActive?: boolean;
   layerContext?: string;
   project: Project;
   initialState?: CadState;
@@ -474,6 +478,115 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     setSnapPoint(target ?? null);
     return p;
   };
+  const hitAt = (p: Point) => {
+    let hit: string | undefined,
+      best = 9 / view.s;
+    for (const b of capturable.bars) {
+      const origins =
+        b.distribution?.render === 'bars' ? distributionOrigins(b) : [b.origin];
+      for (const origin of origins) {
+        const ps = sampled(barGeometries.get(b.id)!.segments).map((v) =>
+          world(v, { ...b, origin }),
+        );
+        for (let i = 1; i < ps.length; i++) {
+          const d = distance(p, nearest(p, ps[i - 1], ps[i]));
+          if (d < best) {
+            best = d;
+            hit = b.id;
+          }
+        }
+      }
+    }
+    for (const object of [
+      ...capturable.polylines.map((l) => ({
+        id: l.id,
+        items: [
+          {
+            ...l,
+            layer: 'DESENHO',
+            points: l.closed ? [...l.points, l.points[0]] : l.points,
+          },
+        ],
+      })),
+      ...annotations
+        .filter(
+          (a) =>
+            objectState(source, props.layerContext ?? 'model', a.annotation)
+              .capture,
+        )
+        .map((a) => ({ id: a.annotation.id, items: a.items })),
+    ]) {
+      for (const item of object.items) {
+        if ('text' in item && item.text) {
+          if (distance(p, item.points[0]) < 14 / view.s) {
+            hit = object.id;
+            best = 0;
+          }
+          continue;
+        }
+        for (let i = 1; i < item.points.length; i++) {
+          const d = distance(p, nearest(p, item.points[i - 1], item.points[i]));
+          if (d < best) {
+            best = d;
+            hit = object.id;
+          }
+        }
+      }
+    }
+    if (!hit) {
+      for (const d of capturable.details) {
+        const b = barDefinitions.get(d.barId);
+        if (!b) continue;
+        const pts = insertedPoints(b, d);
+        for (let i = 1; i < pts.length; i++)
+          if (distance(p, nearest(p, pts[i - 1], pts[i])) < best) {
+            hit = d.id;
+            break;
+          }
+      }
+    }
+    if (!hit) {
+      const box = groupBoxes.find(
+        (b) =>
+          p.x >= b.x - 12 / view.s &&
+          p.x <= b.right + 12 / view.s &&
+          p.y >= b.y - 12 / view.s &&
+          p.y <= b.top + 24 / view.s,
+      );
+      if (box)
+        hit = Object.keys(source.hierarchy.objectDetails).find(
+          (id) => source.hierarchy.objectDetails[id] === box.id,
+        );
+    }
+    if (!hit)
+      for (const m of masks) {
+        if (!objectState(source, props.layerContext ?? 'model', m.mask).capture)
+          continue;
+        for (const item of m.items) {
+          if (
+            item.layerId &&
+            !layerState(source, props.layerContext ?? 'model', item.layerId)
+              .capture
+          )
+            continue;
+          for (let i = 1; i < item.points.length; i++)
+            if (
+              distance(p, nearest(p, item.points[i - 1], item.points[i])) < best
+            ) {
+              hit = m.mask.id;
+              best = distance(
+                p,
+                nearest(p, item.points[i - 1], item.points[i]),
+              );
+            }
+          if (item.text && distance(p, item.points[0]) < best) {
+            hit = m.mask.id;
+            best = 0;
+          }
+        }
+      }
+    return hit;
+  };
   const down = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button !== 0 && e.button !== 1) return;
     const screen = eventScreen(e),
@@ -496,90 +609,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             setGrip({ id: b.id, index: i, point: p });
             return;
           }
-      let hit: string | undefined,
-        best = 9 / view.s;
-      for (const b of capturable.bars) {
-        const origins =
-          b.distribution?.render === 'bars'
-            ? distributionOrigins(b)
-            : [b.origin];
-        for (const origin of origins) {
-          const ps = sampled(barGeometries.get(b.id)!.segments).map((v) =>
-            world(v, { ...b, origin }),
-          );
-          for (let i = 1; i < ps.length; i++) {
-            const d = distance(p, nearest(p, ps[i - 1], ps[i]));
-            if (d < best) {
-              best = d;
-              hit = b.id;
-            }
-          }
-        }
-      }
-      for (const object of [
-        ...capturable.polylines.map((l) => ({
-          id: l.id,
-          items: [
-            {
-              ...l,
-              layer: 'DESENHO',
-              points: l.closed ? [...l.points, l.points[0]] : l.points,
-            },
-          ],
-        })),
-        ...annotations
-          .filter(
-            (a) =>
-              objectState(source, props.layerContext ?? 'model', a.annotation)
-                .capture,
-          )
-          .map((a) => ({ id: a.annotation.id, items: a.items })),
-      ]) {
-        for (const item of object.items) {
-          if ('text' in item && item.text) {
-            if (distance(p, item.points[0]) < 14 / view.s) {
-              hit = object.id;
-              best = 0;
-            }
-            continue;
-          }
-          for (let i = 1; i < item.points.length; i++) {
-            const d = distance(
-              p,
-              nearest(p, item.points[i - 1], item.points[i]),
-            );
-            if (d < best) {
-              best = d;
-              hit = object.id;
-            }
-          }
-        }
-      }
-      if (!hit) {
-        for (const d of capturable.details) {
-          const b = barDefinitions.get(d.barId);
-          if (!b) continue;
-          const pts = insertedPoints(b, d);
-          for (let i = 1; i < pts.length; i++)
-            if (distance(p, nearest(p, pts[i - 1], pts[i])) < best) {
-              hit = d.id;
-              break;
-            }
-        }
-      }
-      if (!hit) {
-        const box = groupBoxes.find(
-          (b) =>
-            p.x >= b.x - 12 / view.s &&
-            p.x <= b.right + 12 / view.s &&
-            p.y >= b.y - 12 / view.s &&
-            p.y <= b.top + 24 / view.s,
-        );
-        if (box)
-          hit = Object.keys(source.hierarchy.objectDetails).find(
-            (id) => source.hierarchy.objectDetails[id] === box.id,
-          );
-      }
+      const hit = hitAt(p);
       lastHit.current = hit || null;
       if (hit) {
         setSelected(
@@ -904,7 +934,28 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         }}
         onContextMenu={(e) => {
           e.preventDefault();
-          props.onFinish();
+          if (
+            props.commandActive ||
+            !['select', 'pan'].includes(tool) ||
+            draft.length
+          ) {
+            props.onFinish();
+            return;
+          }
+          const point = fromScreen(eventScreen(e)),
+            hit = hitAt(point);
+          const ids =
+            hit && !selected.includes(hit)
+              ? toggleDetailSelection(
+                  source,
+                  [],
+                  hit,
+                  false,
+                  props.isolatedDetailId,
+                )
+              : selected;
+          if (hit && !selected.includes(hit)) setSelected(ids);
+          props.onContextRequest(ids, point, { x: e.clientX, y: e.clientY });
         }}
         onWheel={(e) => {
           const p = fromScreen(eventScreen(e));
@@ -994,6 +1045,37 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 ))}
             </g>
           ))}
+          {props.previewLines && (
+            <g
+              data-testid="transform-preview"
+              pointerEvents="none"
+              opacity="0.85"
+            >
+              {renderPrimitives(
+                props.previewLines.map((p) => ({
+                  ...p,
+                  resolvedStyle: p.resolvedStyle
+                    ? {
+                        ...p.resolvedStyle,
+                        color: '#c084fc',
+                        fill: 'none' as const,
+                      }
+                    : undefined,
+                })),
+                '#c084fc',
+              )}
+              {props.previewBase && (
+                <circle
+                  cx={props.previewBase.x}
+                  cy={props.previewBase.y}
+                  r={6 * stroke}
+                  fill="none"
+                  stroke="#c084fc"
+                  strokeWidth={stroke}
+                />
+              )}
+            </g>
+          )}
           {ghosts.length > 0 && (
             <g
               data-testid="hidden-object-ghosts"

@@ -1,3 +1,13 @@
+import CadContextMenu, {
+  type ContextAction,
+} from './components/CadContextMenu';
+import TransformPanel, {
+  sessionTransform,
+  type TransformSession,
+} from './components/TransformPanel';
+import { transformSelection, selectionTransformIds } from './domain/transforms';
+import { drawingPrimitives } from './domain/drawingPrimitives';
+import { objectState } from './domain/layerProfiles';
 import {
   assertVisibilityEdit,
   canCaptureObject,
@@ -14,6 +24,7 @@ import {
   lazy,
   Suspense,
   useCallback,
+  useMemo,
   useEffect,
   useRef,
   useState,
@@ -241,6 +252,14 @@ export default function App() {
     projectId: string;
   } | null>(null);
   const [plotOpen, setPlotOpen] = useState(false);
+  const [transformRequest, setTransformRequest] =
+    useState<TransformSession | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    ids: string[];
+    point: Point;
+    screen: Point;
+  } | null>(null);
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
@@ -758,6 +777,8 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    setTransformRequest(null);
+    setContextMenu(null);
     if (activeSheet && t !== 'select' && t !== 'pan') {
       notify(
         'Abra o desenho com duplo clique na vista para editar os objetos.',
@@ -933,7 +954,86 @@ export default function App() {
         }),
       ),
     );
+  const transformPreview = useMemo(() => {
+    if (!transformRequest) return { lines: undefined, error: '', shared: 0 };
+    try {
+      if (transformRequest.project !== p)
+        throw new Error('O projeto mudou. Cancele e reinicie a transformação.');
+      const t = sessionTransform(transformRequest),
+        info = selectionTransformIds(
+          p,
+          transformRequest.ids,
+          transformRequest.associated,
+        );
+      if (!t)
+        return { lines: undefined, error: '', shared: info.shared.length };
+      const next = transformSelection(p, transformRequest.ids, t, {
+        associated: transformRequest.associated,
+        layerContext: documentKey,
+        scopeDetailId: isolatedDetailId,
+      });
+      const ids = new Set(info.ids);
+      const view = {
+        ...next,
+        bars: next.bars.filter((o) => ids.has(o.id)),
+        details: next.details.filter((o) => ids.has(o.id)),
+        annotations: next.annotations.filter((o) => ids.has(o.id)),
+        polylines: next.polylines.filter((o) => ids.has(o.id)),
+        masks: next.masks.filter((o) => ids.has(o.id)),
+      };
+      return {
+        lines: drawingPrimitives(view, next),
+        error: '',
+        shared: info.shared.length,
+      };
+    } catch (e) {
+      return { lines: undefined, error: (e as Error).message, shared: 0 };
+    }
+  }, [transformRequest, p, documentKey, isolatedDetailId]);
+  const applyTransform = () => {
+    if (
+      !transformRequest ||
+      transformRequest.project !== historyRef.current.present
+    ) {
+      notify('O projeto mudou. Reinicie a transformação.');
+      return;
+    }
+    try {
+      const t = sessionTransform(transformRequest);
+      if (!t) return;
+      const result = executeRebarBatch(
+        historyRef.current.present,
+        [
+          {
+            type: 'selection.transform',
+            ids: transformRequest.ids,
+            transform: t,
+            associated: transformRequest.associated,
+          },
+        ],
+        {
+          units: 'mm',
+          layerContext: documentKey,
+          scopeDetailId: isolationRef.current,
+        },
+      );
+      if (commit((p) => applyRebarBatch(p, result))) {
+        setTransformRequest(null);
+        setToolRaw('select');
+        notify(
+          'Transformação aplicada em uma operação. Quantidades preservadas.',
+        );
+      }
+    } catch (e) {
+      notify((e as Error).message);
+    }
+  };
+  useEffect(() => {
+    setTransformRequest(null);
+    setContextMenu(null);
+  }, [p.id, documentKey, isolatedDetailId]);
   const finish = () => {
+    if (transformRequest) return;
     if (activeSheet) return;
     if (tool === 'polyline' && draft.length >= 2) {
       const id = uid();
@@ -961,6 +1061,29 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (transformRequest) {
+      setTransformRequest((s) =>
+        !s
+          ? s
+          : s.stage === 'base'
+            ? {
+                ...s,
+                base: point,
+                stage:
+                  s.kind === 'mirror'
+                    ? 'axis'
+                    : s.mode === 'points'
+                      ? 'reference'
+                      : 'ready',
+              }
+            : s.stage === 'reference'
+              ? { ...s, reference: point, stage: 'target' }
+              : ['target', 'axis'].includes(s.stage)
+                ? { ...s, target: point, stage: 'ready' }
+                : s,
+      );
+      return;
+    }
     if (tool === 'bar' || tool === 'polyline') {
       if (!draft.length || distance(draft.at(-1)!, point) > 0.01)
         setDraft([...draft, point]);
@@ -1361,6 +1484,35 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    setContextMenu(null);
+    if (transformRequest && ['undo', 'redo'].includes(a)) {
+      setTransformRequest(null);
+      return;
+    }
+    if (a === 'rotate' || a === 'mirror') {
+      if (activeSheet) {
+        notify('Abra o desenho para transformar objetos.');
+        return;
+      }
+      const ids = selected.length ? selected : maskId ? [maskId] : [];
+      if (!ids.length) {
+        notify('Selecione objetos para transformar.');
+        return;
+      }
+      setDraft([]);
+      setToolRaw('select');
+      setPage('drawing');
+      setTransformRequest({
+        project: p,
+        ids: [...ids],
+        kind: a === 'rotate' ? 'rotate' : 'mirror',
+        angle: 90,
+        mode: 'angle',
+        stage: 'base',
+        associated: true,
+      });
+      return;
+    }
     if (
       [
         'hide-objects',
@@ -1778,44 +1930,6 @@ export default function App() {
           return;
         select([]);
       }
-      if (a === 'rotate' || a === 'mirror') {
-        const transform = (points: Point[]) =>
-          points.map((v) => {
-            const d = sub(v, points[0]);
-            return add(
-              points[0],
-              a === 'rotate' ? rotate(d, 90) : { x: -d.x, y: d.y },
-            );
-          });
-        commit((p) => {
-          const commands: RebarCommand[] = p.bars
-            .filter((b) => selected.includes(b.id))
-            .map((b) => ({ type: 'bar.transform', id: b.id, operation: a }));
-          const next = commands.length
-            ? applyRebarBatch(
-                p,
-                executeRebarBatch(p, commands, {
-                  units: 'mm',
-                  scopeDetailId: isolationRef.current,
-                  layerContext: documentKey,
-                }),
-              )
-            : p;
-          return {
-            ...next,
-            annotations: p.annotations.map((n) =>
-              selected.includes(n.id)
-                ? { ...n, points: transform(n.points) }
-                : n,
-            ),
-            polylines: p.polylines.map((n) =>
-              selected.includes(n.id)
-                ? { ...n, points: transform(n.points) }
-                : n,
-            ),
-          };
-        });
-      }
       if (a === 'fit') {
         if (page === 'drawing') canvas()?.fit();
         else {
@@ -1897,6 +2011,19 @@ export default function App() {
   const runCommand = (raw: string) => {
     const value = raw.trim();
     setCommand('');
+    if (
+      transformRequest?.kind === 'rotate' &&
+      transformRequest.mode === 'angle' &&
+      transformRequest.base &&
+      /^[-+]?\d+(?:\.\d+)?$/.test(value)
+    ) {
+      setTransformRequest({
+        ...transformRequest,
+        angle: Number(value.replace(',', '.')),
+        mode: 'angle',
+      });
+      return;
+    }
     const aliases: Record<string, Action> = {
       B: 'bar',
       BARRA: 'bar',
@@ -1932,6 +2059,9 @@ export default function App() {
       PLOT: 'plot',
       PLOTAGEM: 'plot',
       NIVEIS: 'layers',
+      ROTACIONAR: 'rotate',
+      GIRAR: 'rotate',
+      ESPELHAR: 'mirror',
       DUPLICAR: 'clone-armature',
       CLONAR: 'clone-armature',
       DUPLICARARMADURA: 'clone-armature',
@@ -2012,6 +2142,14 @@ export default function App() {
         'input,textarea,select',
       );
       if (e.key === 'Escape') {
+        if (contextMenu) {
+          setContextMenu(null);
+          return;
+        }
+        if (transformRequest) {
+          setTransformRequest(null);
+          return;
+        }
         setModal(null);
         setTool('select');
         cmdInput.current?.blur();
@@ -2449,6 +2587,14 @@ export default function App() {
                 </div>
               )}
               <CadCanvas
+                previewLines={transformPreview.lines}
+                previewBase={transformRequest?.base}
+                commandActive={!!transformRequest}
+                onContextRequest={(ids, point, screen) => {
+                  setContextMenu({ ids, point, screen });
+                  if (ids.length === 1 && p.masks.some((m) => m.id === ids[0]))
+                    setMaskId(ids[0]);
+                }}
                 layerContext={documentKey}
                 key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
                 initialState={sessions.current.get(documentKey)?.camera}
@@ -2456,7 +2602,7 @@ export default function App() {
                 project={p}
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
-                tool={tool}
+                tool={transformRequest ? 'measure' : tool}
                 selected={selected}
                 setSelected={select}
                 onPoint={onPoint}
@@ -2469,9 +2615,27 @@ export default function App() {
                 ortho={ortho}
                 light={light}
                 setTool={setTool}
-                onCursor={onCursor}
+                onCursor={(point) => {
+                  onCursor(point);
+                  if (transformRequest)
+                    setTransformRequest((s) =>
+                      s && ['axis', 'target'].includes(s.stage)
+                        ? { ...s, cursor: point }
+                        : s,
+                    );
+                }}
                 showDimensions={dimensions}
               />
+              {transformRequest && (
+                <TransformPanel
+                  value={transformRequest}
+                  onChange={setTransformRequest}
+                  onApply={applyTransform}
+                  onCancel={() => setTransformRequest(null)}
+                  error={transformPreview.error}
+                  shared={transformPreview.shared}
+                />
+              )}
               <div className="command-panel">
                 <div className="command-history">
                   <ChevronRight size={12} />
@@ -3028,6 +3192,41 @@ export default function App() {
             }}
           />
         </Suspense>
+      )}
+      {contextMenu && (
+        <CadContextMenu
+          x={contextMenu.screen.x}
+          y={contextMenu.screen.y}
+          onClose={closeContextMenu}
+          actions={(() => {
+            const objects = layerObjects(p).filter((o) =>
+              contextMenu.ids.includes(o.id),
+            );
+            const allowed =
+              objects.length > 0 &&
+              objects.every(
+                (o) =>
+                  objectState(p, documentKey, o).editable &&
+                  canCaptureObject(p, documentKey, o.id),
+              );
+            const items: ContextAction[] = ['properties'];
+            if (allowed) {
+              items.push('move');
+              if (!groupSelection) items.push('copy');
+              items.push('rotate', 'mirror', 'delete');
+            }
+            if (!objects.length) items.push('fit');
+            return items;
+          })()}
+          onAction={(a) => {
+            setContextMenu(null);
+            if (a === 'properties') {
+              setSidebarOpen(true);
+              setSidebarTab('properties');
+              setFocus(false);
+            } else action(a);
+          }}
+        />
       )}
       {visibilityOpen && (
         <Suspense

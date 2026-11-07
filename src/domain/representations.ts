@@ -4,7 +4,10 @@ import { barCaption } from './drafting';
 import type { Bar, Detail, Point, Primitive, Project } from './types';
 export function representationPoint(d: Detail, p: Point): Point {
   const v = rotate(
-    { x: p.x * (d.scale ?? 1), y: p.y * (d.scale ?? 1) },
+    {
+      x: p.x * (d.scale ?? 1),
+      y: p.y * (d.scale ?? 1) * (d.mirrored ? -1 : 1),
+    },
     d.rotation ?? 0,
   );
   return { x: v.x + d.origin.x, y: v.y + d.origin.y };
@@ -56,7 +59,8 @@ export function representationPrimitives(
               p,
             ),
       textHeight: d.label.height * (d.scale ?? 1),
-      textRotation: d.label.rotation + (d.rotation ?? 0),
+      textRotation:
+        d.label.rotation * (d.mirrored ? -1 : 1) + (d.rotation ?? 0),
       textAlign: 'center',
     });
   }

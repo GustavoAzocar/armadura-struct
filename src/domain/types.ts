@@ -35,6 +35,7 @@ export type Bar = LayerBinding & {
   mark: string;
   element: string;
   kind: 'free' | 'stirrup';
+  stirrupMirrored?: boolean;
   origin: Point;
   rotation: number;
   points: Point[];
@@ -82,6 +83,7 @@ export type FabricationPosition = {
 export type BarRepresentation = LayerBinding & {
   id: string;
   barId: string;
+  mirrored?: boolean;
   origin: Point;
   rotation?: number;
   scale?: number;
@@ -211,6 +213,7 @@ export type AnnotationKind =
 export type Annotation = LayerBinding & {
   id: string;
   kind: AnnotationKind;
+  frameRotation?: number;
   points: Point[];
   barId?: string;
   /** Additional dependency links; do not drive quantities or change the primary caption. */
@@ -228,7 +231,7 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/17';
+  schema: 'armadurastruct/18';
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;
   layers: DrawingLayer[];

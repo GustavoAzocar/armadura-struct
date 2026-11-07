@@ -1,5 +1,6 @@
 import {
   add,
+  rotate,
   sub,
   mul,
   unit,
@@ -72,6 +73,14 @@ export function arcThrough(a: Point, m: Point, b: Point): Point[] | null {
   );
 }
 export function annotationError(a: Annotation): string | undefined {
+  if (a.kind === 'dimension-orthogonal' && a.frameRotation)
+    return annotationError({
+      ...a,
+      frameRotation: undefined,
+      points: a.points.map((v) =>
+        add(a.points[0], rotate(sub(v, a.points[0]), -a.frameRotation!)),
+      ),
+    });
   const [p, q, r] = a.points;
   if (distance(p, q) < 0.01)
     return 'Os dois primeiros pontos da anotação precisam ser distintos.';
@@ -80,7 +89,7 @@ export function annotationError(a: Annotation): string | undefined {
   if (a.kind === 'dimension-orthogonal') {
     const mid = mul(add(p, q), 0.5),
       span =
-        Math.abs(r.y - mid.y) >= Math.abs(r.x - mid.x)
+        Math.abs(r.y - mid.y) + 1e-8 >= Math.abs(r.x - mid.x)
           ? Math.abs(q.x - p.x)
           : Math.abs(q.y - p.y);
     if (span < 0.01)
@@ -117,6 +126,24 @@ export function annotationPrimitives(
   a: Annotation,
   project: Project,
 ): Primitive[] {
+  if (a.kind === 'dimension-orthogonal' && a.frameRotation) {
+    const origin = a.points[0],
+      angle = a.frameRotation;
+    return annotationPrimitives(
+      {
+        ...a,
+        frameRotation: undefined,
+        points: a.points.map((v) =>
+          add(origin, rotate(sub(v, origin), -angle)),
+        ),
+      },
+      project,
+    ).map((v) => ({
+      ...v,
+      points: v.points.map((p) => add(origin, rotate(sub(p, origin), angle))),
+      ...(v.text ? { textRotation: (v.textRotation ?? 0) + angle } : {}),
+    }));
+  }
   const [p, q, r] = a.points;
   const h = a.textHeight;
   const bar = project.bars.find((b) => b.id === a.barId);
@@ -126,7 +153,7 @@ export function annotationPrimitives(
       axis = unit(sub(q, p));
     if (a.kind === 'dimension-orthogonal') {
       const mid = mul(add(p, q), 0.5);
-      if (Math.abs(r.y - mid.y) >= Math.abs(r.x - mid.x)) {
+      if (Math.abs(r.y - mid.y) + 1e-8 >= Math.abs(r.x - mid.x)) {
         axis = { x: 1, y: 0 };
         start = { x: p.x, y: r.y };
         end = { x: q.x, y: r.y };
