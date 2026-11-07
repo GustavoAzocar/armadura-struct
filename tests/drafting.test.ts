@@ -24,20 +24,22 @@ import {
 } from '../src/domain/drafting';
 import { toCsv, toDxf, toPdf, exportLines } from '../src/lib/exports';
 import type { Annotation, Project } from '../src/domain/types';
-const straight = () => ({
-  ...emptyProject(),
-  bars: [
-    {
-      ...newBar('N4'),
-      id: 'bar',
-      quantity: 3,
-      points: [
-        { x: 0, y: 0 },
-        { x: 3000, y: 0 },
-      ],
-    },
-  ],
-});
+import { completeOwnership } from '../src/domain/hierarchy';
+const straight = () =>
+  completeOwnership({
+    ...emptyProject(),
+    bars: [
+      {
+        ...newBar('N4'),
+        id: 'bar',
+        quantity: 3,
+        points: [
+          { x: 0, y: 0 },
+          { x: 3000, y: 0 },
+        ],
+      },
+    ],
+  });
 const annotation = (kind: Annotation['kind']): Annotation => ({
   id: 'dim',
   kind,
@@ -148,7 +150,7 @@ describe('drafting, quantities and persisted project compatibility', () => {
       annotations: undefined,
     };
     const p = decodeProject(JSON.stringify(legacy));
-    expect(p.schema).toBe('armadurastruct/2');
+    expect(p.schema).toBe('armadurastruct/3');
     expect(p.bars).toEqual(legacy.bars);
     expect(p.annotations).toEqual([]);
     expect(p.polylines).toEqual([]);

@@ -302,7 +302,7 @@ export function toPdf(p: Project): Uint8Array {
     doc.setTextColor(100);
     doc.text(
       doc.splitTextToSize(
-        `${p.name} | ${p.author || 'Autor não informado'} | ${p.drawing.floor} | Rev. ${p.drawing.revision}`,
+        `${p.name} | ${p.author || 'Autor não informado'} | ${p.hierarchy.floors.map((f) => f.name).join(', ')} | Rev. ${p.drawing.revision}`,
         W - 75,
       )[0],
       14,

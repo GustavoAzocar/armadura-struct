@@ -154,11 +154,18 @@ test('seleção por mouse, alteração de seção e enquadramento sem cortes', a
 
 test('seguir fôrma por clique aplica cobrimento', async ({ page }) => {
   await page.getByRole('button', { name: 'Seguir fôrma', exact: true }).click();
-  const location = await page.getByTestId('cad-canvas').evaluate((svg) => {
-    const g = svg.querySelector('g[transform]') as SVGGElement;
-    const p = new DOMPoint(2500, 600).matrixTransform(g.getScreenCTM()!);
-    return { x: p.x, y: p.y };
-  });
+  const location = await page
+    .getByTestId('cad-canvas')
+    .evaluate(async (svg) => {
+      // The follow toolbar changes the CAD height. Measure after ResizeObserver
+      // and React have painted that layout, before converting model coordinates.
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+      const g = svg.querySelector('g[transform]') as SVGGElement;
+      const p = new DOMPoint(2500, 600).matrixTransform(g.getScreenCTM()!);
+      return { x: p.x, y: p.y };
+    });
   await page.mouse.click(location.x, location.y);
   await expect(page.getByLabel('Posição', { exact: true })).toHaveValue('N4');
   const saved = await saveProject(page),

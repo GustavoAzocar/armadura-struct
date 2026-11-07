@@ -10,6 +10,7 @@ import {
   world,
 } from './geometry';
 import { nextMark } from './model';
+import { completeOwnership } from './hierarchy';
 import { uid, type Bar, type Point, type Project } from './types';
 
 /** Split a physical centerline on a straight leg. Bends remain exact in both pieces. */
@@ -69,12 +70,15 @@ export function splitBar(
       };
       const errors = [...geometry(first).errors, ...geometry(second).errors];
       if (errors.length) throw new Error(errors.join(' '));
-      return {
-        ...project,
-        bars: project.bars.flatMap((b) =>
-          b.id === id ? [first, second] : [b],
-        ),
-      };
+      return completeOwnership(
+        {
+          ...project,
+          bars: project.bars.flatMap((b) =>
+            b.id === id ? [first, second] : [b],
+          ),
+        },
+        project.hierarchy.objectDetails[id] || project.hierarchy.details[0].id,
+      );
     }
     accumulated += length;
     if (segment.type === 'line') leg++;
@@ -92,6 +96,10 @@ export function joinBars(project: Project, ids: string[]): Project {
       'Selecione exatamente duas barras com Shift para emendar as poligonais.',
     );
   const [a, b] = bars;
+  const ownerA = project.hierarchy.objectDetails[a.id],
+    ownerB = project.hierarchy.objectDetails[b.id];
+  if (ownerA && ownerB && ownerA !== ownerB)
+    throw new Error('Mova as barras para o mesmo detalhamento antes de unir.');
   if (
     bars.some(
       (b) => b.kind !== 'free' || b.distribution || geometry(b).errors.length,
@@ -132,18 +140,21 @@ export function joinBars(project: Project, ids: string[]): Project {
   };
   const errors = geometry(joined).errors;
   if (errors.length) throw new Error(errors.join(' '));
-  return {
-    ...project,
-    bars: project.bars
-      .filter((x) => x.id !== b.id)
-      .map((x) => (x.id === a.id ? joined : x)),
-    details: project.details.map((d) =>
-      d.barId === b.id ? { ...d, barId: a.id } : d,
-    ),
-    annotations: project.annotations.map((n) =>
-      n.barId === b.id ? { ...n, barId: a.id } : n,
-    ),
-  };
+  return completeOwnership(
+    {
+      ...project,
+      bars: project.bars
+        .filter((x) => x.id !== b.id)
+        .map((x) => (x.id === a.id ? joined : x)),
+      details: project.details.map((d) =>
+        d.barId === b.id ? { ...d, barId: a.id } : d,
+      ),
+      annotations: project.annotations.map((n) =>
+        n.barId === b.id ? { ...n, barId: a.id } : n,
+      ),
+    },
+    ownerA || project.hierarchy.details[0].id,
+  );
 }
 
 export function quantityForSpacing(length: number, spacing: number) {

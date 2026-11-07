@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## Em desenvolvimento
+
+- AS-01: pavimentos, elementos e detalhamentos compostos com identidades estáveis; criação, edição, movimentação, exclusão de nós vazios e pesquisa no navegador compacto.
+- Migração determinística dos formatos 1/2 para 3 sem transformar os objetos físicos ou rebatimentos nem alterar quantitativos; validação das referências ao reabrir.
+- Objetos novos pertencem ao detalhamento ativo; transferência de barras inclui seus rebatimentos e chamadas. Desenhos lógicos e posicionamentos de folha ficam separados da geometria física.
+- Hierarquia integrada ao salvamento, recuperação e desfazer/refazer; preferências de expansão da árvore persistem por projeto no dispositivo.
+
 ## 0.2.0 · 2026-11-06
 
 - Ambiente de desenho com faixa compacta, painel lateral único com abas, recolhimento persistente e modo Foco no CAD.

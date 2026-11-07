@@ -17,7 +17,30 @@ export type Bar = {
   distribution?: { start?: Point; end: Point; render?: 'ticks' | 'bars' };
   color: string;
 };
-export type Detail = { id: string; barId: string; origin: Point };
+/** A graphical rebatimento; never another physical bar or composite detail. */
+export type BarRepresentation = { id: string; barId: string; origin: Point };
+export type Detail = BarRepresentation;
+export type Floor = { id: string; name: string };
+export type StructuralElement = { id: string; floorId: string; name: string };
+export type DrawingDetail = { id: string; elementId: string; name: string };
+export type DetailDrawing = { id: string; detailId: string; name: string };
+/** Paper placement is independent of physical geometry and representation origins. */
+export type SheetPlacement = {
+  id: string;
+  drawingId: string;
+  origin: Point;
+  rotation: number;
+  scale: number;
+};
+export type ProjectHierarchy = {
+  floors: Floor[];
+  elements: StructuralElement[];
+  details: DrawingDetail[];
+  drawings: DetailDrawing[];
+  placements: SheetPlacement[];
+  /** Every physical or graphical object has one owning composite detail. */
+  objectDetails: Record<string, string>;
+};
 export type Primitive = {
   layer: string;
   points: Point[];
@@ -62,7 +85,9 @@ export type DraftPolyline = {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/2';
+  schema: 'armadurastruct/3';
+  id: string;
+  hierarchy: ProjectHierarchy;
   name: string;
   author: string;
   notes: string;

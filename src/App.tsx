@@ -72,6 +72,7 @@ import {
   renumber,
 } from './domain/editing';
 import { annotationError } from './domain/drafting';
+import { completeOwnership, detailPath } from './domain/hierarchy';
 import { version as appVersion } from '../package.json';
 type History = { past: Project[]; present: Project; future: Project[] };
 const prompts: Record<Tool, string> = {
@@ -131,6 +132,36 @@ export default function App() {
     future: [],
   }));
   const p = history.present;
+  const [context, setContext] = useState<{
+    projectId: string;
+    detailId: string;
+  } | null>(null);
+  let preferredDetail = context?.projectId === p.id ? context.detailId : '';
+  if (context?.projectId !== p.id) {
+    try {
+      preferredDetail =
+        localStorage.getItem(`armadurastruct.activeDetail.${p.id}`) || '';
+    } catch {
+      /* Use the first detail. */
+    }
+  }
+  const activeDetailId = p.hierarchy.details.some(
+    (d) => d.id === preferredDetail,
+  )
+    ? preferredDetail
+    : p.hierarchy.details[0].id;
+  const activateDetail = (detailId: string) =>
+    setContext({ projectId: p.id, detailId });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        `armadurastruct.activeDetail.${p.id}`,
+        activeDetailId,
+      );
+    } catch {
+      /* Optional navigation preference. */
+    }
+  }, [p.id, activeDetailId]);
   const [ready, setReady] = useState(false),
     [selected, setSelectedRaw] = useState<string[]>([]),
     [maskId, setMaskId] = useState<string | null>(null);
@@ -246,16 +277,26 @@ export default function App() {
   }, [p, ready]);
   const commit = useCallback(
     (change: (current: Project) => Project) =>
-      setHistory((h) => ({
-        past: [...h.past.slice(-39), h.present],
-        present: change(h.present),
-        future: [],
-      })),
-    [],
+      setHistory((h) => {
+        const next = change(h.present);
+        const target =
+          next.id === h.present.id &&
+          next.hierarchy.details.some((d) => d.id === activeDetailId)
+            ? activeDetailId
+            : next.hierarchy.details[0].id;
+        return {
+          past: [...h.past.slice(-39), h.present],
+          present: completeOwnership(next, target),
+          future: [],
+        };
+      }),
+    [activeDetailId],
   );
   const select = (ids: string[]) => {
     setSelectedRaw(ids);
     setMaskId(null);
+    const owner = p.hierarchy.objectDetails[ids[0]];
+    if (owner) activateDetail(owner);
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
@@ -1282,13 +1323,19 @@ export default function App() {
             </div>
             {sidebarTab === 'project' ? (
               <ProjectTree
+                key={p.id}
                 project={p}
+                activeDetailId={activeDetailId}
+                onActiveDetail={activateDetail}
+                onHierarchy={(next) => commit(() => next)}
                 selected={selected}
                 maskId={maskId}
                 onSelect={select}
                 onMask={(id) => {
                   select([]);
                   setMaskId(id);
+                  const owner = p.hierarchy.objectDetails[id];
+                  if (owner) activateDetail(owner);
                   setSidebarTab('properties');
                 }}
                 onToggleMask={(id) =>
@@ -1363,6 +1410,12 @@ export default function App() {
         )}
       </div>
       <footer className="statusbar">
+        <span
+          className="active-detail-path"
+          title={detailPath(p, activeDetailId)}
+        >
+          {detailPath(p, activeDetailId)}
+        </span>
         <span
           className={`save-status ${saveState.startsWith('Falha') ? 'warning-text' : ''}`}
         >

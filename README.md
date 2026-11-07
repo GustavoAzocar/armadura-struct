@@ -4,7 +4,7 @@
 
 CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com barras paramétricas, estribos, rebatimentos e quadro de aço automático. Desenvolvido por Ricardo Corsini e colaboradores.
 
-![Ambiente de edição do ArmaduraStruct](docs/preview.png)
+![Hierarquia do projeto e ambiente de edição do ArmaduraStruct](docs/hierarchy.png)
 
 [![Validação e build](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml)
 
@@ -12,6 +12,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
 - Faixa de comandos compacta, painel lateral único com abas Projeto/Propriedades, recolhimento dos painéis e modo Foco no CAD. Fundo claro/escuro, pan, zoom, enquadramento e grade.
 - Barras livres por vértices; estribos retangulares com ganchos de 135°, bitola, mandril, quantidade e dimensões editáveis.
 - Comandos pelo mouse ou teclado, coordenadas absolutas/relativas/polares, ortogonal e encaixes em extremidades e pontos médios.
@@ -80,7 +81,7 @@ Veja [o guia de comandos e convenções](docs/GUIA.md).
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos da série 0.1 são migrados ao abrir. O formato salvo agora é `armadurastruct/2`, que preserva também as novas anotações e o estado de conferência da relação de aço. Versões antigas não abrem esse formato.
+- Projetos nos formatos 1 e 2 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo agora é `armadurastruct/3`, com hierarquia e vínculos validados. Versões anteriores do aplicativo não abrem esse formato.
 - O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
 
 ## Verificar e compilar

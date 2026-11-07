@@ -1,8 +1,47 @@
 import { z } from 'zod';
 import { geometry, vertices, world } from './geometry';
 import { uid, type Bar, type Project, type ScheduleRow } from './types';
+import {
+  completeOwnership,
+  initialHierarchy,
+  legacyProjectId,
+  validateHierarchy,
+} from './hierarchy';
 const number = z.number().finite();
 const point = z.object({ x: number, y: number });
+const identity = z.string().min(1).max(200);
+const named = { id: identity, name: z.string().trim().min(1).max(100) };
+const hierarchySchema = z.object({
+  floors: z
+    .array(z.object({ ...named, name: z.string().min(1).max(150) }))
+    .min(1)
+    .max(1000),
+  elements: z
+    .array(z.object({ ...named, floorId: identity }))
+    .min(1)
+    .max(10000),
+  details: z
+    .array(z.object({ ...named, elementId: identity }))
+    .min(1)
+    .max(10000),
+  drawings: z
+    .array(z.object({ ...named, detailId: identity }))
+    .min(1)
+    .max(10000),
+  placements: z
+    .array(
+      z.object({
+        id: identity,
+        drawingId: identity,
+        origin: point,
+        rotation: number,
+        scale: number.positive().max(1000000),
+      }),
+    )
+    .min(1)
+    .max(10000),
+  objectDetails: z.record(z.string(), identity),
+});
 const barSchema = z.object({
   id: z.string(),
   mark: z.string().min(1).max(40),
@@ -28,7 +67,9 @@ const barSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
 });
 const schema = z.object({
-  schema: z.enum(['armadurastruct/1', 'armadurastruct/2']),
+  schema: z.enum(['armadurastruct/1', 'armadurastruct/2', 'armadurastruct/3']),
+  id: identity.optional(),
+  hierarchy: hierarchySchema.optional(),
   name: z.string().min(1).max(150),
   author: z.string().max(150),
   notes: z.string().max(5000),
@@ -108,9 +149,31 @@ const schema = z.object({
     .max(20),
 });
 export function decodeProject(raw: string): Project {
-  const p = {
-    ...schema.parse(JSON.parse(raw)),
-    schema: 'armadurastruct/2' as const,
+  const parsed = schema.parse(JSON.parse(raw));
+  if (parsed.schema === 'armadurastruct/3' && (!parsed.id || !parsed.hierarchy))
+    throw new Error('Projeto v3 sem identidade ou hierarquia.');
+  let id =
+    parsed.schema === 'armadurastruct/3' ? parsed.id! : legacyProjectId(raw);
+  if (parsed.schema !== 'armadurastruct/3') {
+    const oldIds = new Set(
+      [
+        ...parsed.bars,
+        ...parsed.details,
+        ...parsed.annotations,
+        ...parsed.polylines,
+        ...parsed.masks,
+      ].map((o) => o.id),
+    );
+    while (oldIds.has(id)) id += '-';
+  }
+  const p: Project = {
+    ...parsed,
+    id,
+    schema: 'armadurastruct/3',
+    hierarchy:
+      parsed.schema === 'armadurastruct/3'
+        ? parsed.hierarchy!
+        : initialHierarchy(parsed, id, parsed.drawing.floor),
   };
   const ids = p.bars.map((b) => b.id);
   if (new Set(ids).size !== ids.length)
@@ -137,6 +200,7 @@ export function decodeProject(raw: string): Project {
     throw new Error('Identificadores de objetos duplicados.');
   if (p.annotations.some((a) => a.barId && !ids.includes(a.barId)))
     throw new Error('Chamada sem armadura correspondente.');
+  validateHierarchy(p);
   return p;
 }
 export function newBar(mark: string): Bar {
@@ -166,18 +230,30 @@ export function nextMark(p: Project) {
   while (p.bars.some((b) => b.mark === `N${i}`)) i++;
   return `N${i}`;
 }
-export const emptyProject = (): Project => ({
-  schema: 'armadurastruct/2',
-  name: 'Novo projeto',
-  author: '',
-  notes: '',
-  bars: [],
-  details: [],
-  masks: [],
-  annotations: [],
-  polylines: [],
-  drawing: { floor: '', revision: '00', scale: 0 },
-});
+export const emptyProject = (): Project => {
+  const id = uid();
+  const content = {
+    bars: [],
+    details: [],
+    masks: [],
+    annotations: [],
+    polylines: [],
+  };
+  return {
+    schema: 'armadurastruct/3',
+    id,
+    hierarchy: initialHierarchy(content, id),
+    name: 'Novo projeto',
+    author: '',
+    notes: '',
+    bars: [],
+    details: [],
+    masks: [],
+    annotations: [],
+    polylines: [],
+    drawing: { floor: '', revision: '00', scale: 0 },
+  };
+};
 export function schedule(p: Project): ScheduleRow[] {
   return (p.scheduleLock?.bars ?? p.bars).map((bar) => {
     const g = geometry(bar),
@@ -347,6 +423,7 @@ export function demoProject(): Project {
     },
   ];
   p.drawing.floor = 'Pavimento tipo';
+  p.hierarchy.floors[0].name = 'Pavimento tipo';
   p.annotations = [
     {
       id: uid(),
@@ -375,5 +452,5 @@ export function demoProject(): Project {
       color: '#c89a4d',
     },
   ];
-  return p;
+  return completeOwnership(p);
 }

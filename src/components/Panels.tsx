@@ -1,4 +1,5 @@
 import { annotationError } from '../domain/drafting';
+import HierarchyNavigator from './HierarchyNavigator';
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -226,7 +227,7 @@ export function Inspector({
                 onChange={(mark) => onBar({ mark })}
               />
               <TextField
-                label="Elemento / grupo"
+                label="Descrição da posição"
                 maxLength={100}
                 allowEmpty
                 value={bar.element}
@@ -631,14 +632,11 @@ export function Inspector({
               />
             </Section>
             <Section title="Desenho / prancha">
-              <TextField
-                label="Pavimento"
-                value={project.drawing.floor}
-                allowEmpty
-                onChange={(floor) =>
-                  onProject({ drawing: { ...project.drawing, floor } })
-                }
-              />
+              <p className="field-help">
+                Pavimentos:{' '}
+                {project.hierarchy.floors.map((f) => f.name).join(', ')}. Edite
+                a organização na aba Projeto.
+              </p>
               <TextField
                 label="Revisão"
                 value={project.drawing.revision}
@@ -713,6 +711,9 @@ export function ProjectTree({
   onRemoveMask,
   onImport,
   onDemo,
+  activeDetailId,
+  onActiveDetail,
+  onHierarchy,
 }: {
   project: Project;
   selected: string[];
@@ -723,9 +724,64 @@ export function ProjectTree({
   onRemoveMask: (id: string) => void;
   onImport: () => void;
   onDemo: () => void;
+  activeDetailId: string;
+  onActiveDetail: (id: string) => void;
+  onHierarchy: (project: Project) => void;
 }) {
-  const [barsOpen, setBarsOpen] = useState(true),
-    [masksOpen, setMasksOpen] = useState(true);
+  const treeKey = `armadurastruct.contentTree.${project.id}`;
+  const [groups, setGroups] = useState<{ bars: boolean; masks: boolean }>(
+    () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(treeKey) || 'null');
+        if (
+          typeof saved?.bars === 'boolean' &&
+          typeof saved?.masks === 'boolean'
+        )
+          return saved;
+      } catch {
+        /* Use expanded groups. */
+      }
+      return { bars: true, masks: true };
+    },
+  );
+  const barsOpen = groups.bars,
+    masksOpen = groups.masks;
+  const setBarsOpen = (bars: boolean) =>
+    setGroups((current) => ({ ...current, bars }));
+  const setMasksOpen = (masks: boolean) =>
+    setGroups((current) => ({ ...current, masks }));
+  useEffect(() => {
+    try {
+      localStorage.setItem(treeKey, JSON.stringify(groups));
+    } catch {
+      /* Optional navigation state. */
+    }
+  }, [treeKey, groups]);
+  const [search, setSearch] = useState('');
+  const match = (text: string) =>
+    text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .includes(
+        search
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim(),
+      );
+  const owns = (id: string) =>
+    project.hierarchy.objectDetails[id] === activeDetailId;
+  const bars = project.bars.filter(
+    (b) => owns(b.id) && (!search || match(`${b.mark} ${b.element}`)),
+  );
+  const masks = project.masks.filter(
+    (m) => owns(m.id) && (!search || match(m.name)),
+  );
+  const annotations = project.annotations.filter(
+    (a) => owns(a.id) && (!search || match(`${a.kind} ${a.label}`)),
+  );
+  const polylines = project.polylines.filter((l) => owns(l.id));
   const rows = schedule(project),
     valid = rows.filter((r) => !r.errors.length);
   return (
@@ -742,17 +798,28 @@ export function ProjectTree({
         </small>
       </div>
       <div className="panel-scroll">
+        <HierarchyNavigator
+          key={project.id}
+          project={project}
+          activeDetailId={activeDetailId}
+          onActive={onActiveDetail}
+          onChange={onHierarchy}
+          selected={maskId ? [maskId] : selected}
+          search={search}
+          onSearch={setSearch}
+        />
+        <p className="tree-content-caption">Objetos do detalhamento ativo</p>
         <button
           className="tree-section"
           onClick={() => setMasksOpen(!masksOpen)}
         >
           {masksOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          <FileStack size={14} /> Máscaras <em>{project.masks.length}</em>
+          <FileStack size={14} /> Máscaras <em>{masks.length}</em>
         </button>
         {masksOpen && (
           <>
             <div className="tree-mask-list">
-              {project.masks.map((m) => (
+              {masks.map((m) => (
                 <div
                   key={m.id}
                   className={`mask-row ${maskId === m.id ? 'selected' : ''}`}
@@ -785,11 +852,11 @@ export function ProjectTree({
         )}
         <button className="tree-section" onClick={() => setBarsOpen(!barsOpen)}>
           {barsOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          <Shapes size={14} /> Armaduras <em>{project.bars.length}</em>
+          <Shapes size={14} /> Armaduras <em>{bars.length}</em>
         </button>
         {barsOpen && (
           <div className="bar-list">
-            {project.bars.map((b) => (
+            {bars.map((b) => (
               <button
                 key={b.id}
                 className={`bar-row ${selected.includes(b.id) ? 'selected' : ''}`}
@@ -819,20 +886,20 @@ export function ProjectTree({
                 <em>×{b.quantity}</em>
               </button>
             ))}
-            {!project.bars.length && (
+            {!bars.length && (
               <p className="tree-empty">Suas posições aparecerão aqui.</p>
             )}
           </div>
         )}
-        {(project.polylines.length > 0 || project.annotations.length > 0) && (
+        {(polylines.length > 0 || annotations.length > 0) && (
           <>
             <div className="tree-section">
               <Shapes size={14} />
               Desenho e anotações
-              <em>{project.polylines.length + project.annotations.length}</em>
+              <em>{polylines.length + annotations.length}</em>
             </div>
             <div className="draft-object-list">
-              {project.polylines.map((l, i) => (
+              {polylines.map((l, i) => (
                 <button
                   key={l.id}
                   className={selected.includes(l.id) ? 'selected' : ''}
@@ -841,7 +908,7 @@ export function ProjectTree({
                   Polilinha {i + 1} · {l.points.length} vértices
                 </button>
               ))}
-              {project.annotations.map((a, i) => (
+              {annotations.map((a, i) => (
                 <button
                   key={a.id}
                   className={selected.includes(a.id) ? 'selected' : ''}
@@ -849,7 +916,7 @@ export function ProjectTree({
                 >
                   {annotationNames[a.kind]} {i + 1}
                   {a.barId
-                    ? ` · ${project.bars.find((b) => b.id === a.barId)?.mark}`
+                    ? ` · ${bars.find((b) => b.id === a.barId)?.mark}`
                     : ''}
                 </button>
               ))}

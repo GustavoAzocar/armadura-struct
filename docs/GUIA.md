@@ -6,6 +6,26 @@ Use a faixa **Armaduras** para criar e detalhar posições. Quantidade, bitola e
 
 **F4** recolhe/abre o painel. **Ctrl+F1** recolhe/expande a faixa. **Ctrl+0** alterna o modo Foco no CAD. Os botões no canto da área de desenho também permitem recuperar os painéis. A preferência de recolhimento é preservada neste dispositivo.
 
+## Organização do projeto
+
+Na aba **Projeto**, use **+ pavimento**, **+ elemento** e **+ detalhamento**. Ao criar um pavimento ou elemento, ele fica selecionado como pai do próximo cadastro. O seletor de pai no formulário permite escolher outro destino.
+
+Clique no nome de um nó para editar seu nome; em elementos e detalhamentos, altere também o pai para movê-los. Os vínculos usam IDs, portanto elementos com o mesmo nome em pavimentos distintos continuam independentes. A exclusão só aceita nós vazios; mova os filhos ou objetos antes. O projeto conserva ao menos um pavimento, elemento e detalhamento.
+
+**Destino de novos objetos** define o detalhamento ativo. Barras, polilinhas e máscaras novas entram nele; chamadas vinculadas e rebatimentos herdam o dono da barra. Selecione objetos e volte à aba Projeto para usar **Detalhamento de destino → Mover seleção**. Ao mover uma barra na hierarquia, suas chamadas e rebatimentos acompanham o vínculo, mantendo coordenadas e quantidades. O comando Mover no CAD continua sendo uma transformação geométrica diferente.
+
+A pesquisa localiza pavimentos, elementos, detalhamentos, posições, máscaras e textos de anotações. Clique no detalhamento encontrado para ativá-lo e consultar seus objetos nas listas abaixo. A pesquisa abre temporariamente os ancestrais; limpar a busca recupera a expansão anterior. O estado da árvore e o detalhamento ativo são lembrados por projeto neste dispositivo, inclusive ao alternar as abas laterais.
+
+O **CAD, o quadro e as exportações continuam abrangendo o projeto inteiro** nesta etapa. O detalhamento ativo organiza a edição e as listas; ele não oculta geometria nem filtra materiais. Pavimento é uma entidade de organização, independente dos layers CAD das máscaras.
+
+### Formato 3 e compatibilidade
+
+Ao abrir formatos 1/2, o aplicativo cria um pavimento (usa o texto antigo, quando disponível), um elemento Geral e um Detalhamento 1. Os dados das barras, anotações, máscaras, polilinhas, rebatimentos e RA bloqueada são preservados. A antiga descrição textual `Bar.element` continua como **Descrição da posição**, sem funcionar como identidade do elemento estrutural.
+
+No modelo, `hierarchy.details` contém os detalhamentos compostos e `hierarchy.objectDetails` associa os objetos por ID. `details` mantém exclusivamente os rebatimentos gráficos das barras. `hierarchy.drawings` identifica desenhos lógicos dos detalhamentos; `hierarchy.placements` reserva seus posicionamentos na folha, separados das origens físicas e dos rebatimentos. A composição/transformação visual dessas posições na prancha será feita nas tarefas de pranchas; o CAD atual conserva as coordenadas anteriores.
+
+Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hierarquia. Arquivos v3 com vínculos inválidos são recusados, em vez de descartar objetos silenciosamente. Mantenha uma cópia do JSON antigo se precisar abri-lo em uma versão anterior do aplicativo.
+
 ## Mouse e seleção
 
 - Roda: zoom no cursor. Botão do meio ou Espaço + arraste: pan. H ativa a ferramenta Pan.
@@ -94,7 +114,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável e as máscaras normalizadas; os bytes originais do CAD não são armazenados. DXF e PDF são saídas para documentação. Em **Propriedades** sem seleção, informe pavimento/revisão e escolha a escala do PDF: ajuste à folha ou 1:10, 1:20, 1:25, 1:50, 1:75, 1:100 ou 1:200. A exportação avisa se o desenho não couber na escala escolhida. Imprima em tamanho real (100%). Guarde o projeto JSON junto dos arquivos de entrega. Arquivos antigos da série 0.1 são migrados ao abrir, e os novos salvamentos usam o formato `armadurastruct/2`.
+O `.armstruct.json` preserva o modelo editável e as máscaras normalizadas; os bytes originais do CAD não são armazenados. DXF e PDF são saídas para documentação. Em **Propriedades** sem seleção, informe a revisão e escolha a escala do PDF: ajuste à folha ou 1:10, 1:20, 1:25, 1:50, 1:75, 1:100 ou 1:200. A exportação avisa se o desenho não couber na escala escolhida. Imprima em tamanho real (100%). Guarde o projeto JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2 são migrados ao abrir, e os novos salvamentos usam o formato `armadurastruct/3`.
 
 ## Nota de implementação desktop
 
