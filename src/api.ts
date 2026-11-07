@@ -79,3 +79,12 @@ export {
   LINE_TYPES,
 } from './domain/layers';
 export type { DrawingLayer, DrawingStyle, LayerBinding } from './domain/types';
+
+export {
+  setLayerState,
+  layerState,
+  layerProjection,
+  saveLayerProfile,
+  applyLayerProfile,
+  profileLabel,
+} from './domain/layerProfiles';

@@ -1,3 +1,4 @@
+import { layerProjection } from './layerProfiles';
 import { detailTitle } from './detailQuantities';
 import type { Point, Primitive, Project, Sheet, SheetPlacement } from './types';
 import { bounds, rotate } from './geometry';
@@ -155,7 +156,11 @@ function sourceLines(project: Project, view: SheetPlacement) {
   );
   if (!drawing) throw new Error('Desenho da vista inexistente.');
   return drawingPrimitives(
-    detailEditorView(project, drawing.detailId),
+    layerProjection(
+      detailEditorView(project, drawing.detailId),
+      `view:${view.id}`,
+      'visible',
+    ),
     project,
     { minTextHeight: view.textHeight * view.scale },
   );

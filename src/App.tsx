@@ -1,3 +1,5 @@
+import { assertLayerEdit, objectState } from './domain/layerProfiles';
+import { layerObjects } from './domain/layers';
 import {
   lazy,
   Suspense,
@@ -652,6 +654,11 @@ export default function App() {
         const h = historyRef.current;
         const next = change(h.present);
         const scope = isolationRef.current;
+        assertLayerEdit(
+          h.present,
+          next,
+          selectedView ? `view:${selectedView}` : documentKey,
+        );
         const target =
           scope ||
           (next.id === h.present.id &&
@@ -689,12 +696,21 @@ export default function App() {
         return false;
       }
     },
-    [activeDetailId],
+    [activeDetailId, documentKey, selectedView],
   );
   const commitLayout = (change: (current: Project) => Project) => {
     sessions.current.set(documentKey, captureDocument());
     return commit(change);
   };
+  useEffect(() => {
+    const objects = new Map(layerObjects(p).map((o) => [o.id, o]));
+    setSelectedRaw((ids) =>
+      ids.filter((id) => {
+        const o = objects.get(id);
+        return o && objectState(p, documentKey, o).capture;
+      }),
+    );
+  }, [p.layerEnvironment, documentKey]);
   const select = (ids: string[]) => {
     if (activeSheet && ids.length) {
       notify('Abra um desenho para selecionar os objetos do modelo.');
@@ -713,7 +729,10 @@ export default function App() {
       );
       return;
     }
-    const next = expandDetailSelection(current, ids, scope);
+    const next = expandDetailSelection(current, ids, scope).filter((id) => {
+      const o = layerObjects(current).find((o) => o.id === id);
+      return o && objectState(current, documentKey, o).capture;
+    });
     setSelectedRaw(next);
     setMaskId(null);
     const owner = current.hierarchy.objectDetails[next[0]];
@@ -825,6 +844,7 @@ export default function App() {
         executeRebarBatch(current, commands, {
           units: 'mm',
           scopeDetailId: isolationRef.current,
+          layerContext: documentKey,
         }),
       );
     });
@@ -867,6 +887,7 @@ export default function App() {
           executeRebarBatch(current, commands, {
             units: 'mm',
             scopeDetailId: isolationRef.current,
+            layerContext: documentKey,
           }),
         );
         return {
@@ -890,6 +911,7 @@ export default function App() {
         executeRebarBatch(current, commands, {
           units: 'mm',
           scopeDetailId: isolationRef.current,
+          layerContext: documentKey,
         }),
       ),
     );
@@ -1046,6 +1068,7 @@ export default function App() {
           const result = executeRebarBatch(p, commands, {
             units: 'mm',
             scopeDetailId: isolationRef.current,
+            layerContext: documentKey,
           });
           if (!result.ok) {
             notify(new RebarApiError(result.issues).message);
@@ -1321,12 +1344,6 @@ export default function App() {
   };
   const action = async (a: Action) => {
     if (a === 'layers') {
-      if (isolationRef.current) {
-        notify(
-          'Conclua a edição isolada antes de editar o catálogo global de layers.',
-        );
-        return;
-      }
       setLayersOpen(true);
       return;
     }
@@ -1679,6 +1696,7 @@ export default function App() {
                   executeRebarBatch(current, commands, {
                     units: 'mm',
                     scopeDetailId: isolationRef.current,
+                    layerContext: documentKey,
                   }),
                 )
               : current;
@@ -1715,6 +1733,7 @@ export default function App() {
                 executeRebarBatch(p, commands, {
                   units: 'mm',
                   scopeDetailId: isolationRef.current,
+                  layerContext: documentKey,
                 }),
               )
             : p;
@@ -2312,6 +2331,7 @@ export default function App() {
                 </div>
               )}
               <CadCanvas
+                layerContext={documentKey}
                 key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
                 initialState={sessions.current.get(documentKey)?.camera}
                 ref={cad}
@@ -2665,6 +2685,7 @@ export default function App() {
                           executeRebarBatch(current, commands, {
                             units: 'mm',
                             scopeDetailId: isolationRef.current,
+                            layerContext: documentKey,
                           }),
                         )
                       : current;
@@ -2895,6 +2916,7 @@ export default function App() {
           fallback={<div className="busy-overlay">Abrindo layers…</div>}
         >
           <LayerManager
+            contextKey={selectedView ? `view:${selectedView}` : documentKey}
             project={p}
             objectIds={selected.length ? selected : maskId ? [maskId] : []}
             onChange={(next) => commit(() => next)}
@@ -3079,6 +3101,7 @@ export default function App() {
                             {
                               units: 'mm',
                               scopeDetailId: isolationRef.current,
+                              layerContext: documentKey,
                             },
                           ),
                         );

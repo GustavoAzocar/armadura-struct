@@ -28,6 +28,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Comandos pelo mouse ou teclado, coordenadas absolutas/relativas/polares, ortogonal e encaixes em extremidades e pontos médios.
 - Seleção por clique ou janela, edição de vértices por alças, mover, copiar, girar, espelhar, excluir e desfazer/refazer.
 - Ferramenta **Seguir fôrma**: desloca uma linha/polilinha da máscara pelo cobrimento mais meio diâmetro; permite editar os vértices e conferir as terminações.
+- [Perfis de layers](docs/AS-20.md) por desenho/vista, com exibição, captura e edição protegidas, sem alterar quantitativos.
 - [Layers nativos](docs/AS-19.md) com IDs, estilos ByLayer/overrides, edição em lote, reassociação e importação/exportação DXF com RGB e tipos de linha.
 - [Cópia completa de armaduras](docs/AS-53.md), com novos IDs, remapeamento de inserções/chamadas/auxiliares e escolha explícita para vínculos compartilhados.
 - [Representações independentes](docs/AS-52.md) da mesma armadura, com origem, rotação, escala e identificação próprias, sem duplicar quantidades.

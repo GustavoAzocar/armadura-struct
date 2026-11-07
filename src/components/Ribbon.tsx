@@ -344,7 +344,6 @@ export default function Ribbon({
                           (!!t.selection && selected < t.selection) ||
                           (isolated &&
                             [
-                              'layers',
                               'detail-repetition',
                               'fabrication',
                               'insert-detail',

@@ -244,7 +244,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/14`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/15`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 
@@ -259,3 +259,7 @@ Duplo clique na vista da folha abre o desenho composto. Selecione uma inserção
 **Conferir exemplo** apresenta as 64 posições por identidade física, as divergências de comprimento e o resumo líquido/+10%, com CSV. As quantidades originais fecham, mas 34 comprimentos desenvolvidos divergem além do arredondamento de 5 mm. Consulte a [conferência completa e convenções](examples/initial/README.md).
 
 O formato 12 e os [pacotes v6](openstruct-detail-v6.schema.json) preservam rótulos locais de inserção (`label.origin`, `rotation`, `height`, `omitPrefix`) e a opção `showDimensions`. Origem/altura usam unidades físicas locais; a transformação da inserção é aplicada uma vez. O rótulo compacto mostra quantidade, posição, bitola e C calculado; omite metadados de montagem para caber na prancha. O prefixo só é ocultado se ainda existir na marca, portanto renumerar mantém os vínculos.
+
+### Perfis do ambiente CAD
+
+No gerenciador de layers, configure Exibir/Capturar/Editar e salve um perfil. Estados pertencem ao desenho ou à vista selecionada. Use Restaurar perfil para desfazer personalizações do ambiente; o aço permanece no quadro. Veja [AS-20](AS-20.md).

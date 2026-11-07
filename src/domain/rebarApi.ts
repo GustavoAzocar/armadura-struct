@@ -1,3 +1,4 @@
+import { assertLayerEdit } from './layerProfiles';
 import { validateLayers } from './layers';
 import { layerBindingShape } from './layerSchema';
 import { armatureReferences } from './armatureReferences';
@@ -304,6 +305,7 @@ export type RebarCommand = z.infer<typeof commandSchema>;
 export type RebarOptions = {
   units: 'mm';
   apiVersion?: typeof REBAR_API_VERSION;
+  layerContext?: string;
   scopeDetailId?: string;
   schedule?: 'preserve-lock' | 'invalidate-lock';
 };
@@ -1086,6 +1088,7 @@ export function executeRebarBatch(
           options.scopeDetailId,
         );
       const result = perform(next, parsed.data);
+      assertLayerEdit(next, result.project, options.layerContext ?? 'model');
       const errors = validateRebarChange(
         next,
         result.project,

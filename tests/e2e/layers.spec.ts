@@ -270,3 +270,51 @@ test('DXF source layers are adopted into the native catalog, edited and exported
   expect(raw).toContain('Arquitetura');
   expect(raw).toContain('AC1021');
 });
+test('layer profiles protect editing, hide without removing steel and restore saved states with undo', async ({
+  page,
+}) => {
+  const p = fixture();
+  await load(page, p);
+  await select(page, 'N1');
+  await command(page, 'LAYERS');
+  const d = dialog(page);
+  await d.getByLabel('Editar ARMADURAS', { exact: true }).uncheck();
+  await d.getByLabel('Nome do perfil', { exact: true }).fill('Revisão');
+  await d
+    .getByRole('button', { name: 'Salvar perfil atual', exact: true })
+    .click();
+  await close(page);
+  const locked = await save(page);
+  await command(page, 'DEL');
+  await expect(page.getByRole('status')).toContainText('protegido');
+  expect((await save(page)).bars).toEqual(locked.bars);
+  await command(page, 'LAYERS');
+  await d.getByLabel('Exibir ARMADURAS', { exact: true }).uncheck();
+  await expect(d.getByText('Perfil · Personalizado')).toBeVisible();
+  await close(page);
+  await expect(page.locator('[data-bar-id="a"]')).toHaveCount(0);
+  const hidden = await save(page);
+  await page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Desfazer', exact: true })
+    .click();
+  await expect(page.locator('[data-bar-id="a"]')).toBeVisible();
+  await page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Refazer', exact: true })
+    .click();
+  await expect(page.locator('[data-bar-id="a"]')).toHaveCount(0);
+  expect(mass(hidden)).toBe(mass(p));
+  await command(page, 'LAYERS');
+  await d
+    .getByRole('button', { name: 'Restaurar perfil', exact: true })
+    .click();
+  await close(page);
+  await expect(page.locator('[data-bar-id="a"]')).toBeVisible();
+  const restored = await save(page);
+  expect(restored.layerEnvironment).toEqual(locked.layerEnvironment);
+  await load(page, restored);
+  expect((await save(page)).layerEnvironment).toEqual(
+    restored.layerEnvironment,
+  );
+});

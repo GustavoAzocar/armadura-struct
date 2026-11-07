@@ -209,7 +209,8 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/14';
+  schema: 'armadurastruct/15';
+  layerEnvironment?: import('./layerProfiles').LayerEnvironment;
   layers: DrawingLayer[];
   id: string;
   hierarchy: ProjectHierarchy;

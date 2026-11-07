@@ -68,7 +68,7 @@ describe('versioned paper documents', () => {
       };
       const raw = JSON.stringify(old),
         p = decodeProject(raw);
-      expect(p.schema).toBe('armadurastruct/14');
+      expect(p.schema).toBe('armadurastruct/15');
       expect(p.sheets).toHaveLength(1);
       for (const field of [
         'bars',

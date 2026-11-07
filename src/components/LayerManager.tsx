@@ -1,3 +1,11 @@
+import {
+  ensureProfiles,
+  profileLabel,
+  layerState,
+  setLayerState,
+  saveLayerProfile,
+  applyLayerProfile,
+} from '../domain/layerProfiles';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import type { DrawingLayer, Project } from '../domain/types';
 import {
@@ -11,11 +19,13 @@ import {
 import { NumberField } from './Panels';
 export default function LayerManager({
   project,
+  contextKey = 'model',
   objectIds,
   onChange,
   onSelect,
   onClose,
 }: {
+  contextKey?: string;
   project: Project;
   objectIds: string[];
   onChange: (next: Project) => boolean;
@@ -29,6 +39,8 @@ export default function LayerManager({
     [name, setName] = useState('Novo layer'),
     [target, setTarget] = useState(''),
     [error, setError] = useState('');
+  const [profileName, setProfileName] = useState('Meu perfil');
+  const environment = ensureProfiles(project).layerEnvironment!;
   const close = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const old = document.activeElement as HTMLElement | null;
@@ -104,6 +116,60 @@ export default function LayerManager({
           Estilos por herança; alterações não modificam geometria ou
           quantitativos. Os pavimentos continuam na árvore do projeto.
         </p>
+        <fieldset>
+          <legend>Perfil deste desenho / vista</legend>
+          <label className="field">
+            <span>Perfil · {profileLabel(project, contextKey)}</span>
+            <select
+              aria-label="Perfil de layers"
+              value={
+                project.layerEnvironment?.contexts[contextKey]?.profileId ?? ''
+              }
+              onChange={(e) =>
+                apply(() =>
+                  applyLayerProfile(project, contextKey, e.target.value),
+                )
+              }
+            >
+              <option value="" disabled>
+                Escolha um perfil
+              </option>
+              {environment.profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            aria-label="Nome do perfil"
+            value={profileName}
+            onChange={(e) => setProfileName(e.target.value)}
+          />
+          <button
+            onClick={() =>
+              apply(() => saveLayerProfile(project, contextKey, profileName))
+            }
+          >
+            Salvar perfil atual
+          </button>
+          <button
+            disabled={
+              !project.layerEnvironment?.contexts[contextKey]?.profileId
+            }
+            onClick={() =>
+              apply(() =>
+                applyLayerProfile(
+                  project,
+                  contextKey,
+                  project.layerEnvironment!.contexts[contextKey].profileId!,
+                ),
+              )
+            }
+          >
+            Restaurar perfil
+          </button>
+        </fieldset>
         <div className="layer-manager-grid">
           <div>
             <div className="fields-2">
@@ -146,6 +212,7 @@ export default function LayerManager({
                     </th>
                     <th>Layer</th>
                     <th>Objetos</th>
+                    <th>Exibir / Capturar / Editar</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,6 +245,27 @@ export default function LayerManager({
                         </button>
                       </td>
                       <td>{usage.get(l.id)?.size ?? 0}</td>
+                      <td>
+                        {(['visible', 'capture', 'editable'] as const).map(
+                          (key, i) => (
+                            <input
+                              key={key}
+                              type="checkbox"
+                              aria-label={`${['Exibir', 'Capturar', 'Editar'][i]} ${l.name}`}
+                              checked={
+                                layerState(project, contextKey, l.id)[key]
+                              }
+                              onChange={(e) =>
+                                apply(() =>
+                                  setLayerState(project, contextKey, l.id, {
+                                    [key]: e.target.checked,
+                                  }),
+                                )
+                              }
+                            />
+                          ),
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

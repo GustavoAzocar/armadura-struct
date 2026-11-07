@@ -1,3 +1,8 @@
+import {
+  layerProjection,
+  objectState,
+  layerState,
+} from '../domain/layerProfiles';
 import { stylePrimitive, resolveStyle, dashArray } from '../domain/layers';
 import {
   representationPoint,
@@ -66,6 +71,7 @@ export type CadHandle = {
   getState: () => CadState;
 };
 type Props = {
+  layerContext?: string;
   project: Project;
   initialState?: CadState;
   tool: Tool;
@@ -100,8 +106,17 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     light,
   } = props;
   const project = useMemo(
-    () => detailEditorView(source, props.isolatedDetailId),
-    [source, props.isolatedDetailId],
+    () =>
+      layerProjection(
+        detailEditorView(source, props.isolatedDetailId),
+        props.layerContext ?? 'model',
+        'visible',
+      ),
+    [source, props.isolatedDetailId, props.layerContext],
+  );
+  const capturable = useMemo(
+    () => layerProjection(project, props.layerContext ?? 'model', 'capture'),
+    [project, props.layerContext],
   );
   const lastHit = useRef<string | null>(null);
   const overview = useRef<{
@@ -364,17 +379,33 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   };
   const linework = useMemo(
     () => [
-      ...masks.flatMap((m) => m.items.filter((p) => !p.text)),
-      ...project.polylines.map((p) => ({
+      ...masks.flatMap((m) =>
+        m.items.filter(
+          (p) =>
+            !p.text &&
+            objectState(source, props.layerContext ?? 'model', m.mask)
+              .capture &&
+            (!p.layerId ||
+              layerState(source, props.layerContext ?? 'model', p.layerId)
+                .capture),
+        ),
+      ),
+      ...capturable.polylines.map((p) => ({
         ...p,
         points: p.closed ? [...p.points, p.points[0]] : p.points,
       })),
-      ...annotations.flatMap((a) => a.items.filter((p) => !p.text)),
-      ...project.bars.map((b) => ({
+      ...annotations
+        .filter(
+          (a) =>
+            objectState(source, props.layerContext ?? 'model', a.annotation)
+              .capture,
+        )
+        .flatMap((a) => a.items.filter((p) => !p.text)),
+      ...capturable.bars.map((b) => ({
         points: sampled(geometry(b).segments).map((v) => world(v, b)),
       })),
     ],
-    [masks, project.bars, project.polylines, annotations],
+    [masks, capturable, annotations],
   );
   const snapAt = (raw: Point) => {
     let target: Point | undefined,
@@ -422,8 +453,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       return;
     }
     if (tool === 'select') {
-      for (const b of project.bars.filter(
-        (b) => selected.includes(b.id) && b.kind === 'free' && individual(b.id),
+      for (const b of capturable.bars.filter(
+        (b) =>
+          objectState(source, props.layerContext ?? 'model', b).editable &&
+          selected.includes(b.id) &&
+          b.kind === 'free' &&
+          individual(b.id),
       ))
         for (let i = 0; i < b.points.length; i++)
           if (distance(world(b.points[i], b), p) < 9 / view.s) {
@@ -432,7 +467,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           }
       let hit: string | undefined,
         best = 9 / view.s;
-      for (const b of project.bars) {
+      for (const b of capturable.bars) {
         const origins =
           b.distribution?.render === 'bars'
             ? distributionOrigins(b)
@@ -451,7 +486,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         }
       }
       for (const object of [
-        ...project.polylines.map((l) => ({
+        ...capturable.polylines.map((l) => ({
           id: l.id,
           items: [
             {
@@ -461,7 +496,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             },
           ],
         })),
-        ...annotations.map((a) => ({ id: a.annotation.id, items: a.items })),
+        ...annotations
+          .filter(
+            (a) =>
+              objectState(source, props.layerContext ?? 'model', a.annotation)
+                .capture,
+          )
+          .map((a) => ({ id: a.annotation.id, items: a.items })),
       ]) {
         for (const item of object.items) {
           if ('text' in item && item.text) {
@@ -484,7 +525,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         }
       }
       if (!hit) {
-        for (const d of project.details) {
+        for (const d of capturable.details) {
           const b = barDefinitions.get(d.barId);
           if (!b) continue;
           const pts = insertedPoints(b, d);
@@ -529,6 +570,14 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         polylineId: string | undefined;
       for (const m of masks)
         for (const item of m.items) {
+          if (
+            !objectState(source, props.layerContext ?? 'model', m.mask)
+              .capture ||
+            (item.layerId &&
+              !layerState(source, props.layerContext ?? 'model', item.layerId)
+                .capture)
+          )
+            continue;
           if (item.text) continue;
           const pts = item.closed
             ? [...item.points, item.points[0]]
@@ -542,7 +591,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           }
         }
       if (tool === 'convert')
-        for (const item of project.polylines.filter((l) => individual(l.id))) {
+        for (const item of capturable.polylines.filter((l) =>
+          individual(l.id),
+        )) {
           const pts = item.closed
             ? [...item.points, item.points[0]]
             : item.points;
@@ -578,7 +629,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     if (svg.current?.hasPointerCapture(e.pointerId))
       svg.current.releasePointerCapture(e.pointerId);
     if (grip) {
-      const b = project.bars.find((b) => b.id === grip.id)!;
+      const b = capturable.bars.find((b) => b.id === grip.id)!;
       props.onBarChange(b.id, {
         points: b.points.map((p, i) =>
           i === grip.index ? local(grip.point, b) : p,
@@ -595,23 +646,23 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           p.y >= box.y &&
           p.y <= box.y + box.height;
         const ids = [
-          ...project.details
+          ...capturable.details
             .filter((d) => {
               const b = barDefinitions.get(d.barId);
               return b && insertedPoints(b, d).every(inside);
             })
             .map((d) => d.id),
-          ...project.bars
+          ...capturable.bars
             .filter((b) =>
               vertices(b)
                 .map((p) => world(p, b))
                 .every(inside),
             )
             .map((b) => b.id),
-          ...project.polylines
+          ...capturable.polylines
             .filter((l) => l.points.every(inside))
             .map((l) => l.id),
-          ...project.annotations
+          ...capturable.annotations
             .filter((a) => a.points.every(inside))
             .map((a) => a.id),
         ];
@@ -720,6 +771,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           })}
         {active &&
           !isDetail &&
+          objectState(source, props.layerContext ?? 'model', b).editable &&
           individual(b.id) &&
           b.kind === 'free' &&
           g.vertices.map((p, i) => (
