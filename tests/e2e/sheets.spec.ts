@@ -324,7 +324,7 @@ test('drawing tabs retain pending commands and selection; editing a placed sourc
   await command(page, 'B');
   await command(page, '0,2000');
   const tabA = page.getByRole('button', {
-    name: 'Aba desenho Viga A · Desenho principal',
+    name: 'Aba desenho Viga A',
     exact: true,
   });
   await tabA.click();
@@ -350,7 +350,7 @@ test('drawing tabs retain pending commands and selection; editing a placed sourc
   ).toBeVisible();
   await page
     .getByRole('button', {
-      name: 'Aba desenho Viga B · Desenho principal',
+      name: 'Aba desenho Viga B',
       exact: true,
     })
     .click();

@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Copy, Plus, ArrowUp, ArrowDown, X, ExternalLink } from 'lucide-react';
 import type { Project, SheetFormat } from '../domain/types';
 import { detailPath } from '../domain/hierarchy';
+import { drawingLabel } from '../domain/hierarchyPresentation';
 import {
   createSheet,
   deleteSheet,
@@ -347,16 +348,11 @@ export default function SheetManager({
                       onClick={() => onSelectView(v.id)}
                       title={detailPath(p, drawing.detailId)}
                     >
-                      {
-                        p.hierarchy.details.find(
-                          (d) => d.id === drawing.detailId,
-                        )?.name
-                      }{' '}
-                      · {drawing.name}
+                      {drawingLabel(p, drawing)}
                     </button>
                     <button
                       title="Abrir desenho em aba"
-                      aria-label={`Abrir desenho ${drawing.name}`}
+                      aria-label={`Abrir desenho ${drawingLabel(p, drawing)}`}
                       onClick={() => onOpenDrawing(drawing.id)}
                     >
                       <ExternalLink size={13} />
@@ -453,7 +449,11 @@ export default function SheetManager({
                 <option value="">Escolha um desenho…</option>
                 {p.hierarchy.drawings.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {detailPath(p, d.detailId)} · {d.name}
+                    {detailPath(p, d.detailId)}
+                    {drawingLabel(p, d) ===
+                    p.hierarchy.details.find((n) => n.id === d.detailId)?.name
+                      ? ''
+                      : ` · ${d.name}`}
                   </option>
                 ))}
               </select>
@@ -502,7 +502,11 @@ export default function SheetManager({
             >
               <ExternalLink size={13} />
               <span>
-                {detailPath(p, d.detailId)} · {d.name}
+                {detailPath(p, d.detailId)}
+                {drawingLabel(p, d) ===
+                p.hierarchy.details.find((n) => n.id === d.detailId)?.name
+                  ? ''
+                  : ` · ${d.name}`}
               </span>
             </button>
           ))}

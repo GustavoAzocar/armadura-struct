@@ -40,7 +40,7 @@ async function open(page: Page) {
 }
 async function organize(page: Page) {
   await dialog(page)
-    .getByText('Organizar pavimentos, elementos e detalhamentos', {
+    .getByText('Organizar pavimentos, grupos e detalhamentos', {
       exact: true,
     })
     .click();
@@ -96,17 +96,17 @@ test('estrutura personalizada tem os mesmos IDs da prévia, pais corretos, desti
   const floor0 = dialog(page).getByTestId('setup-floor').nth(0);
   await floor0.getByLabel('Nome do pavimento', { exact: true }).fill('Térreo');
   const el0 = dialog(page).getByTestId('setup-element').nth(0);
-  await el0.getByLabel('Nome do elemento', { exact: true }).fill('V01');
+  await el0.getByLabel('Nome do grupo', { exact: true }).fill('V01');
   await el0
     .getByLabel('Nome do detalhamento', { exact: true })
     .fill('Armação V01');
   await floor0
-    .getByRole('button', { name: 'Adicionar elemento', exact: true })
+    .getByRole('button', { name: 'Adicionar grupo', exact: true })
     .click();
   await dialog(page)
     .getByTestId('setup-element')
     .nth(1)
-    .getByLabel('Nome do elemento', { exact: true })
+    .getByLabel('Nome do grupo', { exact: true })
     .fill('P01');
   await dialog(page)
     .getByRole('button', { name: 'Adicionar pavimento', exact: true })
@@ -116,10 +116,10 @@ test('estrutura personalizada tem os mesmos IDs da prévia, pais corretos, desti
     .getByLabel('Nome do pavimento', { exact: true })
     .fill('Cobertura');
   await floor1
-    .getByRole('button', { name: 'Adicionar elemento', exact: true })
+    .getByRole('button', { name: 'Adicionar grupo', exact: true })
     .click();
   const el2 = dialog(page).getByTestId('setup-element').nth(2);
-  await el2.getByLabel('Nome do elemento', { exact: true }).fill('V02');
+  await el2.getByLabel('Nome do grupo', { exact: true }).fill('V02');
   await el2
     .getByLabel('Nome do detalhamento', { exact: true })
     .fill('Armação V02');
@@ -136,7 +136,7 @@ test('estrutura personalizada tem os mesmos IDs da prévia, pais corretos, desti
   await dialog(page)
     .locator('.setup-body')
     .evaluate((el) => (el.scrollTop = 0));
-  await page.screenshot({ path: 'docs/new-project-setup.png' });
+  await page.screenshot({ path: 'test-results/project-setup-legacy.png' });
   await dialog(page)
     .getByRole('button', { name: 'Criar projeto', exact: true })
     .click();
@@ -182,9 +182,9 @@ test('estrutura personalizada tem os mesmos IDs da prévia, pais corretos, desti
   expect(await save(page)).toEqual(q);
   await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
   await page
-    .getByRole('button', { name: 'Editar elemento V02', exact: true })
+    .getByRole('button', { name: 'Editar grupo V02', exact: true })
     .click();
-  await page.getByLabel('Nome do elemento', { exact: true }).fill('V03');
+  await page.getByLabel('Nome do grupo', { exact: true }).fill('V03');
   await page
     .getByRole('button', { name: 'Salvar alterações', exact: true })
     .click();
@@ -262,10 +262,8 @@ test('remoções explicam os filhos, mínimo e nomes inválidos são tratados; r
     .click();
   const f = dialog(page).getByTestId('setup-floor').nth(1);
   await f.getByLabel('Nome do pavimento', { exact: true }).fill('Cobertura');
-  await f
-    .getByRole('button', { name: 'Adicionar elemento', exact: true })
-    .click();
-  await f.getByLabel('Nome do elemento', { exact: true }).fill('V02');
+  await f.getByRole('button', { name: 'Adicionar grupo', exact: true }).click();
+  await f.getByLabel('Nome do grupo', { exact: true }).fill('V02');
   await f
     .getByRole('button', { name: 'Remover pavimento', exact: true })
     .click();
@@ -273,7 +271,7 @@ test('remoções explicam os filhos, mínimo e nomes inválidos são tratados; r
     name: 'Confirmar remoção do rascunho',
   });
   await expect(confirm).toContainText('V02');
-  await expect(confirm).toContainText('Desenho principal');
+  await expect(confirm).not.toContainText('Desenho principal');
   await confirm
     .getByRole('button', { name: 'Manter itens', exact: true })
     .click();
@@ -311,7 +309,7 @@ test('remoções explicam os filhos, mínimo e nomes inválidos são tratados; r
   await expect(dialog(page).getByTestId('setup-floor')).toHaveCount(1);
   await expect(
     dialog(page).getByLabel('Nome do pavimento', { exact: true }),
-  ).toHaveValue('Pavimento 1');
+  ).toHaveValue('Térreo');
 });
 
 test('nome apenas é rápido, confirmação e salvar cópia protegem substituição, clique duplo cria uma operação', async ({
@@ -394,7 +392,7 @@ test('reparentear no rascunho, teclado/foco e rolagem funcionam em janela menor 
     const element = dialog(page).getByTestId('setup-element').first();
     await element.getByText('Alterar pavimento', { exact: true }).click();
     await element
-      .getByLabel('Pavimento do elemento', { exact: true })
+      .getByLabel('Pavimento do grupo', { exact: true })
       .selectOption(id);
     await expect(newFloor.getByTestId('setup-element')).toHaveCount(1);
     await confirmProjectReplacement(page);

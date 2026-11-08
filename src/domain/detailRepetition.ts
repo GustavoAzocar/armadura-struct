@@ -85,12 +85,21 @@ export function mergeElements(
   p: Project,
   ids: string[],
 ): DetailRepetition['elements'] {
+  const names = ids.map(
+    (id) => p.hierarchy.details.find((d) => d.id === id)?.name,
+  );
   return ids.flatMap((id) => {
     const d = p.hierarchy.details.find((d) => d.id === id)!;
     if (d.repetition?.elements.length) return d.repetition.elements;
-    const e = p.hierarchy.elements.find((e) => e.id === d.elementId)!;
     return [
-      { name: e.name, elementId: e.id },
+      // A parent is a group (Vigas), not a physical occurrence. Keep existing
+      // explicit legacy links, but new merges snapshot each detail's identity.
+      {
+        name:
+          names.filter((name) => name === d.name).length > 1
+            ? detailPath(p, d.id)
+            : d.name,
+      },
       ...Array.from({ length: (d.repetition?.factor ?? 1) - 1 }, () => ({
         name: '',
       })),

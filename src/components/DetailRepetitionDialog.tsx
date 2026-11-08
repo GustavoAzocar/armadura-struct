@@ -268,8 +268,9 @@ export default function DetailRepetitionDialog({
             </label>
             <p className="field-help">
               Na configuração manual, a lista vazia usa o título do detalhe e o
-              fator. Na reunião, identifique todas as ocorrências. Elementos
-              vinculados conservam seus IDs ao renomear/mover na árvore.
+              fator. Na reunião, os nomes vêm dos detalhamentos (V1, V2…), não
+              do grupo Vigas/Pilares. Vínculos explícitos de projetos anteriores
+              são preservados.
             </p>
           </div>
           <div>

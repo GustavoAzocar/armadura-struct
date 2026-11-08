@@ -312,13 +312,16 @@ describe('reunião controlada de definições físicas', () => {
     const { p, ids } = copies();
     const upper = createHierarchyNode(p, 'floor', 'Superior');
     const e = upper.project.hierarchy.elements.find((e) => e.name === 'V2')!;
-    const q = updateHierarchyNode(
-      upper.project,
-      'element',
-      e.id,
-      'V1',
-      upper.id,
-    );
+    let q = updateHierarchyNode(upper.project, 'element', e.id, 'V1', upper.id);
+    // Existing files can still explicitly link occurrence names to legacy element IDs.
+    for (const id of ids.slice(0, 2)) {
+      const d = q.hierarchy.details.find((d) => d.id === id)!;
+      const el = q.hierarchy.elements.find((e) => e.id === d.elementId)!;
+      q = setDetailRepetition(q, id, {
+        factor: 1,
+        elements: [{ name: el.name, elementId: el.id }],
+      });
+    }
     const merged = previewMergeRepetitions(q, ids[0], [ids[1]]);
     expect(merged.issues).toEqual([]);
     expect(detailTitle(merged.project!, ids[0])).toContain('V1 (Superior)');
@@ -366,7 +369,15 @@ describe('reunião controlada de definições físicas', () => {
     expect(() => applyMergeRepetitions({ ...p }, plan)).toThrow(/mudou/);
   });
   it('escolher outro representante conserva seus IDs e nomes vinculados acompanham renomeação', () => {
-    const { p, ids } = copies();
+    let { p, ids } = copies();
+    for (const id of ids) {
+      const d = p.hierarchy.details.find((d) => d.id === id)!;
+      const el = p.hierarchy.elements.find((e) => e.id === d.elementId)!;
+      p = setDetailRepetition(p, id, {
+        factor: 1,
+        elements: [{ name: el.name, elementId: el.id }],
+      });
+    }
     const plan = previewMergeRepetitions(p, ids[1], [ids[0], ids[2]]);
     expect(plan.issues).toEqual([]);
     const q = plan.project!;

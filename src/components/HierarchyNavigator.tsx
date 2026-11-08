@@ -1,6 +1,13 @@
 import { detailTitle, barSearchText } from '../domain/detailQuantities';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  X,
+  Pencil,
+  FilePenLine,
+} from 'lucide-react';
 import type { Project } from '../domain/types';
 import {
   createHierarchyNode,
@@ -9,10 +16,16 @@ import {
   updateHierarchyNode,
   type HierarchyKind,
 } from '../domain/hierarchy';
+import {
+  nextGroupName,
+  nextDetailName,
+  elementGroups,
+  drawingLabel,
+} from '../domain/hierarchyPresentation';
 
 const nouns = {
   floor: 'pavimento',
-  element: 'elemento',
+  element: 'grupo',
   detail: 'detalhamento',
 };
 function groupBy<T>(nodes: T[], parent: (node: T) => string) {
@@ -42,6 +55,8 @@ export default function HierarchyNavigator({
   onEditDetail,
   onSelectDetail,
   onOpenDrawing,
+  scopeDetailId,
+  onOrganize,
 }: {
   project: Project;
   activeDetailId: string;
@@ -53,6 +68,8 @@ export default function HierarchyNavigator({
   onEditDetail: (id: string) => void;
   onSelectDetail: (id: string) => void;
   onOpenDrawing: (id: string) => void;
+  scopeDetailId?: string;
+  onOrganize: () => void;
 }) {
   const h = project.hierarchy;
   const index = useMemo(() => {
@@ -118,9 +135,13 @@ export default function HierarchyNavigator({
     [parent, setParent] = useState(''),
     [error, setError] = useState('');
   const [target, setTarget] = useState('');
+  useEffect(() => {
+    setEditor(null);
+    setError('');
+  }, [scopeDetailId]);
   const active = h.details.find((d) => d.id === activeDetailId)!;
   const activeElement = h.elements.find((e) => e.id === active.elementId)!;
-  const begin = (kind: HierarchyKind, id?: string) => {
+  const begin = (kind: HierarchyKind, id?: string, parentOverride?: string) => {
     setError('');
     const node =
       kind === 'floor'
@@ -128,22 +149,30 @@ export default function HierarchyNavigator({
         : kind === 'element'
           ? h.elements.find((e) => e.id === id)
           : h.details.find((d) => d.id === id);
-    setName(node?.name || '');
     const existingParent =
       kind === 'element'
         ? h.elements.find((e) => e.id === id)?.floorId
         : kind === 'detail'
           ? h.details.find((d) => d.id === id)?.elementId
           : undefined;
-    setParent(
+    const destination =
+      parentOverride ||
       existingParent ||
-        (kind === 'element' && editor?.kind === 'floor' && editor.id
+      (kind === 'element' && editor?.kind === 'floor' && editor.id
+        ? editor.id
+        : kind === 'detail' && editor?.kind === 'element' && editor.id
           ? editor.id
-          : kind === 'detail' && editor?.kind === 'element' && editor.id
-            ? editor.id
-            : kind === 'element'
-              ? activeElement.floorId
-              : active.elementId),
+          : kind === 'element'
+            ? activeElement.floorId
+            : active.elementId);
+    setParent(destination);
+    setName(
+      node?.name ??
+        (kind === 'element'
+          ? nextGroupName(project, destination)
+          : kind === 'detail'
+            ? nextDetailName(project, destination)
+            : ''),
     );
     setEditor({ kind, id });
   };
@@ -192,48 +221,109 @@ export default function HierarchyNavigator({
         <div
           className={`hierarchy-row ${activeDetailId === id ? 'active' : ''}`}
         >
-          <button
-            type="button"
-            aria-label={`${expanded ? 'Recolher' : 'Expandir'} ${nouns[kind]} ${title}`}
-            aria-expanded={expanded}
-            onClick={() =>
-              setOpen((current) =>
-                current.includes(id)
-                  ? current.filter((v) => v !== id)
-                  : [...current, id],
-              )
-            }
-          >
-            {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          </button>
+          {kind === 'detail' && (index.drawings.get(id)?.length ?? 0) <= 1 ? (
+            <span className="hierarchy-leaf">
+              <FilePenLine size={13} />
+            </span>
+          ) : (
+            <button
+              type="button"
+              aria-label={`${expanded ? 'Recolher' : 'Expandir'} ${nouns[kind]} ${title}`}
+              aria-expanded={expanded}
+              onClick={() =>
+                setOpen((current) =>
+                  current.includes(id)
+                    ? current.filter((v) => v !== id)
+                    : [...current, id],
+                )
+              }
+            >
+              {expanded ? (
+                <ChevronDown size={12} />
+              ) : (
+                <ChevronRight size={12} />
+              )}
+            </button>
+          )}
           <button
             type="button"
             className="hierarchy-name"
-            title={title}
-            aria-label={`Editar ${nouns[kind]} ${title}`}
+            title={
+              kind === 'detail'
+                ? `Abrir ${index.paths.get(id)}`
+                : scopeDetailId
+                  ? `Expandir ou recolher ${title}`
+                  : `Editar ${nouns[kind]} ${title}`
+            }
+            aria-label={`${kind === 'detail' ? 'Abrir' : scopeDetailId ? 'Consultar' : 'Editar'} ${nouns[kind]} ${title}`}
             onDoubleClick={() => {
               if (kind === 'detail') onEditDetail(id);
             }}
             onClick={() => {
-              begin(kind, id);
-              if (kind === 'detail') onActive(id);
+              if (kind === 'detail') {
+                const drawing = index.drawings.get(id)?.[0];
+                if (drawing) onOpenDrawing(drawing.id);
+                else onActive(id);
+              } else if (scopeDetailId)
+                setOpen((current) =>
+                  current.includes(id)
+                    ? current.filter((v) => v !== id)
+                    : [...current, id],
+                );
+              else begin(kind, id);
             }}
           >
             {title}
           </button>
           <small>{count}</small>
+          {kind === 'detail' ? (
+            <button
+              type="button"
+              className="hierarchy-row-action"
+              title="Renomear ou mover detalhamento"
+              aria-label={`Editar detalhamento ${title}`}
+              disabled={!!scopeDetailId && scopeDetailId !== id}
+              onClick={() => {
+                begin(kind, id);
+                onActive(id);
+              }}
+            >
+              <Pencil size={12} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="hierarchy-row-action"
+              title={
+                kind === 'floor'
+                  ? 'Adicionar grupo neste pavimento'
+                  : 'Adicionar detalhamento neste grupo'
+              }
+              aria-label={`Adicionar ${kind === 'floor' ? 'grupo' : 'detalhamento'} em ${title}`}
+              disabled={!!scopeDetailId}
+              onClick={() =>
+                begin(kind === 'floor' ? 'element' : 'detail', undefined, id)
+              }
+            >
+              <Plus size={12} />
+            </button>
+          )}
           {kind === 'detail' && (
             <button
               type="button"
               className="detail-edit-button"
               aria-label={`Abrir edição isolada de ${title}`}
+              disabled={!!scopeDetailId}
               onClick={() => onEditDetail(id)}
             >
               ↗
             </button>
           )}
         </div>
-        {expanded && <div className="hierarchy-children">{children}</div>}
+        {expanded &&
+          (kind !== 'detail' || (index.drawings.get(id)?.length ?? 0) > 1) && (
+            <div className="hierarchy-children">{children}</div>
+          )}
       </div>
     );
   };
@@ -243,17 +333,35 @@ export default function HierarchyNavigator({
         <span>Pesquisar no projeto</span>
         <input
           aria-label="Pesquisar no projeto"
-          placeholder="Pavimento, elemento, posição…"
+          placeholder="Pavimento, grupo, V1, N1…"
           value={search}
           onChange={(e) => onSearch(e.target.value)}
         />
       </label>
+      <p className="hierarchy-guide">
+        Pavimento → grupo → detalhamento
+        <br />
+        <small>
+          Ex.: Térreo → Vigas → V1. Clique no detalhamento para abrir.
+        </small>
+      </p>
+      {!!scopeDetailId && (
+        <p className="hierarchy-guide">
+          Navegue entre detalhamentos pelos nomes. Para criar ou mover grupos e
+          detalhamentos,{' '}
+          <button type="button" onClick={onOrganize}>
+            Organizar projeto
+          </button>
+          .
+        </p>
+      )}
       <div className="hierarchy-tools">
         {(['floor', 'element', 'detail'] as const).map((kind) => (
           <button
             type="button"
             key={kind}
             aria-label={`Adicionar ${nouns[kind]}`}
+            disabled={!!scopeDetailId}
             onClick={() => begin(kind)}
           >
             <Plus size={12} />
@@ -304,12 +412,12 @@ export default function HierarchyNavigator({
                           (index.drawings.get(d.id) || []).map((v) => (
                             <button
                               onClick={() => onOpenDrawing(v.id)}
-                              aria-label={`Abrir desenho ${v.name}`}
+                              aria-label={`Abrir desenho ${drawingLabel(project, v)}`}
                               className="hierarchy-drawing"
                               key={v.id}
                               title={v.name}
                             >
-                              ⌗ {v.name}
+                              ⌗ {drawingLabel(project, v)}
                             </button>
                           )),
                           index.counts.get(d.id) || 0,
@@ -387,24 +495,43 @@ export default function HierarchyNavigator({
             <span>Nome</span>
             <input
               aria-label={`Nome do ${nouns[editor.kind]}`}
+              autoFocus
+              placeholder={
+                editor.kind === 'floor'
+                  ? 'Térreo, Cobertura…'
+                  : editor.kind === 'element'
+                    ? 'Vigas, Pilares, Lajes…'
+                    : 'V1, V2, P1…'
+              }
+              list={
+                editor.kind === 'element' ? 'hierarchy-group-names' : undefined
+              }
               value={name}
               maxLength={100}
               required
               onChange={(e) => setName(e.target.value)}
             />
+            {editor.kind === 'element' && (
+              <datalist id="hierarchy-group-names">
+                {elementGroups.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            )}
           </label>
           {editor.kind !== 'floor' && (
             <label className="field">
               <span>
-                {editor.kind === 'element' ? 'Pavimento' : 'Elemento'}
+                {editor.kind === 'element' ? 'Pavimento' : 'Grupo de elementos'}
               </span>
               <select
                 aria-label={
                   editor.kind === 'element'
-                    ? 'Pavimento do elemento'
-                    : 'Elemento do detalhamento'
+                    ? 'Pavimento do grupo'
+                    : 'Grupo do detalhamento'
                 }
                 value={parent}
+                disabled={!!scopeDetailId}
                 onChange={(e) => setParent(e.target.value)}
               >
                 {(editor.kind === 'element'
@@ -433,6 +560,7 @@ export default function HierarchyNavigator({
             {editor.id && (
               <button
                 type="button"
+                disabled={!!scopeDetailId}
                 onClick={() => {
                   if (
                     apply(() =>
@@ -458,7 +586,13 @@ export default function HierarchyNavigator({
         <select
           aria-label="Detalhamento ativo"
           value={activeDetailId}
-          onChange={(e) => onActive(e.target.value)}
+          onChange={(e) => {
+            const drawing =
+              scopeDetailId &&
+              h.drawings.find((d) => d.detailId === e.target.value);
+            if (drawing) onOpenDrawing(drawing.id);
+            else onActive(e.target.value);
+          }}
         >
           {h.details.map((d) => (
             <option key={d.id} value={d.id}>
@@ -467,7 +601,7 @@ export default function HierarchyNavigator({
           ))}
         </select>
       </label>
-      {!!selected.length && (
+      {!scopeDetailId && !!selected.length && (
         <div className="hierarchy-assignment">
           <label className="field">
             <span>Mover seleção na hierarquia</span>

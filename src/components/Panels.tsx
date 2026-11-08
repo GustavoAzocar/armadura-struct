@@ -956,6 +956,7 @@ export function ProjectTree({
   onEditDetail,
   onSelectDetail,
   onOpenDrawing,
+  onOrganizeHierarchy,
 }: {
   project: Project;
   selected: string[];
@@ -973,6 +974,7 @@ export function ProjectTree({
   onEditDetail: (id: string) => void;
   onSelectDetail: (id: string) => void;
   onOpenDrawing: (id: string) => void;
+  onOrganizeHierarchy: () => void;
 }) {
   const treeKey = `armadurastruct.contentTree.${project.id}`;
   const [groups, setGroups] = useState<{ bars: boolean; masks: boolean }>(
@@ -1044,21 +1046,21 @@ export function ProjectTree({
         </small>
       </div>
       <div className="panel-scroll">
-        {!isolatedDetailId && (
-          <HierarchyNavigator
-            key={project.id}
-            project={project}
-            activeDetailId={activeDetailId}
-            onActive={onActiveDetail}
-            onChange={onHierarchy}
-            selected={maskId ? [maskId] : selected}
-            search={search}
-            onSearch={setSearch}
-            onEditDetail={onEditDetail}
-            onSelectDetail={onSelectDetail}
-            onOpenDrawing={onOpenDrawing}
-          />
-        )}
+        <HierarchyNavigator
+          key={project.id}
+          project={project}
+          activeDetailId={activeDetailId}
+          onActive={onActiveDetail}
+          onChange={onHierarchy}
+          selected={maskId ? [maskId] : selected}
+          search={search}
+          onSearch={setSearch}
+          onEditDetail={onEditDetail}
+          onSelectDetail={onSelectDetail}
+          onOpenDrawing={onOpenDrawing}
+          scopeDetailId={isolatedDetailId}
+          onOrganize={onOrganizeHierarchy}
+        />
         <p
           className="tree-content-caption"
           title={detailTitle(project, activeDetailId)}

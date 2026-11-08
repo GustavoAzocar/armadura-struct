@@ -162,7 +162,7 @@ export default function NumberingDialog({
             >
               <option value="project">Projeto</option>
               <option value="floor">Pavimento ativo</option>
-              <option value="element">Elemento ativo</option>
+              <option value="element">Grupo ativo</option>
               <option value="detail">Detalhamento ativo</option>
               <option value="selection">
                 Posições inteiramente selecionadas

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { Project } from '../domain/types';
 import { detailPath, type HierarchyKind } from '../domain/hierarchy';
+import { elementGroups } from '../domain/hierarchyPresentation';
 import {
   newProjectSetup,
   projectSetupIssues,
@@ -15,7 +16,7 @@ import {
 } from '../domain/projectSetup';
 const noun = {
   floor: 'pavimento',
-  element: 'elemento',
+  element: 'grupo',
   detail: 'detalhamento',
 };
 export default function NewProjectDialog({
@@ -136,22 +137,24 @@ export default function NewProjectDialog({
             : () => add(kind === 'floor' ? 'element' : 'detail', node.id)
         }
         parent={
-          kind === 'floor' ? undefined : (
+          kind === 'floor' ||
+          (kind === 'element' ? h.floors.length : h.elements.length) <
+            2 ? undefined : (
             <details className="setup-parent">
               <summary>
-                Alterar {kind === 'element' ? 'pavimento' : 'elemento'}
+                Alterar {kind === 'element' ? 'pavimento' : 'grupo'}
               </summary>
               <label>
                 <span>
                   {kind === 'element'
-                    ? 'Pavimento do elemento'
-                    : 'Elemento do detalhamento'}
+                    ? 'Pavimento do grupo'
+                    : 'Grupo do detalhamento'}
                 </span>
                 <select
                   aria-label={
                     kind === 'element'
-                      ? 'Pavimento do elemento'
-                      : 'Elemento do detalhamento'
+                      ? 'Pavimento do grupo'
+                      : 'Grupo do detalhamento'
                   }
                   value={parentId}
                   onChange={(e) =>
@@ -377,25 +380,26 @@ export default function NewProjectDialog({
             className="setup-summary"
             aria-label="Resumo da organização inicial"
           >
-            <b>Estrutura preparada</b>
+            <b>Início: {detailPath(p, draft.activeDetailId)}</b>
             <span>
-              {h.floors.length} pavimento(s) · {h.elements.length} elemento(s) ·{' '}
+              {h.floors.length} pavimento(s) · {h.elements.length} grupo(s) ·{' '}
               {h.details.length} detalhamento(s)
             </span>
-            <span>Início: {detailPath(p, draft.activeDetailId)}</span>
-            <small>
-              Um desenho principal por detalhamento e uma folha inicial vazia.
-              Nenhuma armadura é gerada.
-            </small>
+            <small>Uma folha inicial vazia; nenhuma armadura é gerada.</small>
           </div>
           <details className="setup-organization">
-            <summary>Organizar pavimentos, elementos e detalhamentos</summary>
-            <p className="field-help">
-              Esta é a prévia editável da árvore final. Renomeie os padrões ou
-              acrescente itens. Cada novo elemento recebe um detalhamento
-              inicial, que pode ser renomeado ou removido. Pavimento não é layer
-              CAD.
-            </p>
+            <summary>Organizar pavimentos, grupos e detalhamentos</summary>
+            <div className="setup-guide" aria-label="Como organizar o projeto">
+              <span>
+                <b>Pavimento</b>Térreo, Cobertura
+              </span>
+              <span>
+                <b>Grupo de elementos</b>Vigas, Pilares, Lajes
+              </span>
+              <span>
+                <b>Detalhamento</b>V1, V2, P1
+              </span>
+            </div>
             <button
               type="button"
               className="setup-add-floor"
@@ -421,7 +425,7 @@ export default function NewProjectDialog({
                         row(
                           'element',
                           el,
-                          `${f.name || 'Sem nome'} / Elemento ${ei + 1}`,
+                          `${f.name || 'Sem nome'} / Grupo de elementos ${ei + 1}`,
                           f.id,
                           <>
                             {h.details
@@ -432,18 +436,11 @@ export default function NewProjectDialog({
                                   d,
                                   `${f.name || 'Sem nome'} / ${el.name || 'Sem nome'} / Detalhamento ${di + 1}`,
                                   el.id,
-                                  <small className="setup-drawing">
-                                    ↳{' '}
-                                    {h.drawings
-                                      .filter((v) => v.detailId === d.id)
-                                      .map((v) => v.name)
-                                      .join(', ')}
-                                  </small>,
                                 ),
                               )}
                             {!h.details.some((d) => d.elementId === el.id) && (
                               <p className="field-help">
-                                Sem detalhamento neste elemento; poderá ser
+                                Sem detalhamento neste grupo; poderá ser
                                 preparado depois.
                               </p>
                             )}
@@ -452,7 +449,7 @@ export default function NewProjectDialog({
                       )}
                     {!h.elements.some((e) => e.floorId === f.id) && (
                       <p className="field-help">
-                        Sem elementos neste pavimento; você pode cadastrá-los
+                        Sem grupos neste pavimento; você pode cadastrá-los
                         depois.
                       </p>
                     )}
@@ -485,14 +482,11 @@ export default function NewProjectDialog({
             >
               <p>{impact.message}</p>
               <ul>
-                {[
-                  ...impact.floors,
-                  ...impact.elements,
-                  ...impact.details,
-                  ...impact.drawings,
-                ].map((n) => (
-                  <li key={n.id}>{n.name || 'Sem nome'}</li>
-                ))}
+                {[...impact.floors, ...impact.elements, ...impact.details].map(
+                  (n) => (
+                    <li key={n.id}>{n.name || 'Sem nome'}</li>
+                  ),
+                )}
               </ul>
               <button
                 type="button"
@@ -655,10 +649,24 @@ function SetupNode({
     >
       <div className="setup-node-row">
         <label className="field" htmlFor={`setup-node-${id}`}>
-          <span>{label}</span>
+          <span title={label}>
+            {kind === 'floor'
+              ? 'Pavimento'
+              : kind === 'element'
+                ? 'Grupo de elementos'
+                : 'Detalhamento'}
+          </span>
           <input
             id={`setup-node-${id}`}
             aria-label={`Nome do ${noun[kind]}`}
+            placeholder={
+              kind === 'floor'
+                ? 'Térreo, Cobertura…'
+                : kind === 'element'
+                  ? 'Vigas, Pilares, Lajes…'
+                  : 'V1, V2, P1…'
+            }
+            list={kind === 'element' ? `setup-groups-${id}` : undefined}
             maxLength={100}
             value={value}
             aria-invalid={!!error}
@@ -666,21 +674,26 @@ function SetupNode({
             onBlur={onBlur}
             onChange={(e) => onName(e.target.value)}
           />
+          {kind === 'element' && (
+            <datalist id={`setup-groups-${id}`}>
+              {elementGroups.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          )}
         </label>
         <div className="setup-node-actions">
           {onAdd && (
             <button
               type="button"
-              title={`Adicionar ${kind === 'floor' ? 'elemento' : 'detalhamento'} em ${value || 'Sem nome'}`}
+              title={`Adicionar ${kind === 'floor' ? 'grupo de elementos' : 'detalhamento'} em ${value || 'Sem nome'}`}
               aria-label={
-                kind === 'floor'
-                  ? 'Adicionar elemento'
-                  : 'Adicionar detalhamento'
+                kind === 'floor' ? 'Adicionar grupo' : 'Adicionar detalhamento'
               }
               onClick={onAdd}
             >
               <Plus size={14} />
-              <span>{kind === 'floor' ? 'Elemento' : 'Detalhamento'}</span>
+              <span>{kind === 'floor' ? 'Grupo' : 'Detalhamento'}</span>
             </button>
           )}
           <button
@@ -699,7 +712,7 @@ function SetupNode({
         </p>
       )}
       {parent}
-      <div className="setup-children">{children}</div>
+      {children && <div className="setup-children">{children}</div>}
     </section>
   );
 }

@@ -198,8 +198,11 @@ test('tree isolation protects history, file replacement and foreign objects, and
   await tree(page);
   const overview = await camera(page);
   await page
-    .getByRole('button', { name: 'Editar detalhamento Montagem', exact: true })
-    .dblclick();
+    .getByRole('button', {
+      name: 'Abrir edição isolada de Montagem',
+      exact: true,
+    })
+    .click();
   await expect(
     page.getByRole('region', { name: 'Edição isolada' }),
   ).toBeVisible();

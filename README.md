@@ -4,7 +4,7 @@
 
 CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com barras paramétricas, estribos, rebatimentos e quadro de aço automático. Desenvolvido por Ricardo Corsini e colaboradores.
 
-![Hierarquia do projeto e ambiente de edição do ArmaduraStruct](docs/hierarchy.png)
+![Pavimentos, grupos e detalhamentos no ArmaduraStruct](docs/project-groups-tree.png)
 
 [![Validação e build](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml)
 
@@ -20,7 +20,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 - [Máscaras nativas CAD](docs/MASCARAS-NATIVAS.md): linha, retângulo, círculo e polilinha editáveis, sem gerar aço, com controle compartilhado de referências importadas.
 
-- [Novo projeto com organização inicial](docs/NOVO-PROJETO.md): nome, pavimentos, elementos e detalhamentos em uma prévia editável, com criação rápida, rascunho isolado e substituição explícita do projeto atual.
+- [Organização por pavimento → grupo → detalhamento](docs/ORGANIZACAO-PROJETO.md): Térreo → Vigas → V1/V2, Pilares → P1; abertura direta pelo detalhamento e nomes sugeridos. [Novo projeto](docs/NOVO-PROJETO.md) mantém prévia editável, criação rápida, rascunho isolado e substituição explícita do projeto atual.
 
 - [Quadro de aço vinculado à prancha](docs/QUADRO-NA-PRANCHA.md), com prévia no cursor, inserção por clique, quantitativos por folha e resumo de peso configurável, em PDF vetorial.
 

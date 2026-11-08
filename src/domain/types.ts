@@ -100,6 +100,7 @@ export type BarRepresentation = LayerBinding & {
 };
 export type Detail = BarRepresentation;
 export type Floor = { id: string; name: string };
+/** UI group of elements (e.g. Vigas/Pilares); legacy contract/name retained for interchange. */
 export type StructuralElement = { id: string; floorId: string; name: string };
 export type ObjectOrigin = { projectId: string; objectId: string };
 export type DetailOrigin = {

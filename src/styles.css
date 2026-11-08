@@ -2222,6 +2222,51 @@ svg {
 .hierarchy-tree {
   margin: 8px 0;
 }
+.hierarchy-guide {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 5px 0;
+}
+.hierarchy-guide small {
+  font-size: 9px;
+}
+.hierarchy-leaf {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  flex-shrink: 0;
+}
+.hierarchy-row .hierarchy-row-action {
+  width: 22px;
+  height: 24px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.hierarchy-row-action svg {
+  display: block;
+  margin: auto;
+}
+.setup-guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.setup-guide span {
+  flex: 1;
+  min-width: 115px;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.setup-guide b {
+  display: block;
+  color: var(--text);
+  margin-bottom: 3px;
+}
 .hierarchy-row {
   display: flex;
   align-items: center;
@@ -3420,6 +3465,7 @@ button.hierarchy-drawing {
 .setup-node-row > .field {
   flex: 1;
   min-width: 0;
+  margin: 0;
 }
 .setup-node-actions {
   display: flex;

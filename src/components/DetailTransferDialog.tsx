@@ -252,9 +252,9 @@ export default function DetailTransferDialog({
           ) : (
             <>
               <label className="field">
-                <span>Elemento local de destino</span>
+                <span>Grupo local de destino</span>
                 <select
-                  aria-label="Elemento de destino da inserção"
+                  aria-label="Grupo de destino da inserção"
                   value={options.targetElementId}
                   onChange={(e) => patch({ targetElementId: e.target.value })}
                 >

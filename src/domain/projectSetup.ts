@@ -10,6 +10,7 @@ import {
   type HierarchyKind,
 } from './hierarchy';
 import type { Project } from './types';
+import { nextGroupName, nextDetailName } from './hierarchyPresentation';
 /** Only a detached native project and its initial editing destination; no second registry. */
 export type ProjectSetupDraft = { project: Project; activeDetailId: string };
 export type ProjectSetupIssue = {
@@ -25,6 +26,9 @@ export const PROJECT_SETUP_LIMITS = {
 } as const;
 export function newProjectSetup(): ProjectSetupDraft {
   const project = emptyProject();
+  project.hierarchy.floors[0].name = 'Térreo';
+  project.hierarchy.elements[0].name = 'Vigas';
+  project.hierarchy.details[0].name = 'V1';
   return { project, activeDetailId: project.hierarchy.details[0].id };
 }
 export function projectSetupIssues(
@@ -47,7 +51,7 @@ export function projectSetupIssues(
     if (!h[kind].length || h[kind].length > PROJECT_SETUP_LIMITS[kind])
       issues.push({
         field: 'structure',
-        message: `Mantenha de 1 a ${PROJECT_SETUP_LIMITS[kind]} itens em ${kind === 'floors' ? 'pavimentos' : kind === 'elements' ? 'elementos' : kind === 'details' ? 'detalhamentos' : 'desenhos'}.`,
+        message: `Mantenha de 1 a ${PROJECT_SETUP_LIMITS[kind]} itens em ${kind === 'floors' ? 'pavimentos' : kind === 'elements' ? 'grupos de elementos' : kind === 'details' ? 'detalhamentos' : 'desenhos'}.`,
       });
     for (const o of h[kind])
       try {
@@ -67,14 +71,14 @@ export function projectSetupIssues(
       issues.push({
         objectId: e.id,
         field: 'parent',
-        message: 'Escolha um pavimento existente para este elemento.',
+        message: 'Escolha um pavimento existente para este grupo.',
       });
   for (const d of h.details)
     if (!elements.has(d.elementId))
       issues.push({
         objectId: d.id,
         field: 'parent',
-        message: 'Escolha um elemento existente para este detalhamento.',
+        message: 'Escolha um grupo existente para este detalhamento.',
       });
   if (!h.details.some((d) => d.id === draft.activeDetailId))
     issues.push({
@@ -160,7 +164,7 @@ export function editProjectSetupNode(
   if (kind === 'element' && !h.floors.some((n) => n.id === parentId))
     throw new Error('Pavimento inexistente.');
   if (kind === 'detail' && !h.elements.some((n) => n.id === parentId))
-    throw new Error('Elemento inexistente.');
+    throw new Error('Grupo inexistente.');
   return {
     ...draft,
     project: {
@@ -202,24 +206,27 @@ export function addProjectSetupNode(
       : kind === 'element'
         ? h.elements.filter((e) => e.floorId === parentId)
         : h.details.filter((d) => d.elementId === parentId);
-  const base =
-    kind === 'floor'
-      ? 'Pavimento'
-      : kind === 'element'
-        ? 'Elemento'
-        : 'Detalhamento';
+  const base = 'Pavimento';
   let suffix = 1;
   while (siblings.some((n) => n.name === `${base} ${suffix}`)) suffix++;
   const made = createHierarchyNode(
     draft.project,
     kind,
-    `${base} ${suffix}`,
+    kind === 'floor'
+      ? `${base} ${suffix}`
+      : kind === 'element'
+        ? nextGroupName(draft.project, parentId!)
+        : nextDetailName(draft.project, parentId!),
     parentId,
   );
   const project =
     kind === 'element'
-      ? createHierarchyNode(made.project, 'detail', 'Detalhamento 1', made.id)
-          .project
+      ? createHierarchyNode(
+          made.project,
+          'detail',
+          nextDetailName(made.project, made.id),
+          made.id,
+        ).project
       : made.project;
   return { draft: { ...draft, project }, id: made.id };
 }
@@ -262,8 +269,8 @@ export function projectSetupRemoval(
     drawings,
     blocked,
     message: blocked
-      ? 'Mantenha ao menos um pavimento, um elemento e um detalhamento. Renomeie os itens mínimos ou prepare outro conjunto antes de remover este.'
-      : `Serão removidos deste rascunho ${floors.length} pavimento(s), ${elements.length} elemento(s), ${details.length} detalhamento(s) e ${drawings.length} desenho(s). Os filhos não serão transferidos.`,
+      ? 'Mantenha ao menos um pavimento, um grupo e um detalhamento. Renomeie os itens mínimos ou prepare outro conjunto antes de remover este.'
+      : `Serão removidos deste rascunho ${floors.length} pavimento(s), ${elements.length} grupo(s) e ${details.length} detalhamento(s), com seus desenhos vinculados. Os filhos não serão transferidos.`,
   };
 }
 export function removeProjectSetupNode(
@@ -307,9 +314,15 @@ export function hasProjectSetupToReplace(p: Project) {
     h.elements.length !== 1 ||
     h.details.length !== 1 ||
     h.drawings.length !== 1 ||
-    h.floors[0]?.name !== 'Pavimento 1' ||
-    h.elements[0]?.name !== 'Geral' ||
-    h.details[0]?.name !== 'Detalhamento 1' ||
+    ![
+      ['Pavimento 1', 'Geral', 'Detalhamento 1'],
+      ['Térreo', 'Vigas', 'V1'],
+    ].some(
+      ([f, e, d]) =>
+        h.floors[0]?.name === f &&
+        h.elements[0]?.name === e &&
+        h.details[0]?.name === d,
+    ) ||
     h.drawings[0]?.name !== 'Desenho principal' ||
     h.details.some((d) => d.grouped || d.repetition || d.source) ||
     JSON.stringify(p.layers) !== JSON.stringify(defaultLayers()) ||

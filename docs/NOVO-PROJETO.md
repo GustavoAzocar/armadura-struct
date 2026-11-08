@@ -4,24 +4,24 @@ O comando **Novo projeto**, na barra de acesso rápido ou na faixa **Arquivo**, 
 
 ## Criar apenas com o nome
 
-Informe **Nome do projeto** e clique em **Criar projeto**. O responsável é opcional. A estrutura mínima aparece no resumo: **Pavimento 1 → Geral → Detalhamento 1 → Desenho principal**, além de uma **Folha 1** vazia, sem vistas colocadas. Esses itens são renomeáveis; um único pavimento pode representar todo o projeto quando não houver subdivisão por andares.
+Informe **Nome do projeto** e clique em **Criar projeto**. O responsável é opcional. A estrutura mínima aparece no resumo: **Térreo → Vigas → V1**, além de uma **Folha 1** vazia, sem vistas colocadas. Os três níveis são pavimento, grupo de elementos e detalhamento. São renomeáveis; um único pavimento pode representar todo o projeto quando não houver subdivisão por andares. [Exemplos e navegação](ORGANIZACAO-PROJETO.md).
 
 Se houver um projeto em uso, confira o aviso e marque **Confirmar substituição do projeto atual**. **Salvar cópia do projeto atual** permite guardar um arquivo independente antes de criar. A criação é uma única operação do histórico: **Desfazer** recupera o projeto anterior; a recuperação automática passa a guardar o novo projeto. Pontos e comandos ainda não confirmados são cancelados ao criar e não fazem parte da cópia salva; o aviso informa essa condição.
 
 ## Preparar a árvore
 
-Abra **Organizar pavimentos, elementos e detalhamentos**. A própria árvore é a prévia editável do que será criado:
+Abra **Organizar pavimentos, grupos e detalhamentos**. A própria árvore é a prévia editável do que será criado:
 
-- Renomeie os itens mínimos existentes, evitando acrescentar cópias dos padrões. Por exemplo, renomeie **Pavimento 1** para **Térreo** e **Geral** para **V01**.
-- Use **+ Elemento** ao lado do pavimento para acrescentar **P01**. Cada novo elemento recebe um **Detalhamento 1** e um **Desenho principal**.
-- Use **Adicionar pavimento** para criar **Cobertura**. Ele começa vazio, sem acrescentar elementos inesperados. Use **+ Elemento** nele e renomeie o novo elemento para **V02**.
-- Use **+ Detalhamento** junto ao elemento para preparar outros desenhos. Cada detalhamento recebe um desenho principal; ambos reutilizam as entidades nativas do editor.
-- **Alterar pavimento** e **Alterar elemento** permitem mover itens entre pais existentes. O seletor mostra o caminho e a ordem dos itens, inclusive para nomes iguais.
+- O padrão já mostra **Térreo → Vigas → V1**. Renomeie os itens se necessário.
+- Use **+ Detalhamento** em Vigas para preparar V2, V3… Cada item abre diretamente seu desenho.
+- Use **+ Grupo** ao lado do pavimento para acrescentar Pilares, Lajes ou outra categoria. O novo grupo recebe seu primeiro detalhamento; Pilares começa com P1.
+- Use **Adicionar pavimento** para criar **Cobertura**. Ele começa vazio. Acrescente um grupo Vigas e seus detalhamentos.
+- **Alterar pavimento** e **Alterar grupo** permitem mover itens entre pais existentes. O seletor mostra o caminho e a ordem dos itens, inclusive para nomes iguais.
 - Escolha o **Detalhamento inicial ativo** pelo caminho completo. Ele será o destino dos próximos objetos.
 
 ![Prévia editável da organização inicial](new-project-setup.png)
 
-**Remover** mostra os filhos e desenhos afetados e exige confirmação. Os filhos são removidos apenas do rascunho, sem transferência implícita. Para preservá-los, cancele a remoção e mude seus pais primeiro. A remoção é impedida se eliminar o último pavimento, elemento ou detalhamento do projeto. Pavimentos e elementos vazios são permitidos, desde que a estrutura global mínima continue válida.
+**Remover** mostra os filhos afetados e informa que os desenhos vinculados acompanham a remoção; exige confirmação. Os filhos são removidos apenas do rascunho, sem transferência implícita. Para preservá-los, cancele a remoção e mude seus pais primeiro. A remoção é impedida se eliminar o último pavimento, grupo ou detalhamento do projeto. Pavimentos e grupos vazios são permitidos, desde que a estrutura global mínima continue válida.
 
 Nomes de pavimentos, elementos, detalhamentos e desenhos têm de 1 a 100 caracteres; o projeto e o responsável aceitam até 150. Espaços nas extremidades são normalizados na confirmação. Campos inválidos mostram mensagens próximas; vínculos e IDs também são validados antes de criar. Os limites seguem a persistência nativa: 1.000 pavimentos e 10.000 elementos, detalhamentos e desenhos.
 
@@ -45,6 +45,6 @@ Verificações automatizadas:
 - `tests/e2e/projectSetup.spec.ts`: Térreo/Cobertura e V01/P01/V02, prévia/final, barra no detalhe ativo, histórico, salvar/reabrir, edição lateral, todas as formas de cancelar, recuperação intacta, comandos pendentes, substituição/cópia, clique duplo, árvore em janela de 600 × 600, teclado/foco e fundos CAD claro/escuro.
 - Regressão dos testes existentes, `npm run check`, `npm run build` e `npm run format:check`.
 
-Resultado desta entrega: **383 testes de domínio/importação, 6 de distribuição e 76 fluxos de navegador aprovados**; build e formatação aprovados. O diálogo também foi aberto e cancelado duas vezes no servidor de desenvolvimento com React StrictMode, sem erros de página.
+Na revisão da organização por grupos, os testes de domínio/importação e distribuição, build, formatação e os fluxos de navegador do assistente, hierarquia, edição isolada e pranchas foram executados. Consulte também [Organização do projeto](ORGANIZACAO-PROJETO.md).
 
 Os fluxos foram exercitados no navegador Chromium. A interface e o domínio são compartilhados com o desktop Tauri; instaladores Linux/Windows não foram compilados nesta entrega. Os limites máximos do formato são validados, mas a árvore do assistente não é virtualizada para cadastros de milhares de itens.

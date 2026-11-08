@@ -48,10 +48,10 @@ test('hierarchy CRUD, same-named elements, ownership, reparenting and persistent
   await page
     .getByRole('button', { name: 'Criar projeto', exact: true })
     .click();
-  await create(page, 'elemento', 'V1');
+  await create(page, 'grupo', 'V1');
   await create(page, 'detalhamento', 'V1 térreo');
   await create(page, 'pavimento', 'Superior');
-  await create(page, 'elemento', 'V1');
+  await create(page, 'grupo', 'V1');
   await create(page, 'detalhamento', 'V1 superior');
   for (const value of ['B', '0,0', '1500,0', '']) await command(page, value);
   await page.keyboard.press('Escape');
@@ -81,11 +81,11 @@ test('hierarchy CRUD, same-named elements, ownership, reparenting and persistent
     }),
   });
   await floor
-    .getByRole('button', { name: 'Editar elemento V1', exact: true })
+    .getByRole('button', { name: 'Editar grupo V1', exact: true })
     .click();
-  await page.getByLabel('Nome do elemento', { exact: true }).fill('V2');
+  await page.getByLabel('Nome do grupo', { exact: true }).fill('V2');
   await page
-    .getByLabel('Pavimento do elemento', { exact: true })
+    .getByLabel('Pavimento do grupo', { exact: true })
     .selectOption(before.hierarchy.floors[0].id);
   await page
     .getByRole('button', { name: 'Salvar alterações', exact: true })
@@ -113,12 +113,12 @@ test('hierarchy CRUD, same-named elements, ownership, reparenting and persistent
   await expect(page.locator('.bar-row')).toHaveCount(1);
   await page.getByLabel('Pesquisar no projeto', { exact: true }).fill('');
   await page
-    .getByRole('button', { name: 'Recolher elemento V2', exact: true })
+    .getByRole('button', { name: 'Recolher grupo V2', exact: true })
     .click();
   await page.getByRole('tab', { name: 'Propriedades', exact: true }).click();
   await projectTab(page);
   await expect(
-    page.getByRole('button', { name: 'Expandir elemento V2', exact: true }),
+    page.getByRole('button', { name: 'Expandir grupo V2', exact: true }),
   ).toBeVisible();
 
   await page.getByTestId('project-input').setInputFiles({
@@ -130,7 +130,7 @@ test('hierarchy CRUD, same-named elements, ownership, reparenting and persistent
   await page.waitForTimeout(800);
   await page.reload();
   await expect(
-    page.getByRole('button', { name: 'Expandir elemento V2', exact: true }),
+    page.getByRole('button', { name: 'Expandir grupo V2', exact: true }),
   ).toBeVisible();
   expect(await save(page)).toEqual(moved);
   await expect(

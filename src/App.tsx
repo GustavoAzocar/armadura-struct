@@ -185,6 +185,7 @@ import {
 } from './lib/files';
 import { annotationError } from './domain/drafting';
 import { completeOwnership, detailPath } from './domain/hierarchy';
+import { drawingLabel } from './domain/hierarchyPresentation';
 import {
   assertDetailEdit,
   canEditDetailChange,
@@ -3112,7 +3113,7 @@ export default function App() {
                 })),
                 ...p.hierarchy.drawings.map((d) => ({
                   key: `drawing:${d.id}`,
-                  name: `${p.hierarchy.details.find((n) => n.id === d.detailId)?.name} · ${d.name}`,
+                  name: drawingLabel(p, d),
                   prefix: '⌗',
                   kind: 'desenho',
                 })),
@@ -3642,6 +3643,12 @@ export default function App() {
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 onOpenDrawing={openDrawing}
+                onOrganizeHierarchy={() => {
+                  switchDocument('model');
+                  isolationRef.current = undefined;
+                  setIsolation(null);
+                  setSidebarTab('project');
+                }}
                 onSelectDetail={(id) => select(detailObjectIds(p, id))}
                 onActiveDetail={activateDetail}
                 onHierarchy={(next) => commit(() => next)}
@@ -4439,9 +4446,9 @@ export default function App() {
                   />
                 </label>
                 <label className="field">
-                  <span>Elemento estrutural</span>
+                  <span>Grupo de elementos</span>
                   <select
-                    aria-label="Elemento do novo detalhamento"
+                    aria-label="Grupo do novo detalhamento"
                     value={groupElementId}
                     onChange={(e) => setGroupElementId(e.target.value)}
                   >

@@ -60,9 +60,9 @@ describe('Novo projeto · rascunho nativo e preparação atômica', () => {
     expect(h.elements).toHaveLength(1);
     expect(h.details).toHaveLength(1);
     expect(h.drawings).toHaveLength(1);
-    expect(h.floors[0].name).toBe('Pavimento 1');
-    expect(h.elements[0].name).toBe('Geral');
-    expect(h.details[0].name).toBe('Detalhamento 1');
+    expect(h.floors[0].name).toBe('Térreo');
+    expect(h.elements[0].name).toBe('Vigas');
+    expect(h.details[0].name).toBe('V1');
     expect(h.drawings[0].name).toBe('Desenho principal');
     expect(r.project.bars).toEqual([]);
     expect(r.project.details).toEqual([]);
