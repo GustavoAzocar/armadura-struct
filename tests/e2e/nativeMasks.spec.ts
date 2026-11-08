@@ -169,13 +169,11 @@ test('duas máscaras nativas, DXF e aço permanecem independentes durante cópia
     masks: [a, b, imported],
   });
   await load(page);
-  await page
-    .getByTestId('project-input')
-    .setInputFiles({
-      name: 'misto.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(seed)),
-    });
+  await page.getByTestId('project-input').setInputFiles({
+    name: 'misto.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(seed)),
+  });
   const before = await save(page);
   await page
     .getByRole('button', { name: 'Controle de máscaras', exact: true })
