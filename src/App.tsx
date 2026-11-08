@@ -1,3 +1,14 @@
+import FollowFormPanel, {
+  type FollowDraftValues,
+} from './components/FollowFormPanel';
+import {
+  MAX_FOLLOW_EDGES,
+  buildFollowChain,
+  chooseFollowSide,
+  followEdges,
+  previewFollow,
+  type FollowEdge,
+} from './domain/followForm';
 import MaskControl from './components/MaskControl';
 import MaskDestination from './components/MaskDestination';
 import {
@@ -163,7 +174,6 @@ import {
   add,
   distance,
   format,
-  offsetChain,
   rotate,
   sub,
   vertices,
@@ -227,6 +237,18 @@ type DocumentSession = {
     ribbon: string;
   };
 };
+type FollowRequest = {
+  project: Project;
+  document: string;
+  detailId: string;
+  scope?: string;
+  edges: FollowEdge[];
+  mode: 'edges' | 'side';
+  whole: boolean;
+  sidePoint?: Point;
+  flip: boolean;
+  values: FollowDraftValues;
+};
 type History = { past: Project[]; present: Project; future: Project[] };
 const prompts: Record<Tool, string> = {
   polyline:
@@ -254,7 +276,8 @@ const prompts: Record<Tool, string> = {
   detail: 'Indique onde posicionar o rebatimento da armadura.',
   distribute:
     'Indique o ponto final da distribuição. Ajuste quantidade e espaçamento no painel.',
-  follow: 'Clique em uma linha ou polilinha da máscara para criar a armadura.',
+  follow:
+    'Selecione uma ou várias arestas da fôrma, escolha o lado por clique e confirme com Enter.',
   measure: 'Indique dois pontos para medir a distância.',
 };
 const tools: Tool[] = [
@@ -485,6 +508,10 @@ export default function App() {
     [newSpacing, setNewSpacing] = useState(150),
     [splitAt, setSplitAt] = useState(500),
     [lap, setLap] = useState(0);
+  const [followRequest, setFollowRequest] = useState<FollowRequest | null>(
+    null,
+  );
+  const followConsumed = useRef(false);
   const [sidebarTab, setSidebarTab] = useState<
     'project' | 'properties' | 'sheets'
   >('project');
@@ -522,7 +549,7 @@ export default function App() {
   const captureDocument = (): DocumentSession => ({
     selected,
     maskId,
-    tool: nativeKind ? 'select' : tool,
+    tool: nativeKind || tool === 'follow' ? 'select' : tool,
     draft: nativeKind ? [] : draft,
     page,
     command: nativeKind ? '' : command,
@@ -913,6 +940,28 @@ export default function App() {
       );
       return;
     }
+    setFollowRequest(
+      t === 'follow'
+        ? {
+            project: historyRef.current.present,
+            document: documentKey,
+            detailId: activeDetailId,
+            scope: isolatedDetailId,
+            edges: [],
+            mode: 'edges',
+            whole: false,
+            flip: false,
+            values: {
+              cover: String(cover),
+              mandrel: String(newDiameter * 5),
+              extra: '0',
+              extraReason: '',
+            },
+          }
+        : null,
+    );
+    followConsumed.current = false;
+    if (t === 'follow') setTab('armaduras');
     setToolRaw(t);
     setDraft([]);
     setPage('drawing');
@@ -1016,7 +1065,11 @@ export default function App() {
       );
     });
   };
-  const insertBar = (b: Bar, removePolyline?: string) => {
+  const insertBar = (
+    b: Bar,
+    removePolyline?: string,
+    invalidateSchedule = false,
+  ) => {
     if (
       !commit((current) => {
         const commands: RebarCommand[] = [
@@ -1053,6 +1106,7 @@ export default function App() {
           current,
           executeRebarBatch(current, commands, {
             units: 'mm',
+            schedule: invalidateSchedule ? 'invalidate-lock' : 'preserve-lock',
             scopeDetailId: isolationRef.current,
             layerContext: documentKey,
           }),
@@ -1082,6 +1136,180 @@ export default function App() {
         }),
       ),
     );
+  const availableFollowEdges = useMemo(
+    () =>
+      tool === 'follow'
+        ? followEdges(p, {
+            key: documentKey,
+            detailId: activeDetailId,
+            scopeDetailId: isolatedDetailId,
+          })
+        : [],
+    [p, documentKey, activeDetailId, isolatedDetailId, tool],
+  );
+  const followResult = useMemo(() => {
+    if (!followRequest) return { error: '' };
+    try {
+      const chain = buildFollowChain(followRequest.edges);
+      if (!followRequest.sidePoint) return { chain, error: '' };
+      const parse = (text: string) =>
+        text.trim() ? Number(text.replace(',', '.')) : NaN;
+      const side = chooseFollowSide(
+        chain,
+        followRequest.sidePoint,
+        followRequest.flip,
+      );
+      try {
+        const preview = previewFollow(
+          followRequest.edges,
+          followRequest.sidePoint,
+          followRequest.flip,
+          {
+            cover: parse(followRequest.values.cover),
+            diameter: newDiameter,
+            mandrel: parse(followRequest.values.mandrel),
+            quantity: newQuantity,
+            extra: parse(followRequest.values.extra),
+            extraReason: followRequest.values.extraReason,
+          },
+        );
+        return { chain, side, preview, error: '' };
+      } catch (e) {
+        return { chain, side, error: (e as Error).message };
+      }
+    } catch (e) {
+      return { error: followRequest.edges.length ? (e as Error).message : '' };
+    }
+  }, [followRequest, newDiameter, newQuantity]);
+  useEffect(() => {
+    if (
+      followRequest &&
+      (followRequest.project !== p ||
+        followRequest.document !== documentKey ||
+        followRequest.detailId !== activeDetailId ||
+        followRequest.scope !== isolatedDetailId ||
+        tab !== 'armaduras' ||
+        page !== 'drawing')
+    ) {
+      setFollowRequest(null);
+      setToolRaw('select');
+      notify(
+        'Seguir fôrma cancelado: projeto, desenho, seleção de destino ou contexto mudou. Reinicie o comando.',
+      );
+    }
+  }, [
+    p,
+    documentKey,
+    activeDetailId,
+    isolatedDetailId,
+    tab,
+    page,
+    followRequest,
+  ]);
+  const pickFollowEdge = (key: string) => {
+    if (!followRequest || followRequest.project !== historyRef.current.present)
+      return;
+    const hit = availableFollowEdges.find((e) => e.key === key);
+    if (!hit) {
+      notify('Referência indisponível neste contexto.');
+      return;
+    }
+    const adding = followRequest.whole
+      ? availableFollowEdges.filter(
+          (e) =>
+            e.maskId === hit.maskId && e.primitiveIndex === hit.primitiveIndex,
+        )
+      : [hit];
+    if (adding.some((e) => e.unsupported)) {
+      notify(adding.find((e) => e.unsupported)!.unsupported!);
+      return;
+    }
+    const existing = new Set(followRequest.edges.map((e) => e.key));
+    if (
+      adding.filter((e) => !existing.has(e.key)).length + existing.size >
+      MAX_FOLLOW_EDGES
+    ) {
+      notify(
+        `Use até ${MAX_FOLLOW_EDGES} trechos por lançamento. Selecione apenas as arestas necessárias.`,
+      );
+      return;
+    }
+    setFollowRequest((current) => {
+      if (!current) return null;
+      const keys = new Set(adding.map((e) => e.key));
+      const remove = adding.every((e) =>
+        current.edges.some((c) => c.key === e.key),
+      );
+      if (
+        !remove &&
+        current.edges.filter((e) => !keys.has(e.key)).length + adding.length >
+          MAX_FOLLOW_EDGES
+      ) {
+        return current;
+      }
+      return {
+        ...current,
+        sidePoint: undefined,
+        flip: false,
+        edges: remove
+          ? current.edges.filter((e) => !keys.has(e.key))
+          : [...current.edges.filter((e) => !keys.has(e.key)), ...adding],
+      };
+    });
+  };
+  const finishFollow = () => {
+    const request = followRequest,
+      preview = followResult.preview;
+    if (!request || followConsumed.current) return;
+    if (!request.edges.length) {
+      notify('Selecione uma ou mais arestas da fôrma.');
+      return;
+    }
+    if (!request.sidePoint) {
+      setFollowRequest({ ...request, mode: 'side' });
+      notify('Escolha o lado por clique no CAD antes de confirmar.');
+      return;
+    }
+    if (!preview || followResult.error) {
+      notify(followResult.error);
+      return;
+    }
+    if (
+      request.project !== historyRef.current.present ||
+      request.document !== documentKey ||
+      request.detailId !== activeDetailId ||
+      request.scope !== isolatedDetailId
+    ) {
+      setTool('select');
+      notify('O destino mudou; reinicie Seguir fôrma.');
+      return;
+    }
+    if (
+      request.edges.some(
+        (e) => !availableFollowEdges.some((current) => current.key === e.key),
+      )
+    ) {
+      notify(
+        'Uma referência perdeu visibilidade/captura ou mudou. Reinicie a seleção.',
+      );
+      return;
+    }
+    followConsumed.current = true;
+    const bar = {
+      ...preview.bar,
+      id: uid(),
+      mark: nextMark(historyRef.current.present),
+    };
+    if (!insertBar(bar, undefined, true)) {
+      followConsumed.current = false;
+      return;
+    }
+    setFollowRequest(null);
+    setToolRaw('select');
+    notify(
+      `Uma armadura contínua criada pela API; confira as terminações. A máscara permanece independente.${request.project.scheduleLock ? ' RA desbloqueada e recalculada.' : ''}`,
+    );
+  };
   const alignmentPreview = useMemo(() => {
     if (!alignmentRequest)
       return { project: undefined, lines: undefined, error: '', items: [] };
@@ -1510,6 +1738,10 @@ export default function App() {
     }
   }, [nativeKind, nativeTarget]);
   const finish = () => {
+    if (tool === 'follow') {
+      finishFollow();
+      return;
+    }
     if (nativeKind) {
       if (draft.length >= 2) putNative(draft);
       return;
@@ -1547,6 +1779,13 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (tool === 'follow') {
+      if (followRequest?.mode === 'side')
+        setFollowRequest({ ...followRequest, sidePoint: point, flip: false });
+      else
+        notify('Clique nas linhas da máscara; depois escolha o lado no CAD.');
+      return;
+    }
     if (nativeKind) {
       if (!nativeTarget) {
         setNativeKind(undefined);
@@ -1903,16 +2142,10 @@ export default function App() {
   const follow = (primitive: Primitive, polylineId?: string) => {
     try {
       const points =
-        tool === 'convert'
-          ? primitive.closed &&
-            distance(primitive.points[0], primitive.points.at(-1)!) > 0.001
-            ? [...primitive.points, primitive.points[0]]
-            : primitive.points
-          : offsetChain(
-              primitive.points,
-              cover + newDiameter / 2,
-              !!primitive.closed,
-            );
+        primitive.closed &&
+        distance(primitive.points[0], primitive.points.at(-1)!) > 0.001
+          ? [...primitive.points, primitive.points[0]]
+          : primitive.points;
       const origin = points[0];
       if (points.length > 500)
         throw new Error(
@@ -1929,11 +2162,7 @@ export default function App() {
         },
         polylineId,
       );
-      notify(
-        tool === 'convert'
-          ? 'Polilinha convertida em armadura; confira as dobras.'
-          : 'Barra criada a partir da fôrma. Confira as dobras e defina as terminações.',
-      );
+      notify('Polilinha convertida em armadura; confira as dobras.');
     } catch (e) {
       notify((e as Error).message);
     }
@@ -2086,6 +2315,10 @@ export default function App() {
     }
 
     setContextMenu(null);
+    if (followRequest && ['undo', 'redo'].includes(a)) {
+      setTool('select');
+      return;
+    }
     if (
       (alignmentRequest || vertexRequest || scheduleRequest) &&
       ['undo', 'redo'].includes(a)
@@ -3233,6 +3466,7 @@ export default function App() {
           if (patch.diameter !== undefined) setNewDiameter(patch.diameter);
           if (patch.quantity !== undefined) setNewQuantity(patch.quantity);
           if (patch.spacing !== undefined) setNewSpacing(patch.spacing);
+          if (patch.cover !== undefined) setCover(patch.cover);
         }}
       />
       {p.id === INITIAL_EXAMPLE_ID && (
@@ -3517,20 +3751,66 @@ export default function App() {
             />
           ) : page === 'drawing' ? (
             <>
-              {tool === 'follow' && (
-                <div className="context-bar">
-                  <span>SEGUIR FÔRMA</span>
-                  <NumberField
-                    label="Cobrimento"
-                    value={cover}
-                    min={0}
-                    onChange={setCover}
-                    suffix="mm"
-                  />
-                  <span>
-                    Ø {newDiameter} mm · clique no contorno da máscara
-                  </span>
-                </div>
+              {tool === 'follow' && followRequest && (
+                <FollowFormPanel
+                  edges={followRequest.edges}
+                  order={followResult.chain?.order ?? []}
+                  mode={followRequest.mode}
+                  whole={followRequest.whole}
+                  values={followRequest.values}
+                  defaultCover={cover}
+                  diameter={newDiameter}
+                  quantity={newQuantity}
+                  side={followResult.side?.label}
+                  offset={followResult.preview?.offset}
+                  radius={followResult.preview?.radius}
+                  length={followResult.preview?.physical.length}
+                  adjustments={followResult.chain?.adjustments.length ?? 0}
+                  error={followResult.error}
+                  onValues={(v) =>
+                    setFollowRequest({
+                      ...followRequest,
+                      values: { ...followRequest.values, ...v },
+                    })
+                  }
+                  onMode={(mode) =>
+                    setFollowRequest({ ...followRequest, mode })
+                  }
+                  onWhole={(whole) =>
+                    setFollowRequest({ ...followRequest, whole })
+                  }
+                  onRemove={(key) =>
+                    setFollowRequest({
+                      ...followRequest,
+                      sidePoint: undefined,
+                      flip: false,
+                      mode: 'edges',
+                      edges: followRequest.edges.filter((e) => e.key !== key),
+                    })
+                  }
+                  onClear={() =>
+                    setFollowRequest({
+                      ...followRequest,
+                      edges: [],
+                      sidePoint: undefined,
+                      flip: false,
+                      mode: 'edges',
+                    })
+                  }
+                  onFlip={() =>
+                    setFollowRequest({
+                      ...followRequest,
+                      flip: !followRequest.flip,
+                    })
+                  }
+                  onDefault={() =>
+                    setFollowRequest({
+                      ...followRequest,
+                      values: { ...followRequest.values, cover: String(cover) },
+                    })
+                  }
+                  onCancel={() => setTool('select')}
+                />
               )}
               {nativeKind && (
                 <div className="context-bar">
@@ -3557,6 +3837,19 @@ export default function App() {
                 </div>
               )}
               <CadCanvas
+                followInteraction={
+                  tool === 'follow' && followRequest
+                    ? {
+                        mode: followRequest.mode,
+                        available: availableFollowEdges,
+                        selected: followRequest.edges,
+                        chain: followResult.chain,
+                        preview: followResult.preview,
+                        sidePoint: followRequest.sidePoint,
+                      }
+                    : undefined
+                }
+                onFollowEdge={pickFollowEdge}
                 nativeDrawing={!!nativeKind}
                 onNativePick={(maskId, entityId) => {
                   if (p.hierarchy.objectDetails[maskId] !== activeDetailId) {

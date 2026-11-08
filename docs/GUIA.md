@@ -299,3 +299,5 @@ Em **Armaduras → Relação do aço**, **Quadro de aço** mantém a consulta gl
 Arraste o quadro ou ajuste X/Y, texto e reserva no gerenciador. Um quadro por folha é atualizado automaticamente; repetir o comando reposiciona o existente. Vistas repetidas não duplicam aço. Alterações de composição que ultrapassem a área útil/selo bloqueiam o PDF. Uso, regras de escopo, formatos e limites em [Quadro na prancha](QUADRO-NA-PRANCHA.md).
 
 Para escolher uma máscara em qualquer detalhamento, criar sem aço ou acrescentar desenho local à referência importada, veja [Máscara ativa](MASCARA-ATIVA.md). A seleção gráfica e o destino ativo são independentes.
+
+Em **Armaduras → Seguir fôrma**, os cliques agora acumulam arestas sem criar aço. Use **Escolher lado no CAD**, confira o cobrimento/mandril e pressione **Enter fora dos campos** para criar uma barra contínua. Polilinha inteira é uma opção explícita; três lados de um retângulo podem ser escolhidos separadamente. Uso, medidas, padrões e limites em [Seguir fôrma por trechos](SEGUIR-FORMA.md).

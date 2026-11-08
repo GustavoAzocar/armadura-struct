@@ -167,3 +167,19 @@ export {
   localDrawingLayer,
 } from './domain/maskDrawing';
 export type { MaskDrawingContext } from './domain/maskDrawing';
+
+/** Straight form-face following: preview only; create with the atomic bar.create operation. */
+export {
+  FOLLOW_TOLERANCE_MM,
+  MAX_FOLLOW_EDGES,
+  followEdges,
+  buildFollowChain,
+  chooseFollowSide,
+  previewFollow,
+} from './domain/followForm';
+export type {
+  FollowContext,
+  FollowEdge,
+  FollowChain,
+  FollowParameters,
+} from './domain/followForm';

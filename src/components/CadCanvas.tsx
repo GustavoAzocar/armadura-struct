@@ -1,3 +1,8 @@
+import type {
+  FollowEdge,
+  FollowChain,
+  previewFollow,
+} from '../domain/followForm';
 import { physicalBarTextPrimitives } from '../domain/drawingPrimitives';
 import {
   visibilityProjection,
@@ -74,6 +79,15 @@ export type CadHandle = {
   getState: () => CadState;
 };
 type Props = {
+  followInteraction?: {
+    mode: 'edges' | 'side';
+    available: FollowEdge[];
+    selected: FollowEdge[];
+    chain?: FollowChain;
+    preview?: ReturnType<typeof previewFollow>;
+    sidePoint?: Point;
+  };
+  onFollowEdge?: (key: string) => void;
   nativeDrawing?: boolean;
   onNativePick?: (maskId: string, entityId: string) => void;
   extraSnapPoints?: Point[];
@@ -736,7 +750,26 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         if (!e.shiftKey) setSelected([]);
         setMarquee({ start: p, end: p });
       }
-    } else if (tool === 'follow' || tool === 'convert') {
+    } else if (tool === 'follow') {
+      if (props.followInteraction?.mode === 'side') {
+        // Side picking uses the actual model point, never a snap projected onto the face.
+        onPoint(fromScreen(screen));
+        return;
+      }
+      let best = 12 / view.s,
+        hit: FollowEdge | undefined;
+      for (const edge of props.followInteraction?.available ?? []) {
+        const d = distance(
+          fromScreen(screen),
+          nearest(fromScreen(screen), edge.a, edge.b),
+        );
+        if (d < best) {
+          best = d;
+          hit = edge;
+        }
+      }
+      if (hit) props.onFollowEdge?.(hit.key);
+    } else if (tool === 'convert') {
       let best = 16 / view.s,
         hit: Primitive | undefined,
         polylineId: string | undefined;
@@ -1237,6 +1270,76 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           transform={`translate(${size.w / 2 - view.x * view.s} ${size.h / 2 + view.y * view.s}) scale(${view.s} ${-view.s})`}
         >
           {maskContent}
+          {props.followInteraction && (
+            <g pointerEvents="none" data-testid="follow-preview">
+              <g
+                data-testid="follow-reference-selection"
+                stroke="#f59e0b"
+                strokeWidth={3 * stroke}
+              >
+                {props.followInteraction.selected.map((edge, index) => {
+                  const order = props.followInteraction!.chain?.order.indexOf(
+                    edge.key,
+                  );
+                  return (
+                    <g key={edge.key}>
+                      <line
+                        x1={edge.a.x}
+                        y1={edge.a.y}
+                        x2={edge.b.x}
+                        y2={edge.b.y}
+                      />
+                      <text
+                        x={0}
+                        y={0}
+                        stroke="none"
+                        fill="#f59e0b"
+                        fontSize={12 * stroke}
+                        transform={`translate(${(edge.a.x + edge.b.x) / 2} ${(edge.a.y + edge.b.y) / 2}) scale(1 -1)`}
+                      >
+                        {order === undefined ? index + 1 : order + 1}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+              {props.followInteraction.chain?.adjustments.map((a, i) => (
+                <circle
+                  key={i}
+                  cx={a.adjusted.x}
+                  cy={a.adjusted.y}
+                  r={4 * stroke}
+                  fill="#f97316"
+                />
+              ))}
+              {props.followInteraction.sidePoint && (
+                <circle
+                  data-testid="follow-side-point"
+                  cx={props.followInteraction.sidePoint.x}
+                  cy={props.followInteraction.sidePoint.y}
+                  r={5 * stroke}
+                  fill="#38bdf8"
+                />
+              )}
+              {props.followInteraction.preview && (
+                <g data-testid="follow-physical-preview">
+                  <path
+                    d={path(props.followInteraction.preview.worldSegments)}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth={props.followInteraction.preview.bar.diameter}
+                    opacity={0.3}
+                  />
+                  <path
+                    d={path(props.followInteraction.preview.worldSegments)}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth={2 * stroke}
+                  />
+                </g>
+              )}
+            </g>
+          )}
           {props.previewLines && (
             <g
               data-testid="transform-preview"

@@ -3672,3 +3672,53 @@ button.hierarchy-drawing {
 .mask-control .field select {
   max-width: 100%;
 }
+
+.follow-panel {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 11px;
+  max-height: 36dvh;
+  overflow: auto;
+}
+.follow-actions,
+.follow-parameters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.follow-panel button {
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  border-radius: 3px;
+}
+.follow-panel button[aria-pressed='true'] {
+  background: var(--accent);
+  color: white;
+}
+.follow-panel .field {
+  width: 160px;
+  margin: 3px 0;
+  font-size: 10px;
+}
+.follow-panel .field input {
+  height: 27px;
+}
+.follow-panel p {
+  margin: 4px 0;
+}
+.follow-panel [role='alert'] {
+  color: #b45309;
+}
+.follow-panel small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.follow-edge-list {
+  max-height: 100px;
+  overflow: auto;
+}
+.follow-edge-list li button {
+  margin-left: 8px;
+}

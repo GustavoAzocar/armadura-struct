@@ -483,6 +483,15 @@ export default function Ribbon({
                             onChange={(spacing) => onSettings({ spacing })}
                             suffix="mm"
                           />
+                          <NumberField
+                            label="Cobrimento padrão de criação"
+                            compactLabel="Cobrim."
+                            value={settings.cover}
+                            min={0}
+                            max={10000}
+                            onChange={(cover) => onSettings({ cover })}
+                            suffix="mm"
+                          />
                         </div>
                       )}
                     </span>

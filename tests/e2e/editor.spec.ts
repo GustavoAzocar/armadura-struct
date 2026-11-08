@@ -156,8 +156,11 @@ test('seleção por mouse, alteração de seção e enquadramento sem cortes', a
   await page.screenshot({ path: 'docs/preview.png' });
 });
 
-test('seguir fôrma por clique aplica cobrimento', async ({ page }) => {
+test('seguir fôrma acumula o contorno, escolhe lado e confirma cobrimento com Enter', async ({
+  page,
+}) => {
   await page.getByRole('button', { name: 'Seguir fôrma', exact: true }).click();
+  await page.getByLabel('Polilinha inteira', { exact: true }).check();
   const location = await page
     .getByTestId('cad-canvas')
     .evaluate(async (svg) => {
@@ -171,10 +174,23 @@ test('seguir fôrma por clique aplica cobrimento', async ({ page }) => {
       return { x: p.x, y: p.y };
     });
   await page.mouse.click(location.x, location.y);
+  expect((await saveProject(page)).bars).toHaveLength(3);
+  await page
+    .getByRole('button', { name: 'Escolher lado no CAD', exact: true })
+    .click();
+  const side = await page.getByTestId('cad-canvas').evaluate((svg) => {
+    const g = svg.querySelector('g[transform]') as SVGGElement;
+    const p = new DOMPoint(2500, 300).matrixTransform(g.getScreenCTM()!);
+    return { x: p.x, y: p.y };
+  });
+  await page.mouse.click(side.x, side.y);
+  await page.keyboard.press('Enter');
   await expect(page.getByLabel('Posição', { exact: true })).toHaveValue('N4');
   const saved = await saveProject(page),
     bar = saved.bars.at(-1);
-  expect(bar.origin).toEqual({ x: 34, y: 34 });
-  expect(Math.max(...bar.points.map((p: any) => p.x))).toBe(4932);
-  expect(Math.max(...bar.points.map((p: any) => p.y))).toBe(532);
+  const xs = bar.points.map((p: any) => p.x + bar.origin.x);
+  const ys = bar.points.map((p: any) => p.y + bar.origin.y);
+  expect(Math.min(...xs)).toBe(34);
+  expect(Math.max(...xs) - Math.min(...xs)).toBe(4932);
+  expect(Math.max(...ys) - Math.min(...ys)).toBe(532);
 });
