@@ -1,3 +1,4 @@
+import { setSheetSchedule } from '../domain/sheetSchedule';
 import { useMemo, useState } from 'react';
 import { Copy, Plus, ArrowUp, ArrowDown, X, ExternalLink } from 'lucide-react';
 import type { Project, SheetFormat } from '../domain/types';
@@ -20,6 +21,7 @@ import { composeSheet } from '../domain/paper';
 
 type Props = {
   project: Project;
+  onInsertSchedule: () => void;
   sheetId?: string;
   selectedView?: string;
   onSelectView: (id?: string) => void;
@@ -39,6 +41,7 @@ export default function SheetManager({
   onOpenDrawing,
   locked,
   onExportAll,
+  onInsertSchedule,
 }: Props) {
   const [newName, setNewName] = useState('');
   const sheet = p.sheets.find((s) => s.id === sheetId);
@@ -238,6 +241,88 @@ export default function SheetManager({
               desenhos e as armaduras permanecem no modelo. Use Desfazer para
               restaurar.
             </p>
+          </fieldset>
+        )}
+        {sheet && (
+          <fieldset className="sheet-properties" disabled={locked}>
+            <legend>Quadro de aço desta folha</legend>
+            <button onClick={onInsertSchedule}>
+              {sheet.steelSchedule
+                ? 'Reposicionar quadro de aço'
+                : 'Inserir quadro na prancha'}
+            </button>
+            {sheet.steelSchedule && (
+              <>
+                <p className="field-help">
+                  Vinculado aos detalhamentos colocados; várias vistas da mesma
+                  peça não multiplicam o aço. Arraste o quadro no papel para
+                  movê-lo.
+                </p>
+                <NumberField
+                  label="Quadro X"
+                  value={sheet.steelSchedule.origin.x}
+                  suffix="mm"
+                  onChange={(x) =>
+                    onChange((p) =>
+                      setSheetSchedule(p, sheet.id, {
+                        ...sheet.steelSchedule!,
+                        origin: { ...sheet.steelSchedule!.origin, x },
+                      }),
+                    )
+                  }
+                />
+                <NumberField
+                  label="Quadro Y"
+                  value={sheet.steelSchedule.origin.y}
+                  suffix="mm"
+                  onChange={(y) =>
+                    onChange((p) =>
+                      setSheetSchedule(p, sheet.id, {
+                        ...sheet.steelSchedule!,
+                        origin: { ...sheet.steelSchedule!.origin, y },
+                      }),
+                    )
+                  }
+                />
+                <NumberField
+                  label="Texto do quadro"
+                  value={sheet.steelSchedule.textHeight}
+                  min={1.8}
+                  max={5}
+                  suffix="mm"
+                  onChange={(textHeight) =>
+                    onChange((p) =>
+                      setSheetSchedule(p, sheet.id, {
+                        ...sheet.steelSchedule!,
+                        textHeight,
+                      }),
+                    )
+                  }
+                />
+                <NumberField
+                  label="Reserva de peso do quadro"
+                  value={sheet.steelSchedule.allowancePercent}
+                  min={0}
+                  max={100}
+                  suffix="%"
+                  onChange={(allowancePercent) =>
+                    onChange((p) =>
+                      setSheetSchedule(p, sheet.id, {
+                        ...sheet.steelSchedule!,
+                        allowancePercent,
+                      }),
+                    )
+                  }
+                />
+                <button
+                  onClick={() =>
+                    onChange((p) => setSheetSchedule(p, sheet.id, undefined))
+                  }
+                >
+                  Retirar quadro da folha
+                </button>
+              </>
+            )}
           </fieldset>
         )}
         {sheet && (

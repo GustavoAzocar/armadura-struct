@@ -59,6 +59,7 @@ export type Action =
   | 'pdf'
   | 'dxf'
   | 'csv'
+  | 'insert-sheet-schedule'
   | 'schedule'
   | 'help'
   | 'join'
@@ -317,6 +318,7 @@ export default function Ribbon({
           item('refresh-schedule', 'Atualizar RA', RefreshCw),
           item('lock-schedule', 'Bloquear RA', LockKeyhole),
           item('schedule', 'Quadro de aço', Table2),
+          item('insert-sheet-schedule', 'Inserir quadro na prancha', Table2),
           item('renumber', 'Renumerar', ListOrdered),
         ],
       },
@@ -388,6 +390,7 @@ export default function Ribbon({
                               'edit-detail',
                               'lock-schedule',
                               'refresh-schedule',
+                              'insert-sheet-schedule',
                             ].includes(t.action)) ||
                           (groupSelected &&
                             [

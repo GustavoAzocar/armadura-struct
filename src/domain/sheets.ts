@@ -1,3 +1,4 @@
+import { sheetSteelScheduleSchema } from './sheetSchedule';
 import {
   uid,
   type Project,
@@ -41,6 +42,7 @@ export function updateSheet(
   const sheet = requireSheet(p, id);
   const next = { ...sheet, ...patch, name: title(patch.name ?? sheet.name) };
   validateSheetLayout(next);
+  if (next.steelSchedule) sheetSteelScheduleSchema.parse(next.steelSchedule);
   if (
     (next.format !== 'custom' && !paper[next.format]) ||
     !['portrait', 'landscape'].includes(next.orientation)
@@ -88,6 +90,14 @@ export function duplicateSheet(
     customSize: { ...source.customSize },
     margins: { ...source.margins },
     seal: { ...source.seal },
+    ...(source.steelSchedule
+      ? {
+          steelSchedule: {
+            ...source.steelSchedule,
+            origin: { ...source.steelSchedule.origin },
+          },
+        }
+      : {}),
   };
   const originalViews = p.hierarchy.placements.filter((v) => v.sheetId === id);
   const copies = originalViews.map((v) => ({

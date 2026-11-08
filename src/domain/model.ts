@@ -1,3 +1,4 @@
+import { sheetSteelScheduleSchema } from './sheetSchedule';
 import { pruneVisibility } from './visibilitySchema';
 import { plotSettingsSchema } from './layerSchema';
 import { layerEnvironmentSchema } from './layerProfiles';
@@ -238,6 +239,7 @@ const schema = z.object({
     'armadurastruct/16',
     'armadurastruct/17',
     'armadurastruct/18',
+    'armadurastruct/19',
   ]),
   layerEnvironment: layerEnvironmentSchema.optional(),
   plotting: plotSettingsSchema.optional(),
@@ -247,6 +249,7 @@ const schema = z.object({
     .array(
       z.object({
         ...named,
+        steelSchedule: sheetSteelScheduleSchema.optional(),
         format: z.enum(['A0', 'A1', 'A2', 'A3', 'A4', 'custom']),
         customSize: z
           .object({
@@ -441,14 +444,18 @@ export function decodeProject(
       'armadurastruct/16',
       'armadurastruct/17',
       'armadurastruct/18',
+      'armadurastruct/19',
     ].includes(parsed.schema) &&
     !parsed.layers
   )
     throw new Error('Projeto v14 sem catálogo de layers.');
   if (
-    !['armadurastruct/16', 'armadurastruct/17', 'armadurastruct/18'].includes(
-      parsed.schema,
-    ) &&
+    ![
+      'armadurastruct/16',
+      'armadurastruct/17',
+      'armadurastruct/18',
+      'armadurastruct/19',
+    ].includes(parsed.schema) &&
     (parsed.plotting ||
       parsed.layers?.some((l) => l.plot) ||
       [
@@ -462,19 +469,26 @@ export function decodeProject(
   )
     throw new Error('Estilos de impressão exigem formato 16.');
   if (
-    !['armadurastruct/17', 'armadurastruct/18'].includes(parsed.schema) &&
+    !['armadurastruct/17', 'armadurastruct/18', 'armadurastruct/19'].includes(
+      parsed.schema,
+    ) &&
     Object.values(parsed.layerEnvironment?.contexts ?? {}).some(
       (c) => c.visibility,
     )
   )
     throw new Error('Visibilidade por objeto exige formato 17.');
   if (
-    parsed.schema !== 'armadurastruct/18' &&
+    !['armadurastruct/18', 'armadurastruct/19'].includes(parsed.schema) &&
     (parsed.bars.some((b) => b.stirrupMirrored !== undefined) ||
       parsed.details.some((d) => d.mirrored !== undefined) ||
       parsed.annotations.some((a) => a.frameRotation !== undefined))
   )
     throw new Error('Transformações orientadas exigem formato 18.');
+  if (
+    parsed.schema !== 'armadurastruct/19' &&
+    parsed.sheets?.some((s) => s.steelSchedule)
+  )
+    throw new Error('Quadros de aço em prancha exigem formato 19.');
   const modern =
     parsed.schema === 'armadurastruct/3' ||
     parsed.schema === 'armadurastruct/4' ||
@@ -491,7 +505,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/15' ||
     parsed.schema === 'armadurastruct/16' ||
     parsed.schema === 'armadurastruct/17' ||
-    parsed.schema === 'armadurastruct/18';
+    parsed.schema === 'armadurastruct/18' ||
+    parsed.schema === 'armadurastruct/19';
   if (modern && (!parsed.id || !parsed.hierarchy))
     throw new Error('Projeto sem identidade ou hierarquia.');
   let id = modern ? parsed.id! : legacyProjectId(raw);
@@ -539,6 +554,7 @@ export function decodeProject(
       'armadurastruct/16',
       'armadurastruct/17',
       'armadurastruct/18',
+      'armadurastruct/19',
     ].includes(parsed.schema)
   )
     throw new Error('Política de numeração exige formato 10.');
@@ -552,7 +568,8 @@ export function decodeProject(
     parsed.schema === 'armadurastruct/15' ||
     parsed.schema === 'armadurastruct/16' ||
     parsed.schema === 'armadurastruct/17' ||
-    parsed.schema === 'armadurastruct/18';
+    parsed.schema === 'armadurastruct/18' ||
+    parsed.schema === 'armadurastruct/19';
   if (
     !v9 &&
     [...parsed.bars, ...(parsed.scheduleLock?.bars ?? [])].some(hasArmatureData)
@@ -627,7 +644,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/18',
+    schema: 'armadurastruct/19',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -693,6 +710,7 @@ export function decodeProject(
       'armadurastruct/16',
       'armadurastruct/17',
       'armadurastruct/18',
+      'armadurastruct/19',
     ].includes(parsed.schema)
   ) {
     const preserve = <
@@ -742,6 +760,7 @@ export function decodeProject(
       'armadurastruct/16',
       'armadurastruct/17',
       'armadurastruct/18',
+      'armadurastruct/19',
     ].includes(parsed.schema) &&
     p.details.some(
       (d) =>
@@ -760,6 +779,7 @@ export function decodeProject(
       'armadurastruct/16',
       'armadurastruct/17',
       'armadurastruct/18',
+      'armadurastruct/19',
     ].includes(parsed.schema) &&
     p.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -772,6 +792,7 @@ export function decodeProject(
       'armadurastruct/16',
       'armadurastruct/17',
       'armadurastruct/18',
+      'armadurastruct/19',
     ].includes(parsed.schema) &&
     [...p.annotations, ...p.polylines].some((o) => o.barIds !== undefined)
   )
@@ -849,7 +870,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/18',
+    schema: 'armadurastruct/19',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

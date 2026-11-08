@@ -3313,3 +3313,25 @@ button.hierarchy-drawing {
   stroke: #c084fc;
   stroke-width: 0.4;
 }
+
+.sheet-schedule-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0.4;
+  cursor: move;
+}
+.selected > .sheet-schedule-hit {
+  stroke: #3448d1;
+  stroke-dasharray: 2 1;
+}
+.sheet-schedule-hint {
+  position: absolute;
+  bottom: 38px;
+  left: 15px;
+  right: 15px;
+  padding: 6px 10px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  pointer-events: none;
+}

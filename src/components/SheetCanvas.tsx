@@ -1,6 +1,11 @@
+import { sheetScheduleGeometry } from '../domain/sheetSchedule';
+import { sheetScheduleIssues } from '../domain/paper';
+import { plotPrimitives } from '../domain/plotting';
+import type { SheetSteelSchedule } from '../domain/types';
 import { dashArray } from '../domain/layers';
 import {
   forwardRef,
+  memo,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -18,7 +23,17 @@ import {
 import { sheetSize } from '../domain/sheets';
 import type { CadHandle, CadState, Camera } from './CadCanvas';
 
+const paperPoint = (p: Point): Point => ({
+  x: Number(p.x.toFixed(2)),
+  y: Number(p.y.toFixed(2)),
+});
 type Props = {
+  schedulePlacement?: Omit<SheetSteelSchedule, 'origin'>;
+  selectedSchedule?: boolean;
+  onSelectSchedule: () => void;
+  onMoveSchedule: (origin: Point) => void;
+  onPlaceSchedule: (origin: Point) => void;
+  onCancelSchedule: () => void;
   preview?: boolean;
   onReferencePoint?: (p: Point) => void;
   project: Project;
@@ -33,6 +48,12 @@ type Props = {
 export default forwardRef<CadHandle, Props>(function SheetCanvas(
   {
     project,
+    schedulePlacement,
+    selectedSchedule,
+    onSelectSchedule,
+    onMoveSchedule,
+    onPlaceSchedule,
+    onCancelSchedule,
     preview,
     onReferencePoint,
     sheet,
@@ -58,6 +79,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
     camera: Camera;
     id?: string;
     origin?: Point;
+    schedule?: boolean;
     delta: Point;
   } | null>(null);
   const placements = project.hierarchy.placements.filter(
@@ -67,6 +89,37 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
     () => composeSheet(project, sheet.id, true),
     [project, sheet],
   );
+  const [scheduleCursor, setScheduleCursor] = useState<Point | null>(null);
+  const scheduleGhost = useMemo(
+    () =>
+      schedulePlacement
+        ? sheetScheduleGeometry(project, sheet.id, {
+            ...schedulePlacement,
+            origin: { x: 0, y: 0 },
+          })
+        : undefined,
+    [project, sheet.id, schedulePlacement],
+  );
+  const ghostLines = useMemo(
+    () =>
+      scheduleGhost
+        ? plotPrimitives(project, scheduleGhost.lines, 'paper', 'paper')
+        : [],
+    [scheduleGhost, project],
+  );
+  const ghostOrigin = scheduleCursor ?? {
+    x: sheet.margins.left + 5,
+    y: paper.height - sheet.margins.top - 5,
+  };
+  const ghostIssues = scheduleGhost
+    ? sheetScheduleIssues(sheet, {
+        ...scheduleGhost,
+        frame: scheduleGhost.frame.map((p) => ({
+          x: p.x + ghostOrigin.x,
+          y: p.y + ghostOrigin.y,
+        })),
+      })
+    : [];
   const fit = () =>
     setView({
       x: paper.width / 2,
@@ -133,7 +186,10 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         aria-label={`Prévia da folha ${sheet.name}`}
         width={size.w}
         height={size.h}
-        onContextMenu={(e) => e.preventDefault()}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (schedulePlacement) onCancelSchedule();
+        }}
         onWheel={(e) => {
           const at = screenPoint(e),
             factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
@@ -149,6 +205,16 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         onPointerDown={(e) => {
           if (e.button !== 0 && e.button !== 1) return;
           e.preventDefault();
+          if (schedulePlacement && e.button === 0) {
+            const at = screenPoint(e);
+            onPlaceSchedule(
+              paperPoint({
+                x: view.x + (at.x - size.w / 2) / view.s,
+                y: view.y - (at.y - size.h / 2) / view.s,
+              }),
+            );
+            return;
+          }
           if (preview && e.button === 0 && !onReferencePoint) return;
           if (onReferencePoint && e.button === 0) {
             const at = screenPoint(e);
@@ -164,28 +230,45 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
                   .closest('[data-view-id]')
                   ?.getAttribute('data-view-id') ?? undefined)
               : undefined;
+          const isSchedule =
+            !pan &&
+            e.button === 0 &&
+            !!(e.target as Element).closest('[data-sheet-schedule]');
           const placement = placements.find((v) => v.id === id);
           lastViewHit.current = id;
-          if (e.button === 0 && !pan) onSelect(id);
-          if (id || pan || e.button === 1) {
+          if (e.button === 0 && !pan) {
+            if (isSchedule) onSelectSchedule();
+            else onSelect(id);
+          }
+          if (id || isSchedule || pan || e.button === 1) {
             e.currentTarget.setPointerCapture(e.pointerId);
             setDrag({
               start: screenPoint(e),
               camera: view,
               id,
-              origin: placement?.origin,
+              origin: isSchedule
+                ? sheet.steelSchedule?.origin
+                : placement?.origin,
+              schedule: isSchedule,
               delta: { x: 0, y: 0 },
             });
           }
         }}
         onPointerMove={(e) => {
+          if (schedulePlacement) {
+            const at = screenPoint(e);
+            setScheduleCursor({
+              x: view.x + (at.x - size.w / 2) / view.s,
+              y: view.y - (at.y - size.h / 2) / view.s,
+            });
+          }
           if (!drag) return;
           const at = screenPoint(e),
             delta = {
               x: (at.x - drag.start.x) / drag.camera.s,
               y: -(at.y - drag.start.y) / drag.camera.s,
             };
-          if (!drag.id)
+          if (!drag.id && !drag.schedule)
             setView({
               ...drag.camera,
               x: drag.camera.x - delta.x,
@@ -195,11 +278,13 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         }}
         onPointerUp={() => {
           if (
-            drag?.id &&
+            (drag?.id || drag?.schedule) &&
             drag.origin &&
             Math.hypot(drag.delta.x, drag.delta.y) > 0.01
           )
-            onMove(drag.id, {
+            (drag.schedule
+              ? (origin: Point) => onMoveSchedule(paperPoint(origin))
+              : (origin: Point) => onMove(drag.id!, origin))({
               x: drag.origin.x + drag.delta.x,
               y: drag.origin.y + drag.delta.y,
             });
@@ -207,7 +292,13 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         }}
         onPointerCancel={() => setDrag(null)}
         onDoubleClick={(e) => {
-          if (pan || preview) return;
+          if (
+            pan ||
+            preview ||
+            schedulePlacement ||
+            (e.target as Element).closest('[data-sheet-schedule]')
+          )
+            return;
           const id =
             (e.target as Element)
               .closest('[data-view-id]')
@@ -227,7 +318,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
             height={paper.height}
           />
           <PaperLines lines={composition.decorations} />
-          {!placements.length && (
+          {!placements.length && !sheet.steelSchedule && (
             <text
               x={paper.width / 2}
               y={-paper.height / 2}
@@ -266,8 +357,52 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
               </g>
             );
           })}
+          {composition.schedule && (
+            <g
+              data-sheet-schedule={sheet.id}
+              data-testid="sheet-steel-schedule"
+              className={selectedSchedule ? 'selected' : ''}
+              transform={`translate(${drag?.schedule ? drag.delta.x : 0} ${drag?.schedule ? drag.delta.y : 0})`}
+            >
+              <title>Quadro de aço desta folha · arraste para mover</title>
+              <polygon
+                className="sheet-schedule-hit"
+                points={composition.schedule.frame
+                  .map((p) => `${p.x},${p.y}`)
+                  .join(' ')}
+              />
+              <g pointerEvents="none">
+                <PaperLines lines={composition.schedule.lines} />
+              </g>
+            </g>
+          )}
+          {scheduleGhost && (
+            <g
+              data-testid="sheet-schedule-preview"
+              pointerEvents="none"
+              opacity="0.7"
+              transform={`translate(${ghostOrigin.x} ${ghostOrigin.y})`}
+            >
+              <polygon
+                fill="none"
+                stroke={ghostIssues.length ? '#ef4444' : '#a855f7'}
+                strokeWidth="0.4"
+                points={scheduleGhost.frame
+                  .map((p) => `${p.x},${p.y}`)
+                  .join(' ')}
+              />
+              <PaperLines lines={ghostLines} />
+            </g>
+          )}
         </g>
       </svg>
+      {schedulePlacement && (
+        <div className="sheet-schedule-hint" role="status">
+          {ghostIssues.length
+            ? ghostIssues.map((i) => i.message).join(' ')
+            : 'Clique para inserir o quadro pelo canto superior esquerdo · Esc cancela.'}
+        </div>
+      )}
       <div className="sheet-canvas-help">
         Duplo clique na vista: editar desenho · arraste: posicionar · roda: zoom
         · botão do meio: navegar
@@ -279,7 +414,11 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
   );
 });
 
-function PaperLines({ lines }: { lines: PaperPrimitive[] }) {
+const PaperLines = memo(function PaperLines({
+  lines,
+}: {
+  lines: PaperPrimitive[];
+}) {
   return (
     <>
       {lines.map((line, i) =>
@@ -330,4 +469,4 @@ function PaperLines({ lines }: { lines: PaperPrimitive[] }) {
       )}
     </>
   );
-}
+});

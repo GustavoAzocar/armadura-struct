@@ -12,6 +12,8 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- [Quadro de aço vinculado à prancha](docs/QUADRO-NA-PRANCHA.md), com prévia no cursor, inserção por clique, quantitativos por folha e resumo de peso configurável, em PDF vetorial.
+
 - [Alinhamento por bordas, centros e referência](docs/AS-23.md) de objetos, conjuntos e vistas, com afastamento uniforme, escolha do conjunto fixo, prévia e histórico.
 - [Inserção, continuação e remoção de vértices](docs/AS-25.md) de barras/polilinhas existentes, com prévia, validação de dobras e atualização de inserções e quantitativos.
 
@@ -102,7 +104,7 @@ Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composi
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos nos formatos 1–17 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/18`, com composição da quantidade, dados de montagem, posições de fabricação e repetição por detalhamento, contexto da RA bloqueada, origens, composição, vínculos validados e perfis de layers por desenho/vista. Aplicativos antigos não abrem esse formato; mantenha cópias dos originais. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
+- Projetos nos formatos 1–18 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/19`, com composição da quantidade, dados de montagem, posições de fabricação e repetição por detalhamento, contexto da RA bloqueada, origens, composição, vínculos validados e perfis de layers por desenho/vista. Aplicativos antigos não abrem esse formato; mantenha cópias dos originais. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
 - O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
 
 ## Verificar e compilar

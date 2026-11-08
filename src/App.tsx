@@ -1,3 +1,12 @@
+import SheetSchedulePanel, {
+  type SheetScheduleRequest,
+} from './components/SheetSchedulePanel';
+import {
+  defaultSheetSchedule,
+  setSheetSchedule,
+  sheetScheduleGeometry,
+} from './domain/sheetSchedule';
+import { sheetScheduleIssues } from './domain/paper';
 import AlignmentPanel, {
   type AlignmentSession,
 } from './components/AlignmentPanel';
@@ -312,6 +321,17 @@ export default function App() {
   const sessions = useRef(new Map<string, DocumentSession>());
   const sessionsProject = useRef('');
   const [selectedView, setSelectedView] = useState<string>();
+  const [selectedSchedule, setSelectedSchedule] = useState(false);
+  const [scheduleRequest, setScheduleRequest] =
+    useState<SheetScheduleRequest | null>(null);
+  useEffect(() => {
+    setSelectedSchedule(false);
+    setScheduleRequest((s) =>
+      s && s.projectId === p.id && documentKey === `sheet:${s.sheetId}`
+        ? s
+        : null,
+    );
+  }, [p.id, documentKey]);
   const visibilityKey =
     activeSheet && selectedView ? `view:${selectedView}` : documentKey;
   const currentVisibility = visibilityState(p, visibilityKey);
@@ -793,6 +813,7 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    setScheduleRequest(null);
     setAlignmentRequest(null);
     setVertexRequest(null);
     setTransformRequest(null);
@@ -1726,12 +1747,67 @@ export default function App() {
   };
   const action = async (a: Action) => {
     setContextMenu(null);
-    if ((alignmentRequest || vertexRequest) && ['undo', 'redo'].includes(a)) {
+    if (
+      (alignmentRequest || vertexRequest || scheduleRequest) &&
+      ['undo', 'redo'].includes(a)
+    ) {
+      setScheduleRequest(null);
       setAlignmentRequest(null);
       setVertexRequest(null);
       return;
     }
+    if (a === 'insert-sheet-schedule') {
+      if (isolationRef.current) {
+        notify(
+          'Conclua a edição isolada antes de inserir o quadro na prancha.',
+        );
+        return;
+      }
+      const drawingSheet =
+        activeDrawing &&
+        p.hierarchy.placements.find((v) => v.drawingId === activeDrawing.id)
+          ?.sheetId;
+      const openedSheet = [...documents.opened]
+        .reverse()
+        .find(
+          (key) =>
+            key.startsWith('sheet:') &&
+            p.sheets.some((s) => s.id === key.slice(6)),
+        )
+        ?.slice(6);
+      const target =
+        p.sheets.find(
+          (s) => s.id === (activeSheet?.id ?? drawingSheet ?? openedSheet),
+        ) ?? p.sheets[0];
+      if (!target) {
+        notify('Crie uma prancha no gerenciador para inserir o quadro de aço.');
+        setSidebarTab('sheets');
+        setSidebarOpen(true);
+        return;
+      }
+      setTool('select');
+      setDraft([]);
+      switchDocument(`sheet:${target.id}`);
+      setPageRaw('drawing');
+      setSelectedView(undefined);
+      setSelectedSchedule(false);
+      setSidebarTab('sheets');
+      const options = target.steelSchedule ?? defaultSheetSchedule();
+      setScheduleRequest({
+        projectId: p.id,
+        sheetId: target.id,
+        options: {
+          textHeight: options.textHeight,
+          allowancePercent: options.allowancePercent,
+        },
+      });
+      notify(
+        `Mova o cursor e clique em ${target.name} para inserir o quadro de aço.`,
+      );
+      return;
+    }
     if (a === 'align-selection') {
+      setScheduleRequest(null);
       try {
         const ids = activeSheet
           ? p.hierarchy.placements
@@ -1985,6 +2061,11 @@ export default function App() {
       return;
     }
     if (activeSheet && a === 'delete') {
+      if (selectedSchedule) {
+        commitLayout((p) => setSheetSchedule(p, activeSheet.id, undefined));
+        setSelectedSchedule(false);
+        return;
+      }
       if (selectedView) {
         commit((p) => removePlacement(p, selectedView));
         setSelectedView(undefined);
@@ -2250,7 +2331,10 @@ export default function App() {
       if (a === 'snap') setSnap(!snap);
       if (a === 'ortho') setOrtho(!ortho);
       if (a === 'dimensions') setDimensions(!dimensions);
-      if (a === 'schedule') setPage('schedule');
+      if (a === 'schedule') {
+        setScheduleRequest(null);
+        setPage('schedule');
+      }
       if (a === 'help') setModal('help');
       if (['dxf', 'csv'].includes(a)) {
         const { toCsv, toDxf } = await import('./lib/exports');
@@ -2462,7 +2546,8 @@ export default function App() {
         'input,textarea,select',
       );
       if (e.key === 'Escape') {
-        if (vertexRequest || alignmentRequest) {
+        if (vertexRequest || alignmentRequest || scheduleRequest) {
+          setScheduleRequest(null);
           setVertexRequest(null);
           setAlignmentRequest(null);
           return;
@@ -2888,6 +2973,21 @@ export default function App() {
                 )}
               </div>
             )}
+          {scheduleRequest && activeSheet && (
+            <SheetSchedulePanel
+              project={p}
+              value={scheduleRequest}
+              onSheet={(id) => {
+                switchDocument(`sheet:${id}`);
+                setPageRaw('drawing');
+                setScheduleRequest({ ...scheduleRequest, sheetId: id });
+              }}
+              onChange={(options) =>
+                setScheduleRequest({ ...scheduleRequest, options })
+              }
+              onCancel={() => setScheduleRequest(null)}
+            />
+          )}
           {alignmentRequest && (
             <AlignmentPanel
               value={alignmentRequest}
@@ -2910,8 +3010,61 @@ export default function App() {
               sheet={activeSheet}
               initialState={sessions.current.get(documentKey)?.camera}
               selectedView={selectedView}
+              selectedSchedule={selectedSchedule}
+              schedulePlacement={
+                scheduleRequest?.sheetId === activeSheet.id
+                  ? scheduleRequest.options
+                  : undefined
+              }
+              onSelectSchedule={() => {
+                setSelectedView(undefined);
+                setSelectedSchedule(true);
+                setSidebarTab('sheets');
+              }}
+              onMoveSchedule={(origin) => {
+                if (activeSheet.steelSchedule)
+                  commitLayout((p) =>
+                    setSheetSchedule(p, activeSheet.id, {
+                      ...activeSheet.steelSchedule!,
+                      origin,
+                    }),
+                  );
+              }}
+              onPlaceSchedule={(origin) => {
+                if (
+                  !scheduleRequest ||
+                  scheduleRequest.projectId !== p.id ||
+                  scheduleRequest.sheetId !== activeSheet.id
+                )
+                  return;
+                try {
+                  const value = { ...scheduleRequest.options, origin },
+                    table = sheetScheduleGeometry(p, activeSheet.id, value),
+                    issues = sheetScheduleIssues(activeSheet, table);
+                  if (issues.length) {
+                    notify(issues.map((i) => i.message).join(' '));
+                    return;
+                  }
+                  if (
+                    commitLayout((p) =>
+                      setSheetSchedule(p, activeSheet.id, value),
+                    )
+                  ) {
+                    setScheduleRequest(null);
+                    setSelectedView(undefined);
+                    setSelectedSchedule(true);
+                    notify(
+                      'Quadro de aço inserido e vinculado às armaduras desta prancha.',
+                    );
+                  }
+                } catch (e) {
+                  notify((e as Error).message);
+                }
+              }}
+              onCancelSchedule={() => setScheduleRequest(null)}
               pan={tool === 'pan'}
               onSelect={(id) => {
+                setSelectedSchedule(false);
                 setSelectedView(id);
                 setSidebarTab('sheets');
               }}
@@ -3123,7 +3276,11 @@ export default function App() {
                 project={p}
                 sheetId={activeSheet?.id}
                 selectedView={selectedView}
-                onSelectView={setSelectedView}
+                onInsertSchedule={() => action('insert-sheet-schedule')}
+                onSelectView={(id) => {
+                  setSelectedSchedule(false);
+                  setSelectedView(id);
+                }}
                 onChange={commitLayout}
                 onExportAll={() => exportPaper()}
                 onOpenSheet={(id) => {

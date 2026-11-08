@@ -1,3 +1,4 @@
+import { sheetScheduleGeometry } from './sheetSchedule';
 import { plotPrimitives } from './plotting';
 import {
   visibilityProjection,
@@ -5,16 +6,15 @@ import {
   visibilityState,
 } from './visibility';
 import { detailTitle } from './detailQuantities';
-import type { Point, Primitive, Project, Sheet, SheetPlacement } from './types';
+import type { Point, Project, Sheet, SheetPlacement } from './types';
 import { bounds, rotate } from './geometry';
 import { detailEditorView } from './detailEditing';
 import { drawingPrimitives } from './drawingPrimitives';
 import { sheetSize, validateSheetLayout } from './paperFormat';
 
 export type PaperRect = { x: number; y: number; width: number; height: number };
-export type PaperPrimitive = Primitive & {
-  textAlign?: 'left' | 'center' | 'right';
-};
+import type { PaperPrimitive } from './paperText';
+export type { PaperPrimitive } from './paperText';
 export type PaperIssue = { code: string; message: string; viewId?: string };
 export type PaperView = {
   placement: SheetPlacement;
@@ -30,89 +30,22 @@ export type PaperComposition = {
   useful: PaperRect;
   seal?: PaperRect;
   decorations: PaperPrimitive[];
+  schedule?: ReturnType<typeof sheetScheduleGeometry>;
   views: PaperView[];
   issues: PaperIssue[];
 };
-export const PAPER_FONT = 'Helvetica, Arial, sans-serif';
 export const paperInk = (layer: string) =>
   layer === 'MASCARA' ? '#8992a4' : layer === 'SELO' ? '#3448d1' : '#263044';
 export const paperLineWidth = (layer: string) =>
   ['MARGEM', 'SELO'].includes(layer) ? 0.25 : 0.18;
-// Standard Helvetica advance widths (1/1000 em), also used by the PDF base font.
-const advances = [
-  278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278,
-  278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584,
-  584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556,
-  833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278,
-  278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222,
-  500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500,
-  500, 334, 260, 334, 584,
-];
-export function paperText(value: string) {
-  return value
-    .replace(/%%c/g, 'Ø')
-    .replace(/[\r\n\t]/g, ' ')
-    .replace(/[–—−]/g, '-');
-}
-export function paperTextWidth(value: string, height: number) {
-  return [...paperText(value)].reduce((sum, char) => {
-    const base = char.normalize('NFD')[0],
-      code = base.charCodeAt(0);
-    const width =
-      char === 'Ø'
-        ? 778
-        : char === 'ø'
-          ? 556
-          : char === '·'
-            ? 278
-            : char === '°'
-              ? 400
-              : char === '×'
-                ? 584
-                : (advances[code - 32] ?? 1000);
-    return sum + (width * height) / 1000;
-  }, 0);
-}
-export function wrapPaperText(value: string, height: number, width: number) {
-  const lines: string[] = [];
-  let line = '';
-  for (const word of paperText(value).split(/\s+/).filter(Boolean)) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (line && paperTextWidth(candidate, height) > width) {
-      lines.push(line);
-      line = '';
-    }
-    for (const char of word) {
-      if (line && paperTextWidth(line + char, height) > width) {
-        lines.push(line);
-        line = '';
-      }
-      line += char;
-    }
-    line += ' ';
-  }
-  if (line.trim()) lines.push(line.trim());
-  return lines.map((s) => s.trim());
-}
-export function paperPrimitiveBounds(p: PaperPrimitive): Point[] {
-  if (!p.text || !p.points.length) return p.points;
-  const h = p.textHeight ?? 2.5,
-    w = paperTextWidth(p.text, h),
-    anchor = p.points[0];
-  const align =
-    p.textAlign ??
-    (['COTAS', 'DISTRIBUICAO'].includes(p.role ?? p.layer) ? 'center' : 'left');
-  const left = align === 'center' ? -w / 2 : align === 'right' ? -w : 0;
-  return [
-    { x: left, y: -h * 0.25 },
-    { x: left + w, y: -h * 0.25 },
-    { x: left + w, y: h },
-    { x: left, y: h },
-  ].map((v) => {
-    const q = rotate(v, p.textRotation ?? 0);
-    return { x: anchor.x + q.x, y: anchor.y + q.y };
-  });
-}
+export {
+  PAPER_FONT,
+  paperText,
+  paperTextWidth,
+  wrapPaperText,
+  paperPrimitiveBounds,
+} from './paperText';
+import { paperText, wrapPaperText, paperPrimitiveBounds } from './paperText';
 export function modelToPaper(point: Point, view: SheetPlacement): Point {
   const v = rotate(
     {
@@ -331,6 +264,41 @@ function overlaps(a: Point[], b: Point[]) {
     }
   return true;
 }
+export function sheetScheduleIssues(
+  sheet: Sheet,
+  table: ReturnType<typeof sheetScheduleGeometry>,
+): PaperIssue[] {
+  const issues: PaperIssue[] = [];
+  if (!contained(table.frame, usefulArea(sheet)))
+    issues.push({
+      code: 'schedule-paper-overflow',
+      message:
+        'Quadro de aço fora da área útil da folha. Mova-o, ajuste a altura do texto ou aumente o papel.',
+    });
+  const seal = sealArea(sheet);
+  if (seal && overlaps(table.frame, rectPoints(seal)))
+    issues.push({
+      code: 'schedule-seal-overlap',
+      message: 'Quadro de aço sobre a reserva do selo. Escolha outra posição.',
+    });
+  if (table.data.scheduleDirty)
+    issues.push({
+      code: 'schedule-stale',
+      message:
+        'RA bloqueada e desatualizada. Atualize ou desbloqueie a RA antes de inserir/exportar o quadro.',
+    });
+  if (table.data.rows.some((r) => r.errors.length))
+    issues.push({
+      code: 'schedule-geometry',
+      message: 'Corrija as geometrias inválidas das armaduras do quadro.',
+    });
+  if (table.lines.some((l) => l.text && /[^\x20-\xff]/.test(paperText(l.text))))
+    issues.push({
+      code: 'schedule-text-encoding',
+      message: 'Há texto do quadro fora do alfabeto latino suportado pelo PDF.',
+    });
+  return issues;
+}
 export function composeSheet(
   project: Project,
   sheetId: string,
@@ -478,6 +446,13 @@ export function composeSheet(
         frame,
       };
     });
+  const schedule = sheet.steelSchedule
+    ? sheetScheduleGeometry(project, sheetId, sheet.steelSchedule)
+    : undefined;
+  if (schedule) {
+    issues.push(...sheetScheduleIssues(sheet, schedule));
+    schedule.lines = plotPrimitives(project, schedule.lines, 'paper', 'paper');
+  }
   if (
     [...decorations, ...views.flatMap((v) => v.lines)].some(
       (l) => l.text && /[^\x20-\xff]/.test(l.text),
@@ -495,6 +470,7 @@ export function composeSheet(
     seal,
     decorations: plotPrimitives(project, decorations, 'paper', 'paper'),
     views,
+    schedule,
     issues,
   };
 }

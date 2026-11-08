@@ -591,6 +591,7 @@ export function toSheetPdf(
     for (const line of [
       ...page.decorations,
       ...page.views.flatMap((v) => v.lines),
+      ...(page.schedule?.lines ?? []),
     ]) {
       doc.setDrawColor(line.resolvedStyle?.color ?? paperInk(line.layer));
       doc.setTextColor(line.resolvedStyle?.color ?? paperInk(line.layer));

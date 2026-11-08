@@ -128,3 +128,11 @@ export type {
 } from './domain/alignment';
 export { editVertices, editablePath } from './domain/vertices';
 export type { VertexEdit } from './domain/vertices';
+
+export {
+  sheetScheduleData,
+  sheetScheduleGeometry,
+  defaultSheetSchedule,
+  setSheetSchedule,
+} from './domain/sheetSchedule';
+export type { SheetSteelSchedule } from './domain/types';

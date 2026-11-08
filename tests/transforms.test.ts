@@ -384,7 +384,7 @@ describe('AS-24 · transformação rígida da seleção', () => {
                 : p.details.map((d) => ({ ...d, label: undefined })),
           }),
         );
-      expect(q.schema).toBe('armadurastruct/18');
+      expect(q.schema).toBe('armadurastruct/19');
       expect(q.bars).toEqual(p.bars);
       expect(weight(q)).toBe(weight(p));
     },

@@ -136,7 +136,15 @@ export type DetailRepetition = {
 };
 export type DetailDrawing = { id: string; detailId: string; name: string };
 export type SheetFormat = 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'custom';
+export type SheetSteelSchedule = {
+  /** Upper left insertion point, in paper mm (Y increases upward). */
+  origin: Point;
+  textHeight: number;
+  allowancePercent: number;
+};
 export type Sheet = {
+  /** One live schedule per sheet, independent of drawing scales and physical steel. */
+  steelSchedule?: SheetSteelSchedule;
   id: string;
   name: string;
   format: SheetFormat;
@@ -231,7 +239,7 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/18';
+  schema: 'armadurastruct/19';
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;
   layers: DrawingLayer[];
