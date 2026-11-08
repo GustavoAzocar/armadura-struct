@@ -80,6 +80,7 @@ export type CadHandle = {
   getState: () => CadState;
 };
 type Props = {
+  highlightedMaskId?: string;
   followInteraction?: {
     mode: 'edges' | 'side';
     available: FollowEdge[];
@@ -1047,10 +1048,14 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 d={d}
                 data-layer-id={item.layerId}
                 strokeLinecap="round"
-                stroke={item.resolvedStyle?.color}
+                stroke={
+                  mask.id === props.highlightedMaskId
+                    ? '#38bdf8'
+                    : item.resolvedStyle?.color
+                }
                 strokeWidth={
                   Math.max(
-                    1,
+                    mask.id === props.highlightedMaskId ? 2.5 : 1,
                     ((item.resolvedStyle?.lineWidth ?? 0.18) * 96) / 25.4,
                   ) * stroke
                 }
@@ -1071,7 +1076,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               >
                 <text
                   fill={
-                    p.resolvedStyle?.color ?? (light ? '#7e899b' : '#8090aa')
+                    mask.id === props.highlightedMaskId
+                      ? '#38bdf8'
+                      : (p.resolvedStyle?.color ??
+                        (light ? '#7e899b' : '#8090aa'))
                   }
                   stroke="none"
                   textRendering="geometricPrecision"
@@ -1092,7 +1100,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         ))}
       </>
     ),
-    [masks, light, stroke],
+    [masks, light, stroke, props.highlightedMaskId],
   );
   const objectContent = useMemo(
     () => (

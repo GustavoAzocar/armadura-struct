@@ -71,12 +71,14 @@ export default function MaskDestination({
   onActivate,
   onCreate,
   onBatch,
+  onCalibrate,
 }: {
   project: Project;
   activeId?: string;
   context: MaskDrawingContext;
   onActivate: (id: string) => boolean;
   onCreate: () => void;
+  onCalibrate: () => void;
   onBatch: (mode: 'import' | 'associate') => void;
 }) {
   const [candidate, setCandidate] = useState(activeId ?? '');
@@ -118,6 +120,14 @@ export default function MaskDestination({
         onClick={() => onBatch('associate')}
       >
         Associar
+      </button>
+      <button
+        type="button"
+        aria-label="Ajustar escala da máscara ativa"
+        disabled={!activeId}
+        onClick={onCalibrate}
+      >
+        Escala por 2 pontos
       </button>
       <div
         className={`mask-destination-status ${state.editable ? 'editable' : 'protected'}`}

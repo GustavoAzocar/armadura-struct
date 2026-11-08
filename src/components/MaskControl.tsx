@@ -26,6 +26,7 @@ export default function MaskControl({
   creating,
   onDelete,
   onBatch,
+  onCalibrate,
   onClose,
 }: {
   project: Project;
@@ -41,6 +42,7 @@ export default function MaskControl({
   context: MaskDrawingContext;
   creating?: boolean;
   onDelete: (id: string) => boolean;
+  onCalibrate: (id: string) => boolean;
   onBatch: (mode: 'import' | 'associate') => void;
   onClose: () => void;
 }) {
@@ -179,6 +181,18 @@ export default function MaskControl({
               {drawState.reason}
             </p>
           )}
+          <button
+            disabled={!ready}
+            onClick={() => {
+              if (onCalibrate(m.id)) onClose();
+              else
+                setError(
+                  'Ajuste de escala bloqueado. Confira a visibilidade, os layers e o contexto da referência; nenhuma alteração foi aplicada.',
+                );
+            }}
+          >
+            Ajustar escala desta máscara por 2 pontos
+          </button>
           <button
             onClick={() => {
               if (onSelect(m.id)) onClose();

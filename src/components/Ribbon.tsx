@@ -46,6 +46,7 @@ export type Action =
   | Tool
   | 'cad-settings'
   | 'mask-control'
+  | 'mask-calibrate'
   | 'associate-masks'
   | 'mask-line'
   | 'mask-rectangle'
@@ -189,6 +190,10 @@ export default function Ribbon({
       { name: 'Ajuda', items: [item('help', 'Guia de uso', HelpCircle)] },
     ],
     Máscaras: [
+      {
+        name: 'Ferramentas',
+        items: [item('mask-calibrate', 'Ajustar escala', Ruler)],
+      },
       {
         name: 'Desenhar',
         items: [

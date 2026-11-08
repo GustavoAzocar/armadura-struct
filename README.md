@@ -12,6 +12,8 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- [Ajustar escala da máscara por dois pontos](docs/ESCALA-MASCARA.md): P1 fixo, distância real em mm/cm/m e decimal pt-BR, confirmação imediata, proteções e histórico sem alterar aço.
+
 - [Importação de máscaras em lote e associação](docs/MASCARAS-LOTE.md): preparação local de vários DXF/DWG, destinos por arquivo, hierarquia em rascunho, falhas explícitas e aplicação atômica; reassociação ou cópia independente sem mover aço.
 
 - [Configurações CAD](docs/CONFIGURACOES-CAD.md): padrões documentais de textos, armaduras, cotas, máscaras e linhas, com rascunho e atributos materializados somente nas próximas criações.

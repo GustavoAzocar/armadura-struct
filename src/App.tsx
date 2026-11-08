@@ -1,3 +1,13 @@
+import MaskCalibrationPanel, {
+  type MaskCalibrationSession,
+  type MaskCalibrationPreview,
+} from './components/MaskCalibrationPanel';
+import {
+  calibrationTarget,
+  calibrationDistance,
+  calibratedMask,
+  applyMaskCalibration,
+} from './domain/maskCalibration';
 import MaskBatchDialog, {
   type MaskBatchRequest,
 } from './components/MaskBatchDialog';
@@ -346,6 +356,9 @@ export default function App() {
   const [vertexRequest, setVertexRequest] = useState<VertexSession | null>(
     null,
   );
+  const [maskCalibration, setMaskCalibration] =
+    useState<MaskCalibrationSession | null>(null);
+  const calibrationConsumed = useRef(false);
   const [transformRequest, setTransformRequest] =
     useState<TransformSession | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -966,6 +979,7 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    setMaskCalibration(null);
     nativeSession.current = null;
     setNativeKind(undefined);
     setNativeCursor(undefined);
@@ -1809,6 +1823,150 @@ export default function App() {
     setDraft([]);
     return true;
   };
+  const startMaskCalibration = (id = drawingMaskId) => {
+    try {
+      const current = historyRef.current.present;
+      const mask = calibrationTarget(current, id, maskDrawingContext);
+      setTool('select');
+      setNativeEntity(undefined);
+      setMaskControl(false);
+      setTab('Máscaras');
+      setSelectedRaw([]);
+      setMaskId(mask.id);
+      calibrationConsumed.current = false;
+      setMaskCalibration({
+        project: current,
+        mask,
+        context: { ...maskDrawingContext },
+        activeAtStart: drawingMaskId,
+        points: [],
+        input: '',
+      });
+      notify(
+        `Ajustar escala: ${mask.name}. Escolha P1, que ficará fixo; depois P2 e a distância real em mm.`,
+      );
+      return true;
+    } catch (e) {
+      notify((e as Error).message);
+      if (!p.masks.some((m) => m.id === id)) {
+        setCreatingMask(false);
+        setMaskControl(true);
+      }
+      return false;
+    }
+  };
+  useEffect(() => {
+    const s = maskCalibration;
+    if (
+      s &&
+      (s.project !== p ||
+        s.context.key !== documentKey ||
+        s.context.detailId !== activeDetailId ||
+        s.context.scopeDetailId !== isolatedDetailId ||
+        s.activeAtStart !== drawingMaskId ||
+        maskId !== s.mask.id ||
+        tab !== 'Máscaras' ||
+        page !== 'drawing')
+    ) {
+      setMaskCalibration(null);
+      setToolRaw('select');
+      notify(
+        'Ajuste de escala cancelado: o projeto, máscara ou contexto mudou. Reinicie o comando no alvo correto.',
+      );
+    }
+  }, [
+    p,
+    documentKey,
+    activeDetailId,
+    isolatedDetailId,
+    drawingMaskId,
+    maskId,
+    tab,
+    page,
+    maskCalibration,
+  ]);
+  const calibrationPreview = useMemo<MaskCalibrationPreview>(() => {
+    const s = maskCalibration;
+    if (!s || s.points.length !== 2) return {};
+    try {
+      const current = calibrationDistance(s.points[0], s.points[1]);
+      if (!s.input.trim()) return { current };
+      try {
+        return calibratedMask(
+          s.mask,
+          s.points[0],
+          s.points[1],
+          parseLength(s.input),
+        );
+      } catch (e) {
+        return { current, error: (e as Error).message };
+      }
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  }, [maskCalibration?.mask, maskCalibration?.points, maskCalibration?.input]);
+  const calibrationLines = useMemo(() => {
+    if (!maskCalibration || maskCalibration.points.length !== 2)
+      return undefined;
+    const [p1, p2] = maskCalibration.points;
+    return [
+      { layer: 'CALIBRACAO_REFERENCIA', points: [p1, p2] },
+      ...(calibrationPreview.endpoint
+        ? [
+            {
+              layer: 'CALIBRACAO_RESULTADO',
+              points: [p1, calibrationPreview.endpoint],
+            },
+          ]
+        : []),
+    ];
+  }, [maskCalibration?.points, calibrationPreview.endpoint]);
+  const applyCalibration = (input = maskCalibration?.input ?? '') => {
+    const s = maskCalibration;
+    if (!s || calibrationConsumed.current) return;
+    try {
+      if (
+        s.project !== historyRef.current.present ||
+        s.context.key !== documentKey ||
+        s.context.scopeDetailId !== isolationRef.current ||
+        s.activeAtStart !== drawingMaskId ||
+        maskId !== s.mask.id
+      )
+        throw new Error('O alvo/contexto mudou. Reinicie o ajuste de escala.');
+      if (s.points.length !== 2)
+        throw new Error('Escolha P1 e P2 antes de informar a distância real.');
+      const desired = parseLength(input);
+      const result = applyMaskCalibration(
+        s.project,
+        s.mask,
+        s.points[0],
+        s.points[1],
+        desired,
+        maskDrawingContext,
+      );
+      calibrationConsumed.current = true;
+      if (result.project !== s.project && !commit(() => result.project)) {
+        calibrationConsumed.current = false;
+        throw new Error(
+          'Ajuste bloqueado. Confira os layers, visibilidade e contexto.',
+        );
+      }
+      setMaskCalibration(null);
+      setToolRaw('select');
+      setDraft([]);
+      notify(
+        result.project === s.project
+          ? 'Distância igual à atual: máscara preservada, sem novo histórico.'
+          : `Escala ajustada: ${s.mask.name} · fator ×${format(result.factor, 9)} · distância ${format(desired, 6)} mm. P1 fixo; Desfazer disponível.`,
+      );
+    } catch (e) {
+      calibrationConsumed.current = false;
+      setMaskCalibration((v) =>
+        v ? { ...v, issue: (e as Error).message } : v,
+      );
+      notify((e as Error).message);
+    }
+  };
   const activateDrawingMask = (id: string) => {
     const current = historyRef.current.present,
       target = current.masks.find((m) => m.id === id);
@@ -1923,6 +2081,10 @@ export default function App() {
     }
   }, [nativeKind, nativeTarget]);
   const finish = () => {
+    if (maskCalibration) {
+      applyCalibration();
+      return;
+    }
     if (tool === 'follow') {
       finishFollow();
       return;
@@ -1964,6 +2126,34 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (maskCalibration) {
+      if (maskCalibration.points.length >= 2) return;
+      try {
+        if (maskCalibration.project !== historyRef.current.present)
+          throw new Error('O projeto mudou. Reinicie a calibração.');
+        calibrationTarget(
+          historyRef.current.present,
+          maskCalibration.mask.id,
+          maskDrawingContext,
+        );
+        if (maskCalibration.points.length)
+          calibrationDistance(maskCalibration.points[0], point);
+        else if (
+          ![point.x, point.y].every(
+            (n) => Number.isFinite(n) && Math.abs(n) <= 1e9,
+          )
+        )
+          throw new Error('Informe um P1 finito dentro dos limites do modelo.');
+        setMaskCalibration({
+          ...maskCalibration,
+          points: [...maskCalibration.points, point],
+          issue: undefined,
+        });
+      } catch (e) {
+        setMaskCalibration({ ...maskCalibration, issue: (e as Error).message });
+      }
+      return;
+    }
     if (tool === 'follow') {
       if (followRequest?.mode === 'side')
         setFollowRequest({ ...followRequest, sidePoint: point, flip: false });
@@ -2466,6 +2656,33 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'mask-calibrate') {
+      startMaskCalibration();
+      return;
+    }
+    if (maskCalibration && ['undo', 'redo'].includes(a)) {
+      setMaskCalibration(null);
+      setToolRaw('select');
+      notify('Ajuste de escala cancelado; o projeto não foi alterado.');
+      return;
+    }
+    if (
+      maskCalibration &&
+      ![
+        'fit',
+        'snap',
+        'ortho',
+        'grid',
+        'dimensions',
+        'sidebar',
+        'focus',
+        'save',
+      ].includes(a)
+    ) {
+      setMaskCalibration(null);
+      setToolRaw('select');
+    }
+
     if (a === 'import' || a === 'associate-masks') {
       startMaskBatch(a === 'import' ? 'import' : 'associate');
       return;
@@ -3159,6 +3376,15 @@ export default function App() {
     const value = raw.trim();
     setCommand('');
     if (
+      maskCalibration?.points.length === 2 &&
+      !['U', 'REDO', 'F', 'ZOOM', 'MASCARAS', 'IMPORTAR', 'V', 'H'].includes(
+        value.toUpperCase(),
+      )
+    ) {
+      applyCalibration(value || maskCalibration.input);
+      return;
+    }
+    if (
       vertexRequest?.mode === 'lengthen' &&
       /^(?:FINAL\s+)?[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*(?:mm|cm|m)?$/i.test(value)
     ) {
@@ -3208,6 +3434,7 @@ export default function App() {
       BARRA: 'bar',
       L: 'bar',
       MASCARAS: 'mask-control',
+      CALIBRARMASCARA: 'mask-calibrate',
       LINHA: 'mask-line',
       RETANGULO: 'mask-rectangle',
       CIRCULO: 'mask-circle',
@@ -3284,7 +3511,7 @@ export default function App() {
       const p = add(
         vertexRequest
           ? (vertexPreview.anchor ?? { x: 0, y: 0 })
-          : (draft.at(-1) ?? { x: 0, y: 0 }),
+          : (maskCalibration?.points.at(-1) ?? draft.at(-1) ?? { x: 0, y: 0 }),
         rotate({ x: Number(polar[1]), y: 0 }, Number(polar[2])),
       );
       onPoint(p);
@@ -3295,7 +3522,9 @@ export default function App() {
     );
     if (xy) {
       const base = xy[1]
-        ? ((vertexRequest ? vertexPreview.anchor : draft.at(-1)) ?? {
+        ? ((vertexRequest
+            ? vertexPreview.anchor
+            : (maskCalibration?.points.at(-1) ?? draft.at(-1))) ?? {
             x: 0,
             y: 0,
           })
@@ -3349,6 +3578,13 @@ export default function App() {
         'input,textarea,select',
       );
       if (e.key === 'Escape') {
+        if (maskCalibration) {
+          setMaskCalibration(null);
+          setToolRaw('select');
+          cmdInput.current?.blur();
+          notify('Ajuste de escala cancelado.');
+          return;
+        }
         if (vertexRequest || alignmentRequest || scheduleRequest) {
           setScheduleRequest(null);
           setVertexRequest(null);
@@ -3571,6 +3807,7 @@ export default function App() {
           snap,
           ortho,
           dimensions,
+          'mask-calibrate': !!maskCalibration,
           'lock-schedule': !!p.scheduleLock,
           sidebar: sidebarOpen,
           focus,
@@ -3582,6 +3819,7 @@ export default function App() {
         groupSelected={groupSelection}
         maskDestination={
           <MaskDestination
+            onCalibrate={() => startMaskCalibration()}
             onBatch={(mode) => startMaskBatch(mode)}
             project={p}
             activeId={drawingMaskId}
@@ -3993,6 +4231,7 @@ export default function App() {
                       }
                     : undefined
                 }
+                highlightedMaskId={maskCalibration?.mask.id}
                 onFollowEdge={pickFollowEdge}
                 nativeDrawing={!!nativeKind}
                 onNativePick={(maskId, entityId) => {
@@ -4009,6 +4248,7 @@ export default function App() {
                   setMaskControl(true);
                 }}
                 previewLines={
+                  calibrationLines ??
                   nativePreview ??
                   (vertexRequest
                     ? vertexPreview.lines
@@ -4034,10 +4274,13 @@ export default function App() {
                         ],
                         vertexPreview.previewBar,
                       )
-                    : transformRequest?.base
+                    : (maskCalibration?.points[0] ?? transformRequest?.base)
                 }
                 commandActive={
-                  !!transformRequest || !!vertexRequest || !!alignmentRequest
+                  !!maskCalibration ||
+                  !!transformRequest ||
+                  !!vertexRequest ||
+                  !!alignmentRequest
                 }
                 onContextRequest={(ids, point, screen) => {
                   setContextMenu({ ids, point, screen });
@@ -4052,7 +4295,10 @@ export default function App() {
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 tool={
-                  transformRequest || vertexRequest || alignmentRequest
+                  maskCalibration ||
+                  transformRequest ||
+                  vertexRequest ||
+                  alignmentRequest
                     ? 'measure'
                     : tool
                 }
@@ -4063,9 +4309,13 @@ export default function App() {
                 onFinish={finish}
                 onBarChange={editBar}
                 draft={
-                  vertexRequest && vertexPreview.anchor
-                    ? [vertexPreview.anchor]
-                    : draft
+                  maskCalibration
+                    ? maskCalibration.points.length === 1
+                      ? maskCalibration.points
+                      : []
+                    : vertexRequest && vertexPreview.anchor
+                      ? [vertexPreview.anchor]
+                      : draft
                 }
                 grid={grid}
                 snap={snap}
@@ -4092,6 +4342,27 @@ export default function App() {
                 }}
                 showDimensions={dimensions}
               />
+              {maskCalibration && (
+                <MaskCalibrationPanel
+                  value={maskCalibration}
+                  preview={calibrationPreview}
+                  onInput={(input) =>
+                    setMaskCalibration((s) =>
+                      s ? { ...s, input, issue: undefined } : s,
+                    )
+                  }
+                  onApply={() => applyCalibration()}
+                  onCancel={() => {
+                    setMaskCalibration(null);
+                    setToolRaw('select');
+                  }}
+                  onRepick={() =>
+                    setMaskCalibration((s) =>
+                      s ? { ...s, points: [], input: '', issue: undefined } : s,
+                    )
+                  }
+                />
+              )}
               {vertexRequest && (
                 <VertexPanel
                   value={vertexRequest}
@@ -4882,6 +5153,7 @@ export default function App() {
           entity={nativeEntity}
           onActivate={activateDrawingMask}
           onOpenContext={openMaskContext}
+          onCalibrate={startMaskCalibration}
           onBatch={(mode) => startMaskBatch(mode)}
           onClose={() => setMaskControl(false)}
           onSelect={(id) => {
