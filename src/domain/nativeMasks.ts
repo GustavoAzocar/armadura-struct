@@ -7,6 +7,15 @@ export type NativeShape =
       closed: boolean;
     }
   | { kind: 'circle'; center: Point; radius: number };
+/** Scale analytic data to edit any mask in physical mm along its local axes. */
+export function scaleNativeShape(s: NativeShape, k: number): NativeShape {
+  if (!Number.isFinite(k) || k <= 0)
+    throw new Error('Fator de escala inválido.');
+  const point = (p: Point) => ({ x: p.x * k, y: p.y * k });
+  return s.kind === 'circle'
+    ? { ...s, center: point(s.center), radius: s.radius * k }
+    : { ...s, points: s.points.map(point) };
+}
 export function nativePoints(s: NativeShape): Point[] {
   const valid = (p: Point) =>
     Number.isFinite(p.x) &&
@@ -112,16 +121,14 @@ export function shapeFromWorld(
     : { kind, points: local, closed };
 }
 export function validateNativeMask(m: Mask) {
-  if (m.format !== 'NATIVE') {
-    if (m.primitives.some((p) => p.native))
-      throw new Error('Entidade nativa fora de máscara nativa.');
-    return;
-  }
   const ids = new Set<string>();
   for (const p of m.primitives) {
-    if (!p.id || ids.has(p.id) || !p.native)
+    if (p.id && ids.has(p.id))
+      throw new Error('ID de entidade de máscara repetido.');
+    if (p.id) ids.add(p.id);
+    if (m.format !== 'NATIVE' && !p.native) continue;
+    if (!p.id || !p.native)
       throw new Error('Entidade nativa sem identidade única ou geometria.');
-    ids.add(p.id);
     const expected = nativePrimitive(p.native, p.id, p.layer);
     if (
       expected.points.length !== p.points.length ||

@@ -112,12 +112,12 @@ test('2 by 3 by 4 remains 24 across two views; assembly metadata is searchable a
   expect(pieces(await save(page))).toBe(24);
   await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
   await page
-    .getByPlaceholder('Pavimento, elemento, posição…')
+    .getByLabel('Pesquisar no projeto', { exact: true })
     .fill('Montagem alternada');
   await expect(page.locator('.bar-row')).toHaveCount(1);
-  await page.getByPlaceholder('Pavimento, elemento, posição…').fill('L2-L3');
+  await page.getByLabel('Pesquisar no projeto', { exact: true }).fill('L2-L3');
   await expect(page.locator('.bar-row')).toHaveCount(1);
-  await page.getByPlaceholder('Pavimento, elemento, posição…').fill('');
+  await page.getByLabel('Pesquisar no projeto', { exact: true }).fill('');
   await page
     .locator('.document-tabs')
     .getByRole('button', { name: /Quadro de aço/ })

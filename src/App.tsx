@@ -1,9 +1,17 @@
 import MaskControl from './components/MaskControl';
+import MaskDestination from './components/MaskDestination';
 import {
-  nativePrimitive,
+  appendMaskShape,
+  assertLocalMaskEdit,
+  createDrawingMask,
+  maskDrawingState,
+  maskPath,
+  type MaskDrawingContext,
+} from './domain/maskDrawing';
+import type { Mask } from './domain/types';
+import {
   nativeWorldPrimitive,
   shapeFromWorld,
-  validateNativeMask,
   type NativeShape,
 } from './domain/nativeMasks';
 import { prepareProjectSetup } from './domain/projectSetup';
@@ -342,6 +350,48 @@ export default function App() {
   const [nativeEntity, setNativeEntity] = useState<string>();
   const [nativeKind, setNativeKind] = useState<NativeShape['kind']>();
   const [nativeCursor, setNativeCursor] = useState<Point>();
+  const [drawingMaskChoice, setDrawingMaskChoice] = useState({
+    projectId: '',
+    id: '',
+  });
+  const drawingMaskId =
+    drawingMaskChoice.projectId === p.id ? drawingMaskChoice.id : '';
+  const [creatingMask, setCreatingMask] = useState(false);
+  const nativeSession = useRef<{
+    project: Project;
+    mask: Mask;
+    context: MaskDrawingContext;
+    document: string;
+  } | null>(null);
+  useEffect(() => {
+    let id = '';
+    try {
+      id = localStorage.getItem(`armadurastruct.maskTarget.${p.id}`) ?? '';
+    } catch {
+      /* optional preference */
+    }
+    setDrawingMaskChoice({
+      projectId: p.id,
+      id: p.masks.some((m) => m.id === id) ? id : '',
+    });
+  }, [p.id]);
+  useEffect(() => {
+    if (drawingMaskChoice.projectId !== p.id) return;
+    if (
+      drawingMaskChoice.id &&
+      !p.masks.some((m) => m.id === drawingMaskChoice.id)
+    ) {
+      setDrawingMaskChoice({ projectId: p.id, id: '' });
+      return;
+    }
+    try {
+      const key = `armadurastruct.maskTarget.${p.id}`;
+      if (drawingMaskChoice.id) localStorage.setItem(key, drawingMaskChoice.id);
+      else localStorage.removeItem(key);
+    } catch {
+      /* optional preference */
+    }
+  }, [drawingMaskChoice, p.id, p.masks]);
   const [selectedView, setSelectedView] = useState<string>();
   const [selectedSchedule, setSelectedSchedule] = useState(false);
   const [scheduleRequest, setScheduleRequest] =
@@ -687,13 +737,19 @@ export default function App() {
   const annotation = !groupSelection
     ? p.annotations.find((a) => a.id === selected[0] && editable(a.id))
     : undefined;
-  const nativeTarget = p.masks.find(
-    (m) =>
-      m.id === maskId &&
-      m.format === 'NATIVE' &&
-      p.hierarchy.objectDetails[m.id] === activeDetailId &&
-      editable(m.id),
+  const maskDrawingContext: MaskDrawingContext = {
+    key: documentKey,
+    detailId: activeDetailId,
+    scopeDetailId: isolatedDetailId,
+  };
+  const drawingMaskState = maskDrawingState(
+    p,
+    drawingMaskId,
+    maskDrawingContext,
   );
+  const nativeTarget = drawingMaskState.editable
+    ? drawingMaskState.mask
+    : undefined;
   const maskImportContext = useRef('');
   maskImportContext.current = `${p.id}:${documentKey}:${activeDetailId}`;
   const polyline = !groupSelection
@@ -843,6 +899,7 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    nativeSession.current = null;
     setNativeKind(undefined);
     setNativeCursor(undefined);
     setScheduleRequest(null);
@@ -1307,51 +1364,127 @@ export default function App() {
     setContextMenu(null);
   }, [p.id, documentKey, isolatedDetailId]);
   const nativeContext = useRef({ project: p.id, document: documentKey });
+  const openMaskContext = (detailId: string) => {
+    const current = historyRef.current.present;
+    const drawing = current.hierarchy.drawings.find(
+      (d) => d.detailId === detailId,
+    );
+    if (!drawing) {
+      notify('O detalhamento desta máscara não tem desenho válido.');
+      return false;
+    }
+    if (
+      !activeSheet &&
+      activeDetailId === detailId &&
+      (!isolatedDetailId || isolatedDetailId === detailId)
+    )
+      return true;
+    if (
+      (isolatedDetailId || activeSheet) &&
+      !window.confirm(
+        `Abrir ${detailPath(current, detailId)} para trabalhar com a máscara? A edição atual será deixada; as associações serão preservadas e o comando pendente de máscara será cancelado.`,
+      )
+    )
+      return false;
+    nativeSession.current = null;
+    setNativeKind(undefined);
+    setNativeCursor(undefined);
+    setDraft([]);
+    openDrawing(drawing.id);
+    notify(
+      `Contexto aberto: ${detailPath(current, detailId)}. Nenhuma máscara foi movida.`,
+    );
+    return true;
+  };
+  const activateDrawingMask = (id: string) => {
+    const current = historyRef.current.present,
+      target = current.masks.find((m) => m.id === id);
+    if (!target) {
+      notify('Máscara inexistente.');
+      return false;
+    }
+    if (!openMaskContext(current.hierarchy.objectDetails[id])) return false;
+    nativeSession.current = null;
+    setNativeKind(undefined);
+    setNativeCursor(undefined);
+    setDraft([]);
+    setDrawingMaskChoice({ projectId: current.id, id });
+    setToolRaw('select');
+    notify(
+      `Destino ativo: ${target.name} · ${maskPath(current, id)}.${target.format !== 'NATIVE' ? ' Novos traços serão desenho local; a referência e o arquivo original serão preservados.' : ''}`,
+    );
+    return true;
+  };
   useEffect(() => {
     if (
       nativeKind &&
       nativeContext.current.project === p.id &&
       nativeContext.current.document === documentKey
-    )
+    ) {
       setDraft([]);
+      setToolRaw('select');
+    }
     nativeContext.current = { project: p.id, document: documentKey };
     setNativeKind(undefined);
     setNativeCursor(undefined);
+    nativeSession.current = null;
+  }, [p.id, documentKey, activeDetailId, tab, drawingMaskId]);
+  useEffect(() => {
     setMaskControl(false);
-  }, [p.id, documentKey, activeDetailId, tab]);
+  }, [p.id]);
+  useEffect(() => {
+    const session = nativeSession.current;
+    if (
+      session &&
+      (session.project !== p ||
+        session.document !== documentKey ||
+        session.mask.id !== drawingMaskId)
+    ) {
+      nativeSession.current = null;
+      setNativeKind(undefined);
+      setNativeCursor(undefined);
+      setDraft([]);
+      setToolRaw('select');
+      notify(
+        'Desenho da máscara cancelado: o projeto, contexto ou destino mudou. Reinicie a ferramenta.',
+      );
+    }
+  }, [p, documentKey, drawingMaskId]);
   const putNative = (points: Point[], closed = false) => {
-    if (!nativeTarget || !nativeKind) {
-      notify('Escolha uma máscara nativa editável no detalhamento ativo.');
+    const session = nativeSession.current;
+    if (!nativeTarget || !nativeKind || !session) {
+      notify(drawingMaskState.reason || 'Reinicie a ferramenta da máscara.');
       return;
     }
     try {
-      const entity = nativePrimitive(
-        shapeFromWorld(nativeKind, points, nativeTarget, closed),
+      const next = appendMaskShape(
+        session.project,
+        session.mask.id,
+        nativeKind,
+        points,
+        session.context,
+        session.mask,
+        closed,
       );
-      const targetId = nativeTarget.id;
+      nativeSession.current = null;
       if (
         commit((current) => {
-          const target = current.masks.find((m) => m.id === targetId);
           if (
-            !target ||
-            current.id !== p.id ||
-            current.hierarchy.objectDetails[targetId] !== activeDetailId
+            current !== session.project ||
+            maskImportContext.current !==
+              `${session.project.id}:${session.document}:${session.context.detailId}`
           )
-            throw new Error('Destino da máscara mudou.');
-          if (target.primitives.length >= 100000)
-            throw new Error('Limite de entidades atingido.');
-          return {
-            ...current,
-            masks: current.masks.map((m) =>
-              m.id === targetId
-                ? { ...m, primitives: [...m.primitives, entity] }
-                : m,
-            ),
-          };
+            throw new Error('Destino da máscara mudou. Reinicie o desenho.');
+          return next;
         })
       ) {
         setDraft([]);
         setNativeCursor(undefined);
+      } else {
+        setNativeKind(undefined);
+        setDraft([]);
+        setNativeCursor(undefined);
+        setToolRaw('select');
       }
     } catch (e) {
       notify((e as Error).message);
@@ -1373,6 +1506,7 @@ export default function App() {
     if (nativeKind && !nativeTarget) {
       setNativeKind(undefined);
       setDraft([]);
+      setToolRaw('select');
     }
   }, [nativeKind, nativeTarget]);
   const finish = () => {
@@ -1419,6 +1553,13 @@ export default function App() {
         setDraft([]);
         return;
       }
+      if (!nativeSession.current)
+        nativeSession.current = {
+          project: historyRef.current.present,
+          mask: nativeTarget,
+          context: maskDrawingContext,
+          document: documentKey,
+        };
       if (nativeKind === 'polyline') {
         if (!draft.length || distance(draft.at(-1)!, point) > 0.000001)
           setDraft([...draft, point]);
@@ -1912,31 +2053,32 @@ export default function App() {
   };
   const action = async (a: Action) => {
     if (a === 'mask-control') {
-      if (activeSheet) {
-        notify('Abra o desenho de uma vista para controlar máscaras.');
-        return;
-      }
       setTool('select');
       setNativeEntity(undefined);
+      setCreatingMask(false);
       setMaskControl(true);
       return;
     }
     if (a.startsWith('mask-')) {
-      if (activeSheet) {
-        notify('Abra o desenho de uma vista para desenhar a máscara.');
-        return;
-      }
       if (!nativeTarget || !nativeTarget.visible) {
         setTool('select');
+        setSelectedRaw([]);
+        setMaskId(drawingMaskId || null);
+        setNativeEntity(undefined);
+        setCreatingMask(false);
         setMaskControl(true);
-        notify(
-          'Crie ou escolha uma máscara nativa visível no detalhamento ativo; depois escolha a ferramenta.',
-        );
+        notify(drawingMaskState.reason);
         return;
       }
       setTool('polyline');
       setSelectedRaw([]);
       setNativeKind(a.slice(5) as NativeShape['kind']);
+      nativeSession.current = {
+        project: historyRef.current.present,
+        mask: nativeTarget,
+        context: maskDrawingContext,
+        document: documentKey,
+      };
       setMessage(
         `${nativeTarget.name}: ${a === 'mask-circle' ? 'centro e ponto do raio' : a === 'mask-rectangle' ? 'cantos opostos' : a === 'mask-line' ? 'dois pontos' : 'vértices; Enter conclui; use Fechar polilinha para fechar'}. Coordenadas em mm.`,
       );
@@ -3062,6 +3204,20 @@ export default function App() {
         canRedo={canRedo}
         isolated={!!isolatedDetailId}
         groupSelected={groupSelection}
+        maskDestination={
+          <MaskDestination
+            project={p}
+            activeId={drawingMaskId}
+            context={maskDrawingContext}
+            onActivate={activateDrawingMask}
+            onCreate={() => {
+              setTool('select');
+              setNativeEntity(undefined);
+              setCreatingMask(true);
+              setMaskControl(true);
+            }}
+          />
+        }
         collapsed={ribbonCollapsed || focus}
         setCollapsed={(v) => {
           setRibbonCollapsed(v);
@@ -4234,55 +4390,86 @@ export default function App() {
         <MaskControl
           project={p}
           owner={activeDetailId}
-          initial={maskId}
+          context={maskDrawingContext}
+          creating={creatingMask}
+          activeId={drawingMaskId}
+          initial={maskId ?? drawingMaskId}
           entity={nativeEntity}
+          onActivate={activateDrawingMask}
+          onOpenContext={openMaskContext}
           onClose={() => setMaskControl(false)}
           onSelect={(id) => {
+            const current = historyRef.current.present,
+              m = current.masks.find((m) => m.id === id);
+            if (!m || !openMaskContext(current.hierarchy.objectDetails[id]))
+              return false;
             setSelectedRaw([]);
-            setMaskId(id || null);
+            setMaskId(id);
             setSidebarOpen(true);
             setFocus(false);
             setSidebarTab('properties');
+            return true;
           }}
-          onCreate={(m) => {
-            commit((current) =>
-              completeOwnership(
-                { ...current, masks: [...current.masks, m] },
-                activeDetailId,
-              ),
+          onCreate={(name, owner, base) => {
+            if (historyRef.current.present !== base)
+              throw new Error(
+                'O projeto mudou. Confira o contexto e tente novamente.',
+              );
+            const created = createDrawingMask(
+              base,
+              name,
+              owner,
+              maskDrawingContext,
             );
+            if (!commit(() => created.project))
+              throw new Error(
+                'A criação foi bloqueada. Confira os layers e o contexto.',
+              );
+            setDrawingMaskChoice({ projectId: base.id, id: created.mask.id });
+            setSelectedRaw([]);
+            setMaskId(null);
+            setNativeEntity(undefined);
+            notify(
+              `Máscara criada e ativa: ${created.mask.name} · ${detailPath(created.project, owner)}. Escolha a ferramenta para desenhar.`,
+            );
+            return created.mask;
           }}
-          onChange={(m) => {
-            try {
-              validateNativeMask(m);
-              const old = p.masks.find((o) => o.id === m.id);
-              if (!old || !editable(m.id))
-                throw new Error('Máscara protegida.');
-              for (const q of old.primitives) {
-                if (
-                  q.layerId &&
-                  !layerState(p, documentKey, q.layerId).editable &&
-                  JSON.stringify(q) !==
-                    JSON.stringify(m.primitives.find((n) => n.id === q.id))
-                )
-                  throw new Error('Layer da entidade protegido.');
-              }
-              if (m.primitives.length > 100000)
-                throw new Error('Limite de entidades.');
-              commit((current) => ({
-                ...current,
-                masks: current.masks.map((old) => (old.id === m.id ? m : old)),
-              }));
-            } catch (e) {
-              notify((e as Error).message);
-            }
+          onChange={(m, expected) => {
+            const current = historyRef.current.present;
+            assertLocalMaskEdit(current, expected, m, maskDrawingContext);
+            return commit(() => ({
+              ...current,
+              masks: current.masks.map((old) => (old.id === m.id ? m : old)),
+            }));
           }}
           onDelete={(id) => {
-            commit((current) => ({
+            const current = historyRef.current.present;
+            const target = current.masks.find((m) => m.id === id);
+            if (
+              target?.primitives.some(
+                (q) =>
+                  q.layerId &&
+                  !layerState(current, documentKey, q.layerId).editable,
+              )
+            ) {
+              notify(
+                'Há entidades da máscara em layers protegidos. Confira os layers antes de excluir.',
+              );
+              return false;
+            }
+            if (
+              !current.masks.some((m) => m.id === id) ||
+              current.hierarchy.objectDetails[id] !== activeDetailId ||
+              !editable(id) ||
+              activeSheet
+            )
+              return false;
+            const ok = commit(() => ({
               ...current,
               masks: current.masks.filter((m) => m.id !== id),
             }));
-            setMaskId(null);
+            if (ok && maskId === id) setMaskId(null);
+            return ok;
           }}
         />
       )}

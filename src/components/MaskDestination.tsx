@@ -1,0 +1,126 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { Project } from '../domain/types';
+import {
+  maskPath,
+  maskDrawingState,
+  type MaskDrawingContext,
+} from '../domain/maskDrawing';
+
+export function MaskSelector({
+  project,
+  value,
+  onChange,
+  label = 'Escolher máscara',
+}: {
+  project: Project;
+  value: string;
+  onChange: (id: string) => void;
+  label?: string;
+}) {
+  const [search, setSearch] = useState('');
+  const options = useMemo(
+    () =>
+      project.masks.map((m) => ({
+        id: m.id,
+        text: `${m.name} · ${m.format === 'NATIVE' ? 'Nativa' : m.format} · ${maskPath(project, m.id)} · [${m.id}]`,
+      })),
+    [project],
+  );
+  const query = search
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  return (
+    <div className="mask-selector">
+      <input
+        type="search"
+        aria-label="Pesquisar máscaras do projeto"
+        placeholder="Pesquisar nome, origem ou contexto…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">Escolher máscara do projeto ({options.length})</option>
+        {options
+          .filter(
+            (o) =>
+              o.id === value ||
+              o.text
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .includes(query),
+          )
+          .map((o) => (
+            <option value={o.id} key={o.id}>
+              {o.text}
+            </option>
+          ))}
+      </select>
+    </div>
+  );
+}
+export default function MaskDestination({
+  project,
+  activeId,
+  context,
+  onActivate,
+  onCreate,
+}: {
+  project: Project;
+  activeId?: string;
+  context: MaskDrawingContext;
+  onActivate: (id: string) => boolean;
+  onCreate: () => void;
+}) {
+  const [candidate, setCandidate] = useState(activeId ?? '');
+  useEffect(() => setCandidate(activeId ?? ''), [activeId, project.id]);
+  const state = maskDrawingState(project, activeId, context);
+  return (
+    <section
+      className="mask-destination"
+      aria-label="Destino do desenho de máscaras"
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      <b>Desenhar em</b>
+      <MaskSelector
+        project={project}
+        value={candidate}
+        onChange={setCandidate}
+      />
+      <button
+        type="button"
+        aria-label="Ativar máscara para desenhar"
+        disabled={!project.masks.some((m) => m.id === candidate)}
+        onClick={() => onActivate(candidate)}
+      >
+        Ativar
+      </button>
+      <button type="button" onClick={onCreate}>
+        Nova máscara
+      </button>
+      <div
+        className={`mask-destination-status ${state.editable ? 'editable' : 'protected'}`}
+        role="region"
+        aria-live="polite"
+        aria-label="Máscara ativa para desenhar"
+      >
+        <strong>
+          {state.mask
+            ? `${state.mask.name} · ${state.path} · [${state.mask.id}]`
+            : 'Nenhuma máscara ativa'}
+        </strong>
+        <span>
+          {state.label}
+          {state.mask?.format !== 'NATIVE' && state.mask
+            ? ' · Novos traços: desenho local; referência original preservada.'
+            : ''}
+        </span>
+      </div>
+    </section>
+  );
+}

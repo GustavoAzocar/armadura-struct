@@ -8,9 +8,9 @@ A aba **Máscaras** reúne Linha, Retângulo, Círculo, Polilinha, importação 
 
 ## Desenhar sem importar
 
-1. Ative o detalhamento de destino na aba Projeto. Em uma prancha, abra primeiro o desenho da vista.
-2. Abra **Máscaras → Controle de máscaras**, informe o nome e confirme **Criar máscara nativa**. Selecione uma máscara existente pelo nome/origem. Abrir ou cancelar o controle não cria registros.
-3. Conclua o controle e escolha Linha, Retângulo, Círculo ou Polilinha. A faixa de contexto informa a máscara de destino. Se não houver máscara nativa visível/editável selecionada no detalhe ativo, o controle orienta sua escolha/criação; volte à ferramenta após escolhê-la.
+1. Na aba Máscaras, use **Nova máscara** ou o seletor global **Desenhar em**. Confira o caminho de contexto; a ativação abre o desenho correspondente. [Uso completo e extensões locais](MASCARA-ATIVA.md).
+2. Informe nome e contexto e confirme **Criar máscara nativa**. A máscara fica ativa e o controle fecha. Para uma existente, escolha na lista e clique em **Ativar**. Abrir ou cancelar o controle não cria registros.
+3. Escolha Linha, Retângulo, Círculo ou Polilinha. A faixa informa o alvo e suas proteções. A escolha ativa é independente da seleção gráfica; clicar em uma barra ou consultar propriedades não troca o destino.
 4. Linha usa dois pontos; retângulo, cantos opostos; círculo, centro e ponto do raio; polilinha, vários vértices. Enter/botão direito concluem a polilinha aberta; **Fechar polilinha** confirma a fechada. Esc cancela os pontos pendentes. Encaixes, ortogonal e coordenadas absolutas/relativas seguem o CAD existente.
 5. Exemplos de coordenadas no campo Comando CAD: linha `0,0` e `1000,0`; retângulo `0,1000` e `1000,1500`; círculo `2000,1000` e `2250,1000` (raio 250 mm). Zoom não altera medidas.
 
@@ -26,9 +26,9 @@ Geometria é armazenada em coordenadas locais; cliques no modelo passam pela tra
 
 ## Dados, interoperabilidade e limites
 
-O formato **armadurastruct/20** lê e migra projetos 1–19 pelo caminho existente; nenhuma polilinha antiga, barra, auxiliar ou máscara importada é convertida silenciosamente. A origem `NATIVE` é explícita. Cada primitiva nativa tem ID e geometria analítica `native`; `points` é seu cache validado de representação. O decoder rejeita identidades duplicadas ou cache incompatível. Não há cópia em `Project.polylines`. O pacote **openstruct.detail/11** preserva essas entidades e lê versões 1–10; conversão mm/cm/m também escala centro/raio e recompõe o cache.
+O formato **armadurastruct/21** lê e migra projetos 1–20 pelo caminho existente; nenhuma polilinha antiga, barra, auxiliar ou máscara importada é convertida silenciosamente. A origem `NATIVE` é explícita. Cada primitiva nativa tem ID e geometria analítica `native`; `points` é seu cache validado de representação. O decoder rejeita identidades duplicadas ou cache incompatível. Não há cópia em `Project.polylines`. O pacote **openstruct.detail/12** preserva essas entidades e lê versões 1–11; conversão mm/cm/m também escala centro/raio e recompõe o cache.
 
-Círculos conservam centro/raio no arquivo. Canvas, limites, encaixes, pranchas, PDF e DXF usam a representação compartilhada por segmentos: erro radial máximo de corda **0,05 mm local**, portanto até `0,05 × escala da máscara` mm no modelo (e dividido pela escala da vista no papel). O DXF continua usando LWPOLYLINE; não há exportação DWG nem novos blocos. Não se anuncia saída CIRCLE/ARC analítica. A opacidade segue a visualização de máscaras existente; a saída vetorial usa as penas/cores de plotagem existentes.
+Círculos conservam centro/raio no arquivo. Canvas, limites, encaixes, pranchas, PDF e DXF usam a representação compartilhada por segmentos: erro radial máximo de corda **0,05 unidade local**, portanto até `0,05 × escala da máscara` mm no modelo (e dividido pela escala da vista no papel). O DXF continua usando LWPOLYLINE; não há exportação DWG nem novos blocos. Não se anuncia saída CIRCLE/ARC analítica. A opacidade segue a visualização de máscaras existente; a saída vetorial usa as penas/cores de plotagem existentes.
 
 Limites mantidos: 20 máscaras por projeto, 100 mil primitivas por máscara, importador com seus avisos/limites existentes; uma entidade editável aceita até 500 vértices. Valores não finitos, lados degenerados, pontos consecutivos coincidentes e raio não positivo são rejeitados. O controle não oferece alças de arraste para entidades internas: a correção usa os campos numéricos, vértices e transformações locais. Não inclui trim, extend, offset, hachuras ou blocos.
 

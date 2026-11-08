@@ -447,7 +447,16 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const nativeVersion = input?.schema === 'armadurastruct/20';
+  const mixedVersion = input?.schema === 'armadurastruct/21';
+  const nativeVersion = mixedVersion || input?.schema === 'armadurastruct/20';
+  if (
+    !mixedVersion &&
+    input?.masks?.some(
+      (m: { format: string; primitives?: { native?: unknown }[] }) =>
+        m.format !== 'NATIVE' && m.primitives?.some((q) => q.native),
+    )
+  )
+    throw new Error('Desenho local em referência importada exige formato 21.');
   if (nativeVersion) input.schema = 'armadurastruct/19';
   if (
     !nativeVersion &&
@@ -670,7 +679,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/20',
+    schema: 'armadurastruct/21',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -896,7 +905,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/20',
+    schema: 'armadurastruct/21',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

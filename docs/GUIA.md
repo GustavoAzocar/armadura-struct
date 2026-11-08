@@ -252,7 +252,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/20`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/21`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 
@@ -297,3 +297,5 @@ Selecione uma barra livre/polilinha e use **Elementos → Vértices**, proprieda
 Em **Armaduras → Relação do aço**, **Quadro de aço** mantém a consulta global. **Inserir quadro na prancha** abre o papel e leva ao cursor a tabela daquela folha; clique pelo canto superior esquerdo para inserir, ou use Esc/botão direito para cancelar. O texto padrão tem 2,5 mm no papel, independente da escala das vistas. O resumo inclui 10% de reserva no peso, configurável, sem alterar o aço físico.
 
 Arraste o quadro ou ajuste X/Y, texto e reserva no gerenciador. Um quadro por folha é atualizado automaticamente; repetir o comando reposiciona o existente. Vistas repetidas não duplicam aço. Alterações de composição que ultrapassem a área útil/selo bloqueiam o PDF. Uso, regras de escopo, formatos e limites em [Quadro na prancha](QUADRO-NA-PRANCHA.md).
+
+Para escolher uma máscara em qualquer detalhamento, criar sem aço ou acrescentar desenho local à referência importada, veja [Máscara ativa](MASCARA-ATIVA.md). A seleção gráfica e o destino ativo são independentes.

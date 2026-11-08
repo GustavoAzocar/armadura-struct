@@ -40,9 +40,6 @@ test('CAD nativo cria quatro famílias sem aço, edita entidade, persiste, desfa
   await dialog
     .getByRole('button', { name: 'Criar máscara nativa', exact: true })
     .click();
-  await dialog
-    .getByRole('button', { name: 'Concluir controle de máscaras' })
-    .click();
   for (const [name, coords] of [
     ['Linha', ['0,0', '1000,0']],
     ['Retângulo', ['0,1000', '1000,1500']],
@@ -182,7 +179,7 @@ test('duas máscaras nativas, DXF e aço permanecem independentes durante cópia
     name: 'Controle de máscaras',
     exact: true,
   });
-  await dialog.getByLabel('Máscara no detalhamento').selectOption(a.id);
+  await dialog.getByLabel('Máscara do projeto').selectOption(a.id);
   await dialog
     .getByLabel('Entidade da máscara')
     .selectOption(a.primitives[0].id!);

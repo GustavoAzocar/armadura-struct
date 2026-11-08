@@ -39,6 +39,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { Tool } from '../domain/types';
+import type { ReactNode } from 'react';
 import { NumberField } from './Panels';
 export type Action =
   | Tool
@@ -132,6 +133,7 @@ export default function Ribbon({
   onSettings,
   isolated = false,
   groupSelected = false,
+  maskDestination,
 }: {
   tab: string;
   setTab: (s: string) => void;
@@ -146,6 +148,7 @@ export default function Ribbon({
   onSettings: (p: Partial<CreationSettings>) => void;
   isolated?: boolean;
   groupSelected?: boolean;
+  maskDestination?: ReactNode;
 }) {
   const groups: Record<
     string,
@@ -381,6 +384,7 @@ export default function Ribbon({
           {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
         </button>
       </div>
+      {tab === 'Máscaras' && maskDestination}
       {!collapsed && (
         <div className="ribbon-content">
           {(groups[tab] ?? groups.Armaduras).map((g) => (

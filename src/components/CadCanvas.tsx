@@ -692,7 +692,6 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           }
       for (const m of masks.filter(
         (m) =>
-          m.mask.format === 'NATIVE' &&
           m.capture &&
           objectState(source, props.layerContext ?? 'model', m.mask).editable,
       )) {
@@ -710,6 +709,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             : item.points;
           if (
             item.id &&
+            item.native &&
             points.some(
               (v, i) =>
                 i && distance(p, nearest(p, points[i - 1], v)) < 9 / view.s,

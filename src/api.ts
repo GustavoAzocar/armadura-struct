@@ -157,3 +157,13 @@ export type {
   ProjectSetupDraft,
   ProjectSetupIssue,
 } from './domain/projectSetup';
+
+export {
+  appendMaskShape,
+  createDrawingMask,
+  assertLocalMaskEdit,
+  maskDrawingState,
+  maskPath,
+  localDrawingLayer,
+} from './domain/maskDrawing';
+export type { MaskDrawingContext } from './domain/maskDrawing';
