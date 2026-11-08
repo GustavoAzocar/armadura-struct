@@ -3299,6 +3299,20 @@ button.hierarchy-drawing {
 .transform-panel p {
   margin: 6px 0;
 }
+.dimensional-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dimensional-panel > .transform-heading,
+.dimensional-panel > .dimensional-summary,
+.dimensional-panel > .visibility-actions {
+  flex-shrink: 0;
+}
+.dimensional-fields {
+  min-height: 0;
+  overflow-y: auto;
+}
 .transform-heading {
   display: flex;
   gap: 8px;

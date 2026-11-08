@@ -90,6 +90,8 @@ export type Action =
   | 'insert-vertex'
   | 'extend-vertex'
   | 'remove-vertex'
+  | 'edit-segment'
+  | 'lengthen-bar'
   | 'plot'
   | 'hide-objects'
   | 'isolate-objects'
@@ -100,6 +102,7 @@ export type Action =
 type Item = {
   action: Action;
   label: string;
+  caption?: string;
   icon: LucideIcon;
   selection?: number;
 };
@@ -321,6 +324,11 @@ export default function Ribbon({
       {
         name: 'Poligonais / traspasse',
         items: [
+          {
+            ...item('edit-segment', 'Comprimentos e ângulos', Ruler, 1),
+            caption: 'Comprim. e ângulos',
+          },
+          item('lengthen-bar', 'Estender barra', ArrowUpRight, 1),
           item('join', 'Emendar poligonais', Combine, 2),
           item('split', 'Dividir barra', Scissors, 1),
         ],
@@ -420,13 +428,15 @@ export default function Ribbon({
                               'range',
                               'repeat',
                               'distribute',
+                              'edit-segment',
+                              'lengthen-bar',
                             ].includes(t.action)) ||
                           (t.action === 'undo' && !canUndo) ||
                           (t.action === 'redo' && !canRedo)
                         }
                       >
                         <t.icon size={23} strokeWidth={1.5} />
-                        <span>{t.label}</span>
+                        <span>{t.caption ?? t.label}</span>
                       </button>
                       {g.creation && i === 1 && (
                         <div

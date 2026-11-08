@@ -128,6 +128,13 @@ export type {
 } from './domain/alignment';
 export { editVertices, editablePath } from './domain/vertices';
 export type { VertexEdit } from './domain/vertices';
+export {
+  barSegments,
+  dimensionalPoints,
+  terminalExtensionAt,
+  parseLength,
+} from './domain/segments';
+export type { DimensionalEdit } from './domain/segments';
 
 export {
   sheetScheduleData,

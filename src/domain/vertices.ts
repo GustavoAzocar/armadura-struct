@@ -5,6 +5,7 @@ import { completeOwnership } from './hierarchy';
 import { assertLayerEdit } from './layerProfiles';
 import { assertVisibilityEdit } from './visibility';
 import { assertDetailEdit } from './detailEditing';
+import { dimensionalEditSchema, dimensionalPoints } from './segments';
 const point = z
   .object({
     x: z.number().finite().min(-1e9).max(1e9),
@@ -12,6 +13,7 @@ const point = z
   })
   .strict();
 export const vertexEditSchema = z.discriminatedUnion('kind', [
+  ...dimensionalEditSchema.options,
   z
     .object({
       kind: z.literal('insert'),
@@ -58,6 +60,25 @@ export function editVertices(
   if (edit.kind === 'extend' && path.closed)
     throw new Error('Uma polilinha fechada não possui ponta para continuar.');
   const segments = path.closed ? count : count - 1;
+  if (edit.kind === 'segment' || edit.kind === 'lengthen') {
+    if (!path.bar)
+      throw new Error(
+        'A edição dimensional exige uma barra livre física; desenhos e inserções não são armaduras.',
+      );
+    const points = dimensionalPoints(path.bar, edit);
+    return {
+      project: replacePathPoints(
+        p,
+        id,
+        points.map((v) => world(v, path.bar!)),
+        context,
+        points,
+      ),
+      vertexMap: path.points.map((_, i) => i),
+      segmentMap: Array.from({ length: segments }, (_, i) => [i]),
+      warnings: [] as string[],
+    };
+  }
   if (
     (edit.kind === 'insert' && edit.segment >= segments) ||
     (edit.kind === 'remove' && edit.vertex >= count)
@@ -77,35 +98,7 @@ export function editVertices(
     edit.kind === 'remove' ? 1 : 0,
     ...(edit.kind === 'remove' ? [] : [edit.point]),
   );
-  if (points.length < (path.closed ? 3 : 2))
-    throw new Error(
-      path.closed
-        ? 'Mantenha ao menos três vértices no contorno fechado.'
-        : 'Mantenha ao menos dois vértices.',
-    );
-  if (points.length > 500) throw new Error('Limite de vértices excedido.');
-  for (let i = 1; i < points.length + (path.closed ? 1 : 0); i++)
-    if (distance(points[i - 1], points[i % points.length]) < 0.01)
-      throw new Error('Vértices consecutivos não podem coincidir.');
-  let next = path.bar
-    ? {
-        ...p,
-        bars: p.bars.map((b) =>
-          b.id === id ? { ...b, points: points.map((v) => local(v, b)) } : b,
-        ),
-      }
-    : {
-        ...p,
-        polylines: p.polylines.map((l) => (l.id === id ? { ...l, points } : l)),
-      };
-  if (path.bar) {
-    const errors = geometry(next.bars.find((b) => b.id === id)!).errors;
-    if (errors.length) throw new Error(errors.join(' '));
-  }
-  next = completeOwnership(next);
-  assertLayerEdit(p, next, context.layerContext ?? 'model');
-  assertVisibilityEdit(p, next, context.layerContext ?? 'model');
-  if (context.scopeDetailId) assertDetailEdit(p, next, context.scopeDetailId);
+  const next = replacePathPoints(p, id, points, context);
   const vertexMap = path.points.map((_, i) =>
     edit.kind === 'remove'
       ? i === index
@@ -138,6 +131,50 @@ export function editVertices(
           ]
         : [],
   };
+}
+
+/** Common geometry and permission gate for topology and dimension edits. */
+function replacePathPoints(
+  p: Project,
+  id: string,
+  points: Point[],
+  context: { layerContext?: string; scopeDetailId?: string },
+  localPoints?: Point[],
+) {
+  const path = editablePath(p, id);
+  for (const v of points) point.parse(v);
+  if (points.length < (path.closed ? 3 : 2))
+    throw new Error(
+      path.closed
+        ? 'Mantenha ao menos três vértices no contorno fechado.'
+        : 'Mantenha ao menos dois vértices.',
+    );
+  if (points.length > 500) throw new Error('Limite de vértices excedido.');
+  for (let i = 1; i < points.length + (path.closed ? 1 : 0); i++)
+    if (distance(points[i - 1], points[i % points.length]) < 0.01)
+      throw new Error('Vértices consecutivos não podem coincidir.');
+  let next = path.bar
+    ? {
+        ...p,
+        bars: p.bars.map((b) =>
+          b.id === id
+            ? { ...b, points: localPoints ?? points.map((v) => local(v, b)) }
+            : b,
+        ),
+      }
+    : {
+        ...p,
+        polylines: p.polylines.map((l) => (l.id === id ? { ...l, points } : l)),
+      };
+  if (path.bar) {
+    const errors = geometry(next.bars.find((b) => b.id === id)!).errors;
+    if (errors.length) throw new Error(errors.join(' '));
+  }
+  next = completeOwnership(next);
+  assertLayerEdit(p, next, context.layerContext ?? 'model');
+  assertVisibilityEdit(p, next, context.layerContext ?? 'model');
+  if (context.scopeDetailId) assertDetailEdit(p, next, context.scopeDetailId);
+  return next;
 }
 
 export function vertexEditAt(

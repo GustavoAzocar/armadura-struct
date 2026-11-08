@@ -189,6 +189,7 @@ export function Inspector({
   onBar,
   onDistributionSpacing,
   onVertexEdit,
+  onDimensionEdit,
   onMask,
   onSelectRepresentation,
   onRemoveDetails,
@@ -199,6 +200,7 @@ export function Inspector({
   mask?: Mask;
   onBar: (patch: Partial<Bar>) => void | boolean;
   onVertexEdit?: (mode: 'insert' | 'extend' | 'remove') => void;
+  onDimensionEdit?: (mode: 'segment' | 'lengthen') => void;
   onDistributionSpacing: (spacing: number) => void | boolean;
   onMask: (patch: Partial<Mask>) => void;
   onSelectRepresentation?: (id: string) => void;
@@ -586,6 +588,16 @@ export function Inspector({
                 Comprimento pelo eixo, descontando os trechos retos substituídos
                 pelos arcos. Mandril definido pelo projetista.
               </p>
+              {bar.kind === 'free' && onDimensionEdit && (
+                <div className="visibility-actions">
+                  <button onClick={() => onDimensionEdit?.('segment')}>
+                    Comprimentos e ângulos
+                  </button>
+                  <button onClick={() => onDimensionEdit?.('lengthen')}>
+                    Estender barra
+                  </button>
+                </div>
+              )}
               {bar.kind === 'free' && (
                 <details className="vertices-editor">
                   <summary>Vértices locais · mm</summary>

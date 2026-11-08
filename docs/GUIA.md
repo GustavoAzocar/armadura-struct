@@ -2,6 +2,8 @@
 
 ## Espaço de trabalho
 
+Use **Propriedades → Geometria e dobras → Comprimentos e ângulos** (`SEGMENTOS`) para editar medidas locais de uma barra livre. **Estender barra** (`ESTENDER`) alonga apenas o trecho terminal: informe `+300 mm`, `FINAL 1300 mm` ou clique para projetar a nova ponta. Confira a prévia e confirme; **CONTINUAR** permanece o comando que acrescenta vértices/pernas. Veja [as convenções e estratégias da AS-26](AS-26.md).
+
 Os textos de conteúdo acompanham a geometria durante o zoom; aproxime para ler detalhes pequenos. Zoom de câmera, escala gráfica de uma inserção e escala 1:N da vista são controles diferentes. Veja [as convenções de textos e zoom](TEXTOS-E-ZOOM.md).
 
 Use **Máscaras** para desenho CAD nativo ou referências importadas, **Armaduras** para aço físico e **Desenho** para cotas/anotações. Veja [como desenhar e editar uma máscara](MASCARAS-NATIVAS.md).

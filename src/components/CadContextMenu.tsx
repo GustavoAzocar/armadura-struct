@@ -10,6 +10,8 @@ export type ContextAction =
   | 'align-selection'
   | 'insert-vertex'
   | 'extend-vertex'
+  | 'edit-segment'
+  | 'lengthen-bar'
   | 'remove-vertex';
 const names: Record<ContextAction, string> = {
   properties: 'Propriedades',
@@ -22,6 +24,8 @@ const names: Record<ContextAction, string> = {
   'align-selection': 'Alinhar / distribuir…',
   'insert-vertex': 'Inserir vértices',
   'extend-vertex': 'Continuar pela ponta',
+  'edit-segment': 'Comprimentos e ângulos',
+  'lengthen-bar': 'Estender barra',
   'remove-vertex': 'Remover vértices',
 };
 export default function CadContextMenu({

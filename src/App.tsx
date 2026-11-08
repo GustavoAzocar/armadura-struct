@@ -19,7 +19,13 @@ import { sheetScheduleIssues } from './domain/paper';
 import AlignmentPanel, {
   type AlignmentSession,
 } from './components/AlignmentPanel';
-import VertexPanel, { type VertexSession } from './components/VertexPanel';
+import VertexPanel, {
+  type VertexSession,
+  dimensionalMode,
+  initialDimensions,
+  vertexSessionEdits,
+} from './components/VertexPanel';
+import { terminalExtensionAt, parseLength } from './domain/segments';
 import {
   alignSelection,
   modelAlignmentItems,
@@ -154,6 +160,7 @@ import {
   sub,
   vertices,
   geometry,
+  world,
 } from './domain/geometry';
 import {
   uid,
@@ -1100,6 +1107,9 @@ export default function App() {
         anchor: undefined,
         error: '',
         warnings: [] as string[],
+        operations: [] as import('./domain/vertices').VertexEdit[],
+        previewBar: undefined as Bar | undefined,
+        canApply: false,
       };
     const s = vertexRequest;
     let pending = s.project;
@@ -1107,7 +1117,10 @@ export default function App() {
     try {
       if (s.project !== p)
         throw new Error('O projeto mudou. Reinicie a edição de vértices.');
-      for (const edit of s.edits) {
+      const dimensional = dimensionalMode(s.mode);
+      const operations =
+        dimensional && !s.dimensions?.picking ? vertexSessionEdits(s) : s.edits;
+      for (const edit of operations) {
         const result = editVertices(pending, s.id, edit, {
           layerContext: documentKey,
           scopeDetailId: isolatedDetailId,
@@ -1117,7 +1130,7 @@ export default function App() {
       }
       const path = editablePath(pending, s.id),
         anchor =
-          s.mode === 'extend'
+          s.mode === 'extend' || s.mode === 'lengthen'
             ? path.points[s.end === 'start' ? 0 : path.points.length - 1]
             : s.edits.at(-1)?.kind !== 'remove' &&
                 s.edits.at(-1) &&
@@ -1126,12 +1139,20 @@ export default function App() {
               : path.points[0];
       let display = pending,
         error = s.issue ?? '';
-      if (s.cursor)
+      if (s.cursor && (!dimensional || s.dimensions?.picking))
         try {
           display = editVertices(
             pending,
             s.id,
-            vertexEditAt(pending, s.id, s.mode, s.cursor, s.end),
+            dimensional
+              ? vertexSessionEdits(s, true)[0]
+              : vertexEditAt(
+                  pending,
+                  s.id,
+                  s.mode as 'insert' | 'extend' | 'remove',
+                  s.cursor,
+                  s.end,
+                ),
             { layerContext: documentKey, scopeDetailId: isolatedDetailId },
           ).project;
         } catch (e) {
@@ -1151,6 +1172,15 @@ export default function App() {
         lines: objectPrimitives(display, ids),
         error,
         warnings,
+        operations,
+        previewBar: display.bars.find((b) => b.id === s.id),
+        canApply: dimensional
+          ? operations.length > 0 &&
+            !error &&
+            !s.dimensions?.picking &&
+            JSON.stringify(display.bars.find((b) => b.id === s.id)?.points) !==
+              JSON.stringify(s.project.bars.find((b) => b.id === s.id)?.points)
+          : s.edits.length > 0,
       };
     } catch (e) {
       return {
@@ -1160,20 +1190,23 @@ export default function App() {
         anchor: undefined,
         error: (e as Error).message,
         warnings,
+        operations: [] as import('./domain/vertices').VertexEdit[],
+        previewBar: undefined as Bar | undefined,
+        canApply: false,
       };
     }
   }, [vertexRequest, p, documentKey, isolatedDetailId]);
   const applyVertex = () => {
     if (
       !vertexRequest ||
-      !vertexRequest.edits.length ||
+      !vertexPreview.canApply ||
       vertexRequest.project !== historyRef.current.present
     )
       return;
     const s = vertexRequest;
     const result = executeRebarBatch(
       p,
-      s.edits.map((edit) => ({
+      vertexPreview.operations.map((edit) => ({
         type: 'vertices.edit' as const,
         id: s.id,
         edit,
@@ -1407,6 +1440,27 @@ export default function App() {
     if (vertexRequest) {
       const s = vertexRequest;
       try {
+        if (dimensionalMode(s.mode)) {
+          if (s.mode !== 'lengthen' || !s.dimensions?.picking) return;
+          const bar = s.project.bars.find((b) => b.id === s.id)!;
+          const proposal = terminalExtensionAt(bar, s.end, point);
+          editVertices(s.project, s.id, proposal.edit, {
+            layerContext: documentKey,
+            scopeDetailId: isolatedDetailId,
+          });
+          setVertexRequest({
+            ...s,
+            dimensions: {
+              ...s.dimensions,
+              length: String(proposal.amount),
+              extensionInput: 'increment',
+              picking: false,
+            },
+            cursor: undefined,
+            issue: undefined,
+          });
+          return;
+        }
         const edit = vertexEditAt(
           vertexPreview.pending,
           s.id,
@@ -1982,13 +2036,26 @@ export default function App() {
       }
       return;
     }
-    if (['insert-vertex', 'extend-vertex', 'remove-vertex'].includes(a)) {
+    if (
+      [
+        'insert-vertex',
+        'extend-vertex',
+        'remove-vertex',
+        'edit-segment',
+        'lengthen-bar',
+      ].includes(a)
+    ) {
       try {
         if (activeSheet || selected.length !== 1 || groupSelection)
           throw new Error(
             'Selecione uma barra livre ou polilinha; abra o detalhamento agrupado para editar seus objetos.',
           );
-        editablePath(p, selected[0]);
+        const path = editablePath(p, selected[0]);
+        const dimension = a === 'edit-segment' || a === 'lengthen-bar';
+        if (dimension && !path.bar)
+          throw new Error(
+            'Selecione uma barra livre física, não uma máscara, polilinha ou representação.',
+          );
         setTransformRequest(null);
         setAlignmentRequest(null);
         setDraft([]);
@@ -1997,14 +2064,27 @@ export default function App() {
           project: p,
           id: selected[0],
           mode:
-            a === 'insert-vertex'
-              ? 'insert'
-              : a === 'extend-vertex'
-                ? 'extend'
-                : 'remove',
+            a === 'edit-segment'
+              ? 'segment'
+              : a === 'lengthen-bar'
+                ? 'lengthen'
+                : a === 'insert-vertex'
+                  ? 'insert'
+                  : a === 'extend-vertex'
+                    ? 'extend'
+                    : 'remove',
           end: 'end',
           edits: [],
+          dimensions: dimension
+            ? initialDimensions(path.bar!, a === 'lengthen-bar')
+            : undefined,
         });
+        if (dimension)
+          notify(
+            a === 'lengthen-bar'
+              ? 'Estender barra: escolha a ponta e clique para projetar ou informe o acréscimo em mm (ex.: +300 mm). FINAL 1300 mm informa o comprimento final. Enter confirma após a prévia.'
+              : 'Edite comprimento/ângulo local, ponta fixa e estratégia; confira a prévia e aplique.',
+          );
       } catch (e) {
         notify((e as Error).message);
       }
@@ -2561,6 +2641,38 @@ export default function App() {
     const value = raw.trim();
     setCommand('');
     if (
+      vertexRequest?.mode === 'lengthen' &&
+      /^(?:FINAL\s+)?[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*(?:mm|cm|m)?$/i.test(value)
+    ) {
+      const s = vertexRequest;
+      const final = /^FINAL\s+/i.test(value);
+      const length = value.replace(/^FINAL\s+/i, '');
+      try {
+        parseLength(length);
+        const d =
+          s.dimensions ??
+          initialDimensions(s.project.bars.find((b) => b.id === s.id)!, true);
+        setVertexRequest({
+          ...s,
+          dimensions: {
+            ...d,
+            length,
+            picking: false,
+            extensionInput: final
+              ? 'final'
+              : length.startsWith('+')
+                ? 'increment'
+                : d.extensionInput,
+          },
+          cursor: undefined,
+          issue: undefined,
+        });
+      } catch (e) {
+        setVertexRequest({ ...s, issue: (e as Error).message });
+      }
+      return;
+    }
+    if (
       transformRequest?.kind === 'rotate' &&
       transformRequest.mode === 'angle' &&
       transformRequest.base &&
@@ -2616,6 +2728,9 @@ export default function App() {
       ALINHAR: 'align-selection',
       INSERIRVERTICE: 'insert-vertex',
       CONTINUAR: 'extend-vertex',
+      ESTENDER: 'lengthen-bar',
+      ESTENDERBARRA: 'lengthen-bar',
+      SEGMENTOS: 'edit-segment',
       REMOVERVERTICE: 'remove-vertex',
       ROTACIONAR: 'rotate',
       GIRAR: 'rotate',
@@ -3313,7 +3428,20 @@ export default function App() {
                     ? vertexPreview.points
                     : undefined
                 }
-                previewBase={transformRequest?.base}
+                previewBase={
+                  vertexRequest?.mode === 'lengthen' &&
+                  vertexPreview.previewBar &&
+                  !vertexPreview.error
+                    ? world(
+                        vertexPreview.previewBar.points[
+                          vertexRequest.end === 'start'
+                            ? 0
+                            : vertexPreview.previewBar.points.length - 1
+                        ],
+                        vertexPreview.previewBar,
+                      )
+                    : transformRequest?.base
+                }
                 commandActive={
                   !!transformRequest || !!vertexRequest || !!alignmentRequest
                 }
@@ -3347,13 +3475,17 @@ export default function App() {
                 }
                 grid={grid}
                 snap={snap}
-                ortho={ortho}
+                ortho={ortho && vertexRequest?.mode !== 'lengthen'}
                 light={light}
                 setTool={setTool}
                 onCursor={(point) => {
                   onCursor(point);
                   if (nativeKind) setNativeCursor(point);
-                  if (vertexRequest)
+                  if (
+                    vertexRequest &&
+                    (!dimensionalMode(vertexRequest.mode) ||
+                      vertexRequest.dimensions?.picking)
+                  )
                     setVertexRequest((s) =>
                       s ? { ...s, cursor: point, issue: undefined } : s,
                     );
@@ -3375,6 +3507,8 @@ export default function App() {
                   onCancel={() => setVertexRequest(null)}
                   error={vertexPreview.error}
                   warnings={vertexPreview.warnings}
+                  previewBar={vertexPreview.previewBar}
+                  canApply={vertexPreview.canApply}
                 />
               )}
               {transformRequest && (
@@ -3682,6 +3816,9 @@ export default function App() {
               </div>
             ) : (
               <Inspector
+                onDimensionEdit={(mode) =>
+                  action(mode === 'segment' ? 'edit-segment' : 'lengthen-bar')
+                }
                 onVertexEdit={(mode) =>
                   action(
                     mode === 'insert'
@@ -3999,6 +4136,12 @@ export default function App() {
                 items.push('insert-vertex', 'remove-vertex');
                 if (!p.polylines.find((v) => v.id === objects[0].id)?.closed)
                   items.push('extend-vertex');
+                if (
+                  p.bars.some(
+                    (b) => b.id === objects[0].id && b.kind === 'free',
+                  )
+                )
+                  items.push('edit-segment', 'lengthen-bar');
               }
               items.push('delete');
             }

@@ -94,6 +94,13 @@ export const REBAR_CAPABILITIES = Object.freeze({
   atomicBatches: true,
   representationsDoNotAddSteel: true,
   placedRepresentationLabels: true,
+  segmentDimensions: Object.freeze({
+    operation: 'vertices.edit',
+    kinds: ['segment', 'lengthen'] as const,
+    conventions: ['theoretical', 'straight'] as const,
+    straightRequiresChain: true,
+    localAngles: true,
+  }),
   nativeLayerStyles: true,
   deepArmatureCopy: true,
   sharedClonePolicies: ['keep', 'clone-set'] as const,
