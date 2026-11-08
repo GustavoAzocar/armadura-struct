@@ -24,13 +24,18 @@ export function representationPrimitives(
   b: Bar,
   d: Detail,
   p: Project,
-  h = 40,
+  paperHeight?: number,
 ): Primitive[] {
+  const h = paperHeight ?? d.drafting?.height ?? 40;
   const text = (text: string, at: Point, layer: string): Primitive => ({
     layer,
     text,
     points: [representationPoint(d, at)],
-    textHeight: h * (d.scale ?? 1),
+    textHeight:
+      (layer === 'COTAS'
+        ? (paperHeight ?? d.drafting?.dimensionHeight ?? h)
+        : h) * (d.scale ?? 1),
+    textAlign: d.drafting?.align,
     textRotation: d.rotation ?? 0,
   });
   const out: Primitive[] = [

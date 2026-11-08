@@ -19,7 +19,17 @@ export type PlotSettings = {
   preset: 'color' | 'monochrome' | 'grayscale';
   referenceScale: number;
 };
+export type DraftingAppearance = {
+  distributionHeight?: number;
+  dimensions?: { layerId?: string; style?: Partial<DrawingStyle> };
+  height: number;
+  dimensionHeight: number;
+  align?: 'left' | 'center' | 'right';
+  layerId?: string;
+  style?: Partial<DrawingStyle>;
+};
 export type LayerBinding = {
+  drafting?: DraftingAppearance;
   layerId?: string;
   style?: Partial<DrawingStyle>;
   plot?: PlotStyle;
@@ -242,7 +252,8 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/21';
+  schema: 'armadurastruct/22';
+  cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;
   layers: DrawingLayer[];

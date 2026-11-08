@@ -26,7 +26,7 @@ Geometria é armazenada em coordenadas locais; cliques no modelo passam pela tra
 
 ## Dados, interoperabilidade e limites
 
-O formato **armadurastruct/21** lê e migra projetos 1–20 pelo caminho existente; nenhuma polilinha antiga, barra, auxiliar ou máscara importada é convertida silenciosamente. A origem `NATIVE` é explícita. Cada primitiva nativa tem ID e geometria analítica `native`; `points` é seu cache validado de representação. O decoder rejeita identidades duplicadas ou cache incompatível. Não há cópia em `Project.polylines`. O pacote **openstruct.detail/12** preserva essas entidades e lê versões 1–11; conversão mm/cm/m também escala centro/raio e recompõe o cache.
+O formato **armadurastruct/22** lê e migra projetos 1–21 pelo caminho existente; nenhuma polilinha antiga, barra, auxiliar ou máscara importada é convertida silenciosamente. A origem `NATIVE` é explícita. Cada primitiva nativa tem ID e geometria analítica `native`; `points` é seu cache validado de representação. O decoder rejeita identidades duplicadas ou cache incompatível. Não há cópia em `Project.polylines`. O pacote **openstruct.detail/13** preserva essas entidades e lê versões 1–12; conversão mm/cm/m também escala centro/raio e recompõe o cache.
 
 Círculos conservam centro/raio no arquivo. Canvas, limites, encaixes, pranchas, PDF e DXF usam a representação compartilhada por segmentos: erro radial máximo de corda **0,05 unidade local**, portanto até `0,05 × escala da máscara` mm no modelo (e dividido pela escala da vista no papel). O DXF continua usando LWPOLYLINE; não há exportação DWG nem novos blocos. Não se anuncia saída CIRCLE/ARC analítica. A opacidade segue a visualização de máscaras existente; a saída vetorial usa as penas/cores de plotagem existentes.
 

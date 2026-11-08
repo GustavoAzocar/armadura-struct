@@ -1,3 +1,4 @@
+import { styledDrafting } from '../domain/cadDefaults';
 import type {
   FollowEdge,
   FollowChain,
@@ -292,6 +293,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             texts: physicalBarTextPrimitives(
               { ...b, origin: { x: 0, y: 0 }, rotation: 0 },
               source,
+            ).map((item) =>
+              b.drafting ? styledDrafting(source, b, item) : item,
             ),
             style: resolveStyle(source, b, 'ARMADURAS'),
             origins:
@@ -313,7 +316,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 detail: d,
                 bar: b,
                 items: representationPrimitives(b, d, source).map((item) =>
-                  stylePrimitive(source, d, item, 'REBATIMENTOS'),
+                  styledDrafting(source, d, item, 'REBATIMENTOS'),
                 ),
               },
             ]
@@ -336,7 +339,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         .map((b) => ({
           bar: b,
           items: distributionPrimitives(b, undefined, source).map((item) =>
-            stylePrimitive(source, b, item, 'ARMADURAS'),
+            styledDrafting(source, b, item, 'ARMADURAS'),
           ),
         })),
     [project.bars, source],
@@ -936,9 +939,15 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 source,
               )
             : barPresentations.get(b.id)!.texts
-          ).filter((item) =>
-            item.layer === 'IDENTIFICACAO' ? showLabel : props.showDimensions,
-          ),
+          )
+            .map((item) =>
+              b.drafting ? styledDrafting(source, b, item) : item,
+            )
+            .filter((item) =>
+              (item.role ?? item.layer) === 'IDENTIFICACAO'
+                ? showLabel
+                : props.showDimensions,
+            ),
           color,
         )}
         {active &&

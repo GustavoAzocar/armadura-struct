@@ -183,3 +183,14 @@ export type {
   FollowChain,
   FollowParameters,
 } from './domain/followForm';
+
+export {
+  cadDefaults,
+  factoryCadDefaults,
+  validateCadDefaults,
+  setCadDefaults,
+  barCadDefaults,
+  annotationCadDefaults,
+  representationCadDefaults,
+} from './domain/cadDefaults';
+export type { CadDefaults, CadCategory } from './domain/cadDefaults';

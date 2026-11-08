@@ -37,9 +37,9 @@ A escolha ativa é uma **preferência local por ID do projeto**, validada ao rea
 
 ## Persistência e saídas
 
-O formato salvo é **armadurastruct/21**, com leitura/migração de 1–20. A extensão local usa os contratos existentes `Mask.primitives`, identidade e geometria `native`; o formato 21 distingue esse caso de leitores anteriores que só aceitavam nativas em máscaras NATIVE. Projetos anteriores conservam objetos, IDs, ownership e quantitativos. Um arquivo que declara formato 20 ou anterior, mas inclui extensão nativa numa referência, é recusado com indicação de versão.
+O formato salvo é **armadurastruct/22**, com leitura/migração de 1–21. A extensão local usa os contratos existentes `Mask.primitives`, identidade e geometria `native`; o formato 21 distingue esse caso de leitores anteriores que só aceitavam nativas em máscaras NATIVE. Projetos anteriores conservam objetos, IDs, ownership e quantitativos. Um arquivo que declara formato 20 ou anterior, mas inclui extensão nativa numa referência, é recusado com indicação de versão.
 
-O pacote **openstruct.detail/12** preserva a extensão e lê versões 1–11, incluindo conversão mm/cm/m. Pacotes anteriores que declarem extensão local sem a versão apropriada são recusados. Canvas, composição de vistas/pranchas, PDF e DXF usam as mesmas primitivas, sem duplicação.
+O pacote **openstruct.detail/13** preserva a extensão e lê versões 1–12, incluindo conversão mm/cm/m. Pacotes anteriores que declarem extensão local sem a versão apropriada são recusados. Canvas, composição de vistas/pranchas, PDF e DXF usam as mesmas primitivas, sem duplicação.
 
 Círculos conservam centro e raio no projeto/pacote. As saídas atuais continuam discretizadas: erro de corda máximo **0,05 unidade local**, multiplicado pela escala da máscara no modelo e dividido pela escala da vista no papel; mínimo de 32 segmentos. Não se anuncia exportação DWG ou CIRCLE/ARC analítica. As penas/cores de plotagem seguem os estilos existentes.
 

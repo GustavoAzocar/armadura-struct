@@ -1,4 +1,11 @@
-import { uid, type Mask, type Primitive, type Point } from './types';
+import { cadDefaults, cadBinding } from './cadDefaults';
+import {
+  uid,
+  type Mask,
+  type Primitive,
+  type Point,
+  type Project,
+} from './types';
 import { maskPoint } from '../cad/import';
 export type NativeShape =
   | {
@@ -78,7 +85,7 @@ export function nativePrimitive(
       shape.kind === 'circle' || shape.kind === 'rectangle' || shape.closed,
   };
 }
-export function newNativeMask(name: string): Mask {
+export function newNativeMask(name: string, p?: Project): Mask {
   if (!name.trim() || name.trim().length > 200)
     throw new Error('Nome da máscara: 1 a 200 caracteres.');
   return {
@@ -94,6 +101,12 @@ export function newNativeMask(name: string): Mask {
     rotation: 0,
     sourceUnit: 'mm',
     warnings: [],
+    ...(p?.cadDefaults
+      ? {
+          ...cadBinding(p, cadDefaults(p).masks.mask),
+          opacity: cadDefaults(p).masks.opacity,
+        }
+      : {}),
   };
 }
 export function localMaskPoint(p: Point, m: Mask): Point {

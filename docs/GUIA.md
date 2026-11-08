@@ -252,7 +252,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/21`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20/21 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/22`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 
@@ -301,3 +301,5 @@ Arraste o quadro ou ajuste X/Y, texto e reserva no gerenciador. Um quadro por fo
 Para escolher uma máscara em qualquer detalhamento, criar sem aço ou acrescentar desenho local à referência importada, veja [Máscara ativa](MASCARA-ATIVA.md). A seleção gráfica e o destino ativo são independentes.
 
 Em **Armaduras → Seguir fôrma**, os cliques agora acumulam arestas sem criar aço. Use **Escolher lado no CAD**, confira o cobrimento/mandril e pressione **Enter fora dos campos** para criar uma barra contínua. Polilinha inteira é uma opção explícita; três lados de um retângulo podem ser escolhidos separadamente. Uso, medidas, padrões e limites em [Seguir fôrma por trechos](SEGUIR-FORMA.md).
+
+Em **CONFIGURAÇÕES → Configurações CAD**, edite os padrões do projeto para novas entidades. **Salvar e fechar** confirma uma operação de histórico; Cancelar/Esc descartam o rascunho. Os controles rápidos são temporários, e os objetos existentes são preservados. Consulte [Configurações CAD](CONFIGURACOES-CAD.md) para campos, herança, alcance, intercâmbio e limitações.

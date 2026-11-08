@@ -130,12 +130,29 @@ export function validateLayers(p: Project) {
     ids.add(l.id);
     names.add(name);
   }
+  if (p.cadDefaults)
+    for (const a of [
+      p.cadDefaults.texts.appearance,
+      p.cadDefaults.texts.identification,
+      p.cadDefaults.armatures.bar,
+      p.cadDefaults.armatures.representation,
+      p.cadDefaults.dimensions.appearance,
+      p.cadDefaults.masks.mask,
+      p.cadDefaults.masks.entity,
+    ])
+      if (a.layerId && !ids.has(a.layerId))
+        throw new Error(
+          'Layer ainda usado nos padrões CAD. Reassocie-o em Configurações CAD antes de remover.',
+        );
   for (const o of [
     ...layerObjects(p),
     ...p.masks.flatMap((m) => m.primitives),
   ]) {
     if (o.layerId && !ids.has(o.layerId))
       throw new Error(`Layer inexistente: ${o.layerId}.`);
+    for (const binding of [o.drafting, o.drafting?.dimensions])
+      if (binding?.layerId && !ids.has(binding.layerId))
+        throw new Error('Layer de texto inexistente.');
     if (o.style) drawingStyleSchema.partial().parse(o.style);
     if (o.plot) plotStyleSchema.parse(o.plot);
   }
@@ -183,7 +200,34 @@ export function remapLayer<T extends LayerBinding>(
   o: T,
   map: Map<string, string>,
 ): T {
-  return o.layerId ? { ...o, layerId: map.get(o.layerId) ?? o.layerId } : o;
+  return {
+    ...o,
+    ...(o.layerId ? { layerId: map.get(o.layerId) ?? o.layerId } : {}),
+    ...(o.drafting
+      ? {
+          drafting: {
+            ...o.drafting,
+            ...(o.drafting.layerId
+              ? { layerId: map.get(o.drafting.layerId) ?? o.drafting.layerId }
+              : {}),
+            ...(o.drafting.dimensions
+              ? {
+                  dimensions: {
+                    ...o.drafting.dimensions,
+                    ...(o.drafting.dimensions.layerId
+                      ? {
+                          layerId:
+                            map.get(o.drafting.dimensions.layerId) ??
+                            o.drafting.dimensions.layerId,
+                        }
+                      : {}),
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+  };
 }
 export function completeLayers(p: Project): Project {
   let next = p;

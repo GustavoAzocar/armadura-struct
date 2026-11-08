@@ -1,3 +1,4 @@
+import { cadBinding, cadDefaults } from './cadDefaults';
 import type { Mask, Project, Point } from './types';
 import { completeOwnership, detailPath } from './hierarchy';
 import { layerId } from './layers';
@@ -19,6 +20,7 @@ export type MaskDrawingContext = {
 export const localDrawingLayer = (m: Mask) =>
   m.format === 'NATIVE' ? 'DESENHO' : 'AS_DESENHO_LOCAL';
 export const drawingLayerId = (p: Project, m: Mask) =>
+  p.cadDefaults?.masks.entity.layerId ??
   p.layers.find((l) => l.id === layerId('DESENHO'))?.id ??
   m.layerId ??
   p.layers[0].id;
@@ -87,7 +89,7 @@ export function createDrawingMask(
     throw new Error('Abra o contexto de criação antes de confirmar a máscara.');
   if (p.masks.length >= 20)
     throw new Error('Limite de 20 máscaras por projeto.');
-  const mask = newNativeMask(name);
+  const mask = newNativeMask(name, p);
   if (
     p.masks.some(
       (m) =>
@@ -131,6 +133,7 @@ export function appendMaskShape(
       localDrawingLayer(m),
     ),
     layerId: drawingLayerId(p, m),
+    ...(p.cadDefaults ? cadBinding(p, cadDefaults(p).masks.entity) : {}),
   };
   const next = {
     ...m,

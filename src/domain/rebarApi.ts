@@ -1,3 +1,4 @@
+import { barCadDefaults, representationCadDefaults } from './cadDefaults';
 import { alignSelection, alignmentSchema } from './alignment';
 import { editVertices, vertexEditSchema } from './vertices';
 import { transformSelection, selectionTransformSchema } from './transforms';
@@ -724,7 +725,7 @@ function perform(
         e.id ===
         p.hierarchy.details.find((d) => d.id === c.detailId)!.elementId,
     )!;
-    const b: Bar = {
+    const b: Bar = barCadDefaults(p, {
       ...newBar(c.definition.mark ?? nextMark(p)),
       element: element.name,
       ...defined(c.definition),
@@ -732,7 +733,10 @@ function perform(
         ? { style: { color: c.definition.color, ...c.definition.style } }
         : {}),
       id,
-    };
+      ...(!c.definition.layerId && p.cadDefaults?.armatures.bar.layerId
+        ? { layerId: p.cadDefaults.armatures.bar.layerId }
+        : {}),
+    });
     next = own({ ...p, bars: [...p.bars, b] }, id, c.detailId);
     if (c.provenance)
       next = {
@@ -992,10 +996,16 @@ function perform(
         details: [
           ...p.details,
           {
+            ...representationCadDefaults(p, {
+              id,
+              barId: c.barId,
+              origin: c.origin,
+            }),
             id,
             barId: c.barId,
             origin: c.origin,
             ...defined({
+              drafting: c.drafting,
               layerId: c.layerId,
               style: c.style,
               plot: c.plot,
@@ -1028,6 +1038,7 @@ function perform(
             ? {
                 ...r,
                 ...defined({
+                  drafting: c.drafting,
                   layerId: c.layerId,
                   style: c.style,
                   plot: c.plot,
@@ -1301,6 +1312,7 @@ export function applyRebarBatch(
 /** Adapter for existing Bar persistence; unused fields never leak across family boundaries. */
 export function rebarDefinition(bar: Bar): RebarDefinition {
   const common = {
+    drafting: bar.drafting,
     layerId: bar.layerId,
     style: bar.style,
     plot: bar.plot,

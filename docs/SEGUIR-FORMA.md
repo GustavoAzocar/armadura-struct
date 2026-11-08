@@ -22,9 +22,9 @@ Enter sem referências orienta a seleção. Com referências, mas sem lado, Ente
 
 ## Cobrimento e padrões existentes
 
-O valor inicial é o **valor vigente de `cover` nos controles rápidos da sessão**, com a restauração entre desenhos já existente. O controle **Cobrim. / Cobrimento padrão de criação** agora torna esse mesmo parâmetro acessível antes de abrir o comando. Não existe uma segunda configuração ou nova hierarquia de defaults. A central Configurações CAD continua em tarefa própria.
+O valor inicial é o **valor vigente de `cover` nos controles rápidos da sessão**, com a restauração entre desenhos já existente. O controle **Cobrim. / Cobrimento padrão de criação** agora torna esse mesmo parâmetro acessível antes de abrir o comando. Não existe uma segunda configuração ou nova hierarquia de defaults. A central **CONFIGURAÇÕES → Configurações CAD → Armaduras** salva o padrão documental; o controle rápido é um ajuste temporário. [Alcance e uso](CONFIGURACOES-CAD.md).
 
-O padrão rápido não é uma propriedade nova do JSON nem um critério normativo: mantém o alcance de sessão do editor. Sua alteração não modifica barras existentes. Ao iniciar ou reiniciar Seguir fôrma, o comando copia o valor atual. **Usar cobrimento padrão** restaura esse valor no lançamento pendente. Digitar outro valor no campo do lançamento não salva um novo padrão.
+O padrão documental é salvo no JSON; o controle rápido mantém alcance temporário de sessão, sem ser um critério normativo. Sua alteração não modifica barras existentes. Ao iniciar ou reiniciar Seguir fôrma, o comando copia o valor atual. **Usar cobrimento padrão** restaura esse valor no lançamento pendente. Digitar outro valor no campo do lançamento não salva um novo padrão.
 
 O cobrimento é a distância da face selecionada à superfície externa desta barra. O deslocamento do eixo é mostrado separadamente:
 

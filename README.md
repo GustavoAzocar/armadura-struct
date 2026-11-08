@@ -12,6 +12,8 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- [Configurações CAD](docs/CONFIGURACOES-CAD.md): padrões documentais de textos, armaduras, cotas, máscaras e linhas, com rascunho e atributos materializados somente nas próximas criações.
+
 - [Comprimentos, ângulos e extensão de barras](docs/AS-26.md): dimensões por trecho, ponta fixa/estratégia explícitas e ESTENDER por incremento, comprimento final ou clique projetado, com prévia e histórico.
 
 - [Fluidez do CAD e medições reproduzíveis](docs/DESEMPENHO-CAD.md): reutilização de apresentação e formatação, controle de captura por máscara e benchmark de navegação/edição.
@@ -35,7 +37,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Menu contextual no CAD e rotação/espelho de seleção por base comum, com ângulo digitado ou por pontos e prévia cancelável. [Uso](docs/AS-24.md).
 - Ocultação e isolamento por objeto em cada desenho/vista, realce dos ocultos, recuperação seletiva e controle do PDF, preservando layers e quantitativos. [Uso](docs/AS-22.md).
 - Estilos de impressão independentes do CAD, por layer/objeto, com penas e tracejados em mm no papel, presets colorido/monocromático/cinza e prévia. [Uso e limites PDF/DXF](docs/AS-21.md).
-- Pacotes abertos `openstruct.detail/12` (`.osdetail.json`), com leitura de v1–11, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
+- Pacotes abertos `openstruct.detail/13` (`.osdetail.json`), com leitura de v1–12, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
 - [Renumeração espacial](docs/AS-55.md), com prévia, prefixo, início, escopo, reservas e preservações, usando posições de fabricação estáveis.
 - [Composição da quantidade e montagem](docs/AS-56.md): peças por grupo × multiplicador da armadura × repetições do detalhe, origem manual/por faixa, descrição fatorada, observação, indicação de nervura e lance.
 - [Posições de fabricação](docs/AS-54.md): agrupamento assistido de barras equivalentes, prévia, representante, contribuições rastreáveis no quadro e separação automática da ocorrência alterada; sem fundir elementos ou duplicar aço.
@@ -116,7 +118,7 @@ Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composi
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos nos formatos 1–20 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/21`, com composição da quantidade, dados de montagem, posições de fabricação e repetição por detalhamento, contexto da RA bloqueada, origens, composição, vínculos validados e perfis de layers por desenho/vista. Aplicativos antigos não abrem esse formato; mantenha cópias dos originais. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
+- Projetos nos formatos 1–21 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/22`, com composição da quantidade, dados de montagem, posições de fabricação e repetição por detalhamento, contexto da RA bloqueada, origens, composição, vínculos validados e perfis de layers por desenho/vista. Aplicativos antigos não abrem esse formato; mantenha cópias dos originais. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
 - O salvamento automático guarda o último projeto neste dispositivo. Use **Salvar projeto** para manter cópias independentes.
 
 ## Verificar e compilar

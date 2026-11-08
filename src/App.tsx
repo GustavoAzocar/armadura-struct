@@ -1,3 +1,10 @@
+import CadSettingsDialog from './components/CadSettingsDialog';
+import {
+  cadDefaults,
+  barCadDefaults,
+  annotationCadDefaults,
+  setCadDefaults,
+} from './domain/cadDefaults';
 import FollowFormPanel, {
   type FollowDraftValues,
 } from './components/FollowFormPanel';
@@ -228,6 +235,7 @@ type DocumentSession = {
   sidebar: 'project' | 'properties' | 'sheets';
   returnTo?: string;
   settings?: {
+    defaultsKey?: string;
     diameter: number;
     quantity: number;
     spacing: number;
@@ -370,6 +378,8 @@ export default function App() {
   const sessions = useRef(new Map<string, DocumentSession>());
   const sessionsProject = useRef('');
   const [maskControl, setMaskControl] = useState(false);
+  const [cadSettingsOpen, setCadSettingsOpen] = useState(false);
+  const quickDefaultsRef = useRef<string>('');
   const [nativeEntity, setNativeEntity] = useState<string>();
   const [nativeKind, setNativeKind] = useState<NativeShape['kind']>();
   const [nativeCursor, setNativeCursor] = useState<Point>();
@@ -512,6 +522,17 @@ export default function App() {
     null,
   );
   const followConsumed = useRef(false);
+  useEffect(() => {
+    const identity = p.id + ':' + JSON.stringify(p.cadDefaults ?? null);
+    if (quickDefaultsRef.current === identity) return;
+    quickDefaultsRef.current = identity;
+    const c = cadDefaults(p).armatures;
+    setCover(c.cover);
+    setNewDiameter(c.diameter);
+    setNewQuantity(c.quantity);
+    setNewSpacing(c.spacing);
+    setCadSettingsOpen(false);
+  }, [p.id, p.cadDefaults]);
   const [sidebarTab, setSidebarTab] = useState<
     'project' | 'properties' | 'sheets'
   >('project');
@@ -558,6 +579,7 @@ export default function App() {
     camera: canvas()?.getState() ?? sessions.current.get(documentKey)?.camera,
     selectedView,
     settings: {
+      defaultsKey: JSON.stringify(p.cadDefaults ?? null),
       diameter: newDiameter,
       quantity: newQuantity,
       spacing: newSpacing,
@@ -643,7 +665,10 @@ export default function App() {
         ? next.maskId
         : null,
     );
-    if (next.settings) {
+    if (
+      next.settings &&
+      next.settings.defaultsKey === JSON.stringify(p.cadDefaults ?? null)
+    ) {
       setNewDiameter(next.settings.diameter);
       setNewQuantity(next.settings.quantity);
       setNewSpacing(next.settings.spacing);
@@ -1066,10 +1091,11 @@ export default function App() {
     });
   };
   const insertBar = (
-    b: Bar,
+    inputBar: Bar,
     removePolyline?: string,
     invalidateSchedule = false,
   ) => {
+    const b = barCadDefaults(p, inputBar, true);
     if (
       !commit((current) => {
         const commands: RebarCommand[] = [
@@ -1946,7 +1972,7 @@ export default function App() {
         return;
       }
       const points = [...draft, point];
-      const a: Annotation = {
+      const a: Annotation = annotationCadDefaults(p, {
         id: uid(),
         kind: tool as Annotation['kind'],
         points,
@@ -1954,7 +1980,7 @@ export default function App() {
         label: '',
         textHeight: 50,
         color: '#7c91b7',
-      };
+      });
       const error = annotationError(a);
       if (error) {
         notify(error);
@@ -2281,6 +2307,10 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'cad-settings') {
+      setCadSettingsOpen(true);
+      return;
+    }
     if (a === 'mask-control') {
       setTool('select');
       setNativeEntity(undefined);
@@ -4678,6 +4708,25 @@ export default function App() {
             }}
           />
         </Suspense>
+      )}
+      {cadSettingsOpen && (
+        <CadSettingsDialog
+          project={p}
+          onClose={() => setCadSettingsOpen(false)}
+          onSave={(base, value) => {
+            if (historyRef.current.present !== base) {
+              notify('O projeto mudou; reabra as configurações.');
+              return false;
+            }
+            if (JSON.stringify(cadDefaults(base)) === JSON.stringify(value))
+              return true;
+            return commit((current) => setCadDefaults(current, value));
+          }}
+          onManager={(a) => {
+            setCadSettingsOpen(false);
+            action(a);
+          }}
+        />
       )}
       {maskControl && (
         <MaskControl

@@ -53,7 +53,25 @@ export const plotSettingsSchema = z
     referenceScale: z.number().finite().min(1).max(10000),
   })
   .strict();
+export const draftingAppearanceSchema = z
+  .object({
+    distributionHeight: z.number().finite().positive().optional(),
+    dimensions: z
+      .object({
+        layerId: z.string().min(1).max(200).optional(),
+        style: drawingStyleSchema.partial().optional(),
+      })
+      .strict()
+      .optional(),
+    height: z.number().finite().positive(),
+    dimensionHeight: z.number().finite().positive(),
+    align: z.enum(['left', 'center', 'right']).optional(),
+    layerId: z.string().min(1).max(200).optional(),
+    style: drawingStyleSchema.partial().optional(),
+  })
+  .strict();
 export const layerBindingShape = {
+  drafting: draftingAppearanceSchema.optional(),
   plot: plotStyleSchema.optional(),
   layerId: z.string().min(1).max(200).optional(),
   style: drawingStyleSchema.partial().optional(),

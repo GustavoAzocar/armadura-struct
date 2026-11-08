@@ -1,4 +1,5 @@
 import {
+  Settings,
   Eye,
   EyeOff,
   Copy,
@@ -43,6 +44,7 @@ import type { ReactNode } from 'react';
 import { NumberField } from './Panels';
 export type Action =
   | Tool
+  | 'cad-settings'
   | 'mask-control'
   | 'mask-line'
   | 'mask-rectangle'
@@ -154,6 +156,12 @@ export default function Ribbon({
     string,
     { name: string; items: Item[]; creation?: boolean }[]
   > = {
+    CONFIGURAÇÕES: [
+      {
+        name: 'Padrões do projeto',
+        items: [item('cad-settings', 'Configurações CAD', Settings)],
+      },
+    ],
     Arquivo: [
       {
         name: 'Projeto',
@@ -355,7 +363,10 @@ export default function Ribbon({
   return (
     <div className={`ribbon ${collapsed ? 'collapsed' : ''}`}>
       <div className="ribbon-tabs" role="tablist" aria-label="Ferramentas">
-        {Object.keys(groups).map((t) => (
+        {[
+          ...Object.keys(groups).filter((t) => t !== 'CONFIGURAÇÕES'),
+          'CONFIGURAÇÕES',
+        ].map((t) => (
           <button
             role="tab"
             aria-selected={t === tab}
@@ -465,6 +476,14 @@ export default function Ribbon({
                                 onSettings({ diameter: Number(e.target.value) })
                               }
                             >
+                              {![
+                                4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32,
+                                40,
+                              ].includes(settings.diameter) && (
+                                <option value={settings.diameter}>
+                                  {settings.diameter}
+                                </option>
+                              )}
                               {[
                                 4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32,
                                 40,

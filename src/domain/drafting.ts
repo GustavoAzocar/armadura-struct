@@ -122,10 +122,7 @@ export function primitiveBounds(p: Primitive): Point[] {
     }),
   );
 }
-export function annotationPrimitives(
-  a: Annotation,
-  project: Project,
-): Primitive[] {
+function rawAnnotationPrimitives(a: Annotation, project: Project): Primitive[] {
   if (a.kind === 'dimension-orthogonal' && a.frameRotation) {
     const origin = a.points[0],
       angle = a.frameRotation;
@@ -261,7 +258,7 @@ export function distributionPrimitives(
     end = b.distribution.end,
     u = unit(sub(end, start)),
     n = normal(u),
-    h = paperTextHeight ?? 50;
+    h = paperTextHeight ?? b.drafting?.distributionHeight ?? 50;
   const pts = distributionOrigins(b);
   const result = [
     line([start, end], 'DISTRIBUICAO'),
@@ -291,4 +288,13 @@ export function repeatedGeometry(b: Bar, limit = 2000): Primitive[] {
       world(v, { ...b, origin }),
     ),
   }));
+}
+
+export function annotationPrimitives(
+  a: Annotation,
+  project: Project,
+): Primitive[] {
+  return rawAnnotationPrimitives(a, project).map((q) =>
+    q.text && a.drafting?.align ? { ...q, textAlign: a.drafting.align } : q,
+  );
 }

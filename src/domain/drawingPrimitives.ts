@@ -1,3 +1,4 @@
+import { styledDrafting } from './cadDefaults';
 import { stylePrimitive } from './layers';
 import {
   representationPrimitives,
@@ -19,19 +20,20 @@ export function physicalBarTextPrimitives(
   p: Project,
   paperHeight?: number,
 ): Primitive[] {
-  const h = paperHeight ?? 40,
+  const h = paperHeight ?? b.drafting?.height ?? 40,
     offset = (legacy: number, factor: number) =>
       paperHeight === undefined ? legacy : h * factor;
   const text = (
     text: string,
     at: Point,
     layer: string,
-    align: 'left' | 'center' = 'left',
+    align: 'left' | 'center' | 'right' = b.drafting?.align ?? 'left',
   ): Primitive => ({
     layer,
     text,
     points: [world(at, b)],
-    textHeight: h,
+    textHeight:
+      layer === 'COTAS' ? (paperHeight ?? b.drafting?.dimensionHeight ?? h) : h,
     textRotation: b.rotation,
     textAlign: align,
   });
@@ -104,15 +106,18 @@ export function drawingPrimitives(
     );
     lines.push(...distributionPrimitives(b, options.minTextHeight, references));
     for (let i = start; i < lines.length; i++)
-      lines[i] = stylePrimitive(references, b, lines[i], 'ARMADURAS');
+      lines[i] = styledDrafting(references, b, lines[i], 'ARMADURAS');
   }
   for (const d of p.details) {
     const b = references.bars.find((b) => b.id === d.barId);
     if (b)
       lines.push(
-        ...representationPrimitives(b, d, references, h).map((item) =>
-          stylePrimitive(references, d, item, 'REBATIMENTOS'),
-        ),
+        ...representationPrimitives(
+          b,
+          d,
+          references,
+          options.minTextHeight,
+        ).map((item) => styledDrafting(references, d, item, 'REBATIMENTOS')),
       );
   }
   for (const d of p.hierarchy.details.filter((d) => d.repetition)) {

@@ -1,3 +1,4 @@
+import { cadDefaultsSchema, validateCadDefaults } from './cadDefaults';
 import { validateNativeMask } from './nativeMasks';
 import { sheetSteelScheduleSchema } from './sheetSchedule';
 import { pruneVisibility } from './visibilitySchema';
@@ -242,6 +243,7 @@ const schema = z.object({
     'armadurastruct/18',
     'armadurastruct/19',
   ]),
+  cadDefaults: cadDefaultsSchema.optional(),
   layerEnvironment: layerEnvironmentSchema.optional(),
   plotting: plotSettingsSchema.optional(),
   layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
@@ -447,7 +449,24 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const mixedVersion = input?.schema === 'armadurastruct/21';
+  const settingsVersion = input?.schema === 'armadurastruct/22';
+  if (
+    !settingsVersion &&
+    (input?.cadDefaults ||
+      [
+        ...(input?.bars ?? []),
+        ...(input?.details ?? []),
+        ...(input?.annotations ?? []),
+        ...(input?.polylines ?? []),
+        ...(input?.masks ?? []),
+        ...(input?.masks ?? []).flatMap(
+          (m: { primitives?: unknown[] }) => m.primitives ?? [],
+        ),
+        ...(input?.scheduleLock?.bars ?? []),
+      ].some((o) => o.drafting))
+  )
+    throw new Error('Padrões CAD exigem formato 22.');
+  const mixedVersion = settingsVersion || input?.schema === 'armadurastruct/21';
   const nativeVersion = mixedVersion || input?.schema === 'armadurastruct/20';
   if (
     !mixedVersion &&
@@ -679,7 +698,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/21',
+    schema: 'armadurastruct/22',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -766,6 +785,7 @@ export function decodeProject(
   }
   p = pruneVisibility(completeLayers(p));
   validateLayers(p);
+  if (p.cadDefaults) validateCadDefaults(p, p.cadDefaults);
   if (p.layerEnvironment) {
     const e = p.layerEnvironment;
     const ids = e.profiles.map((x) => x.id),
@@ -905,7 +925,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/21',
+    schema: 'armadurastruct/22',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,
