@@ -6,7 +6,11 @@ export type ContextAction =
   | 'rotate'
   | 'mirror'
   | 'delete'
-  | 'fit';
+  | 'fit'
+  | 'align-selection'
+  | 'insert-vertex'
+  | 'extend-vertex'
+  | 'remove-vertex';
 const names: Record<ContextAction, string> = {
   properties: 'Propriedades',
   move: 'Mover',
@@ -15,6 +19,10 @@ const names: Record<ContextAction, string> = {
   mirror: 'Espelhar por eixo…',
   delete: 'Excluir',
   fit: 'Enquadrar desenho',
+  'align-selection': 'Alinhar / distribuir…',
+  'insert-vertex': 'Inserir vértices',
+  'extend-vertex': 'Continuar pela ponta',
+  'remove-vertex': 'Remover vértices',
 };
 export default function CadContextMenu({
   x,

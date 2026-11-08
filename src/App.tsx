@@ -1,3 +1,14 @@
+import AlignmentPanel, {
+  type AlignmentSession,
+} from './components/AlignmentPanel';
+import VertexPanel, { type VertexSession } from './components/VertexPanel';
+import {
+  alignSelection,
+  modelAlignmentItems,
+  paperAlignmentItems,
+} from './domain/alignment';
+import { editVertices, editablePath, vertexEditAt } from './domain/vertices';
+import { objectPrimitives } from './domain/drawingPrimitives';
 import CadContextMenu, {
   type ContextAction,
 } from './components/CadContextMenu';
@@ -252,6 +263,11 @@ export default function App() {
     projectId: string;
   } | null>(null);
   const [plotOpen, setPlotOpen] = useState(false);
+  const [alignmentRequest, setAlignmentRequest] =
+    useState<AlignmentSession | null>(null);
+  const [vertexRequest, setVertexRequest] = useState<VertexSession | null>(
+    null,
+  );
   const [transformRequest, setTransformRequest] =
     useState<TransformSession | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -777,6 +793,8 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    setAlignmentRequest(null);
+    setVertexRequest(null);
     setTransformRequest(null);
     setContextMenu(null);
     if (activeSheet && t !== 'select' && t !== 'pan') {
@@ -954,6 +972,181 @@ export default function App() {
         }),
       ),
     );
+  const alignmentPreview = useMemo(() => {
+    if (!alignmentRequest)
+      return { project: undefined, lines: undefined, error: '', items: [] };
+    try {
+      const s = alignmentRequest;
+      if (s.project !== p)
+        throw new Error('O projeto mudou. Reinicie o alinhamento.');
+      const result = alignSelection(p, s.ids, s.options, {
+        sheetId: s.sheetId,
+        layerContext: documentKey,
+        scopeDetailId: isolatedDetailId,
+      });
+      const items = s.sheetId
+        ? paperAlignmentItems(p, s.sheetId)
+        : result.items;
+      return {
+        project: result.project,
+        items,
+        lines: s.sheetId
+          ? undefined
+          : objectPrimitives(
+              result.project,
+              result.items.flatMap((v) => v.ids),
+            ),
+        error: '',
+      };
+    } catch (e) {
+      return {
+        project: undefined,
+        lines: undefined,
+        error: (e as Error).message,
+        items: alignmentRequest.sheetId
+          ? paperAlignmentItems(
+              alignmentRequest.project,
+              alignmentRequest.sheetId,
+            )
+          : modelAlignmentItems(
+              alignmentRequest.project,
+              alignmentRequest.ids,
+              isolatedDetailId,
+            ),
+      };
+    }
+  }, [alignmentRequest, p, documentKey, isolatedDetailId]);
+  const applyAlignment = () => {
+    if (
+      !alignmentRequest ||
+      alignmentRequest.project !== historyRef.current.present
+    )
+      return;
+    const s = alignmentRequest;
+    const result = executeRebarBatch(
+      p,
+      [
+        {
+          type: 'selection.align',
+          ids: s.ids,
+          options: s.options,
+          sheetId: s.sheetId,
+        },
+      ],
+      {
+        units: 'mm',
+        layerContext: documentKey,
+        scopeDetailId: isolationRef.current,
+      },
+    );
+    if (commit((p) => applyRebarBatch(p, result))) {
+      setAlignmentRequest(null);
+      notify(
+        'Alinhamento aplicado em uma operação; geometria e quantitativos preservados.',
+      );
+    }
+  };
+  const vertexPreview = useMemo(() => {
+    if (!vertexRequest)
+      return {
+        pending: p,
+        lines: undefined,
+        points: [] as Point[],
+        anchor: undefined,
+        error: '',
+        warnings: [] as string[],
+      };
+    const s = vertexRequest;
+    let pending = s.project;
+    const warnings: string[] = [];
+    try {
+      if (s.project !== p)
+        throw new Error('O projeto mudou. Reinicie a edição de vértices.');
+      for (const edit of s.edits) {
+        const result = editVertices(pending, s.id, edit, {
+          layerContext: documentKey,
+          scopeDetailId: isolatedDetailId,
+        });
+        pending = result.project;
+        warnings.push(...result.warnings);
+      }
+      const path = editablePath(pending, s.id),
+        anchor =
+          s.mode === 'extend'
+            ? path.points[s.end === 'start' ? 0 : path.points.length - 1]
+            : s.edits.at(-1)?.kind !== 'remove' &&
+                s.edits.at(-1) &&
+                'point' in s.edits.at(-1)!
+              ? (s.edits.at(-1) as { point: Point }).point
+              : path.points[0];
+      let display = pending,
+        error = s.issue ?? '';
+      if (s.cursor)
+        try {
+          display = editVertices(
+            pending,
+            s.id,
+            vertexEditAt(pending, s.id, s.mode, s.cursor, s.end),
+            { layerContext: documentKey, scopeDetailId: isolatedDetailId },
+          ).project;
+        } catch (e) {
+          error = (e as Error).message;
+        }
+      const ids = [
+        s.id,
+        ...display.details.filter((r) => r.barId === s.id).map((r) => r.id),
+        ...display.annotations
+          .filter((a) => a.barId === s.id || a.barIds?.includes(s.id))
+          .map((a) => a.id),
+      ];
+      return {
+        pending,
+        points: path.points,
+        anchor,
+        lines: objectPrimitives(display, ids),
+        error,
+        warnings,
+      };
+    } catch (e) {
+      return {
+        pending,
+        lines: undefined,
+        points: [] as Point[],
+        anchor: undefined,
+        error: (e as Error).message,
+        warnings,
+      };
+    }
+  }, [vertexRequest, p, documentKey, isolatedDetailId]);
+  const applyVertex = () => {
+    if (
+      !vertexRequest ||
+      !vertexRequest.edits.length ||
+      vertexRequest.project !== historyRef.current.present
+    )
+      return;
+    const s = vertexRequest;
+    const result = executeRebarBatch(
+      p,
+      s.edits.map((edit) => ({
+        type: 'vertices.edit' as const,
+        id: s.id,
+        edit,
+      })),
+      {
+        units: 'mm',
+        layerContext: documentKey,
+        scopeDetailId: isolationRef.current,
+        schedule: 'invalidate-lock',
+      },
+    );
+    if (commit((p) => applyRebarBatch(p, result))) {
+      setVertexRequest(null);
+      notify(
+        'Vértices atualizados; posição e representações preservadas. Confira cotas independentes.',
+      );
+    }
+  };
   const transformPreview = useMemo(() => {
     if (!transformRequest) return { lines: undefined, error: '', shared: 0 };
     try {
@@ -1030,9 +1223,16 @@ export default function App() {
   };
   useEffect(() => {
     setTransformRequest(null);
+    setAlignmentRequest(null);
+    setVertexRequest(null);
     setContextMenu(null);
   }, [p.id, documentKey, isolatedDetailId]);
   const finish = () => {
+    if (vertexRequest) {
+      applyVertex();
+      return;
+    }
+    if (alignmentRequest) return;
     if (transformRequest) return;
     if (activeSheet) return;
     if (tool === 'polyline' && draft.length >= 2) {
@@ -1061,6 +1261,47 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (alignmentRequest) {
+      const s = alignmentRequest;
+      if (s.picking) {
+        const ref = s.options.reference ?? { start: point, end: point };
+        setAlignmentRequest({
+          ...s,
+          picking: s.picking === 'start' ? 'end' : undefined,
+          options: { ...s.options, reference: { ...ref, [s.picking]: point } },
+        });
+      }
+      return;
+    }
+    if (vertexRequest) {
+      const s = vertexRequest;
+      try {
+        const edit = vertexEditAt(
+          vertexPreview.pending,
+          s.id,
+          s.mode,
+          point,
+          s.end,
+        );
+        editVertices(vertexPreview.pending, s.id, edit, {
+          layerContext: documentKey,
+          scopeDetailId: isolatedDetailId,
+        });
+        setVertexRequest({
+          ...s,
+          edits: [...s.edits, edit],
+          cursor: undefined,
+          issue: undefined,
+        });
+      } catch (e) {
+        setVertexRequest({
+          ...s,
+          cursor: undefined,
+          issue: (e as Error).message,
+        });
+      }
+      return;
+    }
     if (transformRequest) {
       setTransformRequest((s) =>
         !s
@@ -1485,11 +1726,79 @@ export default function App() {
   };
   const action = async (a: Action) => {
     setContextMenu(null);
+    if ((alignmentRequest || vertexRequest) && ['undo', 'redo'].includes(a)) {
+      setAlignmentRequest(null);
+      setVertexRequest(null);
+      return;
+    }
+    if (a === 'align-selection') {
+      try {
+        const ids = activeSheet
+          ? p.hierarchy.placements
+              .filter((v) => v.sheetId === activeSheet.id)
+              .map((v) => v.id)
+          : selected;
+        const items = activeSheet
+          ? paperAlignmentItems(p, activeSheet.id)
+          : modelAlignmentItems(p, ids, isolatedDetailId);
+        if (items.length < 2)
+          throw new Error('Selecione ao menos dois objetos ou detalhamentos.');
+        setTransformRequest(null);
+        setVertexRequest(null);
+        setDraft([]);
+        setToolRaw('select');
+        setAlignmentRequest({
+          project: p,
+          ids,
+          sheetId: activeSheet?.id,
+          options: {
+            mode: 'align',
+            axis: 'x',
+            anchor: 'min',
+            fixedId: items[0].id,
+            gap: activeSheet ? 10 : 100,
+          },
+        });
+      } catch (e) {
+        notify((e as Error).message);
+      }
+      return;
+    }
+    if (['insert-vertex', 'extend-vertex', 'remove-vertex'].includes(a)) {
+      try {
+        if (activeSheet || selected.length !== 1 || groupSelection)
+          throw new Error(
+            'Selecione uma barra livre ou polilinha; abra o detalhamento agrupado para editar seus objetos.',
+          );
+        editablePath(p, selected[0]);
+        setTransformRequest(null);
+        setAlignmentRequest(null);
+        setDraft([]);
+        setToolRaw('select');
+        setVertexRequest({
+          project: p,
+          id: selected[0],
+          mode:
+            a === 'insert-vertex'
+              ? 'insert'
+              : a === 'extend-vertex'
+                ? 'extend'
+                : 'remove',
+          end: 'end',
+          edits: [],
+        });
+      } catch (e) {
+        notify((e as Error).message);
+      }
+      return;
+    }
     if (transformRequest && ['undo', 'redo'].includes(a)) {
       setTransformRequest(null);
       return;
     }
     if (a === 'rotate' || a === 'mirror') {
+      setAlignmentRequest(null);
+      setVertexRequest(null);
       if (activeSheet) {
         notify('Abra o desenho para transformar objetos.');
         return;
@@ -2059,6 +2368,10 @@ export default function App() {
       PLOT: 'plot',
       PLOTAGEM: 'plot',
       NIVEIS: 'layers',
+      ALINHAR: 'align-selection',
+      INSERIRVERTICE: 'insert-vertex',
+      CONTINUAR: 'extend-vertex',
+      REMOVERVERTICE: 'remove-vertex',
       ROTACIONAR: 'rotate',
       GIRAR: 'rotate',
       ESPELHAR: 'mirror',
@@ -2091,7 +2404,9 @@ export default function App() {
     const polar = value.match(/^@([+-]?\d+(?:\.\d+)?)<([+-]?\d+(?:\.\d+)?)$/);
     if (polar) {
       const p = add(
-        draft.at(-1) ?? { x: 0, y: 0 },
+        vertexRequest
+          ? (vertexPreview.anchor ?? { x: 0, y: 0 })
+          : (draft.at(-1) ?? { x: 0, y: 0 }),
         rotate({ x: Number(polar[1]), y: 0 }, Number(polar[2])),
       );
       onPoint(p);
@@ -2101,7 +2416,12 @@ export default function App() {
       /^(@)?\s*([+-]?\d+(?:\.\d+)?)\s*[,;]\s*([+-]?\d+(?:\.\d+)?)$/,
     );
     if (xy) {
-      const base = xy[1] ? (draft.at(-1) ?? { x: 0, y: 0 }) : { x: 0, y: 0 };
+      const base = xy[1]
+        ? ((vertexRequest ? vertexPreview.anchor : draft.at(-1)) ?? {
+            x: 0,
+            y: 0,
+          })
+        : { x: 0, y: 0 };
       onPoint(add(base, { x: Number(xy[2]), y: Number(xy[3]) }));
       return;
     }
@@ -2142,6 +2462,11 @@ export default function App() {
         'input,textarea,select',
       );
       if (e.key === 'Escape') {
+        if (vertexRequest || alignmentRequest) {
+          setVertexRequest(null);
+          setAlignmentRequest(null);
+          return;
+        }
         if (contextMenu) {
           setContextMenu(null);
           return;
@@ -2456,6 +2781,18 @@ export default function App() {
               <Table2 size={14} /> Quadro de aço <em>{p.bars.length}</em>
             </button>
             <div className="document-toolbar">
+              {activeSheet && page === 'drawing' && (
+                <button
+                  onClick={() => action('align-selection')}
+                  disabled={
+                    p.hierarchy.placements.filter(
+                      (v) => v.sheetId === activeSheet.id,
+                    ).length < 2
+                  }
+                >
+                  Alinhar vistas…
+                </button>
+              )}
               <button
                 aria-label="Foco no CAD"
                 title="Foco no CAD · Ctrl+0"
@@ -2551,11 +2888,25 @@ export default function App() {
                 )}
               </div>
             )}
+          {alignmentRequest && (
+            <AlignmentPanel
+              value={alignmentRequest}
+              items={alignmentPreview.items}
+              onChange={setAlignmentRequest}
+              onApply={applyAlignment}
+              onCancel={() => setAlignmentRequest(null)}
+              error={alignmentPreview.error}
+            />
+          )}
           {page === 'drawing' && activeSheet ? (
             <SheetCanvas
               key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
               ref={paperCanvas}
-              project={p}
+              project={
+                alignmentRequest?.sheetId ? (alignmentPreview.project ?? p) : p
+              }
+              preview={!!alignmentRequest}
+              onReferencePoint={alignmentRequest?.picking ? onPoint : undefined}
               sheet={activeSheet}
               initialState={sessions.current.get(documentKey)?.camera}
               selectedView={selectedView}
@@ -2587,9 +2938,23 @@ export default function App() {
                 </div>
               )}
               <CadCanvas
-                previewLines={transformPreview.lines}
+                previewLines={
+                  vertexRequest
+                    ? vertexPreview.lines
+                    : alignmentRequest
+                      ? alignmentPreview.lines
+                      : transformPreview.lines
+                }
+                extraSnapPoints={
+                  vertexRequest &&
+                  canCaptureObject(p, documentKey, vertexRequest.id)
+                    ? vertexPreview.points
+                    : undefined
+                }
                 previewBase={transformRequest?.base}
-                commandActive={!!transformRequest}
+                commandActive={
+                  !!transformRequest || !!vertexRequest || !!alignmentRequest
+                }
                 onContextRequest={(ids, point, screen) => {
                   setContextMenu({ ids, point, screen });
                   if (ids.length === 1 && p.masks.some((m) => m.id === ids[0]))
@@ -2602,14 +2967,22 @@ export default function App() {
                 project={p}
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
-                tool={transformRequest ? 'measure' : tool}
+                tool={
+                  transformRequest || vertexRequest || alignmentRequest
+                    ? 'measure'
+                    : tool
+                }
                 selected={selected}
                 setSelected={select}
                 onPoint={onPoint}
                 onPrimitive={follow}
                 onFinish={finish}
                 onBarChange={editBar}
-                draft={draft}
+                draft={
+                  vertexRequest && vertexPreview.anchor
+                    ? [vertexPreview.anchor]
+                    : draft
+                }
                 grid={grid}
                 snap={snap}
                 ortho={ortho}
@@ -2617,6 +2990,10 @@ export default function App() {
                 setTool={setTool}
                 onCursor={(point) => {
                   onCursor(point);
+                  if (vertexRequest)
+                    setVertexRequest((s) =>
+                      s ? { ...s, cursor: point, issue: undefined } : s,
+                    );
                   if (transformRequest)
                     setTransformRequest((s) =>
                       s && ['axis', 'target'].includes(s.stage)
@@ -2626,6 +3003,17 @@ export default function App() {
                 }}
                 showDimensions={dimensions}
               />
+              {vertexRequest && (
+                <VertexPanel
+                  value={vertexRequest}
+                  onChange={setVertexRequest}
+                  count={vertexPreview.points.length}
+                  onApply={applyVertex}
+                  onCancel={() => setVertexRequest(null)}
+                  error={vertexPreview.error}
+                  warnings={vertexPreview.warnings}
+                />
+              )}
               {transformRequest && (
                 <TransformPanel
                   value={transformRequest}
@@ -2879,6 +3267,15 @@ export default function App() {
               </div>
             ) : annotation || polyline ? (
               <DraftInspector
+                onVertexEdit={(mode) =>
+                  action(
+                    mode === 'insert'
+                      ? 'insert-vertex'
+                      : mode === 'extend'
+                        ? 'extend-vertex'
+                        : 'remove-vertex',
+                  )
+                }
                 annotation={annotation}
                 polyline={polyline}
                 project={p}
@@ -2918,6 +3315,15 @@ export default function App() {
               </div>
             ) : (
               <Inspector
+                onVertexEdit={(mode) =>
+                  action(
+                    mode === 'insert'
+                      ? 'insert-vertex'
+                      : mode === 'extend'
+                        ? 'extend-vertex'
+                        : 'remove-vertex',
+                  )
+                }
                 project={p}
                 bar={chosen}
                 mask={mask}
@@ -3213,7 +3619,21 @@ export default function App() {
             if (allowed) {
               items.push('move');
               if (!groupSelection) items.push('copy');
-              items.push('rotate', 'mirror', 'delete');
+              items.push('rotate', 'mirror');
+              if (contextMenu.ids.length > 1) items.push('align-selection');
+              if (
+                objects.length === 1 &&
+                !groupSelection &&
+                (p.polylines.some((v) => v.id === objects[0].id) ||
+                  p.bars.some(
+                    (v) => v.id === objects[0].id && v.kind === 'free',
+                  ))
+              ) {
+                items.push('insert-vertex', 'remove-vertex');
+                if (!p.polylines.find((v) => v.id === objects[0].id)?.closed)
+                  items.push('extend-vertex');
+              }
+              items.push('delete');
             }
             if (!objects.length) items.push('fit');
             return items;

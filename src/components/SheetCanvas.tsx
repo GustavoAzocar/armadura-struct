@@ -19,6 +19,8 @@ import { sheetSize } from '../domain/sheets';
 import type { CadHandle, CadState, Camera } from './CadCanvas';
 
 type Props = {
+  preview?: boolean;
+  onReferencePoint?: (p: Point) => void;
   project: Project;
   sheet: Sheet;
   initialState?: CadState;
@@ -31,6 +33,8 @@ type Props = {
 export default forwardRef<CadHandle, Props>(function SheetCanvas(
   {
     project,
+    preview,
+    onReferencePoint,
     sheet,
     initialState,
     selectedView,
@@ -125,6 +129,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
       <svg
         ref={svg}
         data-testid="sheet-canvas"
+        data-alignment-preview={preview || undefined}
         aria-label={`Prévia da folha ${sheet.name}`}
         width={size.w}
         height={size.h}
@@ -144,6 +149,15 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         onPointerDown={(e) => {
           if (e.button !== 0 && e.button !== 1) return;
           e.preventDefault();
+          if (preview && e.button === 0 && !onReferencePoint) return;
+          if (onReferencePoint && e.button === 0) {
+            const at = screenPoint(e);
+            onReferencePoint({
+              x: view.x + (at.x - size.w / 2) / view.s,
+              y: view.y - (at.y - size.h / 2) / view.s,
+            });
+            return;
+          }
           const id =
             !pan && e.button === 0
               ? ((e.target as Element)
@@ -193,7 +207,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         }}
         onPointerCancel={() => setDrag(null)}
         onDoubleClick={(e) => {
-          if (pan) return;
+          if (pan || preview) return;
           const id =
             (e.target as Element)
               .closest('[data-view-id]')

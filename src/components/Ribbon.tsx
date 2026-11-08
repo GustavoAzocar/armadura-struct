@@ -80,6 +80,10 @@ export type Action =
   | 'fabrication'
   | 'clone-armature'
   | 'layers'
+  | 'align-selection'
+  | 'insert-vertex'
+  | 'extend-vertex'
+  | 'remove-vertex'
   | 'plot'
   | 'hide-objects'
   | 'isolate-objects'
@@ -246,9 +250,18 @@ export default function Ribbon({
           item('move', 'Mover', Move, 1),
           item('copy', 'Copiar', Copy, 1),
           item('clone-armature', 'Duplicar completa', Copy, 1),
+          item('align-selection', 'Alinhar / distribuir…', Move),
           item('rotate', 'Rotacionar…', RotateCw, 1),
           item('mirror', 'Espelhar por eixo…', FlipHorizontal2, 1),
           item('delete', 'Excluir', Trash2, 1),
+        ],
+      },
+      {
+        name: 'Vértices',
+        items: [
+          item('insert-vertex', 'Inserir vértices', PencilRuler, 1),
+          item('extend-vertex', 'Continuar pela ponta', Spline, 1),
+          item('remove-vertex', 'Remover vértices', Trash2, 1),
         ],
       },
       {

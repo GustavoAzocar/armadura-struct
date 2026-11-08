@@ -73,6 +73,7 @@ export type CadHandle = {
   getState: () => CadState;
 };
 type Props = {
+  extraSnapPoints?: Point[];
   previewLines?: Primitive[];
   previewBase?: Point;
   onContextRequest: (ids: string[], point: Point, screen: Point) => void;
@@ -280,11 +281,19 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     () => [
       ...projectPoints(project),
       ...ghosts.flatMap(primitiveBounds),
+      ...(props.previewLines ?? []).flatMap(primitiveBounds),
       ...representationPoints,
       ...annotations.flatMap((a) => a.items.flatMap(primitiveBounds)),
       ...masks.flatMap((m) => m.items.flatMap(primitiveBounds)),
     ],
-    [project, masks, annotations, representationPoints, ghosts],
+    [
+      project,
+      masks,
+      annotations,
+      representationPoints,
+      ghosts,
+      props.previewLines,
+    ],
   );
   const groupBoxes = useMemo(() => {
     if (props.isolatedDetailId) return [];
@@ -446,6 +455,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     let target: Point | undefined,
       best = 10 / view.s;
     if (snap) {
+      for (const p of props.extraSnapPoints ?? []) {
+        const d = distance(p, raw);
+        if (d < best) {
+          best = d;
+          target = p;
+        }
+      }
       for (const chain of linework) {
         for (let i = 0; i < chain.points.length; i++) {
           const a = chain.points[i];

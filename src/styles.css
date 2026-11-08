@@ -3304,3 +3304,12 @@ button.hierarchy-drawing {
   gap: 8px;
   justify-content: space-between;
 }
+
+.alignment-view-choice {
+  display: block;
+  padding: 3px 0;
+}
+[data-alignment-preview] .sheet-view-frame {
+  stroke: #c084fc;
+  stroke-width: 0.4;
+}

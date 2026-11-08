@@ -275,3 +275,11 @@ Na guia **Desenho → Visibilidade**, use **Ocultar seleção**, **Isolar seleç
 ### Menu contextual e transformações
 
 Com o CAD em Selecionar/Pan, o botão direito abre ações para o alvo/seleção. Durante desenho ele continua concluindo o comando. **Rotacionar…** (`ROTACIONAR`) permite base comum, ângulo digitado ou direção por pontos e prévia. **Espelhar por eixo…** (`ESPELHAR`) usa dois pontos do eixo. Esc/Desfazer cancelam a prévia; Aplicar cria uma única operação no histórico. Consulte [AS-24](AS-24.md) para vínculos, cotas, estribos e pacotes v10.
+
+### Alinhar e distribuir
+
+Selecione dois ou mais objetos/detalhamentos e use **Elementos → Alinhar / distribuir…** (`ALINHAR`). Escolha borda/centro, eixo ou referência por dois pontos, conjunto fixo e afastamento uniforme. Na folha, **Alinhar vistas…** move as vistas em mm de papel, preservando suas escalas. Confira e aplique; Esc/Cancelar/Desfazer cancelam a prévia. Detalhes e API em [AS-23](AS-23.md).
+
+### Inserir, continuar e remover vértices
+
+Selecione uma barra livre/polilinha e use **Elementos → Vértices**, propriedades ou menu contextual. Comandos: `INSERIRVERTICE`, `CONTINUAR`, `REMOVERVERTICE`. Informe pontos com encaixes/Orto ou coordenadas absolutas/relativas/polares em mm; por exemplo, `@300<90` acrescenta uma perna de 300 mm na direção Y. Continue até Enter e confira a prévia. O ID e os rebatimentos continuam vinculados, e as dobras/RA são recalculadas. Esc cancela; um Desfazer após concluir restaura o lote. Consulte [AS-25](AS-25.md) para mapas de segmentos, cotas manuais e proteções.

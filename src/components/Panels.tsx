@@ -188,6 +188,7 @@ export function Inspector({
   mask,
   onBar,
   onDistributionSpacing,
+  onVertexEdit,
   onMask,
   onSelectRepresentation,
   onRemoveDetails,
@@ -197,6 +198,7 @@ export function Inspector({
   bar?: Bar;
   mask?: Mask;
   onBar: (patch: Partial<Bar>) => void | boolean;
+  onVertexEdit?: (mode: 'insert' | 'extend' | 'remove') => void;
   onDistributionSpacing: (spacing: number) => void | boolean;
   onMask: (patch: Partial<Mask>) => void;
   onSelectRepresentation?: (id: string) => void;
@@ -587,6 +589,7 @@ export function Inspector({
               {bar.kind === 'free' && (
                 <details className="vertices-editor">
                   <summary>Vértices locais · mm</summary>
+                  {onVertexEdit && <VertexCommands onAction={onVertexEdit} />}
                   {bar.points.map((pt, i) => (
                     <div key={i} className="vertex-row">
                       <span>{i + 1}</span>
@@ -1411,6 +1414,7 @@ export function DraftInspector({
   onAnnotation,
   onPolyline,
   onLinks,
+  onVertexEdit,
 }: {
   annotation?: Annotation;
   polyline?: DraftPolyline;
@@ -1418,6 +1422,7 @@ export function DraftInspector({
   onAnnotation: (patch: Partial<Annotation>) => void;
   onPolyline: (patch: Partial<DraftPolyline>) => void;
   onLinks: (ids: string[]) => void;
+  onVertexEdit?: (mode: 'insert' | 'extend' | 'remove') => void;
 }) {
   const object = annotation ?? polyline!;
   const updatePoints = (points: typeof object.points) =>
@@ -1542,6 +1547,9 @@ export function DraftInspector({
           </p>
         </Section>
         <Section title="Vértices">
+          {polyline && onVertexEdit && (
+            <VertexCommands onAction={onVertexEdit} closed={polyline.closed} />
+          )}
           {object.points.map((v, i) => (
             <div className="fields-2" key={i}>
               <NumberField
@@ -1691,5 +1699,23 @@ export function RepresentationInspector({
         <button onClick={onDelete}>Excluir somente esta inserção</button>
       </div>
     </aside>
+  );
+}
+
+function VertexCommands({
+  onAction,
+  closed,
+}: {
+  onAction: (mode: 'insert' | 'extend' | 'remove') => void;
+  closed?: boolean;
+}) {
+  return (
+    <div className="visibility-actions">
+      <button onClick={() => onAction('insert')}>Inserir vértices</button>
+      {!closed && (
+        <button onClick={() => onAction('extend')}>Continuar pela ponta</button>
+      )}
+      <button onClick={() => onAction('remove')}>Remover vértices</button>
+    </div>
   );
 }

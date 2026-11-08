@@ -105,3 +105,18 @@ export function drawingPrimitives(
   }
   return lines;
 }
+
+export function objectPrimitives(p: Project, ids: string[]): Primitive[] {
+  const set = new Set(ids);
+  return drawingPrimitives(
+    {
+      ...p,
+      bars: p.bars.filter((o) => set.has(o.id)),
+      details: p.details.filter((o) => set.has(o.id)),
+      annotations: p.annotations.filter((o) => set.has(o.id)),
+      polylines: p.polylines.filter((o) => set.has(o.id)),
+      masks: p.masks.filter((o) => set.has(o.id)),
+    },
+    p,
+  );
+}

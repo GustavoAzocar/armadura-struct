@@ -12,6 +12,9 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- [Alinhamento por bordas, centros e referência](docs/AS-23.md) de objetos, conjuntos e vistas, com afastamento uniforme, escolha do conjunto fixo, prévia e histórico.
+- [Inserção, continuação e remoção de vértices](docs/AS-25.md) de barras/polilinhas existentes, com prévia, validação de dobras e atualização de inserções e quantitativos.
+
 - Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
 - Gerenciador de pranchas com folhas A0–A4, orientação, revisão, notas, ordenação, duplicação de layout e vistas vinculadas; abas de folhas e desenhos com navegação independente.
 - Inserção e atualização seletiva de detalhamentos por JSON, comparação antes/depois, identificação pela origem, mapeamento de posições, reassociação de vínculos e preservação das vistas.

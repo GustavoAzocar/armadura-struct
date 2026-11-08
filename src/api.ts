@@ -13,6 +13,7 @@ export type {
   RebarOptions,
   RebarIssue,
   RebarBatchResult,
+  RebarOperationReceipt,
 } from './domain/rebarApi';
 export type { Project, Point, Bar, BarRepresentation } from './domain/types';
 
@@ -113,3 +114,17 @@ export {
 
 export { transformSelection, angleByPoints } from './domain/transforms';
 export type { SelectionTransform } from './domain/transforms';
+
+export {
+  alignSelection,
+  modelAlignmentItems,
+  paperAlignmentItems,
+  planAlignmentItems,
+} from './domain/alignment';
+export type {
+  AlignmentItem,
+  AlignmentOptions,
+  AlignmentMove,
+} from './domain/alignment';
+export { editVertices, editablePath } from './domain/vertices';
+export type { VertexEdit } from './domain/vertices';

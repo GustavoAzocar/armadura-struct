@@ -1,3 +1,5 @@
+import { alignSelection, alignmentSchema } from './alignment';
+import { editVertices, vertexEditSchema } from './vertices';
 import { transformSelection, selectionTransformSchema } from './transforms';
 import { assertVisibilityEdit } from './visibility';
 import { assertLayerEdit } from './layerProfiles';
@@ -64,6 +66,8 @@ export const REBAR_CAPABILITIES = Object.freeze({
     'armature.bind',
     'bar.transform',
     'selection.transform',
+    'selection.align',
+    'vertices.edit',
     'bar.split',
     'bar.join',
     'bar.renumber',
@@ -169,6 +173,17 @@ const distribution = z
 const sharedPolicy = z.enum(['keep', 'clone-set']);
 const positionPolicy = z.enum(['new', 'equivalent']);
 const commandSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('selection.align'),
+      ids: z.array(id).min(2).max(30000),
+      options: alignmentSchema,
+      sheetId: id.optional(),
+    })
+    .strict(),
+  z
+    .object({ type: z.literal('vertices.edit'), id, edit: vertexEditSchema })
+    .strict(),
   z
     .object({
       type: z.literal('selection.transform'),
@@ -350,6 +365,15 @@ export type RebarIssue = {
   objectId?: string;
   operationIndex?: number;
 };
+export type RebarOperationReceipt = {
+  index: number;
+  type: RebarCommand['type'];
+  ids: string[];
+  topology?: Pick<
+    ReturnType<typeof editVertices>,
+    'vertexMap' | 'segmentMap' | 'warnings'
+  >;
+};
 export type RebarBatchResult =
   | { ok: false; base: Project; project: Project; issues: RebarIssue[] }
   | {
@@ -362,11 +386,7 @@ export type RebarBatchResult =
         createdIds: string[];
         updatedIds: string[];
         deletedIds: string[];
-        operations: {
-          index: number;
-          type: RebarCommand['type'];
-          ids: string[];
-        }[];
+        operations: RebarOperationReceipt[];
         affectedViews: string[];
         steelChanged: boolean;
         scheduleInvalidated: boolean;
@@ -667,8 +687,13 @@ function perform(
   p: Project,
   c: RebarCommand,
   options?: RebarOptions,
-): { project: Project; ids: string[] } {
+): {
+  project: Project;
+  ids: string[];
+  topology?: RebarOperationReceipt['topology'];
+} {
   let next = p;
+  let topology: RebarOperationReceipt['topology'];
   const touched: string[] = [];
   if (c.type === 'bar.create') {
     detailExists(p, c.detailId);
@@ -859,6 +884,25 @@ function perform(
       ),
     };
     touched.push(...c.objectIds);
+  } else if (c.type === 'selection.align') {
+    next = alignSelection(p, c.ids, c.options, {
+      sheetId: c.sheetId,
+      layerContext: options?.layerContext,
+      scopeDetailId: options?.scopeDetailId,
+    }).project;
+    touched.push(...c.ids);
+  } else if (c.type === 'vertices.edit') {
+    const result = editVertices(p, c.id, c.edit, {
+      layerContext: options?.layerContext,
+      scopeDetailId: options?.scopeDetailId,
+    });
+    next = result.project;
+    topology = {
+      vertexMap: result.vertexMap,
+      segmentMap: result.segmentMap,
+      warnings: result.warnings,
+    };
+    touched.push(c.id);
   } else if (c.type === 'selection.transform') {
     next = transformSelection(p, c.ids, c.transform, {
       associated: c.associated,
@@ -1011,7 +1055,11 @@ function perform(
       ),
     };
   }
-  return { project: completeOwnership(next), ids: touched };
+  return {
+    project: completeOwnership(next),
+    ids: touched,
+    ...(topology ? { topology } : {}),
+  };
 }
 
 /** Synchronous immutable transaction: no draft escapes and any failure returns the original project. */
@@ -1062,11 +1110,7 @@ export function executeRebarBatch(
     ]);
   let next = project,
     operationIndex = 0;
-  const operations: {
-    index: number;
-    type: RebarCommand['type'];
-    ids: string[];
-  }[] = [];
+  const operations: RebarOperationReceipt[] = [];
   try {
     if (
       options.scopeDetailId !== undefined &&
@@ -1136,6 +1180,7 @@ export function executeRebarBatch(
         index: operationIndex,
         type: parsed.data.type,
         ids: result.ids,
+        ...(result.topology ? { topology: result.topology } : {}),
       });
       operationIndex++;
     }

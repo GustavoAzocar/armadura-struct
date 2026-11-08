@@ -550,3 +550,6 @@ export {
   transformPoint,
   selectionTransformIds,
 } from './transforms';
+
+export { alignSelection } from './alignment';
+export { editVertices } from './vertices';

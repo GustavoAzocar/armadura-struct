@@ -15,6 +15,7 @@ const point = z
   })
   .strict();
 export const selectionTransformSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('translate'), delta: point }).strict(),
   z
     .object({
       kind: z.literal('rotate'),
@@ -35,6 +36,7 @@ export function angleByPoints(base: Point, reference: Point, target: Point) {
   );
 }
 export function transformPoint(p: Point, t: SelectionTransform): Point {
+  if (t.kind === 'translate') return add(p, t.delta);
   const v = sub(p, t.base);
   if (t.kind === 'rotate') return add(t.base, rotate(v, t.angle));
   const axis =
@@ -87,12 +89,18 @@ export function transformSelection(
   const chosen = new Set(selectionTransformIds(p, ids, options.associated).ids);
   const flipped = t.kind === 'mirror';
   const spin =
-    t.kind === 'rotate'
-      ? t.angle
-      : (2 * Math.atan2(t.axisEnd.y - t.base.y, t.axisEnd.x - t.base.x) * 180) /
-        Math.PI;
+    t.kind === 'translate'
+      ? 0
+      : t.kind === 'rotate'
+        ? t.angle
+        : (2 *
+            Math.atan2(t.axisEnd.y - t.base.y, t.axisEnd.x - t.base.x) *
+            180) /
+          Math.PI;
   const angle = (r: number) =>
-    (((flipped ? spin - r : r + spin) % 360) + 360) % 360;
+    t.kind === 'translate'
+      ? r
+      : (((flipped ? spin - r : r + spin) % 360) + 360) % 360;
   const at = (v: Point) => transformPoint(v, t);
   const reflect = (v: Point) => ({ x: v.x, y: -v.y || 0 });
   let next: Project = {
@@ -147,7 +155,7 @@ export function transformSelection(
         : {
             ...a,
             points: a.points.map(at),
-            ...(a.kind === 'dimension-orthogonal'
+            ...(a.kind === 'dimension-orthogonal' && t.kind !== 'translate'
               ? { frameRotation: angle(a.frameRotation ?? 0) }
               : {}),
           },
