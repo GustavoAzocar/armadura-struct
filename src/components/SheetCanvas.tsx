@@ -428,6 +428,7 @@ const PaperLines = memo(function PaperLines({
             data-layer={line.layer}
             transform={`translate(${line.points[0]?.x ?? 0} ${line.points[0]?.y ?? 0}) rotate(${line.textRotation ?? 0}) scale(1 -1)`}
             fontFamily={PAPER_FONT}
+            textRendering="geometricPrecision"
             fontSize={line.textHeight ?? 2.5}
             fill={line.resolvedStyle?.color ?? paperInk(line.layer)}
             textAnchor={

@@ -441,9 +441,7 @@ export function toPdf(p: Project): Uint8Array {
     doc.setLineDashPattern(dashArray(item.resolvedStyle), 0);
     if (item.text) {
       const a = map(item.points[0]);
-      doc.setFontSize(
-        Math.max(5, Math.min(12, (item.textHeight ?? 40) * s * 2.83)),
-      );
+      doc.setFontSize(((item.textHeight ?? 40) * s * 72) / 25.4);
       doc.text(item.text.replace(/%%c/g, 'Ø'), a.x, a.y, {
         angle: item.textRotation ?? 0,
         align:

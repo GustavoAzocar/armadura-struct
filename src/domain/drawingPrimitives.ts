@@ -11,7 +11,56 @@ import {
   distributionPrimitives,
   repeatedGeometry,
 } from './drafting';
-import type { Point, Primitive, Project } from './types';
+import type { Bar, Point, Primitive, Project } from './types';
+
+/** Content heights are model mm; camera zoom never participates. */
+export function physicalBarTextPrimitives(
+  b: Bar,
+  p: Project,
+  paperHeight?: number,
+): Primitive[] {
+  const h = paperHeight ?? 40,
+    offset = (legacy: number, factor: number) =>
+      paperHeight === undefined ? legacy : h * factor;
+  const text = (
+    text: string,
+    at: Point,
+    layer: string,
+    align: 'left' | 'center' = 'left',
+  ): Primitive => ({
+    layer,
+    text,
+    points: [world(at, b)],
+    textHeight: h,
+    textRotation: b.rotation,
+    textAlign: align,
+  });
+  const out: Primitive[] = [];
+  if (showsPhysicalDescription(p, b.id))
+    out.push(
+      text(
+        `${b.mark} - ${quantityLabel(p, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
+        { x: 0, y: -offset(100, 1.8) },
+        'IDENTIFICACAO',
+      ),
+    );
+  if (b.kind === 'stirrup')
+    out.push(
+      text(
+        format(b.width / 10),
+        { x: b.width / 2, y: b.height + offset(45, 1.1) },
+        'COTAS',
+        'center',
+      ),
+      text(
+        format(b.height / 10),
+        { x: -offset(60, 1.2), y: b.height / 2 },
+        'COTAS',
+        'center',
+      ),
+    );
+  return out;
+}
 
 export function drawingPrimitives(
   p: Project,
@@ -19,8 +68,6 @@ export function drawingPrimitives(
   options: { minTextHeight?: number } = {},
 ): Primitive[] {
   const h = options.minTextHeight ?? 40;
-  const offset = (legacy: number, factor: number) =>
-    options.minTextHeight === undefined ? legacy : h * factor;
   const lines = p.masks.flatMap((m) =>
     maskPrimitives(m).map((l) => stylePrimitive(references, m, l)),
   );
@@ -52,30 +99,9 @@ export function drawingPrimitives(
         layer: 'ARMADURAS',
         points: sampled(geometry(b).segments).map((v) => world(v, b)),
       });
-    if (showsPhysicalDescription(references, b.id))
-      lines.push(
-        label(
-          `${b.mark} - ${quantityLabel(references, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
-          { x: b.origin.x, y: b.origin.y - offset(100, 1.8) },
-          'IDENTIFICACAO',
-        ),
-      );
-    if (b.kind === 'stirrup') {
-      lines.push(
-        label(
-          format(b.width / 10),
-          world({ x: b.width / 2, y: b.height + offset(45, 1.1) }, b),
-          'COTAS',
-        ),
-      );
-      lines.push(
-        label(
-          format(b.height / 10),
-          world({ x: -offset(60, 1.2), y: b.height / 2 }, b),
-          'COTAS',
-        ),
-      );
-    }
+    lines.push(
+      ...physicalBarTextPrimitives(b, references, options.minTextHeight),
+    );
     lines.push(...distributionPrimitives(b, options.minTextHeight, references));
     for (let i = start; i < lines.length; i++)
       lines[i] = stylePrimitive(references, b, lines[i], 'ARMADURAS');

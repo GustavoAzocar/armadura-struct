@@ -2,6 +2,8 @@
 
 ## Espaço de trabalho
 
+Os textos de conteúdo acompanham a geometria durante o zoom; aproxime para ler detalhes pequenos. Zoom de câmera, escala gráfica de uma inserção e escala 1:N da vista são controles diferentes. Veja [as convenções de textos e zoom](TEXTOS-E-ZOOM.md).
+
 Use **Máscaras** para desenho CAD nativo ou referências importadas, **Armaduras** para aço físico e **Desenho** para cotas/anotações. Veja [como desenhar e editar uma máscara](MASCARAS-NATIVAS.md).
 
 Use a faixa **Armaduras** para criar e detalhar posições. Quantidade, bitola e espaçamento no topo valem para os próximos comandos; para alterar uma posição existente, selecione-a e use **Propriedades**. O painel lateral alterna entre a árvore em **Projeto**, a edição em **Propriedades** e o gerenciador em **Pranchas**.

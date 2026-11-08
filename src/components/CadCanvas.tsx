@@ -1,3 +1,4 @@
+import { physicalBarTextPrimitives } from '../domain/drawingPrimitives';
 import {
   visibilityProjection,
   visibilityReview,
@@ -782,7 +783,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     setDrag(null);
   };
   const stroke = 1 / view.s;
-  const textSize = 11 / view.s;
+  const groupLabelSize = 11 / view.s; // Navigation overlay only; excluded from output.
   const renderBar = (
     b: Bar,
     origin = b.origin,
@@ -832,52 +833,15 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           strokeLinejoin="round"
           strokeLinecap="round"
         />
-        {showLabel && (isDetail || showsPhysicalDescription(source, b.id)) && (
-          <g transform={`translate(0 ${-90}) scale(1 -1)`}>
-            <text
-              fill={color}
-              fontSize={textSize}
-              fontFamily="Inter, sans-serif"
-              fontWeight="600"
-            >
-              {b.mark}{' '}
-              <tspan fontWeight="400">
-                {quantityLabel(source, b)} Ø
-                {format(b.diameter, b.diameter % 1 ? 1 : 0)} · C=
-                {format(g.length / 10)} cm
-              </tspan>
-              {assemblyLabel(b) && <tspan> · {assemblyLabel(b)}</tspan>}
-              {isDetail && (
-                <tspan fill={light ? '#6a7283' : '#71829d'}>
-                  {' '}
-                  · rebatimento
-                </tspan>
-              )}
-            </text>
-          </g>
+        {renderPrimitives(
+          physicalBarTextPrimitives(
+            { ...edited, origin: { x: 0, y: 0 }, rotation: 0 },
+            source,
+          ).filter((item) =>
+            item.layer === 'IDENTIFICACAO' ? showLabel : props.showDimensions,
+          ),
+          color,
         )}
-        {props.showDimensions &&
-          (isDetail || b.kind === 'stirrup') &&
-          g.vertices.slice(0, -1).map((p, i) => {
-            if (b.kind === 'stirrup' && ![3, 4].includes(i)) return null;
-            const q = g.vertices[i + 1];
-            if (distance(p, q) < 100) return null;
-            const mid = mul(add(p, q), 0.5);
-            return (
-              <g
-                key={i}
-                transform={`translate(${mid.x + (p.x === q.x ? -45 : 0)} ${mid.y + (p.x === q.x ? 0 : 45)}) scale(1 -1)`}
-              >
-                <text
-                  textAnchor="middle"
-                  fill={style.color}
-                  fontSize={9 * stroke}
-                >
-                  {format(distance(p, q) / 10, 0)}
-                </text>
-              </g>
-            );
-          })}
         {active &&
           !isDetail &&
           objectState(source, props.layerContext ?? 'model', b).editable &&
@@ -911,7 +875,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         >
           <text
             fill={item.resolvedStyle?.color ?? color}
-            fontSize={Math.max(item.textHeight ?? 40, 10 * stroke)}
+            textRendering="geometricPrecision"
+            fontSize={item.textHeight ?? 40}
             textAnchor={
               item.textAlign === 'right'
                 ? 'end'
@@ -1037,6 +1002,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           {masks.map(({ mask, items, paths }) => (
             <g
               key={mask.id}
+              data-mask-id={mask.id}
               opacity={mask.opacity}
               fill="none"
               stroke={light ? '#7e899b' : '#8090aa'}
@@ -1078,6 +1044,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                         (light ? '#7e899b' : '#8090aa')
                       }
                       stroke="none"
+                      textRendering="geometricPrecision"
                       fontSize={p.textHeight}
                       textAnchor={
                         p.textAlign === 'center'
@@ -1166,22 +1133,17 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             const b = barDefinitions.get(d.barId);
             return b ? (
               <g key={d.id} data-representation-id={d.id}>
-                {!d.layerId &&
-                !d.style &&
-                !d.rotation &&
-                (d.scale ?? 1) === 1 &&
-                !d.label &&
-                d.showDimensions === undefined &&
-                (d.identification ?? 'legacy') === 'legacy'
-                  ? renderBar(b, d.origin, true)
-                  : renderPrimitives(
-                      representationPrimitives(b, d, source, textSize).map(
-                        (item) =>
-                          stylePrimitive(source, d, item, 'REBATIMENTOS'),
-                      ),
-                      b.color,
-                      selected.includes(d.id),
-                    )}
+                {renderPrimitives(
+                  representationPrimitives(b, d, source)
+                    .filter(
+                      (item) => props.showDimensions || item.layer !== 'COTAS',
+                    )
+                    .map((item) =>
+                      stylePrimitive(source, d, item, 'REBATIMENTOS'),
+                    ),
+                  b.color,
+                  selected.includes(d.id),
+                )}
               </g>
             ) : null;
           })}
@@ -1212,7 +1174,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               <text
                 transform={`translate(${box.x} ${box.top + 18 * stroke}) scale(1 -1)`}
                 fill={light ? '#3e5694' : '#9db7f1'}
-                fontSize={textSize}
+                fontSize={groupLabelSize}
               >
                 {box.name}
               </text>
