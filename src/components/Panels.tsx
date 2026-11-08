@@ -754,13 +754,16 @@ export function Inspector({
               <FileStack size={27} />
               <b>{mask.name}</b>
               <small>
-                {mask.format} · {mask.primitives.length.toLocaleString('pt-BR')}{' '}
-                entidades
+                {mask.format === 'NATIVE' ? 'Nativa' : mask.format} ·{' '}
+                {mask.primitives.length.toLocaleString('pt-BR')} entidades
               </small>
             </div>
             <Section title="Referência de desenho">
               <div className="readonly-label">
-                <LockKeyhole size={13} /> Máscara protegida de edição
+                <LockKeyhole size={13} />{' '}
+                {mask.format === 'NATIVE'
+                  ? 'Entidades editáveis em Controle de máscaras'
+                  : 'Referência importada protegida de edição'}
               </div>
               <label className="field">
                 <span>Opacidade · {Math.round(mask.opacity * 100)}%</span>
@@ -774,24 +777,26 @@ export function Inspector({
                   aria-label="Opacidade"
                 />
               </label>
-              <label className="field">
-                <span>Unidade de origem</span>
-                <select
-                  aria-label="Unidade da máscara"
-                  value={mask.scale}
-                  onChange={(e) => onMask({ scale: Number(e.target.value) })}
-                >
-                  <option value={1}>Milímetros · 1:1</option>
-                  <option value={10}>Centímetros · ×10</option>
-                  <option value={1000}>Metros · ×1000</option>
-                  <option value={25.4}>Polegadas · ×25,4</option>
-                  {![1, 10, 1000, 25.4].includes(mask.scale) && (
-                    <option value={mask.scale}>
-                      Personalizada · ×{mask.scale}
-                    </option>
-                  )}
-                </select>
-              </label>
+              {mask.format !== 'NATIVE' && (
+                <label className="field">
+                  <span>Unidade de origem</span>
+                  <select
+                    aria-label="Unidade da máscara"
+                    value={mask.scale}
+                    onChange={(e) => onMask({ scale: Number(e.target.value) })}
+                  >
+                    <option value={1}>Milímetros · 1:1</option>
+                    <option value={10}>Centímetros · ×10</option>
+                    <option value={1000}>Metros · ×1000</option>
+                    <option value={25.4}>Polegadas · ×25,4</option>
+                    {![1, 10, 1000, 25.4].includes(mask.scale) && (
+                      <option value={mask.scale}>
+                        Personalizada · ×{mask.scale}
+                      </option>
+                    )}
+                  </select>
+                </label>
+              )}
               <NumberField
                 label="Fator de escala"
                 min={0.000001}
@@ -799,10 +804,12 @@ export function Inspector({
                 value={mask.scale}
                 onChange={(scale) => onMask({ scale })}
               />
-              <p className="field-help">
-                Unidade declarada no arquivo: {mask.sourceUnit}. Confirme com a
-                ferramenta Medir.
-              </p>
+              {mask.format !== 'NATIVE' && (
+                <p className="field-help">
+                  Unidade declarada no arquivo: {mask.sourceUnit}. Confirme com
+                  a ferramenta Medir.
+                </p>
+              )}
               <div className="fields-2">
                 <NumberField
                   label="X da máscara"

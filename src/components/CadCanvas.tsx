@@ -73,6 +73,8 @@ export type CadHandle = {
   getState: () => CadState;
 };
 type Props = {
+  nativeDrawing?: boolean;
+  onNativePick?: (maskId: string, entityId: string) => void;
   extraSnapPoints?: Point[];
   previewLines?: Primitive[];
   previewBase?: Point;
@@ -625,6 +627,36 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             setGrip({ id: b.id, index: i, point: p });
             return;
           }
+      for (const m of masks.filter(
+        (m) =>
+          m.mask.format === 'NATIVE' &&
+          objectState(source, props.layerContext ?? 'model', m.mask).capture &&
+          objectState(source, props.layerContext ?? 'model', m.mask).editable,
+      )) {
+        for (const item of m.items) {
+          if (
+            item.layerId &&
+            (!layerState(source, props.layerContext ?? 'model', item.layerId)
+              .capture ||
+              !layerState(source, props.layerContext ?? 'model', item.layerId)
+                .editable)
+          )
+            continue;
+          const points = item.closed
+            ? [...item.points, item.points[0]]
+            : item.points;
+          if (
+            item.id &&
+            points.some(
+              (v, i) =>
+                i && distance(p, nearest(p, points[i - 1], v)) < 9 / view.s,
+            )
+          ) {
+            props.onNativePick?.(m.mask.id, item.id);
+            return;
+          }
+        }
+      }
       const hit = hitAt(p);
       lastHit.current = hit || null;
       if (hit) {
@@ -1224,7 +1256,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 )}
               </g>
             )}
-          {draft.length > 0 && cursor && (
+          {!props.nativeDrawing && draft.length > 0 && cursor && (
             <g
               stroke="#57d8de"
               strokeWidth={1.5 * stroke}

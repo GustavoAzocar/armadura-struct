@@ -95,7 +95,7 @@ test('native export/import preserves geometry and links, remaps collisions and p
   const pack = JSON.parse(
     readFileSync((await file.path())!, 'utf8'),
   ) as DetailPackage;
-  expect(pack.schema).toBe('openstruct.detail/10');
+  expect(pack.schema).toBe('openstruct.detail/11');
   expect(pack.objects.bars).toEqual(source.bars);
   const target = completeOwnership({
     ...emptyProject(),
@@ -173,9 +173,9 @@ test('ordinary DXF creates no steel; assisted selection requires explicit proper
   const baseline = await save(page);
   expect(baseline.bars).toEqual([]);
   expect(baseline.masks[0].primitives).toHaveLength(3);
-  await page.getByRole('tab', { name: 'Elementos', exact: true }).click();
+  await page.getByRole('tab', { name: 'Armaduras', exact: true }).click();
   await page
-    .getByRole('button', { name: 'Interpretar CAD', exact: true })
+    .getByRole('button', { name: 'Interpretar CAD em armadura', exact: true })
     .click();
   let dialog = page.getByRole('dialog', {
     name: 'Interpretar referência CAD',
@@ -207,7 +207,7 @@ test('ordinary DXF creates no steel; assisted selection requires explicit proper
   expect(await save(page)).toEqual(baseline);
   await closeToast(page);
   await page
-    .getByRole('button', { name: 'Interpretar CAD', exact: true })
+    .getByRole('button', { name: 'Interpretar CAD em armadura', exact: true })
     .click();
   dialog = page.getByRole('dialog', {
     name: 'Interpretar referência CAD',

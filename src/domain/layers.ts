@@ -206,7 +206,7 @@ export function completeLayers(p: Project): Project {
     }
   }
   // Legacy masks retain individual source layers, rather than collapsing to MASCARA.
-  for (const m of next.masks) {
+  for (const m of next.masks.filter((m) => m.format !== 'NATIVE')) {
     const missing = [
       ...new Set(m.primitives.filter((q) => !q.layerId).map((q) => q.layer)),
     ];

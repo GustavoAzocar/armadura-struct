@@ -3513,3 +3513,26 @@ button.hierarchy-drawing {
 .setup-node .field > span {
   overflow-wrap: anywhere;
 }
+.mask-control {
+  width: min(720px, calc(100vw - 24px));
+  max-height: 90dvh;
+  overflow: auto;
+  margin: auto;
+}
+.mask-control::backdrop {
+  background: #0d1c3980;
+}
+.mask-control button {
+  padding: 6px 9px;
+  margin: 5px 5px 5px 0;
+  border: 1px solid #cbd4eb;
+  border-radius: 4px;
+}
+.mask-control p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.mask-control .field input,
+.mask-control .field select {
+  max-width: 100%;
+}

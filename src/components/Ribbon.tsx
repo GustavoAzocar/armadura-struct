@@ -42,6 +42,11 @@ import type { Tool } from '../domain/types';
 import { NumberField } from './Panels';
 export type Action =
   | Tool
+  | 'mask-control'
+  | 'mask-line'
+  | 'mask-rectangle'
+  | 'mask-circle'
+  | 'mask-polyline'
   | 'new'
   | 'open'
   | 'save'
@@ -154,10 +159,7 @@ export default function Ribbon({
       },
       {
         name: 'Referências',
-        items: [
-          item('import', 'Máscara DXF / DWG', Layers),
-          item('interpret-cad', 'Interpretar CAD', PencilRuler),
-        ],
+        items: [item('import', 'Máscara DXF / DWG', Layers)],
       },
       {
         name: 'Exportar',
@@ -171,22 +173,46 @@ export default function Ribbon({
       },
       { name: 'Ajuda', items: [item('help', 'Guia de uso', HelpCircle)] },
     ],
-    Desenho: [
-      { name: 'Layers', items: [item('layers', 'Gerenciar layers', Layers)] },
+    Máscaras: [
       {
         name: 'Desenhar',
         items: [
-          item('polyline', 'Polilinha', Spline),
-          item('bar', 'Barra livre', PencilRuler),
-          item('stirrup', 'Estribo', SquareDashed),
+          item('mask-line', 'Linha', PencilRuler),
+          item('mask-rectangle', 'Retângulo', SquareDashed),
+          item('mask-circle', 'Círculo', Shapes),
+          item('mask-polyline', 'Polilinha', Spline),
         ],
       },
+      {
+        name: 'Controle de máscaras',
+        items: [
+          item('mask-control', 'Controle de máscaras', Layers),
+          item('import', 'Importar DXF / DWG', FolderOpen),
+        ],
+      },
+      {
+        name: 'Navegar',
+        items: [
+          item('select', 'Selecionar', MousePointer2),
+          item('pan', 'Pan', Hand),
+          item('fit', 'Enquadrar', Maximize2),
+          item('snap', 'Encaixes', ScanLine),
+          item('ortho', 'Ortogonal', SquareDashed),
+          item('undo', 'Desfazer', Undo2),
+          item('redo', 'Refazer', Redo2),
+        ],
+      },
+    ],
+    Desenho: [
+      { name: 'Layers', items: [item('layers', 'Gerenciar layers', Layers)] },
       {
         name: 'Anotar',
         items: [
           item('dimension-orthogonal', 'Cota ortogonal', Ruler),
           item('dimension-aligned', 'Cota alinhada', Ruler),
           item('leader', 'Chamada', ArrowUpRight),
+          item('section-arc', 'Corte em arco', Spline),
+          item('section', 'Corte e chamada', ScanLine),
           item('measure', 'Medir', Ruler),
         ],
       },
@@ -221,10 +247,7 @@ export default function Ribbon({
     Elementos: [
       {
         name: 'Intercâmbio',
-        items: [
-          item('export-detail', 'Pacote de detalhamento', Download),
-          item('interpret-cad', 'Interpretar CAD', PencilRuler),
-        ],
+        items: [item('export-detail', 'Pacote de detalhamento', Download)],
       },
       {
         name: 'Detalhamento',
@@ -292,6 +315,7 @@ export default function Ribbon({
           item('detail', 'Rebater armadura', Shapes, 1),
           item('convert', 'Converter polilinha', Spline),
           item('follow', 'Seguir fôrma', ScanLine),
+          item('interpret-cad', 'Interpretar CAD em armadura', PencilRuler),
         ],
       },
       {
@@ -302,15 +326,8 @@ export default function Ribbon({
         ],
       },
       {
-        name: 'Faixas e chamadas',
-        items: [
-          item('range', 'Faixa ortogonal', Layers, 1),
-          item('section-arc', 'Corte em arco', Spline),
-          item('section', 'Corte e chamada', ScanLine),
-          item('dimension-orthogonal', 'Corte e cota ortogonal', Ruler),
-          item('dimension-aligned', 'Corte e cota alinhada', Ruler),
-          item('leader', 'Chamada', ArrowUpRight),
-        ],
+        name: 'Faixas de armadura',
+        items: [item('range', 'Faixa ortogonal', Layers, 1)],
       },
       {
         name: 'Relação do aço',

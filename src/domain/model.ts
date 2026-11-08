@@ -1,3 +1,4 @@
+import { validateNativeMask } from './nativeMasks';
 import { sheetSteelScheduleSchema } from './sheetSchedule';
 import { pruneVisibility } from './visibilitySchema';
 import { plotSettingsSchema } from './layerSchema';
@@ -387,12 +388,29 @@ const schema = z.object({
         ...layerBindingShape,
         id: z.string(),
         name: z.string().max(200),
-        format: z.enum(['DXF', 'DWG', 'DEMO']),
+        format: z.enum(['DXF', 'DWG', 'DEMO', 'NATIVE']),
         layerDefinitions: z.array(drawingLayerSchema).max(2000).optional(),
         primitives: z
           .array(
             z.object({
               ...layerBindingShape,
+              id: z.string().optional(),
+              native: z
+                .discriminatedUnion('kind', [
+                  z.object({
+                    kind: z.literal('circle'),
+                    center: point,
+                    radius: number.positive(),
+                  }),
+                  ...(['line', 'rectangle', 'polyline'] as const).map((kind) =>
+                    z.object({
+                      kind: z.literal(kind),
+                      points: z.array(point).min(2).max(500),
+                      closed: z.boolean(),
+                    }),
+                  ),
+                ])
+                .optional(),
               layer: z.string(),
               points: z.array(point).max(100000),
               closed: z.boolean().optional(),
@@ -429,6 +447,13 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
+  const nativeVersion = input?.schema === 'armadurastruct/20';
+  if (nativeVersion) input.schema = 'armadurastruct/19';
+  if (
+    !nativeVersion &&
+    input?.masks?.some((m: { format: string }) => m.format === 'NATIVE')
+  )
+    throw new Error('Máscaras nativas exigem formato 20.');
   if (
     typeof input?.schema === 'string' &&
     input.schema.startsWith('openstruct.detail/')
@@ -437,6 +462,7 @@ export function decodeProject(
       'Para importar um pacote OpenStruct, use Elementos → Inserir detalhamento no projeto de destino.',
     );
   const parsed = schema.parse(input);
+  parsed.masks.forEach(validateNativeMask);
   if (
     [
       'armadurastruct/14',
@@ -644,7 +670,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/19',
+    schema: 'armadurastruct/20',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -870,7 +896,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/19',
+    schema: 'armadurastruct/20',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

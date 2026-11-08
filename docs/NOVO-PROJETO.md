@@ -37,7 +37,7 @@ Após criar, a aba lateral **Projeto** é aberta com a hierarquia preparada e um
 
 `src/domain/projectSetup.ts` prepara um `Project` nativo isolado, com validação e operações imutáveis de rascunho. Reutiliza criação/exclusão, nomes e validação de `hierarchy.ts`, e passa pelo `decodeProject` na confirmação. Os auxiliares também são exportados por `src/api.ts`. A aplicação verifica novamente o projeto de origem e confirma o resultado em uma única operação de histórico, protegida contra submissão repetida.
 
-O formato continua **`armadurastruct/19`**. Não houve migração adicional ou alteração de projetos antigos, armaduras, pranchas e quantitativos. O assistente não inclui alturas, níveis, cálculo estrutural, templates ou importação.
+O formato usa **`armadurastruct/20`**, com a migração de máscaras documentada em [Máscaras nativas](MASCARAS-NATIVAS.md). O assistente não exige outra migração ou alteração de projetos antigos, armaduras, pranchas e quantitativos. O assistente não inclui alturas, níveis, cálculo estrutural, templates ou importação.
 
 Verificações automatizadas:
 

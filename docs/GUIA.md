@@ -2,6 +2,8 @@
 
 ## Espaço de trabalho
 
+Use **Máscaras** para desenho CAD nativo ou referências importadas, **Armaduras** para aço físico e **Desenho** para cotas/anotações. Veja [como desenhar e editar uma máscara](MASCARAS-NATIVAS.md).
+
 Use a faixa **Armaduras** para criar e detalhar posições. Quantidade, bitola e espaçamento no topo valem para os próximos comandos; para alterar uma posição existente, selecione-a e use **Propriedades**. O painel lateral alterna entre a árvore em **Projeto**, a edição em **Propriedades** e o gerenciador em **Pranchas**.
 
 **F4** recolhe/abre o painel. **Ctrl+F1** recolhe/expande a faixa. **Ctrl+0** alterna o modo Foco no CAD. Os botões no canto da área de desenho também permitem recuperar os painéis. A preferência de recolhimento é preservada neste dispositivo.
@@ -246,7 +248,7 @@ Confira o tamanho da máscara por uma distância conhecida antes de desenhar. `$
 
 Linhas, polilinhas com bulge, arcos, círculos, elipses, textos básicos, contornos de faces e blocos são convertidos para representação 2D. Objetos incompatíveis são informados no relatório. A fidelidade de fontes, cotas, sólidos, objetos de terceiros e referências externas não é garantida.
 
-O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/19`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
+O `.armstruct.json` preserva o modelo editável, as folhas/vistas e as máscaras normalizadas; os bytes originais do CAD não são armazenados. Configure formato, margens, selo e escala por vista em **Pranchas**. Guarde o JSON junto dos arquivos de entrega. Arquivos nos formatos 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19 são migrados ao abrir, e os novos salvamentos usam `armadurastruct/20`. O PDF suporta texto latino e símbolos como Ø/°; caracteres sem suporte são apontados na validação, em vez de serem exportados incorretamente.
 
 ## Nota de implementação desktop
 

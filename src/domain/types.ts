@@ -185,6 +185,8 @@ export type ProjectHierarchy = {
   objectOrigins: Record<string, ObjectOrigin>;
 };
 export type Primitive = LayerBinding & {
+  id?: string;
+  native?: import('./nativeMasks').NativeShape;
   layer: string;
   /** Original semantic role remains stable when a catalog layer is renamed. */
   role?: string;
@@ -199,7 +201,7 @@ export type Primitive = LayerBinding & {
 export type Mask = LayerBinding & {
   id: string;
   name: string;
-  format: 'DXF' | 'DWG' | 'DEMO';
+  format: 'DXF' | 'DWG' | 'DEMO' | 'NATIVE';
   /** Import staging; adopted into Project.layers at the transaction boundary. */
   layerDefinitions?: DrawingLayer[];
   primitives: Primitive[];
@@ -239,7 +241,7 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/19';
+  schema: 'armadurastruct/20';
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;
   layers: DrawingLayer[];
