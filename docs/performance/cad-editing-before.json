@@ -1,0 +1,1228 @@
+{
+  "label": "before-editing",
+  "commit": "4b25f9e773c47e10c5722b5da0aaaed42ba6e77e",
+  "environment": {
+    "system": "linux 6.18.57",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "browser": "141.0.7390.37",
+    "node": "v24.22.1",
+    "url": "http://127.0.0.1:1420",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "samples": 12,
+    "repeats": 3
+  },
+  "scenes": {
+    "large": {
+      "bytes": 2554283,
+      "bars": 400,
+      "representations": 400,
+      "masks": 1,
+      "maskPrimitives": 20000,
+      "maskPoints": 40000,
+      "svgElements": 5127,
+      "actions": {
+        "click": [
+          {
+            "elapsedMs": 1291.7125420000002,
+            "dispatchMs": {
+              "count": 12,
+              "median": 101.58398300000044,
+              "p95": 139.00306900000032,
+              "max": 139.00306900000032
+            },
+            "frameMs": {
+              "count": 17,
+              "median": 100,
+              "p95": 133.39999999999964,
+              "max": 133.39999999999964
+            },
+            "inputToTwoFramesMs": {
+              "count": 36,
+              "median": 200.39999999990687,
+              "p95": 272.29999999981374,
+              "max": 272.29999999981374
+            },
+            "longTasks": {
+              "count": 12,
+              "median": 96,
+              "p95": 126,
+              "max": 126
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 1132.427,
+              "TaskDuration": 1409.6819999999998,
+              "LayoutDuration": 9.183,
+              "RecalcStyleDuration": 2.797
+            },
+            "profile": [
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 650.761
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 273.05
+              },
+              {
+                "frame": "physicalBarTextPrimitives ../../src/domain/drawingPrimitives.ts:17",
+                "selfMs": 79.723
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 52.439
+              },
+              {
+                "frame": "Je ../../src/domain/geometry.ts:13",
+                "selfMs": 40.659000000000006
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 31.674
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 20.902
+              },
+              {
+                "frame": "representationPrimitives ../../src/domain/representations.ts:23",
+                "selfMs": 18.704
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 14.131
+              },
+              {
+                "frame": "stylePrimitive ../../src/domain/layers.ts:79",
+                "selfMs": 12.767
+              },
+              {
+                "frame": "ht ../../src/domain/geometry.ts:10",
+                "selfMs": 11.123000000000001
+              },
+              {
+                "frame": "sampled ../../src/domain/geometry.ts:108",
+                "selfMs": 10.715
+              },
+              {
+                "frame": "geometry ../../src/domain/geometry.ts:51",
+                "selfMs": 9.818999999999999
+              },
+              {
+                "frame": "d ../../src/components/CadCanvas.tsx:1132",
+                "selfMs": 9.732
+              },
+              {
+                "frame": "v ../../src/components/CadCanvas.tsx:507",
+                "selfMs": 8.747
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 8.703
+              },
+              {
+                "frame": "Ze ../../src/domain/geometry.ts:2",
+                "selfMs": 6.574
+              },
+              {
+                "frame": "item ../../src/components/CadCanvas.tsx:1141",
+                "selfMs": 6.562
+              },
+              {
+                "frame": "at ../../src/domain/geometry.ts:6",
+                "selfMs": 6.529999999999999
+              },
+              {
+                "frame": "updateInput ../../node_modules/react-dom/cjs/react-dom-client.production.js:1269",
+                "selfMs": 6.507
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 6.473
+              },
+              {
+                "frame": "updateElement ../../node_modules/react-dom/cjs/react-dom-client.production.js:3644",
+                "selfMs": 5.609
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 5.462
+              },
+              {
+                "frame": "resolveStyle ../../src/domain/layers.ts:64",
+                "selfMs": 5.422
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1312.0784219999987,
+            "dispatchMs": {
+              "count": 12,
+              "median": 101.71846599999844,
+              "p95": 178.36797800000022,
+              "max": 178.36797800000022
+            },
+            "frameMs": {
+              "count": 17,
+              "median": 99.89999999999964,
+              "p95": 166.80000000000018,
+              "max": 166.80000000000018
+            },
+            "inputToTwoFramesMs": {
+              "count": 36,
+              "median": 193.10000000009313,
+              "p95": 295.40000000037253,
+              "max": 295.5
+            },
+            "longTasks": {
+              "count": 13,
+              "median": 91,
+              "p95": 119,
+              "max": 119
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 1150.5369999999998,
+              "TaskDuration": 1440.7390000000003,
+              "LayoutDuration": 4.594000000000001,
+              "RecalcStyleDuration": 2.0940000000000003
+            },
+            "profile": [
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 723.6690000000001
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 285.758
+              },
+              {
+                "frame": "Je ../../src/domain/geometry.ts:13",
+                "selfMs": 43.859
+              },
+              {
+                "frame": "Bn ../../src/components/CadCanvas.tsx:787",
+                "selfMs": 27.814
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 27.574
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 22.763
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 22.015
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:899",
+                "selfMs": 19.826999999999998
+              },
+              {
+                "frame": "d ../../src/components/CadCanvas.tsx:1132",
+                "selfMs": 17.083
+              },
+              {
+                "frame": "physicalBarTextPrimitives ../../src/domain/drawingPrimitives.ts:17",
+                "selfMs": 16.675
+              },
+              {
+                "frame": "d ../../src/domain/representations.ts:20",
+                "selfMs": 14.064
+              },
+              {
+                "frame": " ../../src/domain/geometry.ts:131",
+                "selfMs": 13.331
+              },
+              {
+                "frame": "p ../../src/components/CadCanvas.tsx:500",
+                "selfMs": 12.005
+              },
+              {
+                "frame": "stylePrimitive ../../src/domain/layers.ts:79",
+                "selfMs": 11.815
+              },
+              {
+                "frame": "Ft ../../src/components/CadCanvas.tsx:865",
+                "selfMs": 11.251
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 11.113
+              },
+              {
+                "frame": "ht ../../src/domain/geometry.ts:10",
+                "selfMs": 11.034
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 8.515
+              },
+              {
+                "frame": "geometry ../../src/domain/geometry.ts:51",
+                "selfMs": 7.714
+              },
+              {
+                "frame": "representationPrimitives ../../src/domain/representations.ts:23",
+                "selfMs": 7.644
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 7.587999999999999
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 7.514
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 6.638
+              },
+              {
+                "frame": "updateInput ../../node_modules/react-dom/cjs/react-dom-client.production.js:1269",
+                "selfMs": 6.505000000000001
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1194.7295880000001,
+            "dispatchMs": {
+              "count": 12,
+              "median": 96.51295000000027,
+              "p95": 110.80817500000012,
+              "max": 110.80817500000012
+            },
+            "frameMs": {
+              "count": 18,
+              "median": 99.90000000000146,
+              "p95": 150,
+              "max": 150
+            },
+            "inputToTwoFramesMs": {
+              "count": 36,
+              "median": 190.09999999962747,
+              "p95": 204.60000000009313,
+              "max": 204.79999999981374
+            },
+            "longTasks": {
+              "count": 12,
+              "median": 90,
+              "p95": 105,
+              "max": 105
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 1050.617,
+              "TaskDuration": 1381.978,
+              "LayoutDuration": 4.180999999999997,
+              "RecalcStyleDuration": 2.1130000000000004
+            },
+            "profile": [
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 671.528
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 297.974
+              },
+              {
+                "frame": "Je ../../src/domain/geometry.ts:13",
+                "selfMs": 46.843999999999994
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 40.931
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 32.336999999999996
+              },
+              {
+                "frame": "Bn ../../src/components/CadCanvas.tsx:787",
+                "selfMs": 29.039
+              },
+              {
+                "frame": "d ../../src/domain/representations.ts:20",
+                "selfMs": 14.096
+              },
+              {
+                "frame": "representationPoint ../../src/domain/representations.ts:5",
+                "selfMs": 14.059
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 11.812999999999999
+              },
+              {
+                "frame": "geometry ../../src/domain/geometry.ts:51",
+                "selfMs": 10.904
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:899",
+                "selfMs": 10.87
+              },
+              {
+                "frame": "d ../../src/components/CadCanvas.tsx:1132",
+                "selfMs": 9.876
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 9.682
+              },
+              {
+                "frame": " ../../src/domain/geometry.ts:131",
+                "selfMs": 8.708
+              },
+              {
+                "frame": "p ../../src/components/CadCanvas.tsx:500",
+                "selfMs": 7.716
+              },
+              {
+                "frame": "raw ../../src/components/CadCanvas.tsx:457",
+                "selfMs": 6.617
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 6.458
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 6.455
+              },
+              {
+                "frame": "Ft ../../src/components/CadCanvas.tsx:865",
+                "selfMs": 6.3870000000000005
+              },
+              {
+                "frame": "sampled ../../src/domain/geometry.ts:108",
+                "selfMs": 5.427
+              },
+              {
+                "frame": "updateInput ../../node_modules/react-dom/cjs/react-dom-client.production.js:1269",
+                "selfMs": 5.4079999999999995
+              },
+              {
+                "frame": "stylePrimitive ../../src/domain/layers.ts:79",
+                "selfMs": 5.373
+              },
+              {
+                "frame": "barQuantities ../../src/domain/detailQuantities.ts:52",
+                "selfMs": 5.349
+              },
+              {
+                "frame": "physicalBarTextPrimitives ../../src/domain/drawingPrimitives.ts:17",
+                "selfMs": 5.321
+              }
+            ]
+          }
+        ],
+        "grip": [
+          {
+            "elapsedMs": 1903.8207440000006,
+            "dispatchMs": {
+              "count": 12,
+              "median": 56.29987599999913,
+              "p95": 74.41962200000125,
+              "max": 74.41962200000125
+            },
+            "frameMs": {
+              "count": 44,
+              "median": 16.700000000000728,
+              "p95": 33.399999999999636,
+              "max": 1099.8999999999996
+            },
+            "inputToTwoFramesMs": {
+              "count": 13,
+              "median": 53.700000000186265,
+              "p95": 1184.3000000002794,
+              "max": 1184.3000000002794
+            },
+            "longTasks": {
+              "count": 2,
+              "median": 1094,
+              "p95": 1094,
+              "max": 1094
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 1658.5869999999998,
+              "TaskDuration": 1863.8309999999994,
+              "LayoutDuration": 4.188999999999998,
+              "RecalcStyleDuration": 1.5049999999999994
+            },
+            "profile": [
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 376.8690000000001
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:54",
+                "selfMs": 241.998
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:53",
+                "selfMs": 227.77100000000002
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 198.446
+              },
+              {
+                "frame": "objectRole ../../src/domain/layers.ts:49",
+                "selfMs": 196.082
+              },
+              {
+                "frame": "objectState ../../src/domain/layerProfiles.ts:45",
+                "selfMs": 165.226
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 100.534
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:429",
+                "selfMs": 49.041
+              },
+              {
+                "frame": "l ../../src/domain/layerProfiles.ts:54",
+                "selfMs": 27.35
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 25.862
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 21.650999999999996
+              },
+              {
+                "frame": "Je ../../src/domain/geometry.ts:13",
+                "selfMs": 19.554000000000002
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:219",
+                "selfMs": 16.352
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 16.195
+              },
+              {
+                "frame": "$p ../../src/domain/rebarApi.ts:423",
+                "selfMs": 14.509
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:899",
+                "selfMs": 13.883
+              },
+              {
+                "frame": "Bn ../../src/components/CadCanvas.tsx:787",
+                "selfMs": 12.098
+              },
+              {
+                "frame": "d ../../src/components/CadCanvas.tsx:1132",
+                "selfMs": 12
+              },
+              {
+                "frame": "d ../../src/domain/representations.ts:20",
+                "selfMs": 10.256
+              },
+              {
+                "frame": "path ../../src/domain/geometry.ts:128",
+                "selfMs": 9.752
+              },
+              {
+                "frame": "sampled ../../src/domain/geometry.ts:108",
+                "selfMs": 8.734
+              },
+              {
+                "frame": "geometry ../../src/domain/geometry.ts:51",
+                "selfMs": 8.032
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 7.708
+              },
+              {
+                "frame": "validateRebarChange ../../src/domain/rebarApi.ts:446",
+                "selfMs": 7.59
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1793.6124490000002,
+            "dispatchMs": {
+              "count": 12,
+              "median": 66.34725299999991,
+              "p95": 76.18452199999956,
+              "max": 76.18452199999956
+            },
+            "frameMs": {
+              "count": 42,
+              "median": 16.700000000000728,
+              "p95": 50,
+              "max": 933.3000000000029
+            },
+            "inputToTwoFramesMs": {
+              "count": 13,
+              "median": 59.89999999990687,
+              "p95": 996.7999999998137,
+              "max": 996.7999999998137
+            },
+            "longTasks": {
+              "count": 3,
+              "median": 50,
+              "p95": 933,
+              "max": 933
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 1544.0570000000005,
+              "TaskDuration": 1842.5510000000004,
+              "LayoutDuration": 4.462000000000008,
+              "RecalcStyleDuration": 1.5240000000000045
+            },
+            "profile": [
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:429",
+                "selfMs": 768.118
+              },
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 420.705
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 291.079
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 104.606
+              },
+              {
+                "frame": "showsPhysicalDescription ../../src/domain/representations.ts:18",
+                "selfMs": 26.332
+              },
+              {
+                "frame": "Je ../../src/domain/geometry.ts:13",
+                "selfMs": 24.966
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:219",
+                "selfMs": 23.917
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 20.254
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 18.938999999999997
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 15.283999999999999
+              },
+              {
+                "frame": "$p ../../src/domain/rebarApi.ts:423",
+                "selfMs": 15.165
+              },
+              {
+                "frame": "objectState ../../src/domain/layerProfiles.ts:45",
+                "selfMs": 10.436
+              },
+              {
+                "frame": "representationPrimitives ../../src/domain/representations.ts:23",
+                "selfMs": 8.697
+              },
+              {
+                "frame": "sampled ../../src/domain/geometry.ts:108",
+                "selfMs": 8.663
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:899",
+                "selfMs": 8.562
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 7.651
+              },
+              {
+                "frame": "validateRebarChange ../../src/domain/rebarApi.ts:446",
+                "selfMs": 7.617999999999999
+              },
+              {
+                "frame": "Bn ../../src/components/CadCanvas.tsx:787",
+                "selfMs": 7.599
+              },
+              {
+                "frame": " ../../src/domain/geometry.ts:131",
+                "selfMs": 6.117
+              },
+              {
+                "frame": "path ../../src/domain/geometry.ts:128",
+                "selfMs": 5.512
+              },
+              {
+                "frame": "assertLayerEdit ../../src/domain/layerProfiles.ts:217",
+                "selfMs": 5.46
+              },
+              {
+                "frame": "d ../../src/components/CadCanvas.tsx:1132",
+                "selfMs": 5.432
+              },
+              {
+                "frame": "d ../../src/domain/representations.ts:20",
+                "selfMs": 5.382
+              },
+              {
+                "frame": "u ../../src/domain/drawingPrimitives.ts:25",
+                "selfMs": 4.661
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1854.8832320000001,
+            "dispatchMs": {
+              "count": 12,
+              "median": 73.01820699999735,
+              "p95": 81.34687399999893,
+              "max": 81.34687399999893
+            },
+            "frameMs": {
+              "count": 44,
+              "median": 16.700000000000728,
+              "p95": 66.60000000000218,
+              "max": 900
+            },
+            "inputToTwoFramesMs": {
+              "count": 13,
+              "median": 67.20000000018626,
+              "p95": 982.2999999998137,
+              "max": 982.2999999998137
+            },
+            "longTasks": {
+              "count": 4,
+              "median": 54,
+              "p95": 918,
+              "max": 918
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 1563.3349999999987,
+              "TaskDuration": 1818.7789999999993,
+              "LayoutDuration": 4.692000000000002,
+              "RecalcStyleDuration": 1.3189999999999937
+            },
+            "profile": [
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 422.73499999999996
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:54",
+                "selfMs": 243.242
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 240.067
+              },
+              {
+                "frame": "objectState ../../src/domain/layerProfiles.ts:45",
+                "selfMs": 186.02100000000002
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:53",
+                "selfMs": 174.83100000000002
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 141.803
+              },
+              {
+                "frame": "objectRole ../../src/domain/layers.ts:49",
+                "selfMs": 112.24900000000001
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:429",
+                "selfMs": 28.508
+              },
+              {
+                "frame": "l ../../src/domain/layerProfiles.ts:54",
+                "selfMs": 28.343
+              },
+              {
+                "frame": "Je ../../src/domain/geometry.ts:13",
+                "selfMs": 24.818
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 22.558
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:899",
+                "selfMs": 21.317
+              },
+              {
+                "frame": "showsPhysicalDescription ../../src/domain/representations.ts:18",
+                "selfMs": 20.055
+              },
+              {
+                "frame": "$p ../../src/domain/rebarApi.ts:423",
+                "selfMs": 17.366
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 15.301
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:219",
+                "selfMs": 15.198
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 15.15
+              },
+              {
+                "frame": "d ../../src/domain/representations.ts:20",
+                "selfMs": 13.326
+              },
+              {
+                "frame": "path ../../src/domain/geometry.ts:128",
+                "selfMs": 11.004
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 9.696
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 8.295
+              },
+              {
+                "frame": "d ../../src/components/CadCanvas.tsx:1132",
+                "selfMs": 7.791
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 7.715
+              },
+              {
+                "frame": "geometry ../../src/domain/geometry.ts:51",
+                "selfMs": 7.526
+              }
+            ]
+          }
+        ],
+        "switch-drawing": [
+          {
+            "elapsedMs": 13125.446748000002,
+            "dispatchMs": {
+              "count": 12,
+              "median": 1095.8012129999988,
+              "p95": 1146.047722000003,
+              "max": 1146.047722000003
+            },
+            "frameMs": {
+              "count": 81,
+              "median": 16.700000000000728,
+              "p95": 949.8999999999978,
+              "max": 983.3000000000029
+            },
+            "inputToTwoFramesMs": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "longTasks": {
+              "count": 24,
+              "median": 871,
+              "p95": 967,
+              "max": 976
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 11437.438,
+              "TaskDuration": 12950.951999999997,
+              "LayoutDuration": 260.684,
+              "RecalcStyleDuration": 213.446
+            },
+            "profile": [
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:429",
+                "selfMs": 3495.764
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:54",
+                "selfMs": 2171.652
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:53",
+                "selfMs": 1978.656
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 1309.687
+              },
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 953.9630000000001
+              },
+              {
+                "frame": "objectRole ../../src/domain/layers.ts:49",
+                "selfMs": 911.955
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 365.713
+              },
+              {
+                "frame": "objectState ../../src/domain/layerProfiles.ts:45",
+                "selfMs": 333.93600000000004
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 258.829
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:219",
+                "selfMs": 154.477
+              },
+              {
+                "frame": "l ../../src/domain/layerProfiles.ts:54",
+                "selfMs": 112.77499999999999
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 79.625
+              },
+              {
+                "frame": "removeChild :0",
+                "selfMs": 63.474999999999994
+              },
+              {
+                "frame": "query :5287",
+                "selfMs": 55.583
+              },
+              {
+                "frame": "appendChild :0",
+                "selfMs": 49.435
+              },
+              {
+                "frame": "stylePrimitive ../../src/domain/layers.ts:79",
+                "selfMs": 45.022
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 36.475
+              },
+              {
+                "frame": "Bn ../../src/components/CadCanvas.tsx:787",
+                "selfMs": 35.425
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:218",
+                "selfMs": 34.859
+              },
+              {
+                "frame": "createElementNS :0",
+                "selfMs": 32.982
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 28.259999999999998
+              },
+              {
+                "frame": "p ../../src/components/CadCanvas.tsx:431",
+                "selfMs": 28.219
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:232",
+                "selfMs": 26.723
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:899",
+                "selfMs": 20.822
+              }
+            ]
+          },
+          {
+            "elapsedMs": 13045.786356999997,
+            "dispatchMs": {
+              "count": 12,
+              "median": 1082.1721400000024,
+              "p95": 1164.4433869999993,
+              "max": 1164.4433869999993
+            },
+            "frameMs": {
+              "count": 78,
+              "median": 16.700000000004366,
+              "p95": 933.2999999999956,
+              "max": 983.4000000000015
+            },
+            "inputToTwoFramesMs": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "longTasks": {
+              "count": 24,
+              "median": 893,
+              "p95": 942,
+              "max": 987
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 11364.811999999996,
+              "TaskDuration": 12849.926999999998,
+              "LayoutDuration": 250.40600000000006,
+              "RecalcStyleDuration": 212.05100000000004
+            },
+            "profile": [
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:429",
+                "selfMs": 4937.306
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:54",
+                "selfMs": 1533.357
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:53",
+                "selfMs": 1359.268
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 1305.008
+              },
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 928.423
+              },
+              {
+                "frame": "objectRole ../../src/domain/layers.ts:49",
+                "selfMs": 674.2810000000001
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 343.285
+              },
+              {
+                "frame": "objectState ../../src/domain/layerProfiles.ts:45",
+                "selfMs": 289.57
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 238.517
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:219",
+                "selfMs": 149.638
+              },
+              {
+                "frame": "l ../../src/domain/layerProfiles.ts:54",
+                "selfMs": 133.205
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:218",
+                "selfMs": 89.948
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 88.31599999999999
+              },
+              {
+                "frame": "removeChild :0",
+                "selfMs": 63.105000000000004
+              },
+              {
+                "frame": "query :5287",
+                "selfMs": 50.917
+              },
+              {
+                "frame": "appendChild :0",
+                "selfMs": 48.979
+              },
+              {
+                "frame": "Bn ../../src/components/CadCanvas.tsx:787",
+                "selfMs": 38.45
+              },
+              {
+                "frame": "layerProjection ../../src/domain/layerProfiles.ts:178",
+                "selfMs": 38.016999999999996
+              },
+              {
+                "frame": "createElementNS :0",
+                "selfMs": 34.714
+              },
+              {
+                "frame": "stylePrimitive ../../src/domain/layers.ts:79",
+                "selfMs": 30.447
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 29.745999999999995
+              },
+              {
+                "frame": "p ../../src/components/CadCanvas.tsx:431",
+                "selfMs": 23.088
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 22.38
+              },
+              {
+                "frame": "sampled ../../src/domain/geometry.ts:108",
+                "selfMs": 21.802
+              }
+            ]
+          },
+          {
+            "elapsedMs": 12991.991298,
+            "dispatchMs": {
+              "count": 12,
+              "median": 1084.7748679999931,
+              "p95": 1134.5264009999955,
+              "max": 1134.5264009999955
+            },
+            "frameMs": {
+              "count": 78,
+              "median": 16.69999999999709,
+              "p95": 933.1999999999971,
+              "max": 966.5
+            },
+            "inputToTwoFramesMs": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "longTasks": {
+              "count": 24,
+              "median": 890,
+              "p95": 953,
+              "max": 961
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 11345.899000000003,
+              "TaskDuration": 12792.166000000001,
+              "LayoutDuration": 252.96399999999997,
+              "RecalcStyleDuration": 211.777
+            },
+            "profile": [
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:429",
+                "selfMs": 4930.517
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:54",
+                "selfMs": 1504.239
+              },
+              {
+                "frame": "b ../../src/domain/layers.ts:53",
+                "selfMs": 1359.657
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 1245.988
+              },
+              {
+                "frame": "Ut ../../src/domain/geometry.ts:28",
+                "selfMs": 912.2560000000001
+              },
+              {
+                "frame": "objectRole ../../src/domain/layers.ts:49",
+                "selfMs": 714.127
+              },
+              {
+                "frame": "objectState ../../src/domain/layerProfiles.ts:45",
+                "selfMs": 340.249
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 300.723
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 262.996
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:219",
+                "selfMs": 116.065
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 92.743
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:218",
+                "selfMs": 78.109
+              },
+              {
+                "frame": "l ../../src/domain/layerProfiles.ts:54",
+                "selfMs": 75.69
+              },
+              {
+                "frame": "removeChild :0",
+                "selfMs": 67.502
+              },
+              {
+                "frame": "query :5287",
+                "selfMs": 54.368
+              },
+              {
+                "frame": "stylePrimitive ../../src/domain/layers.ts:79",
+                "selfMs": 42.481
+              },
+              {
+                "frame": "Bn ../../src/components/CadCanvas.tsx:787",
+                "selfMs": 40.666
+              },
+              {
+                "frame": "appendChild :0",
+                "selfMs": 37.458
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:870",
+                "selfMs": 33.68
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 26.097
+              },
+              {
+                "frame": "geometry ../../src/domain/geometry.ts:51",
+                "selfMs": 25.800000000000004
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:899",
+                "selfMs": 25.657
+              },
+              {
+                "frame": "createElementNS :0",
+                "selfMs": 22.133
+              },
+              {
+                "frame": "sampled ../../src/domain/geometry.ts:108",
+                "selfMs": 21.987
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    }
+  },
+  "buildAssets": ["index-qOwB-OPX.js"]
+}

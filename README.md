@@ -12,6 +12,8 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- [Fluidez do CAD e medições reproduzíveis](docs/DESEMPENHO-CAD.md): reutilização de apresentação e formatação, controle de captura por máscara e benchmark de navegação/edição.
+
 - [Textos proporcionais durante o zoom](docs/TEXTOS-E-ZOOM.md), compartilhando alturas e posições entre modelo, representações e exportação, com altura de papel por vista preservada.
 
 - [Máscaras nativas CAD](docs/MASCARAS-NATIVAS.md): linha, retângulo, círculo e polilinha editáveis, sem gerar aço, com controle compartilhado de referências importadas.

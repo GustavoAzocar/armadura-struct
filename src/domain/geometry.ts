@@ -25,11 +25,19 @@ export const world = (p: Point, bar: Pick<Bar, 'origin' | 'rotation'>) =>
   add(bar.origin, rotate(p, bar.rotation));
 export const local = (p: Point, bar: Pick<Bar, 'origin' | 'rotation'>) =>
   rotate(sub(p, bar.origin), -bar.rotation);
-export const format = (n: number, digits = 1) =>
-  n.toLocaleString('pt-BR', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
+const numberFormats = new Map<number, Intl.NumberFormat>();
+export const format = (n: number, digits = 1) => {
+  let formatter = numberFormats.get(digits);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+    // Presentation only. Keep arbitrary API precisions from growing the cache.
+    if (numberFormats.size < 32) numberFormats.set(digits, formatter);
+  }
+  return formatter.format(n);
+};
 export function vertices(bar: Bar): Point[] {
   if (bar.kind === 'free') return bar.points;
   const r = (bar.mandrel + bar.diameter) / 2;

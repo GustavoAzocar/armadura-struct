@@ -236,6 +236,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         return {
           mask: m,
           items,
+          capture: objectState(source, props.layerContext ?? 'model', m)
+            .capture,
+          texts: items.filter((p) => p.text),
           paths: [...paths].map(([key, group]) => ({
             key,
             item: group.item,
@@ -243,7 +246,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           })),
         };
       }),
-    [project.masks, source.layers],
+    [project.masks, source, props.layerContext],
   );
   const annotations = useMemo(
     () =>
@@ -262,6 +265,67 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const barDefinitions = useMemo(
     () => new Map(source.bars.map((b) => [b.id, b])),
     [source.bars],
+  );
+  // Camera/cursor updates must not rebuild physical geometry, captions or insertions.
+  // These caches are local to this canvas and invalidated by immutable project edits.
+  const barPresentations = useMemo(
+    () =>
+      new Map(
+        project.bars.map((b) => [
+          b.id,
+          {
+            path: path(barGeometries.get(b.id)!.segments),
+            texts: physicalBarTextPrimitives(
+              { ...b, origin: { x: 0, y: 0 }, rotation: 0 },
+              source,
+            ),
+            style: resolveStyle(source, b, 'ARMADURAS'),
+            origins:
+              b.distribution?.render === 'bars'
+                ? distributionOrigins(b)
+                : [b.origin],
+          },
+        ]),
+      ),
+    [project.bars, barGeometries, source],
+  );
+  const representations = useMemo(
+    () =>
+      project.details.flatMap((d) => {
+        const b = barDefinitions.get(d.barId);
+        return b
+          ? [
+              {
+                detail: d,
+                bar: b,
+                items: representationPrimitives(b, d, source).map((item) =>
+                  stylePrimitive(source, d, item, 'REBATIMENTOS'),
+                ),
+              },
+            ]
+          : [];
+      }),
+    [project.details, barDefinitions, source],
+  );
+  const polylineItems = useMemo(
+    () =>
+      project.polylines.map((l) => ({
+        line: l,
+        item: stylePrimitive(source, l, { ...l, layer: 'DESENHO' }),
+      })),
+    [project.polylines, source.layers],
+  );
+  const distributions = useMemo(
+    () =>
+      project.bars
+        .filter((b) => b.distribution)
+        .map((b) => ({
+          bar: b,
+          items: distributionPrimitives(b, undefined, source).map((item) =>
+            stylePrimitive(source, b, item, 'ARMADURAS'),
+          ),
+        })),
+    [project.bars, source],
   );
   const representationPoints = useMemo(
     () =>
@@ -430,8 +494,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         m.items.filter(
           (p) =>
             !p.text &&
-            objectState(source, props.layerContext ?? 'model', m.mask)
-              .capture &&
+            m.capture &&
             (!p.layerId ||
               layerState(source, props.layerContext ?? 'model', p.layerId)
                 .capture),
@@ -579,8 +642,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     }
     if (!hit)
       for (const m of masks) {
-        if (!objectState(source, props.layerContext ?? 'model', m.mask).capture)
-          continue;
+        if (!m.capture) continue;
         for (const item of m.items) {
           if (
             item.layerId &&
@@ -631,7 +693,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       for (const m of masks.filter(
         (m) =>
           m.mask.format === 'NATIVE' &&
-          objectState(source, props.layerContext ?? 'model', m.mask).capture &&
+          m.capture &&
           objectState(source, props.layerContext ?? 'model', m.mask).editable,
       )) {
         for (const item of m.items) {
@@ -681,8 +743,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       for (const m of masks)
         for (const item of m.items) {
           if (
-            !objectState(source, props.layerContext ?? 'model', m.mask)
-              .capture ||
+            !m.capture ||
             (item.layerId &&
               !layerState(source, props.layerContext ?? 'model', item.layerId)
                 .capture)
@@ -803,7 +864,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       active = selected.includes(b.id);
     const style = isDetail
       ? resolveStyle(source, {}, 'REBATIMENTOS')
-      : resolveStyle(source, b, 'ARMADURAS');
+      : barPresentations.get(b.id)!.style;
+    const barPath =
+      grip?.id === b.id ? path(g.segments) : barPresentations.get(b.id)!.path;
     const color = g.errors.length ? '#e76472' : style.color;
     const tr = `translate(${origin.x} ${origin.y}) rotate(${isDetail ? 0 : b.rotation})`;
     return (
@@ -815,7 +878,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       >
         {active && (
           <path
-            d={path(g.segments)}
+            d={barPath}
             fill="none"
             stroke={color}
             strokeWidth={8 * stroke}
@@ -823,7 +886,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           />
         )}
         <path
-          d={path(g.segments)}
+          d={barPath}
           fill="none"
           stroke={color}
           strokeWidth={
@@ -834,9 +897,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           strokeLinecap="round"
         />
         {renderPrimitives(
-          physicalBarTextPrimitives(
-            { ...edited, origin: { x: 0, y: 0 }, rotation: 0 },
-            source,
+          (grip?.id === b.id
+            ? physicalBarTextPrimitives(
+                { ...edited, origin: { x: 0, y: 0 }, rotation: 0 },
+                source,
+              )
+            : barPresentations.get(b.id)!.texts
           ).filter((item) =>
             item.layer === 'IDENTIFICACAO' ? showLabel : props.showDimensions,
           ),
@@ -917,6 +983,177 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         />
       ),
     );
+  // Reuse the SVG element tree during cursor motion and pan. Zoom only changes
+  // screen-sized strokes/handles; model geometry and text heights stay untouched.
+  // Dependencies enumerate values captured by the render helpers above; using the
+  // helpers themselves would invalidate these trees on every pointer event.
+  const maskContent = useMemo(
+    () => (
+      <>
+        {masks.map(({ mask, texts, paths }) => (
+          <g
+            key={mask.id}
+            data-mask-id={mask.id}
+            opacity={mask.opacity}
+            fill="none"
+            stroke={light ? '#7e899b' : '#8090aa'}
+            strokeWidth={stroke}
+          >
+            {paths.map(({ key, item, d }) => (
+              <path
+                key={key}
+                d={d}
+                data-layer-id={item.layerId}
+                strokeLinecap="round"
+                stroke={item.resolvedStyle?.color}
+                strokeWidth={
+                  Math.max(
+                    1,
+                    ((item.resolvedStyle?.lineWidth ?? 0.18) * 96) / 25.4,
+                  ) * stroke
+                }
+                strokeDasharray={
+                  dashArray(item.resolvedStyle).join(' ') || undefined
+                }
+                fill={
+                  item.closed && item.resolvedStyle?.fill === 'solid'
+                    ? item.resolvedStyle.fillColor
+                    : 'none'
+                }
+              />
+            ))}
+            {texts.map((p, i) => (
+              <g
+                key={i}
+                transform={`translate(${p.points[0].x} ${p.points[0].y}) rotate(${p.textRotation ?? 0}) scale(1 -1)`}
+              >
+                <text
+                  fill={
+                    p.resolvedStyle?.color ?? (light ? '#7e899b' : '#8090aa')
+                  }
+                  stroke="none"
+                  textRendering="geometricPrecision"
+                  fontSize={p.textHeight}
+                  textAnchor={
+                    p.textAlign === 'center'
+                      ? 'middle'
+                      : p.textAlign === 'right'
+                        ? 'end'
+                        : 'start'
+                  }
+                >
+                  {p.text}
+                </text>
+              </g>
+            ))}
+          </g>
+        ))}
+      </>
+    ),
+    [masks, light, stroke],
+  );
+  const objectContent = useMemo(
+    () => (
+      <>
+        {polylineItems.map(({ line: l, item }) => (
+          <g key={l.id} data-testid="cad-polyline">
+            {renderPrimitives(
+              [item],
+              selected.includes(l.id) ? '#58bce8' : l.color,
+              selected.includes(l.id),
+            )}
+          </g>
+        ))}
+        {project.bars.flatMap((b) =>
+          barPresentations
+            .get(b.id)!
+            .origins.map((origin, i) => renderBar(b, origin, false, i === 0)),
+        )}
+        {annotations.map(({ annotation: a, items }) => (
+          <g key={a.id} data-testid="cad-annotation" data-kind={a.kind}>
+            {renderPrimitives(
+              items,
+              selected.includes(a.id) ? '#58bce8' : light ? '#394861' : a.color,
+              selected.includes(a.id),
+            )}
+          </g>
+        ))}
+        {representations.map(({ detail: d, bar: b, items }) => {
+          return (
+            <g key={d.id} data-representation-id={d.id}>
+              {renderPrimitives(
+                items.filter(
+                  (item) =>
+                    props.showDimensions ||
+                    (item.role ?? item.layer) !== 'COTAS',
+                ),
+                b.color,
+                selected.includes(d.id),
+              )}
+            </g>
+          );
+        })}
+        {groupBoxes.map((box) => (
+          <g
+            key={box.id}
+            data-testid="cad-detail-group"
+            data-detail-id={box.id}
+            pointerEvents="none"
+          >
+            <rect
+              x={box.x - 12 * stroke}
+              y={box.y - 12 * stroke}
+              width={box.width + 24 * stroke}
+              height={box.height + 24 * stroke}
+              fill="none"
+              stroke={light ? '#536fbb' : '#87a5ec'}
+              opacity={
+                selected.some(
+                  (id) => source.hierarchy.objectDetails[id] === box.id,
+                )
+                  ? 1
+                  : 0.4
+              }
+              strokeWidth={stroke}
+              strokeDasharray={`${5 * stroke} ${4 * stroke}`}
+            />
+            <text
+              transform={`translate(${box.x} ${box.top + 18 * stroke}) scale(1 -1)`}
+              fill={light ? '#3e5694' : '#9db7f1'}
+              fontSize={groupLabelSize}
+            >
+              {box.name}
+            </text>
+          </g>
+        ))}
+        {distributions.map(({ bar: b, items }) => (
+          <g key={b.id} data-testid="cad-distribution">
+            {renderPrimitives(items, b.color)}
+          </g>
+        ))}
+      </>
+    ),
+    [
+      source,
+      project,
+      annotations,
+      barDefinitions,
+      barGeometries,
+      barPresentations,
+      representations,
+      polylineItems,
+      distributions,
+      groupBoxes,
+      selected,
+      grip,
+      stroke,
+      light,
+      props.showDimensions,
+      props.layerContext,
+      props.isolatedDetailId,
+      groupedIds,
+    ],
+  );
   const gridStep = 10 ** Math.ceil(Math.log10(55 / view.s));
   const origin = scr({ x: 0, y: 0 });
   return (
@@ -999,67 +1236,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         <g
           transform={`translate(${size.w / 2 - view.x * view.s} ${size.h / 2 + view.y * view.s}) scale(${view.s} ${-view.s})`}
         >
-          {masks.map(({ mask, items, paths }) => (
-            <g
-              key={mask.id}
-              data-mask-id={mask.id}
-              opacity={mask.opacity}
-              fill="none"
-              stroke={light ? '#7e899b' : '#8090aa'}
-              strokeWidth={stroke}
-            >
-              {paths.map(({ key, item, d }) => (
-                <path
-                  key={key}
-                  d={d}
-                  data-layer-id={item.layerId}
-                  strokeLinecap="round"
-                  stroke={item.resolvedStyle?.color}
-                  strokeWidth={
-                    Math.max(
-                      1,
-                      ((item.resolvedStyle?.lineWidth ?? 0.18) * 96) / 25.4,
-                    ) * stroke
-                  }
-                  strokeDasharray={
-                    dashArray(item.resolvedStyle).join(' ') || undefined
-                  }
-                  fill={
-                    item.closed && item.resolvedStyle?.fill === 'solid'
-                      ? item.resolvedStyle.fillColor
-                      : 'none'
-                  }
-                />
-              ))}
-              {items
-                .filter((p) => p.text)
-                .map((p, i) => (
-                  <g
-                    key={i}
-                    transform={`translate(${p.points[0].x} ${p.points[0].y}) rotate(${p.textRotation ?? 0}) scale(1 -1)`}
-                  >
-                    <text
-                      fill={
-                        p.resolvedStyle?.color ??
-                        (light ? '#7e899b' : '#8090aa')
-                      }
-                      stroke="none"
-                      textRendering="geometricPrecision"
-                      fontSize={p.textHeight}
-                      textAnchor={
-                        p.textAlign === 'center'
-                          ? 'middle'
-                          : p.textAlign === 'right'
-                            ? 'end'
-                            : 'start'
-                      }
-                    >
-                      {p.text}
-                    </text>
-                  </g>
-                ))}
-            </g>
-          ))}
+          {maskContent}
           {props.previewLines && (
             <g
               data-testid="transform-preview"
@@ -1100,98 +1277,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               {renderPrimitives(ghosts, '#f59e0b')}
             </g>
           )}
-          {project.polylines.map((l) => (
-            <g key={l.id} data-testid="cad-polyline">
-              {renderPrimitives(
-                [stylePrimitive(source, l, { ...l, layer: 'DESENHO' })],
-                selected.includes(l.id) ? '#58bce8' : l.color,
-                selected.includes(l.id),
-              )}
-            </g>
-          ))}
-          {project.bars.flatMap((b) =>
-            b.distribution?.render === 'bars'
-              ? distributionOrigins(b).map((origin, i) =>
-                  renderBar(b, origin, false, i === 0),
-                )
-              : renderBar(b),
-          )}
-          {annotations.map(({ annotation: a, items }) => (
-            <g key={a.id} data-testid="cad-annotation" data-kind={a.kind}>
-              {renderPrimitives(
-                items,
-                selected.includes(a.id)
-                  ? '#58bce8'
-                  : light
-                    ? '#394861'
-                    : a.color,
-                selected.includes(a.id),
-              )}
-            </g>
-          ))}
-          {project.details.map((d) => {
-            const b = barDefinitions.get(d.barId);
-            return b ? (
-              <g key={d.id} data-representation-id={d.id}>
-                {renderPrimitives(
-                  representationPrimitives(b, d, source)
-                    .filter(
-                      (item) => props.showDimensions || item.layer !== 'COTAS',
-                    )
-                    .map((item) =>
-                      stylePrimitive(source, d, item, 'REBATIMENTOS'),
-                    ),
-                  b.color,
-                  selected.includes(d.id),
-                )}
-              </g>
-            ) : null;
-          })}
-          {groupBoxes.map((box) => (
-            <g
-              key={box.id}
-              data-testid="cad-detail-group"
-              data-detail-id={box.id}
-              pointerEvents="none"
-            >
-              <rect
-                x={box.x - 12 * stroke}
-                y={box.y - 12 * stroke}
-                width={box.width + 24 * stroke}
-                height={box.height + 24 * stroke}
-                fill="none"
-                stroke={light ? '#536fbb' : '#87a5ec'}
-                opacity={
-                  selected.some(
-                    (id) => source.hierarchy.objectDetails[id] === box.id,
-                  )
-                    ? 1
-                    : 0.4
-                }
-                strokeWidth={stroke}
-                strokeDasharray={`${5 * stroke} ${4 * stroke}`}
-              />
-              <text
-                transform={`translate(${box.x} ${box.top + 18 * stroke}) scale(1 -1)`}
-                fill={light ? '#3e5694' : '#9db7f1'}
-                fontSize={groupLabelSize}
-              >
-                {box.name}
-              </text>
-            </g>
-          ))}
-          {project.bars
-            .filter((b) => b.distribution)
-            .map((b) => (
-              <g key={b.id} data-testid="cad-distribution">
-                {renderPrimitives(
-                  distributionPrimitives(b, undefined, source).map((item) =>
-                    stylePrimitive(source, b, item, 'ARMADURAS'),
-                  ),
-                  b.color,
-                )}
-              </g>
-            ))}
+          {objectContent}
           {draft.length === 2 &&
             cursor &&
             [
