@@ -8,6 +8,8 @@ Use a faixa **Armaduras** para criar e detalhar posições. Quantidade, bitola e
 
 ## Organização do projeto
 
+Em **Novo projeto**, informe apenas o nome para começar com **Pavimento 1 → Geral → Detalhamento 1 → Desenho principal**, ou abra **Organizar pavimentos, elementos e detalhamentos** para renomear os padrões, acrescentar itens e escolher o detalhamento inicial. A árvore é uma prévia editável; cancelar não altera o projeto aberto nem a recuperação. Se houver trabalho atual, a substituição exige confirmação e oferece salvar uma cópia. Criar entra como uma única operação de histórico. Veja [o fluxo completo do assistente](NOVO-PROJETO.md).
+
 Na aba **Projeto**, use **+ pavimento**, **+ elemento** e **+ detalhamento**. Ao criar um pavimento ou elemento, ele fica selecionado como pai do próximo cadastro. O seletor de pai no formulário permite escolher outro destino.
 
 Clique no nome de um nó para editar seu nome; em elementos e detalhamentos, altere também o pai para movê-los. Os vínculos usam IDs, portanto elementos com o mesmo nome em pavimentos distintos continuam independentes. A exclusão só aceita nós vazios; mova os filhos ou objetos antes. O projeto conserva ao menos um pavimento, elemento e detalhamento.

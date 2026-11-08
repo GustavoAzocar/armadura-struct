@@ -1,3 +1,4 @@
+import { confirmProjectReplacement } from './projectSetup.helpers';
 import { seedLegacyDemo } from './seedLegacyDemo';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -34,6 +35,7 @@ async function fresh(page: Page) {
     .getByRole('dialog')
     .getByRole('textbox')
     .fill('Detalhamento de teste');
+  await confirmProjectReplacement(page);
   await page.getByRole('button', { name: 'Criar projeto' }).click();
 }
 async function point(page: Page, x: number, y: number, shift = false) {

@@ -3335,3 +3335,181 @@ button.hierarchy-drawing {
   font-size: 12px;
   pointer-events: none;
 }
+
+.project-setup {
+  width: min(820px, calc(100vw - 24px));
+  max-height: 92dvh;
+  margin: auto;
+  padding: 20px;
+  overflow: hidden;
+  color: #263044;
+}
+.project-setup::backdrop {
+  background: #0d1c3980;
+  backdrop-filter: blur(3px);
+}
+.setup-heading h2 {
+  margin: 4px 0 12px;
+  font-size: 22px;
+}
+.project-setup form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(92dvh - 94px);
+}
+.setup-body {
+  overflow: auto;
+  padding: 0 6px 4px 0;
+}
+.project-setup .field {
+  margin-top: 8px;
+}
+.project-setup .field input {
+  height: 32px;
+}
+.project-setup .field select {
+  max-width: 100%;
+}
+.setup-body > small,
+.setup-summary small {
+  color: #68758c;
+  font-size: 11px;
+}
+.setup-summary {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  background: #f4f6fc;
+  border: 1px solid #dce2f1;
+  border-radius: 5px;
+  margin: 12px 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.setup-organization > summary,
+.setup-optional > summary {
+  cursor: pointer;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #3448d1;
+}
+.setup-node {
+  border-left: 2px solid #dce2f1;
+  padding-left: 10px;
+  margin: 8px 0;
+}
+.setup-node-row {
+  display: flex;
+  gap: 6px;
+  align-items: end;
+}
+.setup-node-row > .field {
+  flex: 1;
+  min-width: 0;
+}
+.setup-node-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding-bottom: 2px;
+}
+.setup-node-actions button,
+.setup-add-floor {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  border: 1px solid #e0e7f4;
+  border-radius: 4px;
+  padding: 6px;
+  font-size: 11px;
+}
+.setup-node-actions button span {
+  white-space: nowrap;
+}
+.setup-parent {
+  font-size: 11px;
+  color: #68758c;
+  margin-top: 5px;
+}
+.setup-parent summary {
+  cursor: pointer;
+}
+.setup-parent label {
+  display: grid;
+  gap: 3px;
+  margin-top: 5px;
+}
+.setup-parent select {
+  width: 100%;
+}
+.setup-drawing {
+  display: block;
+  color: #68758c;
+  margin: 5px 0;
+  font-size: 11px;
+}
+.setup-replacement,
+.setup-removal {
+  border: 1px solid #cbd4eb;
+  border-radius: 5px;
+  padding: 10px;
+  margin-top: 12px;
+  font-size: 11px;
+}
+.setup-replacement p,
+.setup-removal p {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+.setup-removal ul {
+  max-height: 100px;
+  overflow: auto;
+  margin: 6px 0;
+}
+.setup-replacement button,
+.setup-removal button {
+  padding: 6px;
+  border: 1px solid #dce2f1;
+  border-radius: 4px;
+  margin-right: 5px;
+}
+.setup-ack {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.setup-error {
+  color: #b42318;
+  font-size: 11px;
+  margin: 4px 0;
+}
+.project-setup [aria-invalid='true'] {
+  border-color: #b42318;
+}
+.project-setup .modal-actions {
+  flex-shrink: 0;
+  margin-top: 12px;
+  border-top: 1px solid #e0e7f4;
+  padding-top: 12px;
+}
+@media (max-width: 520px) {
+  .project-setup {
+    padding: 12px;
+  }
+  .setup-node {
+    padding-left: 6px;
+  }
+  .setup-node-row {
+    flex-wrap: wrap;
+  }
+  .setup-node-row > .field {
+    flex-basis: 100%;
+  }
+  .setup-node-actions {
+    margin-left: auto;
+  }
+}
+.setup-node .field > span {
+  overflow-wrap: anywhere;
+}

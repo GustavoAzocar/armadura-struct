@@ -1,3 +1,4 @@
+import { prepareProjectSetup } from './domain/projectSetup';
 import SheetSchedulePanel, {
   type SheetScheduleRequest,
 } from './components/SheetSchedulePanel';
@@ -71,6 +72,7 @@ import {
   RefreshCw,
   Shapes,
 } from 'lucide-react';
+const NewProjectDialog = lazy(() => import('./components/NewProjectDialog'));
 const DetailTransferDialog = lazy(
   () => import('./components/DetailTransferDialog'),
 );
@@ -407,7 +409,6 @@ export default function App() {
   const [modal, setModal] = useState<'new' | 'help' | 'split' | 'group' | null>(
       null,
     ),
-    [newName, setNewName] = useState('Novo projeto'),
     [cover, setCover] = useState(30),
     [newDiameter, setNewDiameter] = useState(8),
     [newQuantity, setNewQuantity] = useState(1),
@@ -2519,6 +2520,15 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (modal === 'new') {
+        if (e.key === 'Escape') setModal(null);
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          ['s', 'o'].includes(e.key.toLowerCase())
+        )
+          e.preventDefault();
+        return;
+      }
       if (
         detailTransfer ||
         cadInterpretation ||
@@ -3870,7 +3880,94 @@ export default function App() {
           />
         </Suspense>
       )}
-      {modal && (
+      {modal === 'new' && (
+        <Suspense
+          fallback={
+            <div className="modal-backdrop" role="status">
+              Abrindo Novo projeto…
+            </div>
+          }
+        >
+          <NewProjectDialog
+            current={p}
+            pendingWork={
+              !!(
+                draft.length ||
+                transformRequest ||
+                alignmentRequest ||
+                vertexRequest ||
+                scheduleRequest
+              )
+            }
+            onClose={() => setModal(null)}
+            onSaveCurrent={async (base) => {
+              if (historyRef.current.present !== base)
+                throw new Error(
+                  'O projeto mudou. Reabra o assistente antes de salvar.',
+                );
+              return saveFile(
+                `${safeName(base.name)}.armstruct.json`,
+                JSON.stringify(base, null, 2),
+                'application/json',
+                'json',
+              );
+            }}
+            onCreate={(draft, base) => {
+              if (historyRef.current.present !== base) {
+                notify(
+                  'O projeto aberto mudou. Reabra o assistente para criar.',
+                );
+                return false;
+              }
+              const result = prepareProjectSetup(draft);
+              if (!result.ok) {
+                notify(result.issues.map((i) => i.message).join(' '));
+                return false;
+              }
+              if (!commit(() => result.project)) return false;
+              setContext({
+                projectId: result.project.id,
+                detailId: result.activeDetailId,
+              });
+              setSelectedRaw([]);
+              setMaskId(null);
+              setSelectedView(undefined);
+              setSelectedSchedule(false);
+              setTool('select');
+              setCommand('');
+              setDraft([]);
+              setPageRaw('drawing');
+              setDetailTransfer(null);
+              detailRequest.current = null;
+              setCadInterpretation(null);
+              setCloneRequest(null);
+              setPlotOpen(false);
+              setLayersOpen(false);
+              setVisibilityOpen(false);
+              setFabricationOpen(false);
+              setNumberingOpen(false);
+              setRepetitionDetailId(undefined);
+              setExampleReviewOpen(false);
+              sessions.current.clear();
+              setDocuments({
+                projectId: result.project.id,
+                active: 'model',
+                opened: [],
+              });
+              setSidebarTab('project');
+              setSidebarOpen(true);
+              setFocus(false);
+              setTab('Armaduras');
+              setModal(null);
+              notify(
+                'Projeto criado. A estrutura está na aba Projeto e o detalhamento inicial está ativo.',
+              );
+              return true;
+            }}
+          />
+        </Suspense>
+      )}
+      {modal && modal !== 'new' && (
         <div
           className="modal-backdrop"
           onPointerDown={(e) => {
@@ -3884,11 +3981,9 @@ export default function App() {
             aria-label={
               modal === 'group'
                 ? 'Agrupar em detalhamento'
-                : modal === 'new'
-                  ? 'Novo projeto'
-                  : modal === 'split'
-                    ? 'Dividir barra'
-                    : 'Guia de uso'
+                : modal === 'split'
+                  ? 'Dividir barra'
+                  : 'Guia de uso'
             }
           >
             <button
@@ -4037,42 +4132,6 @@ export default function App() {
                     Aplicar divisão
                   </button>
                 </div>
-              </>
-            ) : modal === 'new' ? (
-              <>
-                <span className="eyebrow">ARMADURASTRUCT</span>
-                <h2>Novo projeto</h2>
-                <p>Um espaço para organizar seus próximos detalhes.</p>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    commit(() => ({
-                      ...emptyProject(),
-                      name: newName.trim() || 'Novo projeto',
-                    }));
-                    select([]);
-                    setTool('select');
-                    setModal(null);
-                  }}
-                >
-                  <label className="field">
-                    <span>Nome do projeto</span>
-                    <input
-                      autoFocus
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      maxLength={150}
-                    />
-                  </label>
-                  <div className="modal-actions">
-                    <button type="button" onClick={() => setModal(null)}>
-                      Cancelar
-                    </button>
-                    <button className="primary" type="submit">
-                      Criar projeto
-                    </button>
-                  </div>
-                </form>
               </>
             ) : (
               <>

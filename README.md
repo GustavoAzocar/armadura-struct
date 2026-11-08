@@ -12,6 +12,8 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- [Novo projeto com organização inicial](docs/NOVO-PROJETO.md): nome, pavimentos, elementos e detalhamentos em uma prévia editável, com criação rápida, rascunho isolado e substituição explícita do projeto atual.
+
 - [Quadro de aço vinculado à prancha](docs/QUADRO-NA-PRANCHA.md), com prévia no cursor, inserção por clique, quantitativos por folha e resumo de peso configurável, em PDF vetorial.
 
 - [Alinhamento por bordas, centros e referência](docs/AS-23.md) de objetos, conjuntos e vistas, com afastamento uniforme, escolha do conjunto fixo, prévia e histórico.
@@ -80,7 +82,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 
 ## Primeiros passos
 
-1. Na primeira abertura, conheça o **[Exemplo ArmaduraStruct](docs/examples/initial/README.md)**: duas pranchas de vigas e pilares, 64 posições e 1.181 peças. Use **Conferir exemplo** para comparar a RA original com os comprimentos e pesos calculados. Projetos recuperados têm prioridade; **Novo projeto** continua vazio.
+1. Na primeira abertura, conheça o **[Exemplo ArmaduraStruct](docs/examples/initial/README.md)**: duas pranchas de vigas e pilares, 64 posições e 1.181 peças. Use **Conferir exemplo** para comparar a RA original com os comprimentos e pesos calculados. Projetos recuperados têm prioridade. Em **[Novo projeto](docs/NOVO-PROJETO.md)**, informe apenas o nome ou prepare pavimentos, elementos e detalhamentos antes de desenhar; o arquivo nasce vazio, sem armaduras de demonstração.
 2. Importe sua fôrma com **Importar máscara**. Confira a unidade no painel e uma distância conhecida com **Medir**.
 3. Use **Barra livre**, **Estribo** ou **Seguir fôrma**. As coordenadas e propriedades geométricas são em **mm**.
 4. Selecione a posição para editar aço, bitola, quantidade e geometria. Ajuste o mandril e os ganchos para o projeto.

@@ -104,7 +104,7 @@ export function completeOwnership(
   });
 }
 
-function cleanName(name: string) {
+export function hierarchyName(name: string) {
   const text = name.trim();
   if (!text || text.length > 100)
     throw new Error('Informe um nome de 1 a 100 caracteres.');
@@ -119,7 +119,7 @@ export function createHierarchyNode(
 ) {
   const h = project.hierarchy,
     id = uid(),
-    title = cleanName(name);
+    title = hierarchyName(name);
   if (kind === 'floor')
     return {
       project: {
@@ -169,7 +169,7 @@ export function updateHierarchyNode(
   parentId?: string,
 ): Project {
   const h = project.hierarchy,
-    title = cleanName(name);
+    title = hierarchyName(name);
   if (kind === 'floor') {
     if (!h.floors.some((f) => f.id === id))
       throw new Error('Pavimento inexistente.');

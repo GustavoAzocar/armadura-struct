@@ -1,3 +1,4 @@
+import { confirmProjectReplacement } from './projectSetup.helpers';
 import { seedLegacyDemo } from './seedLegacyDemo';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -85,6 +86,7 @@ test('mixed group opens on CAD double-click, edits one source, updates RA, and u
     .getByRole('button', { name: 'Novo projeto', exact: true })
     .click();
   await page.getByRole('dialog').getByRole('textbox').fill('Grupos');
+  await confirmProjectReplacement(page);
   await page
     .getByRole('button', { name: 'Criar projeto', exact: true })
     .click();

@@ -136,3 +136,17 @@ export {
   setSheetSchedule,
 } from './domain/sheetSchedule';
 export type { SheetSteelSchedule } from './domain/types';
+
+export {
+  newProjectSetup,
+  prepareProjectSetup,
+  addProjectSetupNode,
+  editProjectSetupNode,
+  projectSetupIssues,
+  projectSetupRemoval,
+  removeProjectSetupNode,
+} from './domain/projectSetup';
+export type {
+  ProjectSetupDraft,
+  ProjectSetupIssue,
+} from './domain/projectSetup';

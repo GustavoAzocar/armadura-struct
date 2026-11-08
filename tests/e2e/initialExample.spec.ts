@@ -1,3 +1,4 @@
+import { confirmProjectReplacement } from './projectSetup.helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { emptyProject, newBar } from '../../src/domain/model';
@@ -140,6 +141,7 @@ test('existing project recovery takes precedence over the initial example; New r
     .getByRole('button', { name: 'Novo projeto', exact: true })
     .click();
   await page.getByRole('dialog').getByRole('textbox').fill('Vazio');
+  await confirmProjectReplacement(page);
   await page
     .getByRole('button', { name: 'Criar projeto', exact: true })
     .click();

@@ -1,3 +1,4 @@
+import { confirmProjectReplacement } from './projectSetup.helpers';
 import { seedLegacyDemo } from './seedLegacyDemo';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -26,6 +27,7 @@ test('CAD completo: desenhar, quantificar, rebater, distribuir, desfazer e reabr
   page.on('pageerror', (e) => errors.push(e.message));
   await page.getByRole('button', { name: 'Novo projeto', exact: true }).click();
   await page.getByRole('dialog').getByRole('textbox').fill('Teste da viga');
+  await confirmProjectReplacement(page);
   await page.getByRole('button', { name: 'Criar projeto' }).click();
   await command(page, 'B');
   await command(page, '0,0');

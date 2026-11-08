@@ -1,3 +1,4 @@
+import { confirmProjectReplacement } from './projectSetup.helpers';
 import { seedLegacyDemo } from './seedLegacyDemo';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -43,6 +44,7 @@ test('hierarchy CRUD, same-named elements, ownership, reparenting and persistent
     .getByRole('dialog')
     .getByRole('textbox')
     .fill('Hierarquia de teste');
+  await confirmProjectReplacement(page);
   await page
     .getByRole('button', { name: 'Criar projeto', exact: true })
     .click();
