@@ -152,8 +152,56 @@ export async function saveFile(
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   return true;
 }
-export function importMask(file: File): Promise<Mask> {
+export type MaskSource = {
+  name: string;
+  size?: number;
+  load: (signal: AbortSignal) => Promise<File>;
+};
+export const maskFileSources = (files: File[]): MaskSource[] =>
+  files.map((file) => ({
+    name: file.name,
+    size: file.size,
+    load: async (signal) => {
+      signal.throwIfAborted();
+      return file;
+    },
+  }));
+/** Selected paths are held only during preparation; read one file at a time. */
+export async function pickNativeMaskFiles(): Promise<
+  MaskSource[] | null | undefined
+> {
+  if (!isTauri()) return undefined;
+  const { open } = await import('@tauri-apps/plugin-dialog');
+  const paths = await open({
+    multiple: true,
+    directory: false,
+    filters: [{ name: 'DXF / DWG', extensions: ['dxf', 'dwg'] }],
+  });
+  if (!paths) return null;
+  return (Array.isArray(paths) ? paths : [paths]).map((path) => ({
+    name: path.split(/[\\/]/).at(-1) || 'desenho',
+    load: async (signal: AbortSignal) => {
+      signal.throwIfAborted();
+      const { readFile, stat } = await import('@tauri-apps/plugin-fs');
+      const info = await stat(path);
+      if (info.size > 30 * 1024 * 1024)
+        throw new Error('Use uma máscara de até 30 MB nesta versão.');
+      signal.throwIfAborted();
+      const data = await readFile(path);
+      signal.throwIfAborted();
+      return new File(
+        [new Uint8Array(data).buffer],
+        path.split(/[\\/]/).at(-1) || 'desenho',
+      );
+    },
+  }));
+}
+export function importMask(file: File, signal?: AbortSignal): Promise<Mask> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
     if (file.size > 30 * 1024 * 1024) {
       reject(new Error('Use uma máscara de até 30 MB nesta versão.'));
       return;
@@ -162,46 +210,51 @@ export function importMask(file: File): Promise<Mask> {
       new URL('../cad/import.worker.ts', import.meta.url),
       { type: 'module' },
     );
-    const timer = setTimeout(() => {
-      worker.terminate();
-      reject(
-        new Error(
-          'Leitura interrompida após 60 segundos. Simplifique o arquivo ou use DXF.',
-        ),
-      );
-    }, 60000);
-    const end = () => {
+    let done = false;
+    const end = (error?: unknown, mask?: Mask) => {
+      if (done) return;
+      done = true;
       clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
       worker.terminate();
+      if (error) reject(error);
+      else resolve(mask!);
     };
-    worker.onmessage = (e) => {
-      end();
-      if (e.data.error) reject(new Error(e.data.error));
-      else resolve(e.data.mask);
-    };
-    worker.onerror = (e) => {
-      end();
-      reject(new Error(e.message || 'Não foi possível iniciar o leitor CAD.'));
-    };
+    const abort = () =>
+      end(
+        signal?.reason ?? new DOMException('Leitura cancelada.', 'AbortError'),
+      );
+    const timer = setTimeout(
+      () =>
+        end(
+          new Error(
+            'Leitura interrompida após 60 segundos. Simplifique o arquivo ou use DXF.',
+          ),
+        ),
+      60000,
+    );
+    signal?.addEventListener('abort', abort, { once: true });
+    worker.onmessage = (e) =>
+      end(e.data.error ? new Error(e.data.error) : undefined, e.data.mask);
+    worker.onerror = (e) =>
+      end(new Error(e.message || 'Não foi possível iniciar o leitor CAD.'));
     file
       .arrayBuffer()
-      .then((buffer) =>
-        worker.postMessage(
-          {
-            name: file.name,
-            buffer,
-            base: new URL(
-              `${import.meta.env.BASE_URL}wasm`,
-              window.location.origin,
-            ).href,
-          },
-          [buffer],
-        ),
-      )
-      .catch((e) => {
-        end();
-        reject(e);
-      });
+      .then((buffer) => {
+        if (!done)
+          worker.postMessage(
+            {
+              name: file.name,
+              buffer,
+              base: new URL(
+                `${import.meta.env.BASE_URL}wasm`,
+                window.location.origin,
+              ).href,
+            },
+            [buffer],
+          );
+      })
+      .catch((e) => end(e));
   });
 }
 function database(): Promise<IDBDatabase> {

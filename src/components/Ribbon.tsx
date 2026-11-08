@@ -46,6 +46,7 @@ export type Action =
   | Tool
   | 'cad-settings'
   | 'mask-control'
+  | 'associate-masks'
   | 'mask-line'
   | 'mask-rectangle'
   | 'mask-circle'
@@ -202,6 +203,7 @@ export default function Ribbon({
         items: [
           item('mask-control', 'Controle de máscaras', Layers),
           item('import', 'Importar DXF / DWG', FolderOpen),
+          item('associate-masks', 'Associar máscaras', Layers),
         ],
       },
       {

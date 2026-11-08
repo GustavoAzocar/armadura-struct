@@ -1,3 +1,4 @@
+import { confirmMaskImport } from './maskBatch.helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import {
@@ -456,6 +457,7 @@ test('DXF importado pelo worker: três LINEs reais formam uma barra U, conservam
   await page
     .getByTestId('mask-input')
     .setInputFiles('tests/fixtures/follow-sapata.dxf');
+  await confirmMaskImport(page);
   await expect(page.locator('.mask-heading')).toContainText(
     'follow-sapata.dxf',
   );

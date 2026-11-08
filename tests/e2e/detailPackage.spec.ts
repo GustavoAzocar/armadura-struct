@@ -1,3 +1,4 @@
+import { confirmMaskImport } from './maskBatch.helpers';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import {
@@ -167,6 +168,7 @@ test('ordinary DXF creates no steel; assisted selection requires explicit proper
   await page
     .getByTestId('mask-input')
     .setInputFiles('tests/fixtures/openstruct-assisted.dxf');
+  await confirmMaskImport(page);
   await expect(page.locator('.mask-heading')).toContainText(
     'openstruct-assisted.dxf',
   );

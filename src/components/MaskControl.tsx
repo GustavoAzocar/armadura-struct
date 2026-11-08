@@ -25,6 +25,7 @@ export default function MaskControl({
   context,
   creating,
   onDelete,
+  onBatch,
   onClose,
 }: {
   project: Project;
@@ -40,6 +41,7 @@ export default function MaskControl({
   context: MaskDrawingContext;
   creating?: boolean;
   onDelete: (id: string) => boolean;
+  onBatch: (mode: 'import' | 'associate') => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
@@ -150,6 +152,12 @@ export default function MaskControl({
       }}
     >
       <h2>Controle de máscaras</h2>
+      <div className="batch-actions">
+        <button onClick={() => onBatch('import')}>
+          Importar DXF/DWG em lote
+        </button>
+        <button onClick={() => onBatch('associate')}>Associar máscaras</button>
+      </div>
       <p>
         Ativa para desenhar:{' '}
         <b>{project.masks.find((m) => m.id === activeId)?.name ?? 'Nenhuma'}</b>

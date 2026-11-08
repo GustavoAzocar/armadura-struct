@@ -12,6 +12,8 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 ## Recursos
 
+- [Importação de máscaras em lote e associação](docs/MASCARAS-LOTE.md): preparação local de vários DXF/DWG, destinos por arquivo, hierarquia em rascunho, falhas explícitas e aplicação atômica; reassociação ou cópia independente sem mover aço.
+
 - [Configurações CAD](docs/CONFIGURACOES-CAD.md): padrões documentais de textos, armaduras, cotas, máscaras e linhas, com rascunho e atributos materializados somente nas próximas criações.
 
 - [Comprimentos, ângulos e extensão de barras](docs/AS-26.md): dimensões por trecho, ponta fixa/estratégia explícitas e ESTENDER por incremento, comprimento final ou clique projetado, com prévia e histórico.
@@ -95,7 +97,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 ## Primeiros passos
 
 1. Na primeira abertura, conheça o **[Exemplo ArmaduraStruct](docs/examples/initial/README.md)**: duas pranchas de vigas e pilares, 64 posições e 1.181 peças. Use **Conferir exemplo** para comparar a RA original com os comprimentos e pesos calculados. Projetos recuperados têm prioridade. Em **[Novo projeto](docs/NOVO-PROJETO.md)**, informe apenas o nome ou prepare pavimentos, elementos e detalhamentos antes de desenhar; o arquivo nasce vazio, sem armaduras de demonstração.
-2. Importe sua fôrma com **Importar máscara**. Confira a unidade no painel e uma distância conhecida com **Medir**.
+2. Em **Máscaras → Importar DXF / DWG**, escolha um ou vários arquivos, confira os destinos e leia as referências antes de **Aplicar lote**. Abra o resultado e confira a unidade e uma distância conhecida com **Medir**. [Fluxo completo](docs/MASCARAS-LOTE.md).
 3. Use **Barra livre**, **Estribo** ou **Seguir fôrma**. As coordenadas e propriedades geométricas são em **mm**.
 4. Selecione a posição para editar aço, bitola, quantidade e geometria. Ajuste o mandril e os ganchos para o projeto.
 5. Crie rebatimentos, faixas, cotas e chamadas. O quadro é atualizado a cada alteração, a menos que esteja bloqueado para conferência.

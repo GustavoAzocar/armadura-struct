@@ -70,12 +70,14 @@ export default function MaskDestination({
   context,
   onActivate,
   onCreate,
+  onBatch,
 }: {
   project: Project;
   activeId?: string;
   context: MaskDrawingContext;
   onActivate: (id: string) => boolean;
   onCreate: () => void;
+  onBatch: (mode: 'import' | 'associate') => void;
 }) {
   const [candidate, setCandidate] = useState(activeId ?? '');
   useEffect(() => setCandidate(activeId ?? ''), [activeId, project.id]);
@@ -102,6 +104,20 @@ export default function MaskDestination({
       </button>
       <button type="button" onClick={onCreate}>
         Nova máscara
+      </button>
+      <button
+        type="button"
+        aria-label="Importar máscaras em lote"
+        onClick={() => onBatch('import')}
+      >
+        Importar
+      </button>
+      <button
+        type="button"
+        aria-label="Associar máscaras do projeto"
+        onClick={() => onBatch('associate')}
+      >
+        Associar
       </button>
       <div
         className={`mask-destination-status ${state.editable ? 'editable' : 'protected'}`}

@@ -3800,3 +3800,66 @@ button.hierarchy-drawing {
     flex-wrap: wrap;
   }
 }
+
+.mask-batch {
+  width: min(880px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+.mask-batch fieldset {
+  min-width: 0;
+  margin: 10px 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px;
+}
+.mask-batch legend {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 8px 0;
+}
+.batch-mask-choice {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+.mask-batch .batch-rows {
+  max-height: 48vh;
+  overflow-y: auto;
+}
+.mask-batch .modal-actions {
+  position: sticky;
+  bottom: -1px;
+  background: var(--panel);
+  padding-block: 10px;
+}
+@media (max-width: 600px) {
+  .mask-batch .fields-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mask-batch button,
+.mask-batch-results button {
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-height: 30px;
+}
+.mask-batch p,
+.mask-batch-results p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.mask-batch-results {
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}

@@ -1,3 +1,4 @@
+import { confirmMaskImport } from './maskBatch.helpers';
 import { confirmProjectReplacement } from './projectSetup.helpers';
 import { seedLegacyDemo } from './seedLegacyDemo';
 import { test, expect, type Page } from '@playwright/test';
@@ -87,6 +88,7 @@ test('DWG real carrega localmente e mantém máscara no projeto', async ({
   await page
     .getByTestId('mask-input')
     .setInputFiles('tests/fixtures/entities-2d.dwg');
+  await confirmMaskImport(page);
   await expect(page.locator('.mask-heading')).toContainText('entities-2d.dwg', {
     timeout: 65000,
   });
@@ -105,6 +107,7 @@ test('DXF real, camadas, escala e arquivo inválido', async ({ page }) => {
   await page
     .getByTestId('mask-input')
     .setInputFiles('tests/fixtures/entities-2d.dxf');
+  await confirmMaskImport(page);
   await expect(page.locator('.mask-heading')).toContainText('entities-2d.dxf');
   let project = await saveProject(page);
   expect(project.masks).toHaveLength(2);
@@ -113,7 +116,15 @@ test('DXF real, camadas, escala e arquivo inválido', async ({ page }) => {
     mimeType: 'application/octet-stream',
     buffer: Buffer.from('não é DWG'),
   });
-  await expect(page.getByRole('status')).toContainText('Cabeçalho DWG');
+  const batch = page.getByRole('dialog', {
+    name: 'Importar máscaras em lote',
+    exact: true,
+  });
+  await batch
+    .getByRole('button', { name: 'Ler arquivos', exact: true })
+    .click();
+  await expect(batch.getByRole('alert')).toContainText('Cabeçalho DWG');
+  await batch.getByRole('button', { name: 'Cancelar', exact: true }).click();
   project = await saveProject(page);
   expect(project.masks).toHaveLength(2);
 });

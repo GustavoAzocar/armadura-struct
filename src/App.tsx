@@ -1,3 +1,14 @@
+import MaskBatchDialog, {
+  type MaskBatchRequest,
+} from './components/MaskBatchDialog';
+import MaskBatchResults, {
+  type MaskBatchReceipt,
+} from './components/MaskBatchResults';
+import {
+  importMaskBatch,
+  associateMasks,
+  type MaskAssignment,
+} from './domain/maskBatch';
 import CadSettingsDialog from './components/CadSettingsDialog';
 import {
   cadDefaults,
@@ -202,7 +213,8 @@ import {
   readProjectFile,
   readDetailSourceFile,
   saveDocumentWorkspace,
-  importMask,
+  maskFileSources,
+  type MaskSource,
   pickNativeFile,
   restore,
   safeName,
@@ -802,6 +814,9 @@ export default function App() {
   const nativeTarget = drawingMaskState.editable
     ? drawingMaskState.mask
     : undefined;
+  const [maskBatch, setMaskBatch] = useState<MaskBatchRequest | null>(null);
+  const [maskReceipt, setMaskReceipt] = useState<MaskBatchReceipt | null>(null);
+  useEffect(() => setMaskReceipt(null), [p.id]);
   const maskImportContext = useRef('');
   maskImportContext.current = `${p.id}:${documentKey}:${activeDetailId}`;
   const polyline = !groupSelection
@@ -1650,6 +1665,150 @@ export default function App() {
     );
     return true;
   };
+  const startMaskBatch = (
+    mode: 'import' | 'associate',
+    sources?: MaskSource[],
+  ) => {
+    const base = historyRef.current.present;
+    const viewDrawing =
+      activeSheet && selectedView
+        ? base.hierarchy.drawings.find(
+            (d) =>
+              d.id ===
+              base.hierarchy.placements.find(
+                (v) => v.id === selectedView && v.sheetId === activeSheet.id,
+              )?.drawingId,
+          )
+        : undefined;
+    setMaskBatch({
+      token: uid(),
+      base,
+      context: { key: documentKey, scopeDetailId: isolatedDetailId },
+      owner: activeSheet ? (viewDrawing?.detailId ?? '') : activeDetailId,
+      fromSheet: !!activeSheet,
+      sources,
+      mode,
+    });
+    setMaskReceipt(null);
+    setMaskControl(false);
+  };
+  useEffect(() => {
+    if (
+      maskBatch &&
+      (maskBatch.base !== p ||
+        maskBatch.context.key !== documentKey ||
+        maskBatch.context.scopeDetailId !== isolatedDetailId ||
+        (!maskBatch.fromSheet && maskBatch.owner !== activeDetailId))
+    ) {
+      setMaskBatch(null);
+      notify(
+        'Preparação cancelada: o projeto, destino ou contexto mudou. Nenhuma máscara foi aplicada.',
+      );
+    }
+  }, [p, documentKey, isolatedDetailId, activeDetailId, maskBatch]);
+  const batchContext = (owner: string, general = false) => {
+    if (!maskBatch || historyRef.current.present !== maskBatch.base) return;
+    const d = p.hierarchy.drawings.find((d) => d.detailId === owner);
+    if (!d) return;
+    if (general) {
+      if (
+        !window.confirm(
+          'Deixar a edição isolada e preparar o lote no modelo geral? A associação atual das máscaras será preservada.',
+        )
+      )
+        return;
+      sessions.current.set('model', {
+        ...captureDocument(),
+        detailId: owner,
+        isolation: undefined,
+        selected: [],
+        maskId: null,
+        tool: 'select',
+        draft: [],
+        page: 'drawing',
+        selectedView: undefined,
+      });
+      switchDocument('model');
+      isolationRef.current = undefined;
+      setIsolation(null);
+      setContext({ projectId: p.id, detailId: owner });
+      setMaskBatch({
+        ...maskBatch,
+        context: { key: 'model' },
+        owner,
+        fromSheet: false,
+      });
+    } else {
+      if (!openMaskContext(owner)) return;
+      setMaskBatch({
+        ...maskBatch,
+        context: { key: `drawing:${d.id}`, scopeDetailId: owner },
+        owner,
+        fromSheet: false,
+      });
+    }
+  };
+  const checkBatch = () => {
+    if (
+      !maskBatch ||
+      historyRef.current.present !== maskBatch.base ||
+      maskBatch.context.key !== documentKey ||
+      maskBatch.context.scopeDetailId !== isolationRef.current
+    )
+      throw new Error(
+        'Preparação desatualizada. Reabra a importação no contexto correto.',
+      );
+    return maskBatch;
+  };
+  const applyMaskImport = (draft: Project, items: MaskAssignment[]) => {
+    const request = checkBatch();
+    const next = importMaskBatch(request.base, draft, items, request.context);
+    if (!commit(() => next)) return false;
+    setMaskBatch(null);
+    setMaskReceipt({
+      ids: items.map((i) => i.mask.id),
+      title: `${items.length} máscara(s) importada(s)`,
+    });
+    setSelectedRaw([]);
+    setMaskId(null);
+    setToolRaw('select');
+    setDraft([]);
+    notify(
+      'Lote aplicado. Abra um resultado para conferir unidade, enquadramento e propriedades.',
+    );
+    return true;
+  };
+  const applyMaskAssociation = (
+    ids: string[],
+    owner: string,
+    mode: 'move' | 'copy',
+  ) => {
+    const request = checkBatch();
+    const next = associateMasks(
+      request.base,
+      ids,
+      owner,
+      mode,
+      request.context,
+    );
+    if (!commit(() => next)) return false;
+    const changed =
+      mode === 'move'
+        ? ids
+        : next.masks
+            .filter((m) => !request.base.masks.some((old) => old.id === m.id))
+            .map((m) => m.id);
+    setMaskBatch(null);
+    setMaskReceipt({
+      ids: changed,
+      title: mode === 'move' ? 'Associação atualizada' : 'Referências copiadas',
+    });
+    setSelectedRaw([]);
+    setMaskId(null);
+    setToolRaw('select');
+    setDraft([]);
+    return true;
+  };
   const activateDrawingMask = (id: string) => {
     const current = historyRef.current.present,
       target = current.masks.find((m) => m.id === id);
@@ -2307,6 +2466,10 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'import' || a === 'associate-masks') {
+      startMaskBatch(a === 'import' ? 'import' : 'associate');
+      return;
+    }
     if (a === 'cad-settings') {
       setCadSettingsOpen(true);
       return;
@@ -2899,11 +3062,6 @@ export default function App() {
         if (file === undefined) projectInput.current?.click();
         else if (file) await onProjectFile(file);
       }
-      if (a === 'import') {
-        const file = await pickNativeFile(['dxf', 'dwg']);
-        if (file === undefined) maskInput.current?.click();
-        else if (file) await onMaskFile(file);
-      }
       if (a === 'save') {
         const saved = await saveFile(
           `${safeName(p.name)}.armstruct.json`,
@@ -2981,52 +3139,6 @@ export default function App() {
           ? e.message
           : 'Não foi possível concluir a operação.',
       );
-    }
-  };
-  const onMaskFile = async (file: File) => {
-    if (activeSheet) {
-      notify('Abra um desenho para importar máscaras.');
-      return;
-    }
-    const importDetailId = activeDetailId;
-    const importBase = historyRef.current.present;
-    const contextAtStart = maskImportContext.current;
-    if (p.masks.length >= 20) {
-      notify('O limite desta versão é de 20 máscaras por projeto.');
-      return;
-    }
-    setBusy(`Lendo ${file.name}…`);
-    try {
-      const mask = await importMask(file);
-      if (
-        historyRef.current.present !== importBase ||
-        maskImportContext.current !== contextAtStart ||
-        !importBase.hierarchy.details.some((d) => d.id === importDetailId)
-      ) {
-        notify('Importação cancelada: o projeto ou contexto mudou.');
-        return;
-      }
-      if (
-        !commit((p) =>
-          completeOwnership(
-            { ...p, masks: [...p.masks, mask] },
-            importDetailId,
-          ),
-        )
-      )
-        return;
-      select([]);
-      setMaskId(mask.id);
-      setSidebarOpen(true);
-      setSidebarTab('properties');
-      setPage('drawing');
-      notify(
-        `${mask.format} importado: ${mask.primitives.length} entidades.${mask.warnings.length ? ' Confira o relatório de importação.' : ' Confira a unidade e a escala no painel.'}`,
-      );
-    } catch (e) {
-      notify((e as Error).message);
-    } finally {
-      setBusy('');
     }
   };
   const onProjectFile = async (file: File) => {
@@ -3336,12 +3448,13 @@ export default function App() {
         ref={maskInput}
         type="file"
         accept=".dxf,.dwg"
+        multiple
         hidden
         data-testid="mask-input"
         onChange={(e) => {
-          const f = e.target.files?.[0];
+          const files = Array.from(e.target.files ?? []);
           e.target.value = '';
-          if (f) onMaskFile(f);
+          if (files.length) startMaskBatch('import', maskFileSources(files));
         }}
       />
       <input
@@ -3469,6 +3582,7 @@ export default function App() {
         groupSelected={groupSelection}
         maskDestination={
           <MaskDestination
+            onBatch={(mode) => startMaskBatch(mode)}
             project={p}
             activeId={drawingMaskId}
             context={maskDrawingContext}
@@ -4728,6 +4842,35 @@ export default function App() {
           }}
         />
       )}
+      {maskBatch && (
+        <MaskBatchDialog
+          key={maskBatch.token}
+          request={maskBatch}
+          onClose={() => setMaskBatch(null)}
+          onContext={(owner) => batchContext(owner)}
+          onGeneral={() => batchContext(maskBatch.owner, true)}
+          onImport={applyMaskImport}
+          onAssociate={applyMaskAssociation}
+        />
+      )}
+      {maskReceipt && (
+        <MaskBatchResults
+          project={p}
+          receipt={maskReceipt}
+          onClose={() => setMaskReceipt(null)}
+          onOpen={(owner, id) => {
+            if (!openMaskContext(owner)) return;
+            setMaskReceipt(null);
+            setSelectedRaw([]);
+            setMaskId(id);
+            setSidebarOpen(true);
+            setFocus(false);
+            setSidebarTab('properties');
+            setPage('drawing');
+            requestAnimationFrame(() => cad.current?.fit());
+          }}
+        />
+      )}
       {maskControl && (
         <MaskControl
           project={p}
@@ -4739,6 +4882,7 @@ export default function App() {
           entity={nativeEntity}
           onActivate={activateDrawingMask}
           onOpenContext={openMaskContext}
+          onBatch={(mode) => startMaskBatch(mode)}
           onClose={() => setMaskControl(false)}
           onSelect={(id) => {
             const current = historyRef.current.present,

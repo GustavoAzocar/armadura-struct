@@ -303,3 +303,7 @@ Para escolher uma máscara em qualquer detalhamento, criar sem aço ou acrescent
 Em **Armaduras → Seguir fôrma**, os cliques agora acumulam arestas sem criar aço. Use **Escolher lado no CAD**, confira o cobrimento/mandril e pressione **Enter fora dos campos** para criar uma barra contínua. Polilinha inteira é uma opção explícita; três lados de um retângulo podem ser escolhidos separadamente. Uso, medidas, padrões e limites em [Seguir fôrma por trechos](SEGUIR-FORMA.md).
 
 Em **CONFIGURAÇÕES → Configurações CAD**, edite os padrões do projeto para novas entidades. **Salvar e fechar** confirma uma operação de histórico; Cancelar/Esc descartam o rascunho. Os controles rápidos são temporários, e os objetos existentes são preservados. Consulte [Configurações CAD](CONFIGURACOES-CAD.md) para campos, herança, alcance, intercâmbio e limitações.
+
+### Importar várias máscaras e organizar destinos
+
+Use **Máscaras → Importar DXF / DWG** para preparar vários arquivos e indicar o detalhamento de cada um antes de aplicar. **Associar máscaras** move as referências na hierarquia ou cria cópias explícitas sem mover aço. Veja o [fluxo completo, limites e cancelamento](MASCARAS-LOTE.md).

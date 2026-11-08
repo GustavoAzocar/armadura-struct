@@ -1,3 +1,4 @@
+import { confirmMaskImport } from './maskBatch.helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { emptyProject, newBar, schedule } from '../../src/domain/model';
@@ -236,7 +237,8 @@ test('DXF source layers are adopted into the native catalog, edited and exported
     mimeType: 'application/dxf',
     buffer: readFileSync('docs/examples/layers-reference.dxf'),
   });
-  await expect(page.getByRole('status')).toContainText('importad');
+  await confirmMaskImport(page);
+
   let q = await save(page);
   expect(q.bars).toHaveLength(0);
   expect(q.masks).toHaveLength(1);
