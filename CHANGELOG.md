@@ -1,6 +1,12 @@
 # Histórico de versões
 
-## Em desenvolvimento · 2026-11-09
+## 0.5.0 · 2026-11-09
+
+- Lançamento de estribos por critérios: formatos retangular, circular analítico e livre, seção no eixo ou com cobrimento, ganchos independentes, mandril, rotação e apresentação. Seção e faixa longitudinal compartilham a mesma posição, com espaçamento fixo/máximo, afastamentos, prévia, confirmação atômica e histórico. Geometria legada preservada até edição explícita. [Uso e limites](docs/ESTRIBOS.md).
+- Formato nativo atual `armadurastruct/25` e pacote `openstruct.detail/16`, preservando critérios/perfis/faixas e conversões mm/cm/m. Arcos analíticos no DXF e no cálculo de comprimentos/pesos. Projetos antigos continuam abrindo; versões anteriores do aplicativo não abrem o novo formato. Preserve cópias antes de editar em versões diferentes.
+- Configurações: padrões CAD centralizados, importação de máscaras em lote com destinos explícitos, associação e calibração de escala por dois pontos, preservando geometria analítica e arquivos externos.
+- Seguir fôrma: lançamento por múltiplas faces, ordem dos trechos, lado e prévia, com parâmetros físicos explícitos; reutiliza a criação e o histórico de armaduras.
+- Organização por pavimento, grupo e detalhamento; máscara ativa independente da seleção de aço e criação contextual na árvore.
 
 - Árvore do Projeto: criação contextual com pai explícito, caminho completo, proteção de rascunho/contexto, foco e revelação sob pesquisa. Reutiliza operações, ativação, histórico e desenho inicial existentes. [Uso](docs/ARVORE-CRIACAO-CONTEXTUAL.md).
 

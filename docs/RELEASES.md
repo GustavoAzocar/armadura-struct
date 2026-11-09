@@ -4,8 +4,8 @@ O código do ArmaduraStruct fica neste repositório. Os instaladores assinados f
 
 ## Publicar uma versão
 
-1. Execute `npm run release:version -- 0.4.0` com a nova versão, rode os testes e faça o commit. Aguarde o CI completo desse SHA, incluindo os builds desktop, antes de publicar.
-2. Execute **Prepare release tag** em Actions, informando `v0.4.0`. Alternativamente, altere `.github/release-request.json` com `schemaVersion: 1`, `tag` e `commit` (SHA completo). Tags existentes nunca são substituídas.
+1. Execute `npm run release:version -- 0.5.0` com a nova versão, rode os testes e faça o commit. Aguarde o CI completo desse SHA, incluindo os builds desktop, antes de publicar.
+2. Execute **Prepare release tag** em Actions, informando `v0.5.0`. Alternativamente, altere `.github/release-request.json` com `schemaVersion: 1`, `tag` e `commit` (SHA completo). Tags existentes nunca são substituídas.
 3. No repositório `launcher-struct`, execute **Publish ArmaduraStruct** com a tag e o mesmo SHA completo. Também é possível registrar essa solicitação em `.github/armadura-release-request.json` na branch padrão do Launcher.
 4. O publicador valida repositório, tag, commit e as versões dos manifests; compila os dois sistemas; verifica e assina os pacotes; publica a release completa no hub. O catálogo assinado é sincronizado em seguida (ou na próxima execução periódica).
 
