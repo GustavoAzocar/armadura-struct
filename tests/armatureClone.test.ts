@@ -397,7 +397,7 @@ describe('AS-53 · grafo físico e dependências de apresentação', () => {
     expect(() => decodeProject(JSON.stringify(legacy))).toThrow(/13/);
     legacy.polylines.forEach((o) => delete o.barIds);
     expect(decodeProject(JSON.stringify(legacy)).schema).toBe(
-      'armadurastruct/25',
+      'armadurastruct/26',
     );
     const orphan = structuredClone(p);
     orphan.polylines[0].barIds = ['absent'];

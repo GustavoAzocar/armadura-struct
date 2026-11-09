@@ -1,3 +1,4 @@
+import { hasDrawingMetadata } from './drawingMetadata';
 import { defaultLayers } from './layers';
 import { initialSheet } from './paperFormat';
 import { emptyProject, decodeProject } from './model';
@@ -324,6 +325,7 @@ export function hasProjectSetupToReplace(p: Project) {
         h.details[0]?.name === d,
     ) ||
     h.drawings[0]?.name !== 'Desenho principal' ||
+    h.drawings.some(hasDrawingMetadata) ||
     h.details.some((d) => d.grouped || d.repetition || d.source) ||
     JSON.stringify(p.layers) !== JSON.stringify(defaultLayers()) ||
     p.drawing.floor !== '' ||
