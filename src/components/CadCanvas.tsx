@@ -1,3 +1,4 @@
+import { displayedBarGeometry } from '../domain/stirrupGeometry';
 import { annotationCadDefaults } from '../domain/cadDefaults';
 import {
   hitMaskCadEntity,
@@ -321,7 +322,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         project.bars.map((b) => [
           b.id,
           {
-            path: path(barGeometries.get(b.id)!.segments),
+            path: path(
+              (displayedBarGeometry(b) ?? barGeometries.get(b.id)!).segments,
+            ),
             texts: physicalBarTextPrimitives(
               { ...b, origin: { x: 0, y: 0 }, rotation: 0 },
               source,
@@ -1639,7 +1642,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         <span>VISTA SUPERIOR</span>
         <b>XY</b>
       </div>
-      {project.bars.length === 0 &&
+      {!props.commandActive &&
+        !props.previewLines?.length &&
+        project.bars.length === 0 &&
         project.masks.length === 0 &&
         project.polylines.length === 0 &&
         project.annotations.length === 0 && (
