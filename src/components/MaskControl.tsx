@@ -7,6 +7,11 @@ import {
 } from '../domain/nativeMasks';
 import { MaskSelector } from './MaskDestination';
 import { detailPath } from '../domain/hierarchy';
+import { maskCadEntities } from '../domain/maskCadEditing';
+import {
+  applyMaskManipulation,
+  previewMaskManipulation,
+} from '../domain/maskManipulation';
 import {
   maskDrawingState,
   type MaskDrawingContext,
@@ -28,6 +33,7 @@ export default function MaskControl({
   onBatch,
   onCalibrate,
   onCadEdit,
+  onManipulate,
   onClose,
 }: {
   project: Project;
@@ -46,6 +52,11 @@ export default function MaskControl({
   onCalibrate: (id: string) => boolean;
   onCadEdit: (
     mode: 'trim' | 'extend',
+    id: string,
+    entityId?: string,
+  ) => boolean;
+  onManipulate: (
+    mode: 'copy' | 'erase',
     id: string,
     entityId?: string,
   ) => boolean;
@@ -188,6 +199,19 @@ export default function MaskControl({
             </p>
           )}
           <div className="batch-actions">
+            {(['copy', 'erase'] as const).map((mode) => (
+              <button
+                key={mode}
+                disabled={!ready}
+                onClick={() => {
+                  if (onManipulate(mode, m.id, eid || undefined)) onClose();
+                }}
+              >
+                {mode === 'copy'
+                  ? 'Usar esta máscara e Copiar entidades'
+                  : 'Usar esta máscara e Apagar entidades'}
+              </button>
+            ))}
             {(['trim', 'extend'] as const).map((mode) => (
               <button
                 key={mode}
@@ -353,7 +377,9 @@ export default function MaskControl({
           <p>
             {m.format !== 'NATIVE'
               ? `${m.primitives.filter((q) => !q.native).length} entidades normalizadas de referência. Ajustar/Estender editam a cópia local; o arquivo CAD original é preservado.`
-              : 'Entidades nativas editáveis.'}
+              : 'Entidades nativas editáveis.'}{' '}
+            Cotas têm pontos estáticos: revise-as após copiar/apagar a
+            referência. Armaduras permanecem independentes.
           </p>
           <fieldset
             disabled={!ready || !drawState.editable}
@@ -645,13 +671,29 @@ export default function MaskControl({
                       ),
                     )}
                     <button
-                      onClick={() => {
-                        change({
-                          ...m,
-                          primitives: m.primitives.filter((p) => p.id !== eid),
-                        });
-                        setEid('');
-                      }}
+                      onClick={() =>
+                        run(() => {
+                          const ref = maskCadEntities(project, context).find(
+                            (entity) =>
+                              entity.mask.id === m.id && entity.ref.id === eid,
+                          )?.ref;
+                          const next = applyMaskManipulation(
+                            project,
+                            previewMaskManipulation(
+                              project,
+                              m.id,
+                              ref ? [ref] : [],
+                              'erase',
+                              context,
+                            ),
+                            context,
+                          );
+                          if (
+                            change(next.masks.find((mask) => mask.id === m.id)!)
+                          )
+                            setEid('');
+                        })
+                      }
                     >
                       Excluir entidade
                     </button>
