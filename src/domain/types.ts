@@ -198,6 +198,8 @@ export type ProjectHierarchy = {
 export type Primitive = LayerBinding & {
   id?: string;
   native?: import('./nativeMasks').NativeShape;
+  /** Lineage of a local CAD edit, including fragments of an imported normalized entity. */
+  sourceEntityId?: string;
   layer: string;
   /** Original semantic role remains stable when a catalog layer is renamed. */
   role?: string;
@@ -252,7 +254,7 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/22';
+  schema: 'armadurastruct/23';
   cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;

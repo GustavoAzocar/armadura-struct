@@ -397,8 +397,19 @@ const schema = z.object({
             z.object({
               ...layerBindingShape,
               id: z.string().optional(),
+              sourceEntityId: z.string().min(1).max(1000).optional(),
               native: z
                 .discriminatedUnion('kind', [
+                  z.object({
+                    kind: z.literal('arc'),
+                    center: point,
+                    radius: number.positive(),
+                    startAngle: number.min(-360000).max(360000),
+                    sweepAngle: number.refine(
+                      (n) => Math.abs(n) > 1e-10 && Math.abs(n) < 360,
+                      'Abertura do arco inválida.',
+                    ),
+                  }),
                   z.object({
                     kind: z.literal('circle'),
                     center: point,
@@ -449,7 +460,18 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const settingsVersion = input?.schema === 'armadurastruct/22';
+  const arcVersion = input?.schema === 'armadurastruct/23';
+  if (
+    !arcVersion &&
+    input?.masks?.some(
+      (m: {
+        primitives?: { native?: { kind?: string }; sourceEntityId?: string }[];
+      }) =>
+        m.primitives?.some((q) => q.native?.kind === 'arc' || q.sourceEntityId),
+    )
+  )
+    throw new Error('Arcos e edição local CAD exigem formato 23.');
+  const settingsVersion = arcVersion || input?.schema === 'armadurastruct/22';
   if (
     !settingsVersion &&
     (input?.cadDefaults ||
@@ -698,7 +720,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/22',
+    schema: 'armadurastruct/23',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -925,7 +947,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/22',
+    schema: 'armadurastruct/23',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

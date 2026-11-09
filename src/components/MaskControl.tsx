@@ -27,6 +27,7 @@ export default function MaskControl({
   onDelete,
   onBatch,
   onCalibrate,
+  onCadEdit,
   onClose,
 }: {
   project: Project;
@@ -43,6 +44,11 @@ export default function MaskControl({
   creating?: boolean;
   onDelete: (id: string) => boolean;
   onCalibrate: (id: string) => boolean;
+  onCadEdit: (
+    mode: 'trim' | 'extend',
+    id: string,
+    entityId?: string,
+  ) => boolean;
   onBatch: (mode: 'import' | 'associate') => void;
   onClose: () => void;
 }) {
@@ -181,6 +187,26 @@ export default function MaskControl({
               {drawState.reason}
             </p>
           )}
+          <div className="batch-actions">
+            {(['trim', 'extend'] as const).map((mode) => (
+              <button
+                key={mode}
+                disabled={!ready}
+                onClick={() => {
+                  if (onCadEdit(mode, m.id, eid || undefined)) onClose();
+                  else
+                    setError(
+                      'Edição CAD bloqueada: confira o alvo, contexto e layers.',
+                    );
+                }}
+              >
+                Usar esta máscara e{' '}
+                {mode === 'trim'
+                  ? 'Ajustar (Aparar / Trim)'
+                  : 'Estender (Extend)'}
+              </button>
+            ))}
+          </div>
           <button
             disabled={!ready}
             onClick={() => {
@@ -326,7 +352,7 @@ export default function MaskControl({
           </fieldset>
           <p>
             {m.format !== 'NATIVE'
-              ? `${m.primitives.filter((q) => !q.native).length} entidades de referência somente para leitura. Novos traços ficam no desenho local desta máscara.`
+              ? `${m.primitives.filter((q) => !q.native).length} entidades normalizadas de referência. Ajustar/Estender editam a cópia local; o arquivo CAD original é preservado.`
               : 'Entidades nativas editáveis.'}
           </p>
           <fieldset
@@ -353,6 +379,7 @@ export default function MaskControl({
                                 line: 'Linha',
                                 rectangle: 'Retângulo',
                                 circle: 'Círculo',
+                                arc: 'Arco',
                                 polyline: 'Polilinha',
                               }[p.native.kind]
                             : ''}{' '}
@@ -370,12 +397,39 @@ export default function MaskControl({
                             line: 'Linha',
                             rectangle: 'Retângulo',
                             circle: 'Círculo',
+                            arc: 'Arco',
                             polyline: 'Polilinha',
                           }[shape.kind]
                         : ''}
                     </p>
-                    {shape?.kind === 'circle' ? (
+                    {shape?.kind === 'circle' || shape?.kind === 'arc' ? (
                       <>
+                        {shape.kind === 'arc' &&
+                          (['startAngle', 'sweepAngle'] as const).map((key) => (
+                            <label className="field" key={key}>
+                              {key === 'startAngle'
+                                ? 'Ângulo inicial (°)'
+                                : 'Abertura orientada (°)'}
+                              <input
+                                aria-label={
+                                  key === 'startAngle'
+                                    ? 'Ângulo inicial do arco'
+                                    : 'Abertura do arco'
+                                }
+                                type="number"
+                                step="any"
+                                value={shape[key]}
+                                onChange={(ev) =>
+                                  setRaw(
+                                    JSON.stringify({
+                                      ...shape,
+                                      [key]: Number(ev.target.value),
+                                    }),
+                                  )
+                                }
+                              />
+                            </label>
+                          ))}
                         {pointFields([shape.center], (v) =>
                           setRaw(JSON.stringify({ ...shape, center: v[0] })),
                         )}
@@ -550,8 +604,21 @@ export default function MaskControl({
                                   dy / m.scale,
                               });
                               const s: NativeShape =
-                                e.native.kind === 'circle'
-                                  ? { ...e.native, center: tr(e.native.center) }
+                                e.native.kind === 'circle' ||
+                                e.native.kind === 'arc'
+                                  ? {
+                                      ...e.native,
+                                      center: tr(e.native.center),
+                                      ...(e.native.kind === 'arc'
+                                        ? {
+                                            startAngle:
+                                              (((e.native.startAngle + angle) %
+                                                360) +
+                                                360) %
+                                              360,
+                                          }
+                                        : {}),
+                                    }
                                   : {
                                       kind: 'polyline',
                                       points: e.points.map(tr),

@@ -1,3 +1,8 @@
+import {
+  hitMaskCadEntity,
+  type MaskCadEntity,
+  type MaskEntityRef,
+} from '../domain/maskCadEditing';
 import { styledDrafting } from '../domain/cadDefaults';
 import type {
   FollowEdge,
@@ -80,6 +85,24 @@ export type CadHandle = {
   getState: () => CadState;
 };
 type Props = {
+  maskEditing?: {
+    entities: MaskCadEntity[];
+    targetMaskId: string;
+    all?: boolean;
+    stage: 'limits' | 'targets';
+    selectedTarget?: string;
+  };
+  onMaskEntityPick?: (
+    ref: MaskEntityRef | undefined,
+    point: Point,
+    tolerance: number,
+  ) => void;
+  onMaskEntityHover?: (ref: MaskEntityRef | undefined, point: Point) => void;
+  maskCadOverlay?: {
+    limits: Primitive[];
+    change: Primitive[];
+    mode: 'trim' | 'extend';
+  };
   highlightedMaskId?: string;
   followInteraction?: {
     mode: 'edges' | 'side';
@@ -695,6 +718,21 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       setDrag({ screen, view });
       return;
     }
+    if (props.maskEditing) {
+      const at = fromScreen(screen),
+        state = props.maskEditing;
+      const hit = hitMaskCadEntity(
+        state.entities,
+        at,
+        10 / view.s,
+        (e) =>
+          state.stage === 'limits' ||
+          (e.mask.id === state.targetMaskId &&
+            (!state.selectedTarget || state.selectedTarget === e.ref.key)),
+      );
+      props.onMaskEntityPick?.(hit?.ref, at, 3 / view.s);
+      return;
+    }
     if (tool === 'select') {
       for (const b of capturable.bars.filter(
         (b) =>
@@ -830,6 +868,19 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     const p = snapAt(fromScreen(screen));
     setCursor(p);
     props.onCursor(p);
+    if (props.maskEditing?.stage === 'targets') {
+      const at = fromScreen(screen),
+        state = props.maskEditing;
+      const hit = hitMaskCadEntity(
+        state.entities,
+        at,
+        10 / view.s,
+        (e) =>
+          e.mask.id === state.targetMaskId &&
+          (!state.selectedTarget || state.selectedTarget === e.ref.key),
+      );
+      props.onMaskEntityHover?.(hit?.ref, at);
+    }
     if (marquee) setMarquee({ ...marquee, end: p });
     if (grip) setGrip({ ...grip, point: p });
   };
@@ -1033,7 +1084,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const maskContent = useMemo(
     () => (
       <>
-        {masks.map(({ mask, texts, paths }) => (
+        {masks.map(({ mask, texts, paths, capture }) => (
           <g
             key={mask.id}
             data-mask-id={mask.id}
@@ -1051,7 +1102,16 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                 stroke={
                   mask.id === props.highlightedMaskId
                     ? '#38bdf8'
-                    : item.resolvedStyle?.color
+                    : props.maskEditing?.all &&
+                        capture &&
+                        (!item.layerId ||
+                          layerState(
+                            source,
+                            props.layerContext ?? 'model',
+                            item.layerId,
+                          ).capture)
+                      ? '#c084fc'
+                      : item.resolvedStyle?.color
                 }
                 strokeWidth={
                   Math.max(
@@ -1100,7 +1160,15 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         ))}
       </>
     ),
-    [masks, light, stroke, props.highlightedMaskId],
+    [
+      masks,
+      light,
+      stroke,
+      props.highlightedMaskId,
+      props.maskEditing?.all,
+      props.layerContext,
+      source,
+    ],
   );
   const objectContent = useMemo(
     () => (
@@ -1355,6 +1423,33 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                   />
                 </g>
               )}
+            </g>
+          )}
+          {props.maskCadOverlay && (
+            <g pointerEvents="none">
+              <g data-testid="mask-cad-limits">
+                {renderPrimitives(
+                  props.maskCadOverlay.limits.map((p) => ({
+                    ...p,
+                    resolvedStyle: p.resolvedStyle
+                      ? {
+                          ...p.resolvedStyle,
+                          color: '#c084fc',
+                          fill: 'none' as const,
+                        }
+                      : undefined,
+                  })),
+                  '#c084fc',
+                  true,
+                )}
+              </g>
+              <g data-testid="mask-cad-preview">
+                {renderPrimitives(
+                  props.maskCadOverlay.change,
+                  props.maskCadOverlay.mode === 'trim' ? '#fb7185' : '#4ade80',
+                  true,
+                )}
+              </g>
             </g>
           )}
           {props.previewLines && (

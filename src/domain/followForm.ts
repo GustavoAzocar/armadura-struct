@@ -85,7 +85,7 @@ export function followEdges(p: Project, context: FollowContext): FollowEdge[] {
             a,
             b: points[(edgeIndex + 1) % points.length],
             label: `${m.name} · entidade ${primitiveIndex + 1} · aresta ${edgeIndex + 1}`,
-            ...(q.native?.kind === 'circle'
+            ...(q.native?.kind === 'circle' || q.native?.kind === 'arc'
               ? {
                   unsupported:
                     'Círculos não são faces retas. Arcos físicos estão fora deste comando.',

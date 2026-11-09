@@ -2,6 +2,8 @@
 
 ## Espaço de trabalho
 
+Em **Máscaras → Ferramentas**, **Ajustar** (Aparar / Trim) e **Estender** (Extend) usam limites selecionados → Enter → cliques nos trechos. Confira a prévia vermelha/verde; Enter encerra e Esc abandona a etapa pendente, preservando operações já confirmadas no histórico. [Guia completo de corte e prolongamento](MASCARAS-AJUSTAR-ESTENDER.md).
+
 Use **Propriedades → Geometria e dobras → Comprimentos e ângulos** (`SEGMENTOS`) para editar medidas locais de uma barra livre. **Estender barra** (`ESTENDER`) alonga apenas o trecho terminal: informe `+300 mm`, `FINAL 1300 mm` ou clique para projetar a nova ponta. Confira a prévia e confirme; **CONTINUAR** permanece o comando que acrescenta vértices/pernas. Veja [as convenções e estratégias da AS-26](AS-26.md).
 
 Os textos de conteúdo acompanham a geometria durante o zoom; aproxime para ler detalhes pequenos. Zoom de câmera, escala gráfica de uma inserção e escala 1:N da vista são controles diferentes. Veja [as convenções de textos e zoom](TEXTOS-E-ZOOM.md).

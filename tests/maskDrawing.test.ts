@@ -201,7 +201,7 @@ describe('destino independente e desenho local nas referências', () => {
           producer: { app: 'Test', version: '1' },
           unit,
         });
-        expect(pack.schema).toBe('openstruct.detail/13');
+        expect(pack.schema).toBe('openstruct.detail/14');
         const r = readDetailPackage(pack).project;
         const original = maskPrimitives(q.masks[1]),
           roundtrip = maskPrimitives(r.masks[0]);

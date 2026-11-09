@@ -3897,3 +3897,35 @@ button.hierarchy-drawing {
 .mask-calibration-panel .primary {
   color: white;
 }
+
+.mask-cad-panel {
+  position: absolute;
+  z-index: 8;
+  top: 64px;
+  right: 14px;
+  width: min(340px, calc(100% - 28px));
+  max-height: calc(100% - 90px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid #c084fc;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 8px 20px #0003;
+  font-size: 11px;
+}
+.mask-cad-panel p {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.mask-cad-panel button {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 9px;
+  margin: 4px 5px 0 0;
+  min-height: 30px;
+}
+.mask-cad-panel input,
+.mask-cad-panel select {
+  width: 100%;
+  min-width: 0;
+}

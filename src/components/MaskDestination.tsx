@@ -72,6 +72,7 @@ export default function MaskDestination({
   onCreate,
   onBatch,
   onCalibrate,
+  onCadEdit,
 }: {
   project: Project;
   activeId?: string;
@@ -79,6 +80,7 @@ export default function MaskDestination({
   onActivate: (id: string) => boolean;
   onCreate: () => void;
   onCalibrate: () => void;
+  onCadEdit: (mode: 'trim' | 'extend') => void;
   onBatch: (mode: 'import' | 'associate') => void;
 }) {
   const [candidate, setCandidate] = useState(activeId ?? '');
@@ -129,6 +131,17 @@ export default function MaskDestination({
       >
         Escala por 2 pontos
       </button>
+      <select
+        aria-label="Ferramentas CAD da máscara ativa"
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onCadEdit(e.target.value as 'trim' | 'extend');
+        }}
+      >
+        <option value="">Ferramentas CAD…</option>
+        <option value="trim">Ajustar — Aparar / Trim</option>
+        <option value="extend">Estender — Extend</option>
+      </select>
       <div
         className={`mask-destination-status ${state.editable ? 'editable' : 'protected'}`}
         role="region"

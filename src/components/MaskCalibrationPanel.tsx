@@ -82,9 +82,11 @@ export default function MaskCalibrationPanel({
         P1 fica fixo. Escala da máscara no modelo; zoom e escala da prancha
         permanecem independentes.
       </p>
-      {s.mask.primitives.some((p) => p.native?.kind === 'circle') && (
+      {s.mask.primitives.some(
+        (p) => p.native?.kind === 'circle' || p.native?.kind === 'arc',
+      ) && (
         <p className="field-help">
-          Círculos permanecem analíticos no projeto. A saída atual usa
+          Círculos/arcos permanecem analíticos no projeto. A saída atual usa
           polilinhas: erro de corda de até{' '}
           {format(0.05 * s.mask.scale * (preview.factor ?? 1), 6)} mm do modelo.
         </p>

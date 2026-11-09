@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## Em desenvolvimento · 2026-11-08
+
+- Máscaras: Ajustar (Aparar / Trim) e Estender (Extend), com limites finitos, prévia, seleção por clique/ID, operações sucessivas e histórico por corte/prolongamento. Referências de outras máscaras podem limitar; somente o alvo editável é alterado, sem aço adicional.
+- Arcos analíticos para remanescentes de círculos e prolongamentos circulares, IDs/linhagem dos fragmentos e edição local de referências importadas. Projeto `armadurastruct/23` (migração 1–22) e pacote `openstruct.detail/14` (leitura 1–13). [Uso e validação](docs/MASCARAS-AJUSTAR-ESTENDER.md).
+
 ## 0.3.0 · 2026-11-07
 
 - AS-20: perfis de layers independentes por desenho e vista, com Exibir/Capturar/Editar, presets Conferência/Armaduras/Fôrma e perfis personalizados. Seleção, encaixes, alças e transações respeitam a proteção; o PDF segue a visibilidade de cada vista sem alterar o quadro de aço.

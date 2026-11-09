@@ -18,7 +18,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/13' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/14' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -38,6 +38,7 @@ export const detailPackageSchema = z
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -179,7 +180,7 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
           ...styled(p),
           ...(p.native
             ? nativePrimitive(
-                p.native.kind === 'circle'
+                p.native.kind === 'circle' || p.native.kind === 'arc'
                   ? {
                       ...p.native,
                       center: point(p.native.center),
@@ -219,6 +220,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -238,6 +240,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -255,6 +258,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -274,6 +278,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -287,6 +292,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
@@ -300,6 +306,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     (pack.layers?.some((l) => l.plot) ||
       [
@@ -315,6 +322,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     ([...pack.objects.bars, ...pack.dependencies].some(
       (b) => b.stirrupMirrored !== undefined,
@@ -328,19 +336,24 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) => m.format === 'NATIVE')
   )
     throw new Error('Máscaras nativas exigem pacote v11.');
   if (
-    !['openstruct.detail/12', 'openstruct.detail/13'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/12',
+      'openstruct.detail/13',
+      'openstruct.detail/14',
+    ].includes(pack.schema) &&
     pack.objects.masks.some(
       (m) => m.format !== 'NATIVE' && m.primitives.some((q) => q.native),
     )
   )
     throw new Error('Desenho local em referência importada exige pacote v12.');
   if (
-    pack.schema !== 'openstruct.detail/13' &&
+    !['openstruct.detail/13', 'openstruct.detail/14'].includes(pack.schema) &&
     [
       ...pack.objects.bars,
       ...pack.objects.details,
@@ -352,6 +365,13 @@ export function detailPackageProject(value: DetailPackage): Project {
     ].some((o) => o.drafting)
   )
     throw new Error('Aparência de textos exige pacote v13.');
+  if (
+    pack.schema !== 'openstruct.detail/14' &&
+    pack.objects.masks.some((m) =>
+      m.primitives.some((q) => q.native?.kind === 'arc' || q.sourceEntityId),
+    )
+  )
+    throw new Error('Arcos e edição local CAD exigem pacote v14.');
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -442,7 +462,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/22',
+      schema: 'armadurastruct/23',
       layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
@@ -488,6 +508,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/10',
       'openstruct.detail/11',
       'openstruct.detail/12',
+      'openstruct.detail/13',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -503,6 +524,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/11',
       'openstruct.detail/12',
       'openstruct.detail/13',
+      'openstruct.detail/14',
     ].includes(pack.schema) &&
     !pack.layers
   )

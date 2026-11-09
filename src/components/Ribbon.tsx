@@ -47,6 +47,8 @@ export type Action =
   | 'cad-settings'
   | 'mask-control'
   | 'mask-calibrate'
+  | 'mask-trim'
+  | 'mask-extend'
   | 'associate-masks'
   | 'mask-line'
   | 'mask-rectangle'
@@ -192,7 +194,22 @@ export default function Ribbon({
     Máscaras: [
       {
         name: 'Ferramentas',
-        items: [item('mask-calibrate', 'Ajustar escala', Ruler)],
+        items: [
+          item('mask-calibrate', 'Ajustar escala', Ruler),
+          {
+            ...item(
+              'mask-trim',
+              'Ajustar — Aparar / Trim de máscara',
+              Scissors,
+            ),
+            caption: 'Ajustar',
+          },
+          {
+            ...item('mask-extend', 'Estender — Extend de máscara', Move),
+            caption: 'Estender',
+          },
+          item('measure', 'Medir', Ruler),
+        ],
       },
       {
         name: 'Desenhar',

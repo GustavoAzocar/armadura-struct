@@ -9,7 +9,7 @@ import {
   nativePrimitive,
   shapeFromWorld,
   validateNativeMask,
-  type NativeShape,
+  type NativeDrawKind,
 } from './nativeMasks';
 
 export type MaskDrawingContext = {
@@ -111,7 +111,7 @@ export function createDrawingMask(
 export function appendMaskShape(
   p: Project,
   maskId: string,
-  kind: NativeShape['kind'],
+  kind: NativeDrawKind,
   points: Point[],
   context: MaskDrawingContext,
   expected: Mask,

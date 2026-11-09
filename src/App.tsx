@@ -1,3 +1,17 @@
+import { maskPoint } from './cad/import';
+import MaskCadPanel, { type MaskCadSession } from './components/MaskCadPanel';
+import {
+  maskCadEntities,
+  maskEditTarget,
+  sameMaskEntity,
+  hitMaskCadEntity,
+  previewMaskCadEdit,
+  applyMaskCadEdit,
+  curvePrimitive,
+  type MaskEntityRef,
+  type MaskCadMode,
+  type MaskCadPlan,
+} from './domain/maskCadEditing';
 import MaskCalibrationPanel, {
   type MaskCalibrationSession,
   type MaskCalibrationPreview,
@@ -52,6 +66,7 @@ import {
   nativeWorldPrimitive,
   shapeFromWorld,
   type NativeShape,
+  type NativeDrawKind,
 } from './domain/nativeMasks';
 import { prepareProjectSetup } from './domain/projectSetup';
 import SheetSchedulePanel, {
@@ -356,6 +371,12 @@ export default function App() {
   const [vertexRequest, setVertexRequest] = useState<VertexSession | null>(
     null,
   );
+  const [maskCad, setMaskCad] = useState<MaskCadSession | null>(null);
+  const lastMaskCadClick = useRef<{
+    project: Project;
+    at: Point;
+    time: number;
+  } | null>(null);
   const [maskCalibration, setMaskCalibration] =
     useState<MaskCalibrationSession | null>(null);
   const calibrationConsumed = useRef(false);
@@ -406,7 +427,7 @@ export default function App() {
   const [cadSettingsOpen, setCadSettingsOpen] = useState(false);
   const quickDefaultsRef = useRef<string>('');
   const [nativeEntity, setNativeEntity] = useState<string>();
-  const [nativeKind, setNativeKind] = useState<NativeShape['kind']>();
+  const [nativeKind, setNativeKind] = useState<NativeDrawKind>();
   const [nativeCursor, setNativeCursor] = useState<Point>();
   const [drawingMaskChoice, setDrawingMaskChoice] = useState({
     projectId: '',
@@ -979,6 +1000,7 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    setMaskCad(null);
     setMaskCalibration(null);
     nativeSession.current = null;
     setNativeKind(undefined);
@@ -1823,6 +1845,238 @@ export default function App() {
     setDraft([]);
     return true;
   };
+  const cadMaskEntities = useMemo(
+    () => (maskCad ? maskCadEntities(p, maskDrawingContext) : []),
+    [p, documentKey, isolatedDetailId, !!maskCad],
+  );
+  const startMaskCad = (
+    mode: MaskCadMode,
+    id = drawingMaskId,
+    entityId?: string,
+  ) => {
+    try {
+      const base = historyRef.current.present;
+      maskEditTarget(base, id, maskDrawingContext);
+      const available = maskCadEntities(base, maskDrawingContext);
+      const preselectedId =
+        entityId ?? (maskId === id ? nativeEntity : undefined);
+      const preselected = preselectedId
+        ? available.find(
+            (e) => e.ref.maskId === id && e.ref.id === preselectedId && e.curve,
+          )
+        : undefined;
+      setTool('select');
+      setMaskControl(false);
+      setTab('Máscaras');
+      setSelectedRaw([]);
+      setMaskId(id);
+      setNativeEntity(undefined);
+      setDrawingMaskChoice({ projectId: base.id, id });
+      lastMaskCadClick.current = null;
+      setMaskCad({
+        project: base,
+        maskId: id,
+        activeAtStart: id,
+        context: { ...maskDrawingContext },
+        mode,
+        stage: 'limits',
+        limits: preselected ? [preselected.ref] : [],
+        all: false,
+        hadOperations: false,
+      });
+      notify(
+        `${mode === 'trim' ? 'Ajustar — Aparar / Trim' : 'Estender — Extend'}: selecione limites e pressione Enter. Sem seleção, Enter usa referências elegíveis visíveis.`,
+      );
+      return true;
+    } catch (e) {
+      notify((e as Error).message);
+      if (!p.masks.some((m) => m.id === id)) {
+        setCreatingMask(false);
+        setMaskControl(true);
+      }
+      return false;
+    }
+  };
+  const endMaskCad = () => {
+    setMaskCad(null);
+    setToolRaw('select');
+  };
+  const toggleMaskCadLimit = (ref: MaskEntityRef) => {
+    const s = maskCad;
+    if (!s || s.project !== historyRef.current.present) return;
+    const e = cadMaskEntities.find((e) => sameMaskEntity(e.ref, ref));
+    if (!e?.curve) {
+      setMaskCad({
+        ...s,
+        issue: e?.issue ?? 'Limite sem geometria suportada.',
+      });
+      return;
+    }
+    setMaskCad({
+      ...s,
+      issue: undefined,
+      limits: s.limits.some((r) => sameMaskEntity(r, ref))
+        ? s.limits.filter((r) => !sameMaskEntity(r, ref))
+        : [...s.limits, ref],
+    });
+  };
+  const confirmMaskCadLimits = () => {
+    if (maskCad)
+      setMaskCad({
+        ...maskCad,
+        stage: 'targets',
+        all: maskCad.limits.length === 0,
+        hover: undefined,
+        issue: undefined,
+      });
+  };
+  useEffect(() => {
+    const s = maskCad;
+    if (
+      s &&
+      (s.project !== p ||
+        s.context.key !== documentKey ||
+        s.context.detailId !== activeDetailId ||
+        s.context.scopeDetailId !== isolatedDetailId ||
+        s.maskId !== drawingMaskId ||
+        maskId !== s.maskId ||
+        tab !== 'Máscaras' ||
+        page !== 'drawing')
+    ) {
+      endMaskCad();
+      notify(
+        'Ajustar/Estender cancelado: o projeto, máscara ou contexto mudou. Operações já confirmadas permanecem no histórico.',
+      );
+    }
+  }, [
+    p,
+    documentKey,
+    activeDetailId,
+    isolatedDetailId,
+    drawingMaskId,
+    maskId,
+    tab,
+    page,
+    maskCad,
+  ]);
+  const maskCadPreview = useMemo<{ plan?: MaskCadPlan; error?: string }>(() => {
+    const s = maskCad;
+    if (!s || s.stage !== 'targets' || !s.hover) return {};
+    try {
+      return {
+        plan: previewMaskCadEdit(
+          s.project,
+          s.maskId,
+          s.mode,
+          s.hover.ref,
+          s.limits,
+          s.all,
+          s.hover.at,
+          s.context,
+          cadMaskEntities,
+        ),
+      };
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  }, [maskCad, cadMaskEntities]);
+  const maskCadOverlay = useMemo(() => {
+    if (!maskCad) return undefined;
+    const refs = maskCad.all ? [] : maskCad.limits;
+    return {
+      mode: maskCad.mode,
+      limits: refs.flatMap((r) => {
+        const e = cadMaskEntities.find((e) => sameMaskEntity(e.ref, r));
+        return e?.curve
+          ? [
+              {
+                ...e.ref.primitive,
+                points: e.ref.primitive.points.map((q) => maskPoint(q, e.mask)),
+                text: undefined,
+                closed: e.ref.primitive.closed,
+              },
+            ]
+          : [];
+      }),
+      change: maskCadPreview.plan
+        ? [curvePrimitive(maskCadPreview.plan.change)]
+        : [],
+    };
+  }, [
+    maskCad?.mode,
+    maskCad?.all,
+    maskCad?.limits,
+    cadMaskEntities,
+    maskCadPreview.plan,
+  ]);
+  const pickMaskCad = (
+    ref: MaskEntityRef | undefined,
+    at: Point,
+    duplicateTolerance = 0.000001,
+  ) => {
+    const s = maskCad;
+    if (!s) return;
+    if (!ref) {
+      setMaskCad({
+        ...s,
+        hover: undefined,
+        issue:
+          'Selecione uma entidade de máscara visível/capturável. Aço não participa deste comando.',
+      });
+      return;
+    }
+    if (s.stage === 'limits') {
+      toggleMaskCadLimit(ref);
+      return;
+    }
+    const last = lastMaskCadClick.current;
+    if (
+      last?.project === historyRef.current.present &&
+      Date.now() - last.time < 400 &&
+      distance(at, last.at) <= Math.max(0.000001, duplicateTolerance)
+    )
+      return;
+    try {
+      if (
+        s.project !== historyRef.current.present ||
+        s.context.key !== documentKey ||
+        s.context.scopeDetailId !== isolationRef.current ||
+        drawingMaskId !== s.maskId
+      )
+        throw new Error('O alvo/contexto mudou; reinicie o comando.');
+      const plan = previewMaskCadEdit(
+        s.project,
+        s.maskId,
+        s.mode,
+        ref,
+        s.limits,
+        s.all,
+        at,
+        maskDrawingContext,
+      );
+      const next = applyMaskCadEdit(s.project, plan, maskDrawingContext);
+      if (!commit(() => next))
+        throw new Error(
+          'Operação bloqueada; confira contexto, layers e visibilidade.',
+        );
+      const present = historyRef.current.present;
+      lastMaskCadClick.current = { project: present, at, time: Date.now() };
+      setMaskCad({
+        ...s,
+        project: present,
+        hover: undefined,
+        selectedTarget: undefined,
+        issue: undefined,
+        hadOperations: true,
+      });
+      notify(
+        `${s.mode === 'trim' ? 'Trecho aparado' : 'Entidade estendida'} · ${format(plan.change.total, 6)} mm · ${plan.remaining.length} remanescente(s). Clique em outro trecho ou Enter para concluir; Desfazer disponível.`,
+      );
+    } catch (e) {
+      setMaskCad((v) => (v ? { ...v, issue: (e as Error).message } : v));
+      notify((e as Error).message);
+    }
+  };
   const startMaskCalibration = (id = drawingMaskId) => {
     try {
       const current = historyRef.current.present;
@@ -2081,6 +2335,11 @@ export default function App() {
     }
   }, [nativeKind, nativeTarget]);
   const finish = () => {
+    if (maskCad) {
+      if (maskCad.stage === 'limits') confirmMaskCadLimits();
+      else endMaskCad();
+      return;
+    }
     if (maskCalibration) {
       applyCalibration();
       return;
@@ -2126,6 +2385,20 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (maskCad) {
+      const hit = hitMaskCadEntity(
+        cadMaskEntities,
+        point,
+        0.00001,
+        (e) =>
+          maskCad.stage === 'limits' ||
+          (e.mask.id === maskCad.maskId &&
+            (!maskCad.selectedTarget || maskCad.selectedTarget === e.ref.key)),
+      );
+      pickMaskCad(hit?.ref, point);
+      return;
+    }
+
     if (maskCalibration) {
       if (maskCalibration.points.length >= 2) return;
       try {
@@ -2656,6 +2929,32 @@ export default function App() {
     return true;
   };
   const action = async (a: Action) => {
+    if (a === 'mask-trim' || a === 'mask-extend') {
+      startMaskCad(a === 'mask-trim' ? 'trim' : 'extend');
+      return;
+    }
+    if (maskCad && ['undo', 'redo'].includes(a)) {
+      const undoConfirmed = maskCad.hadOperations;
+      endMaskCad();
+      if (!undoConfirmed) {
+        notify('Seleção/prévia cancelada, sem alterar o projeto.');
+        return;
+      }
+    } else if (
+      maskCad &&
+      ![
+        'fit',
+        'grid',
+        'snap',
+        'ortho',
+        'dimensions',
+        'sidebar',
+        'focus',
+        'save',
+      ].includes(a)
+    )
+      endMaskCad();
+
     if (a === 'mask-calibrate') {
       startMaskCalibration();
       return;
@@ -2711,7 +3010,7 @@ export default function App() {
       }
       setTool('polyline');
       setSelectedRaw([]);
-      setNativeKind(a.slice(5) as NativeShape['kind']);
+      setNativeKind(a.slice(5) as NativeDrawKind);
       nativeSession.current = {
         project: historyRef.current.present,
         mask: nativeTarget,
@@ -3435,6 +3734,11 @@ export default function App() {
       L: 'bar',
       MASCARAS: 'mask-control',
       CALIBRARMASCARA: 'mask-calibrate',
+      AJUSTAR: 'mask-trim',
+      APARAR: 'mask-trim',
+      TRIM: 'mask-trim',
+      EXTEND: 'mask-extend',
+      ESTENDERMASCARA: 'mask-extend',
       LINHA: 'mask-line',
       RETANGULO: 'mask-rectangle',
       CIRCULO: 'mask-circle',
@@ -3578,6 +3882,14 @@ export default function App() {
         'input,textarea,select',
       );
       if (e.key === 'Escape') {
+        if (maskCad) {
+          endMaskCad();
+          cmdInput.current?.blur();
+          notify(
+            'Etapa/prévia descartada. Cortes/prolongamentos já confirmados permanecem; use Desfazer para revertê-los.',
+          );
+          return;
+        }
         if (maskCalibration) {
           setMaskCalibration(null);
           setToolRaw('select');
@@ -3807,6 +4119,8 @@ export default function App() {
           snap,
           ortho,
           dimensions,
+          'mask-trim': maskCad?.mode === 'trim',
+          'mask-extend': maskCad?.mode === 'extend',
           'mask-calibrate': !!maskCalibration,
           'lock-schedule': !!p.scheduleLock,
           sidebar: sidebarOpen,
@@ -3819,6 +4133,7 @@ export default function App() {
         groupSelected={groupSelection}
         maskDestination={
           <MaskDestination
+            onCadEdit={(mode) => startMaskCad(mode)}
             onCalibrate={() => startMaskCalibration()}
             onBatch={(mode) => startMaskBatch(mode)}
             project={p}
@@ -4231,7 +4546,31 @@ export default function App() {
                       }
                     : undefined
                 }
-                highlightedMaskId={maskCalibration?.mask.id}
+                maskEditing={
+                  maskCad
+                    ? {
+                        entities: cadMaskEntities,
+                        targetMaskId: maskCad.maskId,
+                        all: maskCad.all,
+                        stage: maskCad.stage,
+                        selectedTarget: maskCad.selectedTarget,
+                      }
+                    : undefined
+                }
+                onMaskEntityPick={pickMaskCad}
+                onMaskEntityHover={(ref, at) =>
+                  setMaskCad((s) =>
+                    s
+                      ? {
+                          ...s,
+                          hover: ref ? { ref, at } : undefined,
+                          issue: undefined,
+                        }
+                      : s,
+                  )
+                }
+                maskCadOverlay={maskCadOverlay}
+                highlightedMaskId={maskCad?.maskId ?? maskCalibration?.mask.id}
                 onFollowEdge={pickFollowEdge}
                 nativeDrawing={!!nativeKind}
                 onNativePick={(maskId, entityId) => {
@@ -4277,6 +4616,7 @@ export default function App() {
                     : (maskCalibration?.points[0] ?? transformRequest?.base)
                 }
                 commandActive={
+                  !!maskCad ||
                   !!maskCalibration ||
                   !!transformRequest ||
                   !!vertexRequest ||
@@ -4295,6 +4635,7 @@ export default function App() {
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 tool={
+                  maskCad ||
                   maskCalibration ||
                   transformRequest ||
                   vertexRequest ||
@@ -4342,6 +4683,41 @@ export default function App() {
                 }}
                 showDimensions={dimensions}
               />
+              {maskCad && (
+                <MaskCadPanel
+                  session={maskCad}
+                  entities={cadMaskEntities}
+                  preview={maskCadPreview}
+                  onToggle={toggleMaskCadLimit}
+                  onStage={confirmMaskCadLimits}
+                  onRestart={() =>
+                    setMaskCad((s) =>
+                      s
+                        ? {
+                            ...s,
+                            stage: 'limits',
+                            all: false,
+                            hover: undefined,
+                            issue: undefined,
+                          }
+                        : s,
+                    )
+                  }
+                  onTarget={(key) =>
+                    setMaskCad((s) =>
+                      s
+                        ? {
+                            ...s,
+                            selectedTarget: key || undefined,
+                            hover: undefined,
+                            issue: undefined,
+                          }
+                        : s,
+                    )
+                  }
+                  onEnd={endMaskCad}
+                />
+              )}
               {maskCalibration && (
                 <MaskCalibrationPanel
                   value={maskCalibration}
@@ -5153,6 +5529,7 @@ export default function App() {
           entity={nativeEntity}
           onActivate={activateDrawingMask}
           onOpenContext={openMaskContext}
+          onCadEdit={startMaskCad}
           onCalibrate={startMaskCalibration}
           onBatch={(mode) => startMaskBatch(mode)}
           onClose={() => setMaskControl(false)}

@@ -78,7 +78,7 @@ export function calibratedMask(
       );
     if (q.text && !Number.isFinite((q.textHeight ?? 2.5) * scale))
       throw new Error('Altura de texto fora dos limites numéricos.');
-    if (q.native?.kind === 'circle') {
+    if (q.native?.kind === 'circle' || q.native?.kind === 'arc') {
       const center = maskPoint(q.native.center, result),
         r = q.native.radius * scale;
       if (

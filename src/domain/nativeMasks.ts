@@ -13,13 +13,21 @@ export type NativeShape =
       points: Point[];
       closed: boolean;
     }
-  | { kind: 'circle'; center: Point; radius: number };
+  | { kind: 'circle'; center: Point; radius: number }
+  | {
+      kind: 'arc';
+      center: Point;
+      radius: number;
+      startAngle: number;
+      sweepAngle: number;
+    };
+export type NativeDrawKind = Exclude<NativeShape['kind'], 'arc'>;
 /** Scale analytic data to edit any mask in physical mm along its local axes. */
 export function scaleNativeShape(s: NativeShape, k: number): NativeShape {
   if (!Number.isFinite(k) || k <= 0)
     throw new Error('Fator de escala inválido.');
   const point = (p: Point) => ({ x: p.x * k, y: p.y * k });
-  return s.kind === 'circle'
+  return s.kind === 'circle' || s.kind === 'arc'
     ? { ...s, center: point(s.center), radius: s.radius * k }
     : { ...s, points: s.points.map(point) };
 }
@@ -29,7 +37,7 @@ export function nativePoints(s: NativeShape): Point[] {
     Number.isFinite(p.y) &&
     Math.abs(p.x) <= 1e9 &&
     Math.abs(p.y) <= 1e9;
-  if (s.kind === 'circle') {
+  if (s.kind === 'circle' || s.kind === 'arc') {
     if (
       !valid(s.center) ||
       !Number.isFinite(s.radius) ||
@@ -37,15 +45,33 @@ export function nativePoints(s: NativeShape): Point[] {
       s.radius > 1e8
     )
       throw new Error('Centro e raio positivos e finitos são obrigatórios.');
+    if (
+      s.kind === 'arc' &&
+      (!Number.isFinite(s.startAngle) ||
+        !Number.isFinite(s.sweepAngle) ||
+        Math.abs(s.startAngle) > 360000 ||
+        Math.abs(s.sweepAngle) <= 1e-10 ||
+        Math.abs(s.sweepAngle) >= 360)
+    )
+      throw new Error(
+        'Arco requer ângulo inicial finito e abertura não nula inferior a 360°.',
+      );
     // Maximum radial chord error 0.05 local mm, capped at 100000 points.
     const n = Math.max(
       32,
       Math.ceil(Math.PI / Math.acos(Math.max(-1, 1 - 0.05 / s.radius))),
     );
     if (n > 99999) throw new Error('Círculo excede o limite de discretização.');
-    return Array.from({ length: n }, (_, i) => ({
-      x: s.center.x + s.radius * Math.cos((i * 2 * Math.PI) / n),
-      y: s.center.y + s.radius * Math.sin((i * 2 * Math.PI) / n),
+    const sweep =
+      s.kind === 'arc' ? (s.sweepAngle * Math.PI) / 180 : 2 * Math.PI;
+    const start = s.kind === 'arc' ? (s.startAngle * Math.PI) / 180 : 0;
+    const steps =
+      s.kind === 'arc'
+        ? Math.max(1, Math.ceil((n * Math.abs(sweep)) / (2 * Math.PI)))
+        : n;
+    return Array.from({ length: s.kind === 'arc' ? steps + 1 : n }, (_, i) => ({
+      x: s.center.x + s.radius * Math.cos(start + (i * sweep) / steps),
+      y: s.center.y + s.radius * Math.sin(start + (i * sweep) / steps),
     }));
   }
   if (s.points.length < 2 || s.points.length > 500 || !s.points.every(valid))
@@ -82,7 +108,9 @@ export function nativePrimitive(
     layer,
     points: nativePoints(shape),
     closed:
-      shape.kind === 'circle' || shape.kind === 'rectangle' || shape.closed,
+      shape.kind === 'circle' ||
+      shape.kind === 'rectangle' ||
+      (shape.kind !== 'arc' && shape.closed),
   };
 }
 export function newNativeMask(name: string, p?: Project): Mask {
@@ -119,7 +147,7 @@ export function localMaskPoint(p: Point, m: Mask): Point {
   };
 }
 export function shapeFromWorld(
-  kind: NativeShape['kind'],
+  kind: NativeDrawKind,
   points: Point[],
   m: Mask,
   closed = false,
