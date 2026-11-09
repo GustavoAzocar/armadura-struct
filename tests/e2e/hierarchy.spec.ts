@@ -1,4 +1,7 @@
-import { confirmProjectReplacement } from './projectSetup.helpers';
+import {
+  confirmProjectReplacement,
+  useCompatibleProjectFolders,
+} from './projectSetup.helpers';
 import { seedLegacyDemo } from './seedLegacyDemo';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -42,7 +45,7 @@ test('hierarchy CRUD, same-named elements, ownership, reparenting and persistent
     .click();
   await page
     .getByRole('dialog')
-    .getByRole('textbox')
+    .getByLabel('Nome do projeto', { exact: true })
     .fill('Hierarquia de teste');
   await confirmProjectReplacement(page);
   await page
@@ -205,3 +208,5 @@ test('moving selected content preserves geometry and protected deletion leaves t
   expect(moved.hierarchy).toEqual(before.hierarchy);
   expect(moved.bars).toEqual(before.bars);
 });
+
+useCompatibleProjectFolders();

@@ -3968,3 +3968,35 @@ button.hierarchy-drawing {
   background: var(--panel);
   font-size: 11px;
 }
+
+.folder-menu {
+  flex-shrink: 0;
+}
+.folder-menu > summary {
+  cursor: pointer;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.folder-actions {
+  position: absolute;
+  bottom: 28px;
+  left: 8px;
+  z-index: 50;
+  display: grid;
+  gap: 8px;
+  width: min(460px, calc(100vw - 16px));
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 8px 25px #0004;
+  font-size: 12px;
+}
+.folder-actions button {
+  text-align: left;
+  padding: 6px;
+}
+.folder-actions span {
+  overflow-wrap: anywhere;
+}
