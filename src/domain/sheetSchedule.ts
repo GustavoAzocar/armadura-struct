@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Point, Project, SheetSteelSchedule } from './types';
+import type { Point, Project, ScheduleRow, SheetSteelSchedule } from './types';
 import { schedule, scheduleChanged } from './model';
 import { detailTitle } from './detailQuantities';
 import {
@@ -41,6 +41,19 @@ export function sheetScheduleData(p: Project, sheetId: string) {
   );
   for (const r of p.details)
     if (details.has(p.hierarchy.objectDetails[r.id])) ids.add(r.barId);
+  const { rows, barIds } = scheduleForBarIds(p, ids);
+  return {
+    rows,
+    barIds,
+    detailIds: [...details],
+    names: [...new Set([...details].map((id) => detailTitle(p, id)))],
+    summary: steelSummary(rows),
+    scheduleDirty: scheduleChanged(p),
+  };
+}
+/** The existing schedule engine restricted to a set of physical IDs. Shared
+ * fabrication positions keep their identity and only the scope's contributions. */
+export function scheduleForBarIds(p: Project, ids: ReadonlySet<string>) {
   const bars = p.bars.filter((b) => ids.has(b.id));
   const rows = schedule({
     ...p,
@@ -54,10 +67,22 @@ export function sheetScheduleData(p: Project, sheetId: string) {
       b.steel.localeCompare(a.steel) ||
       a.mark.localeCompare(b.mark, 'pt-BR', { numeric: true }),
   );
-  const summary = new Map<
-    string,
-    { steel: string; diameter: number; totalLength: number; weight: number }
-  >();
+  return { rows, barIds: bars.map((b) => b.id) };
+}
+export type SteelSummaryRow = {
+  steel: string;
+  diameter: number;
+  totalLength: number;
+  weight: number;
+};
+/** Steel class + diameter totals at full precision (m, kg). */
+export function steelSummary(
+  rows: readonly Pick<
+    ScheduleRow,
+    'steel' | 'diameter' | 'totalLength' | 'weight'
+  >[],
+): SteelSummaryRow[] {
+  const summary = new Map<string, SteelSummaryRow>();
   for (const r of rows) {
     const key = `${r.steel}:${r.diameter}`,
       old = summary.get(key) ?? {
@@ -70,16 +95,9 @@ export function sheetScheduleData(p: Project, sheetId: string) {
     old.weight += r.weight;
     summary.set(key, old);
   }
-  return {
-    rows,
-    barIds: bars.map((b) => b.id),
-    detailIds: [...details],
-    names: [...new Set([...details].map((id) => detailTitle(p, id)))],
-    summary: [...summary.values()].sort(
-      (a, b) => a.steel.localeCompare(b.steel) || a.diameter - b.diameter,
-    ),
-    scheduleDirty: scheduleChanged(p),
-  };
+  return [...summary.values()].sort(
+    (a, b) => a.steel.localeCompare(b.steel) || a.diameter - b.diameter,
+  );
 }
 export function setSheetSchedule(
   p: Project,

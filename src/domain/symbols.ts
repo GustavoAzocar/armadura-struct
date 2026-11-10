@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { primitiveSchema } from './primitiveSchema';
+import { validateFreeTextPrimitive } from './textStyle';
 import { layerBindingShape } from './layerSchema';
 import { symbolDefinitions, symbolInstances } from './symbolRender';
 export * from './symbolRender';
@@ -136,7 +137,8 @@ export function transformSymbolPrimitive(
             closed: true,
             points: nativePrimitive(n).points.map(at),
           };
-    } else out.native = { ...n, points: n.points.map(at) };
+    } else if (n.kind === 'text') out.native = { ...n, at: at(n.at) };
+    else out.native = { ...n, points: n.points.map(at) };
     const rendered = nativePrimitive(out.native, q.id ?? 'symbol', q.layer);
     out.points = rendered.points;
     out.closed = rendered.closed;
@@ -179,6 +181,8 @@ const neutral = (q: Primitive, id: string): Primitive => ({
         textHeight: q.textHeight,
         textRotation: q.textRotation,
         textAlign: q.textAlign,
+        textFont: q.textFont,
+        textPaperScale: q.textPaperScale,
       }
     : {}),
 });
@@ -223,6 +227,11 @@ export function validateSymbolPrimitives(prims: Primitive[]) {
     if (!q.points.every(validPoint))
       throw new Error('Entidade do símbolo fora dos limites.');
     if (q.native) {
+      if ((q.native.kind === 'text') !== (q.text !== undefined))
+        throw new Error(
+          'Texto livre requer conteúdo e ponto de inserção nativos.',
+        );
+      if (q.native.kind === 'text') validateFreeTextPrimitive(q);
       const expected = nativePrimitive(q.native, q.id, q.layer);
       if (
         expected.points.length !== q.points.length ||

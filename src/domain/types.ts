@@ -235,6 +235,19 @@ export type Primitive = LayerBinding & {
   textHeight?: number;
   textRotation?: number;
   textAlign?: 'left' | 'center' | 'right';
+  /** Typography of a free CAD text; absent means the historical sans regular. */
+  textFont?: TextFont;
+  /**
+   * Sheet text: the denominator N used to convert its paper height to the
+   * stored model height (textHeight = paper mm × N). Absent: model text.
+   */
+  textPaperScale?: number;
+};
+/** Requested family/weight/style; outputs substitute unavailable families explicitly. */
+export type TextFont = {
+  family: string;
+  weight: 'normal' | 'bold';
+  style: 'normal' | 'italic';
 };
 export type Mask = LayerBinding & {
   id: string;
@@ -300,7 +313,7 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/27';
+  schema: 'armadurastruct/28';
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;

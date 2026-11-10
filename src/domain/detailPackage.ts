@@ -13,6 +13,7 @@ import {
   exchangeMetadataSchema,
   repetitionSchema,
   fabricationPositionSchema,
+  hasFreeTextData,
 } from './model';
 import { contentObjects } from './hierarchy';
 import { detailOrigin, objectOrigin } from './detailTransfer';
@@ -20,7 +21,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/16' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/17' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -43,6 +44,7 @@ export const detailPackageSchema = z
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -207,7 +209,9 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
                       center: point(p.native.center),
                       radius: p.native.radius * k,
                     }
-                  : { ...p.native, points: p.native.points.map(point) },
+                  : p.native.kind === 'text'
+                    ? { ...p.native, at: point(p.native.at) }
+                    : { ...p.native, points: p.native.points.map(point) },
                 p.id,
                 p.layer,
               )
@@ -227,7 +231,7 @@ export function detailPackageProject(value: DetailPackage): Project {
     factors[value.units.length],
   );
   if (
-    pack.schema !== 'openstruct.detail/16' &&
+    !['openstruct.detail/16', 'openstruct.detail/17'].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
         b.stirrupProfile ||
@@ -258,6 +262,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -280,6 +285,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -300,6 +306,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -322,6 +329,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -338,6 +346,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
@@ -354,6 +363,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     (pack.layers?.some((l) => l.plot) ||
       [
@@ -372,6 +382,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     ([...pack.objects.bars, ...pack.dependencies].some(
       (b) => b.stirrupMirrored !== undefined,
@@ -388,6 +399,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) => m.format === 'NATIVE')
   )
@@ -399,6 +411,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     pack.objects.masks.some(
       (m) => m.format !== 'NATIVE' && m.primitives.some((q) => q.native),
@@ -411,6 +424,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     [
       ...pack.objects.bars,
@@ -428,6 +442,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) =>
       m.primitives.some((q) => q.native?.kind === 'arc' || q.sourceEntityId),
@@ -435,7 +450,11 @@ export function detailPackageProject(value: DetailPackage): Project {
   )
     throw new Error('Arcos e edição local CAD exigem pacote v14.');
   if (
-    !['openstruct.detail/15', 'openstruct.detail/16'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/15',
+      'openstruct.detail/16',
+      'openstruct.detail/17',
+    ].includes(pack.schema) &&
     pack.objects.annotations.some(
       (a) => a.maskReferences || a.dimensionPresentation,
     )
@@ -443,6 +462,11 @@ export function detailPackageProject(value: DetailPackage): Project {
     throw new Error(
       'Referências de máscara e unidades de cota exigem pacote v15.',
     );
+  if (
+    pack.schema !== 'openstruct.detail/17' &&
+    hasFreeTextData({ masks: pack.objects.masks })
+  )
+    throw new Error('Textos livres e tipografia CAD exigem pacote v17.');
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -533,7 +557,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/25',
+      schema: 'armadurastruct/28',
       layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
@@ -582,6 +606,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/13',
       'openstruct.detail/14',
       'openstruct.detail/15',
+      'openstruct.detail/16',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -590,7 +615,7 @@ export function readDetailPackage(raw: unknown): {
     );
   const pack = detailPackageSchema.parse(input);
   if (
-    pack.schema !== 'openstruct.detail/16' &&
+    !['openstruct.detail/16', 'openstruct.detail/17'].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
         b.stirrupProfile ||
@@ -614,6 +639,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
     ].includes(pack.schema) &&
     !pack.layers
   )

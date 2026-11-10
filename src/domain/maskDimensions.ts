@@ -66,7 +66,9 @@ function geometrySignature(q: Primitive, scale: number) {
           Math.round(n.radius * scale * 1e4),
           n.kind === 'arc' ? [n.startAngle, n.sweepAngle] : null,
         ]
-      : [n.kind, n.closed, n.points.map(pt)]
+      : n.kind === 'text'
+        ? [n.kind, pt(n.at), q.text]
+        : [n.kind, n.closed, n.points.map(pt)]
     : [q.points.map(pt), !!q.closed];
   const s = JSON.stringify(value);
   let a = 2166136261,

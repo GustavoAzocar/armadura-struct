@@ -25,6 +25,7 @@ export const primitiveSchema = z.object({
         center: point,
         radius: number.positive(),
       }),
+      z.object({ kind: z.literal('text'), at: point }),
       ...(['line', 'rectangle', 'polyline'] as const).map((kind) =>
         z.object({
           kind: z.literal(kind),
@@ -41,4 +42,13 @@ export const primitiveSchema = z.object({
   textHeight: number.optional(),
   textRotation: number.optional(),
   textAlign: z.enum(['left', 'center', 'right']).optional(),
+  textFont: z
+    .object({
+      family: z.string().min(1).max(64),
+      weight: z.enum(['normal', 'bold']),
+      style: z.enum(['normal', 'italic']),
+    })
+    .strict()
+    .optional(),
+  textPaperScale: number.min(1).max(10000).optional(),
 });

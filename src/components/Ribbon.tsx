@@ -31,6 +31,7 @@ import {
   SquareDashed,
   Table2,
   Trash2,
+  Type,
   Undo2,
   Scissors,
   Combine,
@@ -70,6 +71,7 @@ export type Action =
   | 'mask-rectangle'
   | 'mask-circle'
   | 'mask-polyline'
+  | 'mask-text'
   | 'new'
   | 'open'
   | 'recent'
@@ -93,6 +95,7 @@ export type Action =
   | 'pdf'
   | 'dxf'
   | 'csv'
+  | 'csv-scoped'
   | 'insert-sheet-schedule'
   | 'schedule'
   | 'help'
@@ -221,6 +224,7 @@ export default function Ribbon({
           item('pdf', 'Prancha PDF', FileText),
           item('dxf', 'Desenho DXF', Download),
           item('csv', 'Quadro CSV', Table2),
+          item('csv-scoped', 'CSV por escopo', Table2),
           item('export-detail', 'Pacote de detalhamento', Download),
         ],
       },
@@ -296,6 +300,7 @@ export default function Ribbon({
           item('mask-rectangle', 'Retângulo', SquareDashed),
           item('mask-circle', 'Círculo', Shapes),
           item('mask-polyline', 'Polilinha', Spline),
+          item('mask-text', 'Texto', Type),
         ],
       },
       {
