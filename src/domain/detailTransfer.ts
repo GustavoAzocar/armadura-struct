@@ -1,4 +1,10 @@
 import { cloneDrawingMetadata } from './drawingMetadata';
+import {
+  applyCatalogImport,
+  previewCatalogImport,
+  SYMBOL_CATALOG_SCHEMA,
+  validateSymbols,
+} from './symbols';
 import { remapDimensionMasks } from './maskDimensions';
 import { mergeLayers, remapLayer } from './layers';
 import {
@@ -15,6 +21,8 @@ import type {
   Project,
   Annotation,
   Detail,
+  SymbolDefinition,
+  SymbolInstance,
 } from './types';
 import { uid } from './types';
 import {
@@ -145,13 +153,15 @@ const fields = [
   'annotations',
   'masks',
   'polylines',
+  'symbolInstances',
 ] as const;
 function counts(p: Project, id?: string) {
   return Object.fromEntries(
     fields.map((key) => [
       key,
       id
-        ? p[key].filter((o) => p.hierarchy.objectDetails[o.id] === id).length
+        ? (p[key] ?? []).filter((o) => p.hierarchy.objectDetails[o.id] === id)
+            .length
         : 0,
     ]),
   );
@@ -260,11 +270,69 @@ export function previewDetailTransfer(
         ...remapLayer(o, importedLayers.map),
         primitives: o.primitives.map((q) => remapLayer(q, importedLayers.map)),
       })),
+      ...(source.symbolInstances
+        ? {
+            symbolInstances: source.symbolInstances.map((o) =>
+              remapLayer(o, importedLayers.map),
+            ),
+          }
+        : {}),
     };
     const ownsSource = (id: string) =>
       source.hierarchy.objectDetails[id] === incoming.id;
     const ownsOld = (id: string) =>
       !!oldDetail && target.hierarchy.objectDetails[id] === oldDetail.id;
+    // Native-project transfer carries shared definitions once and remaps each
+    // owned instance. Existing local definitions are never overwritten.
+    validateSymbols(source);
+    const sourceSymbols = (source.symbolInstances ?? []).filter((i) =>
+      ownsSource(i.id),
+    );
+    const requiredDefinitions = new Set(
+      sourceSymbols.map((i) => i.definitionId),
+    );
+    const definitionIds = new Map<string, string>();
+    const definitionsToImport: SymbolDefinition[] = [];
+    const signature = (d: SymbolDefinition) =>
+      JSON.stringify({
+        name: d.name,
+        category: d.category,
+        primitives: d.primitives.map(({ id: _id, ...q }) => q),
+      });
+    const localDefinitions = new Map(
+      (next.symbols ?? []).map((d) => [signature(d), d.id]),
+    );
+    for (const d of source.symbols ?? []) {
+      if (!requiredDefinitions.has(d.id)) continue;
+      const existing = localDefinitions.get(signature(d));
+      if (existing) definitionIds.set(d.id, existing);
+      else definitionsToImport.push(d);
+    }
+    if (definitionsToImport.length) {
+      const imported = previewCatalogImport(
+        next,
+        {
+          schema: SYMBOL_CATALOG_SCHEMA,
+          producer: { app: 'ArmaduraStruct', version: '' },
+          symbols: definitionsToImport.map(
+            ({ name, category, primitives }) => ({
+              name,
+              category,
+              primitives,
+            }),
+          ),
+        },
+        'rename',
+      );
+      definitionsToImport.forEach((d, index) =>
+        definitionIds.set(d.id, imported.added[index].id),
+      );
+      next = applyCatalogImport(next, imported);
+      for (const renamed of imported.renamed)
+        plan.warnings.push(
+          `Símbolo “${renamed.from}” importado como “${renamed.to}”; a definição local foi preservada.`,
+        );
+    }
     const sourceBars = source.bars.filter((b) => ownsSource(b.id)),
       oldBars = target.bars.filter((b) => ownsOld(b.id));
     const sourceById = new Map(source.bars.map((b) => [b.id, b])),
@@ -606,7 +674,7 @@ export function previewDetailTransfer(
     const usedGraphics = new Set<string>();
     const objectId = (sourceId: string, kind: (typeof fields)[number]) => {
       const refs = new Set(
-        target[kind]
+        (target[kind] ?? [])
           .filter(
             (o) =>
               ownsOld(o.id) &&
@@ -660,11 +728,18 @@ export function previewDetailTransfer(
       return out;
     };
     const copyGraphics = <
-      K extends 'details' | 'annotations' | 'masks' | 'polylines',
+      K extends
+        | 'details'
+        | 'annotations'
+        | 'masks'
+        | 'polylines'
+        | 'symbolInstances',
     >(
       kind: K,
     ) => {
-      const incomingObjects = source[kind].filter((o) => ownsSource(o.id));
+      const incomingObjects = (source[kind] ?? []).filter((o) =>
+        ownsSource(o.id),
+      );
       const imported = incomingObjects.flatMap((object) => {
         const reference = mapReference(object, 'incoming');
         return reference
@@ -672,7 +747,7 @@ export function previewDetailTransfer(
           : [];
       });
       const importedIds = new Set(imported.map((o) => o.id));
-      const existing = target[kind].flatMap((object) => {
+      const existing = (target[kind] ?? []).flatMap((object) => {
         if (ownsOld(object.id)) {
           // Explicitly retained local positions keep their local linked graphics too.
           const retained =
@@ -692,6 +767,14 @@ export function previewDetailTransfer(
     const details = copyGraphics('details') as Detail[];
     const masks = copyGraphics('masks') as Project['masks'],
       polylines = copyGraphics('polylines') as Project['polylines'];
+    const copiedSymbols = copyGraphics('symbolInstances') as SymbolInstance[];
+    const importedSymbolIds = new Set(
+      sourceSymbols.map((s) => graphicIds[s.id]),
+    );
+    const symbolInstances = copiedSymbols.map((i) => {
+      if (!importedSymbolIds.has(i.id)) return i;
+      return { ...i, definitionId: definitionIds.get(i.definitionId)! };
+    });
     annotations = annotations.map((a) =>
       source.annotations.some((s) => graphicIds[s.id] === a.id)
         ? remapDimensionMasks(a, graphicIds)
@@ -710,6 +793,7 @@ export function previewDetailTransfer(
       ...details,
       ...masks,
       ...polylines,
+      ...symbolInstances,
     ])
       if (!Object.hasOwn(objectDetails, object.id))
         objectDetails[object.id] = detailId;
@@ -720,6 +804,9 @@ export function previewDetailTransfer(
       details,
       masks,
       polylines,
+      ...(target.symbolInstances || symbolInstances.length
+        ? { symbolInstances }
+        : {}),
       hierarchy: {
         ...next.hierarchy,
         objectDetails,

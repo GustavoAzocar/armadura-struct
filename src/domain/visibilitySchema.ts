@@ -29,9 +29,14 @@ export function validVisibilityContext(p: Project, key: string) {
 export function pruneVisibility(p: Project): Project {
   if (!p.layerEnvironment) return p;
   const live = new Set(
-    [...p.bars, ...p.details, ...p.annotations, ...p.polylines, ...p.masks].map(
-      (o) => o.id,
-    ),
+    [
+      ...p.bars,
+      ...p.details,
+      ...p.annotations,
+      ...p.polylines,
+      ...p.masks,
+      ...(p.symbolInstances ?? []),
+    ].map((o) => o.id),
   );
   let changed = false;
   const contexts = Object.fromEntries(

@@ -99,6 +99,8 @@ import {
   type WholeMaskMovePlan,
 } from './domain/maskManipulation';
 import { maskPoint, maskPrimitives } from './cad/import';
+import { symbolInstanceMask } from './domain/symbolRender';
+import type { SymbolDefinition } from './domain/types';
 import MaskCadPanel, { type MaskCadSession } from './components/MaskCadPanel';
 import {
   maskCadEntities,
@@ -134,6 +136,7 @@ import {
   type MaskAssignment,
 } from './domain/maskBatch';
 import CadSettingsDialog from './components/CadSettingsDialog';
+import SymbolLibraryDialog from './components/SymbolLibraryDialog';
 import {
   cadDefaults,
   barCadDefaults,
@@ -482,6 +485,23 @@ export default function App() {
   });
   const measureConsumed = useRef(false);
   const [maskManip, setMaskManip] = useState<MaskManipSession | null>(null);
+  /** Click-to-pick for the symbol library; the dialog hides while it is active. */
+  const [symbolPick, setSymbolPick] = useState<{
+    kind: 'base' | 'place';
+    project: Project;
+    context: MaskDrawingContext;
+    maskId?: string;
+    definition?: SymbolDefinition;
+    layerId?: string;
+    rotation: number;
+    scale: number;
+    cursor?: Point;
+  } | null>(null);
+  const [symbolPicked, setSymbolPicked] = useState<{
+    kind: 'base' | 'place';
+    point: Point;
+    n: number;
+  } | null>(null);
   const [match, setMatch] = useState<
     | (MatchSession & {
         base: Project;
@@ -560,6 +580,7 @@ export default function App() {
   const sessionsProject = useRef('');
   const [maskControl, setMaskControl] = useState(false);
   const [cadSettingsOpen, setCadSettingsOpen] = useState(false);
+  const [symbolsOpen, setSymbolsOpen] = useState(false);
   const quickDefaultsRef = useRef<string>('');
   const [nativeEntity, setNativeEntity] = useState<string>();
   const [nativeKind, setNativeKind] = useState<NativeDrawKind>();
@@ -1342,6 +1363,7 @@ export default function App() {
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    setSymbolPick(null);
     setStirrupSession(null);
     setStirrupDialog(null);
     setMeasureSession(null);
@@ -2880,6 +2902,50 @@ export default function App() {
     page,
     maskManip,
   ]);
+  useEffect(() => {
+    const s = symbolPick;
+    if (
+      s &&
+      (s.project !== p ||
+        s.context.key !== documentKey ||
+        s.context.detailId !== activeDetailId ||
+        s.context.scopeDetailId !== isolatedDetailId ||
+        s.maskId !== drawingMaskId ||
+        tab !== 'Máscaras' ||
+        page !== 'drawing')
+    ) {
+      setSymbolPick(null);
+      notify('Escolha de ponto cancelada: projeto ou contexto mudou.');
+    }
+  }, [
+    p,
+    documentKey,
+    activeDetailId,
+    isolatedDetailId,
+    drawingMaskId,
+    tab,
+    page,
+    symbolPick,
+  ]);
+  const symbolPickLines = useMemo(() => {
+    const s = symbolPick;
+    if (s?.kind !== 'place' || !s.definition || !s.cursor || !s.layerId)
+      return undefined;
+    try {
+      return maskPrimitives(
+        symbolInstanceMask(s.definition, {
+          id: 'symbol-preview',
+          definitionId: s.definition.id,
+          layerId: s.layerId,
+          origin: s.cursor,
+          rotation: s.rotation,
+          scale: s.scale,
+        }),
+      );
+    } catch {
+      return undefined;
+    }
+  }, [symbolPick]);
   const manipTransform = (
     s: MaskManipSession,
     at = s.cursor,
@@ -4078,6 +4144,19 @@ export default function App() {
       );
       return;
     }
+    if (symbolPick) {
+      if (
+        ![point.x, point.y].every(
+          (n) => Number.isFinite(n) && Math.abs(n) <= 1e9,
+        )
+      ) {
+        notify('Informe um ponto finito dentro dos limites do modelo.');
+        return;
+      }
+      setSymbolPicked({ kind: symbolPick.kind, point, n: Date.now() });
+      setSymbolPick(null);
+      return;
+    }
     if (maskManip) {
       if (
         ![point.x, point.y].every(
@@ -4844,6 +4923,19 @@ export default function App() {
       }
       return;
     }
+    if (
+      symbolPick &&
+      ![
+        'fit',
+        'grid',
+        'snap',
+        'ortho',
+        'dimensions',
+        'sidebar',
+        'focus',
+      ].includes(a)
+    )
+      setSymbolPick(null);
     if (maskManip && ['undo', 'redo'].includes(a)) {
       const had = maskManip.hadOperations;
       endMaskManip();
@@ -4925,6 +5017,10 @@ export default function App() {
     }
     if (a === 'cad-settings') {
       setCadSettingsOpen(true);
+      return;
+    }
+    if (a === 'symbols') {
+      setSymbolsOpen(true);
       return;
     }
     if (a === 'mask-control') {
@@ -5545,6 +5641,13 @@ export default function App() {
               ...next,
               details: next.details.filter((d) => !selected.includes(d.id)),
               masks: next.masks.filter((m) => !selected.includes(m.id)),
+              ...(next.symbolInstances
+                ? {
+                    symbolInstances: next.symbolInstances.filter(
+                      (i) => !selected.includes(i.id),
+                    ),
+                  }
+                : {}),
               annotations: next.annotations.filter(
                 (n) => !selected.includes(n.id),
               ),
@@ -6134,6 +6237,12 @@ export default function App() {
         if (maskOffset) {
           endMaskOffset();
           cmdInput.current?.blur();
+          return;
+        }
+        if (symbolPick) {
+          setSymbolPick(null);
+          cmdInput.current?.blur();
+          notify('Escolha de ponto cancelada; nada foi alterado.');
           return;
         }
         if (maskManip) {
@@ -7013,6 +7122,7 @@ export default function App() {
                     : stirrupPreview.lines) ??
                   offsetLines ??
                   manipLines ??
+                  symbolPickLines ??
                   calibrationLines ??
                   nativePreview ??
                   (vertexRequest
@@ -7055,6 +7165,7 @@ export default function App() {
                       transformRequest?.base)
                 }
                 commandActive={
+                  !!symbolPick ||
                   !!stirrupSession ||
                   !!measureSession ||
                   !!match ||
@@ -7079,6 +7190,7 @@ export default function App() {
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 tool={
+                  symbolPick ||
                   stirrupSession ||
                   match ||
                   maskOffset ||
@@ -7130,6 +7242,8 @@ export default function App() {
                     );
                   if (measureSession)
                     setMeasureSession((s) => (s ? { ...s, cursor: point } : s));
+                  if (symbolPick?.kind === 'place')
+                    setSymbolPick((s) => (s ? { ...s, cursor: point } : s));
                   if (maskManip?.stage === 'target')
                     setMaskManip((s) =>
                       s ? { ...s, cursor: point, issue: undefined } : s,
@@ -8182,6 +8296,33 @@ export default function App() {
             }}
           />
         </Suspense>
+      )}
+      {symbolsOpen && (
+        <SymbolLibraryDialog
+          project={p}
+          context={maskDrawingContext}
+          maskId={drawingMaskId}
+          producer={{ app: 'ArmaduraStruct', version: appVersion }}
+          onCommit={(build) => commit(build)}
+          hidden={!!symbolPick}
+          pickedPoint={symbolPicked}
+          onPick={(request) =>
+            setSymbolPick({
+              ...request,
+              project: p,
+              context: maskDrawingContext,
+              maskId: drawingMaskId,
+            })
+          }
+          onClose={() => {
+            setSymbolPick(null);
+            setSymbolsOpen(false);
+          }}
+          onSaveFile={(name, text) =>
+            saveFile(name, text, 'application/json', 'json')
+          }
+          notify={notify}
+        />
       )}
       {cadSettingsOpen && (
         <CadSettingsDialog

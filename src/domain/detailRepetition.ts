@@ -282,6 +282,9 @@ export function previewMergeRepetitions(
         .map(mapRef),
       polylines: p.polylines.filter((o) => !removedIds.has(o.id)).map(mapRef),
       masks: p.masks.filter((o) => !removedIds.has(o.id)),
+      symbolInstances: (p.symbolInstances ?? []).filter(
+        (o) => !removedIds.has(o.id),
+      ),
       hierarchy: {
         ...p.hierarchy,
         details: p.hierarchy.details
@@ -311,7 +314,7 @@ export function previewMergeRepetitions(
         'A reunião alteraria o quantitativo físico. Nenhuma alteração foi aplicada.',
       );
     plan.warnings.push(
-      'Somente os gráficos do representante serão conservados; notas, máscaras e rebatimentos internos dos demais detalhes serão removidos. Vistas são redirecionadas e vínculos externos são reassociados.',
+      'Somente os gráficos do representante serão conservados; notas, máscaras, símbolos e rebatimentos internos dos demais detalhes serão removidos. Vistas são redirecionadas e vínculos externos são reassociados.',
     );
     plan.project = next;
   } catch (e) {

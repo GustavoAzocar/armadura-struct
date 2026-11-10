@@ -14,6 +14,12 @@ import { validateNativeMask } from './nativeMasks';
 import { sheetSteelScheduleSchema } from './sheetSchedule';
 import { pruneVisibility } from './visibilitySchema';
 import { plotSettingsSchema } from './layerSchema';
+import { primitiveSchema } from './primitiveSchema';
+import {
+  symbolDefinitionSchema,
+  symbolInstanceSchema,
+  validateSymbols,
+} from './symbols';
 import { layerEnvironmentSchema } from './layerProfiles';
 import { defaultLayers, completeLayers, validateLayers } from './layers';
 import { drawingLayerSchema, layerBindingShape } from './layerSchema';
@@ -254,6 +260,8 @@ const schema = z.object({
   plotting: plotSettingsSchema.optional(),
   layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
   numbering: numberingPolicySchema.optional(),
+  symbols: z.array(symbolDefinitionSchema).max(500).optional(),
+  symbolInstances: z.array(symbolInstanceSchema).max(10000).optional(),
   sheets: z
     .array(
       z.object({
@@ -400,48 +408,7 @@ const schema = z.object({
         name: z.string().max(200),
         format: z.enum(['DXF', 'DWG', 'DEMO', 'NATIVE']),
         layerDefinitions: z.array(drawingLayerSchema).max(2000).optional(),
-        primitives: z
-          .array(
-            z.object({
-              ...layerBindingShape,
-              id: z.string().optional(),
-              sourceEntityId: z.string().min(1).max(1000).optional(),
-              native: z
-                .discriminatedUnion('kind', [
-                  z.object({
-                    kind: z.literal('arc'),
-                    center: point,
-                    radius: number.positive(),
-                    startAngle: number.min(-360000).max(360000),
-                    sweepAngle: number.refine(
-                      (n) => Math.abs(n) > 1e-10 && Math.abs(n) < 360,
-                      'Abertura do arco inválida.',
-                    ),
-                  }),
-                  z.object({
-                    kind: z.literal('circle'),
-                    center: point,
-                    radius: number.positive(),
-                  }),
-                  ...(['line', 'rectangle', 'polyline'] as const).map((kind) =>
-                    z.object({
-                      kind: z.literal(kind),
-                      points: z.array(point).min(2).max(500),
-                      closed: z.boolean(),
-                    }),
-                  ),
-                ])
-                .optional(),
-              layer: z.string(),
-              points: z.array(point).max(100000),
-              closed: z.boolean().optional(),
-              text: z.string().optional(),
-              textHeight: number.optional(),
-              textRotation: number.optional(),
-              textAlign: z.enum(['left', 'center', 'right']).optional(),
-            }),
-          )
-          .max(100000),
+        primitives: z.array(primitiveSchema).max(100000),
         layers: z.record(z.string(), z.boolean()),
         visible: z.boolean(),
         opacity: number.min(0).max(1),
@@ -468,7 +435,14 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const drawingMetadataVersion = input?.schema === 'armadurastruct/26';
+  const symbolVersion = input?.schema === 'armadurastruct/27';
+  if (
+    !symbolVersion &&
+    (input?.symbols !== undefined || input?.symbolInstances !== undefined)
+  )
+    throw new Error('Biblioteca de símbolos exige formato 27.');
+  const drawingMetadataVersion =
+    symbolVersion || input?.schema === 'armadurastruct/26';
   if (
     !drawingMetadataVersion &&
     input?.hierarchy?.drawings?.some(hasDrawingMetadata)
@@ -650,6 +624,7 @@ export function decodeProject(
       ...parsed.annotations,
       ...parsed.polylines,
       ...parsed.masks,
+      ...(parsed.symbolInstances ?? []),
       ...hierarchy.floors,
       ...hierarchy.elements,
       ...hierarchy.details,
@@ -761,7 +736,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/26',
+    schema: 'armadurastruct/27',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -815,6 +790,7 @@ export function decodeProject(
     ...p.masks,
     ...p.annotations,
     ...p.polylines,
+    ...(p.symbolInstances ?? []),
   ].map((o) => o.id);
   if (new Set(allIds).size !== allIds.length)
     throw new Error('Identificadores de objetos duplicados.');
@@ -853,6 +829,7 @@ export function decodeProject(
   }
   p = pruneVisibility(completeLayers(p));
   validateLayers(p);
+  validateSymbols(p);
   if (p.cadDefaults) validateCadDefaults(p, p.cadDefaults);
   if (p.layerEnvironment) {
     const e = p.layerEnvironment;
@@ -993,7 +970,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/26',
+    schema: 'armadurastruct/27',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

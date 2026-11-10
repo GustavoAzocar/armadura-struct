@@ -1,3 +1,4 @@
+import { symbolInstances, symbolRenderMasks } from './symbolRender';
 import { stirrupPrimitives, stirrupDimensionLabels } from './stirrupGeometry';
 import { styledDrafting } from './cadDefaults';
 import { stylePrimitive } from './layers';
@@ -78,7 +79,7 @@ export function drawingPrimitives(
   options: { minTextHeight?: number } = {},
 ): Primitive[] {
   const h = options.minTextHeight ?? 40;
-  const lines = p.masks.flatMap((m) =>
+  const lines = [...p.masks, ...symbolRenderMasks(p)].flatMap((m) =>
     maskPrimitives(m).map((l) => stylePrimitive(references, m, l)),
   );
   lines.push(
@@ -156,6 +157,7 @@ export function objectPrimitives(p: Project, ids: string[]): Primitive[] {
       annotations: p.annotations.filter((o) => set.has(o.id)),
       polylines: p.polylines.filter((o) => set.has(o.id)),
       masks: p.masks.filter((o) => set.has(o.id)),
+      symbolInstances: symbolInstances(p).filter((o) => set.has(o.id)),
     },
     p,
   );

@@ -281,8 +281,28 @@ export type DraftPolyline = LayerBinding & {
   closed: boolean;
   color: string;
 };
+/** Reusable CAD drawing in symbol space (mm, origin = base point); never carries steel. */
+export type SymbolDefinition = {
+  id: string;
+  name: string;
+  category: string;
+  /** Raised each time the geometry changes, so instances can report the impact. */
+  revision: number;
+  primitives: Primitive[];
+};
+/** A placement of a definition; geometry is shared, only the transform is its own. */
+export type SymbolInstance = LayerBinding & {
+  id: string;
+  definitionId: string;
+  layerId: string;
+  origin: Point;
+  rotation: number;
+  scale: number;
+};
 export type Project = {
-  schema: 'armadurastruct/26';
+  schema: 'armadurastruct/27';
+  symbols?: SymbolDefinition[];
+  symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
   cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;

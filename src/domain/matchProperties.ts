@@ -235,6 +235,7 @@ export function previewMatchProperties(
         details: p.details.map(change),
         polylines: p.polylines.map(change),
         annotations: p.annotations.map(change),
+        symbolInstances: (p.symbolInstances ?? []).map(change),
         masks: p.masks.map((m) => {
           const primitives = m.primitives.map(change);
           return primitives.some((q, i) => q !== m.primitives[i])
