@@ -140,6 +140,10 @@ test('Medir contorno: retângulo, caminho aberto, círculo, inválido e importad
   await command(page, 'F');
   const before = await save(page),
     csv = await exported(page, 'Quadro CSV');
+  // Finish recovery from the line created above before observing the query.
+  await expect(page.locator('.save-status')).toHaveText(
+    'Apenas recuperável localmente',
+  );
   const saveStatus = await page.locator('.save-status').textContent();
 
   await page
