@@ -156,7 +156,7 @@ test('exports PDF/DXF/CSV e edição do quadro', async ({ page }) => {
   }
   await page.getByRole('tab', { name: 'Arquivo', exact: true }).click();
   const event = page.waitForEvent('download');
-  await page.getByRole('button', { name: /CSV/ }).click();
+  await page.getByRole('button', { name: 'Quadro CSV', exact: true }).click();
   expect((await event).suggestedFilename()).toMatch(/\.csv$/);
   expect(errors).toEqual([]);
 });

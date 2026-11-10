@@ -141,8 +141,23 @@ export {
   sheetScheduleGeometry,
   defaultSheetSchedule,
   setSheetSchedule,
+  scheduleForBarIds,
+  steelSummary,
 } from './domain/sheetSchedule';
 export type { SheetSteelSchedule } from './domain/types';
+export {
+  resolveScopes,
+  buildScopedSchedule,
+  scopeAllowance,
+  detailOptions,
+  sheetOptions,
+} from './domain/scheduleScopes';
+export type {
+  ScopeSelection,
+  AllowancePolicy,
+  ExportScope,
+  ScopedSchedule,
+} from './domain/scheduleScopes';
 
 export {
   newProjectSetup,

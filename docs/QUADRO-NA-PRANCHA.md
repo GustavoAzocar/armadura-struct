@@ -23,7 +23,7 @@ Entram os IDs físicos das barras pertencentes aos detalhamentos cujos desenhos 
 - Ocultar objetos, desligar layers ou alterar estilos de impressão não retira aço do quadro.
 - Quantidade base, multiplicador da armadura e repetição do detalhamento são aplicados pelas regras existentes, uma única vez.
 - Posições de fabricação compartilhadas somam apenas as ocorrências que participam daquela folha, com suas contribuições preservadas.
-- A mesma armadura documentada em duas folhas pode aparecer nos dois quadros. **Somar os quadros das folhas não equivale necessariamente ao levantamento global**; use a consulta global para o total do projeto.
+- A mesma armadura documentada em duas folhas pode aparecer nos dois quadros. **Somar os quadros das folhas não equivale necessariamente ao levantamento global**; use a consulta global para o total do projeto. Para exportar estes quadros em CSV, por folha ou consolidados, use [CSV por escopo](CSV-POR-ESCOPO.md).
 - Uma folha vazia pode receber o quadro vazio. Colocar um desenho depois o preenche automaticamente.
 
 ## Atualizar, mover e remover
