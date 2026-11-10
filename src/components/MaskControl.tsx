@@ -58,9 +58,10 @@ export default function MaskControl({
     entityId?: string,
   ) => boolean;
   onManipulate: (
-    mode: 'copy' | 'erase' | 'mirror',
+    mode: 'move' | 'copy' | 'erase' | 'mirror',
     id: string,
     entityId?: string,
+    scope?: 'entities' | 'mask',
   ) => boolean;
   onBatch: (mode: 'import' | 'associate') => void;
   onClose: () => void;
@@ -209,7 +210,7 @@ export default function MaskControl({
             >
               Usar esta máscara e Offset
             </button>
-            {(['mirror', 'copy', 'erase'] as const).map((mode) => (
+            {(['move', 'mirror', 'copy', 'erase'] as const).map((mode) => (
               <button
                 key={mode}
                 disabled={!ready}
@@ -217,13 +218,24 @@ export default function MaskControl({
                   if (onManipulate(mode, m.id, eid || undefined)) onClose();
                 }}
               >
-                {mode === 'copy'
-                  ? 'Usar esta máscara e Copiar entidades'
-                  : mode === 'mirror'
-                    ? 'Usar esta máscara e Espelhar entidades'
-                    : 'Usar esta máscara e Apagar entidades'}
+                {mode === 'move'
+                  ? 'Usar esta máscara e Mover entidades'
+                  : mode === 'copy'
+                    ? 'Usar esta máscara e Copiar entidades'
+                    : mode === 'mirror'
+                      ? 'Usar esta máscara e Espelhar entidades'
+                      : 'Usar esta máscara e Apagar entidades'}
               </button>
             ))}
+            <button
+              disabled={!ready}
+              title="Translada somente a origem; as entidades acompanham sem nova transformação local."
+              onClick={() => {
+                if (onManipulate('move', m.id, undefined, 'mask')) onClose();
+              }}
+            >
+              Mover máscara inteira (origem)
+            </button>
             {(['trim', 'extend'] as const).map((mode) => (
               <button
                 key={mode}

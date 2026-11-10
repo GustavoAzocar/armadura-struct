@@ -27,12 +27,15 @@ import {
   type Project,
 } from './types';
 
-export type MaskManipMode = 'copy' | 'erase' | 'mirror';
+export type MaskManipMode = 'move' | 'copy' | 'erase' | 'mirror';
+/** Move reach: chosen entities (local geometry) or the whole mask (origin only). */
+export type MaskMoveScope = 'entities' | 'mask';
 export type MaskManipTransform = Extract<
   SelectionTransform,
   { kind: 'translate' | 'mirror' }
 >;
 export const maskManipNames: Record<MaskManipMode, string> = {
+  move: 'Mover',
   copy: 'Copiar',
   mirror: 'Espelhar',
   erase: 'Apagar',
@@ -208,6 +211,8 @@ export function previewMaskManipulation(
     throw new Error('Escolha o ponto base e destino da operação.');
   if (mode === 'copy' && transform?.kind !== 'translate')
     throw new Error('Copiar usa translação do ponto base ao destino.');
+  if (mode === 'move' && transform?.kind !== 'translate')
+    throw new Error('Mover usa translação do ponto base ao destino.');
   if (mode === 'mirror' && transform?.kind !== 'mirror')
     throw new Error('Espelhar requer dois pontos do eixo.');
   if (mode === 'erase' && transform)
@@ -274,7 +279,8 @@ export function applyMaskManipulation(
         : {}),
     }));
     primitives = [...plan.mask.primitives, ...copies];
-  } else if (plan.mode === 'mirror') {
+  } else if (plan.mode === 'mirror' || plan.mode === 'move') {
+    // In-place replacement: IDs, layers, styles and lineage stay with the entity.
     const replacements = new Map(
       plan.refs.map((r, i) => [r.primitive, fresh.result[i]]),
     );
@@ -285,4 +291,99 @@ export function applyMaskManipulation(
   const mask = { ...plan.mask, primitives };
   validateNativeMask(mask);
   return { ...p, masks: p.masks.map((m) => (m === plan.mask ? mask : m)) };
+}
+const extents = new WeakMap<
+  Mask,
+  { x0: number; y0: number; x1: number; y1: number }
+>();
+export type WholeMaskMovePlan = {
+  project: Project;
+  mask: Mask;
+  delta: Point;
+  result: Mask;
+  /** Entities on hidden layers that follow the origin; reported, never silent. */
+  hidden: number;
+  context: MaskDrawingContext;
+};
+/**
+ * Whole-mask reach: only `origin` changes. Local primitives, scale, rotation,
+ * layers and association stay byte-identical, so nothing is displaced twice.
+ */
+export function previewWholeMaskMove(
+  p: Project,
+  maskId: string,
+  context: MaskDrawingContext,
+  delta: Point,
+): WholeMaskMovePlan {
+  const mask = maskEditTarget(p, maskId, context);
+  if (
+    ![delta.x, delta.y].every((n) => Number.isFinite(n) && Math.abs(n) <= 1e9)
+  )
+    throw new Error(
+      'Informe um deslocamento finito dentro dos limites do modelo.',
+    );
+  let hidden = 0;
+  for (const q of mask.primitives) {
+    const s = layerState(p, context.key, stylePrimitive(p, mask, q).layerId!);
+    if (s.visible && !s.editable)
+      throw new Error(
+        'A máscara inteira contém entidades em layer bloqueado; libere o layer ou mova somente as entidades editáveis.',
+      );
+    if (!s.visible) hidden++;
+  }
+  const origin = { x: mask.origin.x + delta.x, y: mask.origin.y + delta.y };
+  const result = { ...mask, origin };
+  // Pure translation shifts the model extent by exactly delta; the extent of
+  // this immutable mask snapshot is computed once and reused by the preview.
+  let e = extents.get(mask);
+  if (!e) {
+    e = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    for (const v of maskPrimitives(mask))
+      for (const a of v.points) {
+        e.x0 = Math.min(e.x0, a.x);
+        e.y0 = Math.min(e.y0, a.y);
+        e.x1 = Math.max(e.x1, a.x);
+        e.y1 = Math.max(e.y1, a.y);
+      }
+    extents.set(mask, e);
+  }
+  const coords = [
+    origin,
+    ...(e.x0 <= e.x1
+      ? [
+          { x: e.x0 + delta.x, y: e.y0 + delta.y },
+          { x: e.x1 + delta.x, y: e.y1 + delta.y },
+        ]
+      : []),
+  ];
+  if (
+    !coords.every((v) =>
+      [v.x, v.y].every((n) => Number.isFinite(n) && Math.abs(n) <= 1e9),
+    )
+  )
+    throw new Error(
+      'Resultado fora dos limites de coordenadas ±1.000.000.000 mm.',
+    );
+  return { project: p, mask, delta, result, hidden, context: { ...context } };
+}
+export function applyWholeMaskMove(
+  p: Project,
+  plan: WholeMaskMovePlan,
+  context: MaskDrawingContext,
+): Project {
+  if (
+    p !== plan.project ||
+    context.key !== plan.context.key ||
+    context.detailId !== plan.context.detailId ||
+    context.scopeDetailId !== plan.context.scopeDetailId
+  )
+    throw new Error('O projeto mudou. Reinicie Manipular no contexto correto.');
+  const fresh = previewWholeMaskMove(p, plan.mask.id, context, plan.delta);
+  if (fresh.mask !== plan.mask)
+    throw new Error('A máscara mudou. Reinicie Manipular.');
+  if (Math.hypot(plan.delta.x, plan.delta.y) < 1e-6) return p;
+  return {
+    ...p,
+    masks: p.masks.map((m) => (m === plan.mask ? fresh.result : m)),
+  };
 }

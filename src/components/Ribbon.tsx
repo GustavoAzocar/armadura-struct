@@ -244,7 +244,6 @@ export default function Ribbon({
         items: [
           {
             ...item('mask-move', 'Mover entidades da máscara', Move),
-            disabled: true,
             caption: 'Mover',
           },
           {

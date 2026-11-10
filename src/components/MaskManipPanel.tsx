@@ -2,7 +2,11 @@ import { useState } from 'react';
 import type { Point, Project } from '../domain/types';
 import type { MaskDrawingContext } from '../domain/maskDrawing';
 import type { MaskCadEntity, MaskEntityRef } from '../domain/maskCadEditing';
-import { maskManipNames, type MaskManipMode } from '../domain/maskManipulation';
+import {
+  maskManipNames,
+  type MaskManipMode,
+  type MaskMoveScope,
+} from '../domain/maskManipulation';
 export type MaskManipSession = {
   project: Project;
   maskId: string;
@@ -10,6 +14,8 @@ export type MaskManipSession = {
   mode: MaskManipMode;
   stage: 'selection' | 'base' | 'target' | 'confirm';
   refs: MaskEntityRef[];
+  /** Only Mover offers the whole mask; every other mode works on entities. */
+  scope?: MaskMoveScope;
   base?: Point;
   cursor?: Point;
   axisEnd?: Point;
@@ -17,6 +23,8 @@ export type MaskManipSession = {
   hadOperations: boolean;
   issue?: string;
 };
+const mm = (n: number) =>
+  `${n.toLocaleString('pt-BR', { maximumFractionDigits: 3, useGrouping: false })}`;
 export default function MaskManipPanel({
   session: s,
   entities,
@@ -25,6 +33,8 @@ export default function MaskManipPanel({
   onCancel,
   error,
   onRemoveSource,
+  onScope,
+  hiddenFollowers = 0,
 }: {
   session: MaskManipSession;
   entities: MaskCadEntity[];
@@ -33,8 +43,16 @@ export default function MaskManipPanel({
   onCancel: () => void;
   error?: string;
   onRemoveSource: (value: boolean) => void;
+  onScope?: (scope: MaskMoveScope) => void;
+  hiddenFollowers?: number;
 }) {
   const [query, setQuery] = useState('');
+  const whole = s.mode === 'move' && s.scope === 'mask';
+  const mask = s.project.masks.find((m) => m.id === s.maskId);
+  const delta =
+    s.mode === 'move' && s.base && s.cursor
+      ? { x: s.cursor.x - s.base.x, y: s.cursor.y - s.base.y }
+      : undefined;
   return (
     <section
       className="mask-cad-panel"
@@ -70,11 +88,53 @@ export default function MaskManipPanel({
                   : 'Destino / prévia'}
         </span>
       </div>
-      <p>
-        <strong>{s.project.masks.find((m) => m.id === s.maskId)?.name}</strong>{' '}
-        · {s.refs.length} entidade(s). A máscara inteira permanece.
-      </p>
-      {s.stage === 'selection' ? (
+      {whole ? (
+        <p data-testid="mask-move-scope">
+          <strong>{mask?.name}</strong> · alcance: <b>máscara inteira</b> —
+          somente a origem é transladada; {mask?.primitives.length ?? 0}{' '}
+          entidade(s) acompanham sem nova transformação local.
+          {hiddenFollowers
+            ? ` ${hiddenFollowers} delas estão em layers ocultos e também acompanham.`
+            : ''}
+        </p>
+      ) : (
+        <p data-testid={s.mode === 'move' ? 'mask-move-scope' : undefined}>
+          <strong>{mask?.name}</strong> · {s.mode === 'move' ? 'alcance: ' : ''}
+          {s.refs.length} entidade(s).{' '}
+          {s.mode === 'move'
+            ? 'Somente estas entidades se deslocam; origem, escala e rotação da máscara permanecem.'
+            : 'A máscara inteira permanece.'}
+        </p>
+      )}
+      {s.mode === 'move' && s.stage === 'selection' && onScope && (
+        <fieldset className="field" aria-label="Alcance de Mover">
+          <legend>Alcance</legend>
+          <label>
+            <input
+              type="radio"
+              name="mask-move-scope"
+              checked={!whole}
+              onChange={() => onScope('entities')}
+            />
+            Entidades selecionadas da máscara ativa
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="mask-move-scope"
+              checked={whole}
+              onChange={() => onScope('mask')}
+            />
+            Máscara inteira (origem)
+          </label>
+        </fieldset>
+      )}
+      {s.stage === 'selection' && whole ? (
+        <p>
+          Enter confirma a máscara inteira como alvo. Aço, outras máscaras e
+          cotas externas não participam.
+        </p>
+      ) : s.stage === 'selection' ? (
         <>
           <p>
             Clique para acumular/retirar entidades ou selecione por nome/ID.
@@ -130,11 +190,19 @@ export default function MaskManipPanel({
               : 'Clique no ponto base ou informe coordenadas no Comando CAD.'
             : s.mode === 'copy'
               ? 'Escolha destino(s) por clique/snap ou coordenadas. O conjunto original e a base permanecem para novas cópias. Enter/Esc encerra.'
-              : s.stage === 'confirm'
-                ? 'Eixo definido. Confira a prévia e confirme uma única operação.'
-                : s.mode === 'mirror'
-                  ? 'Clique no segundo ponto do eixo por snap ou coordenadas. Eixo mínimo: 0,01 mm.'
-                  : 'Clique no destino ou use coordenadas no Comando CAD.'}
+              : s.mode === 'move'
+                ? 'Clique no destino por snap/ortogonal ou informe X,Y, @dx,dy ou @distância<ângulo no Comando CAD. Uma única translação; Esc cancela.'
+                : s.stage === 'confirm'
+                  ? 'Eixo definido. Confira a prévia e confirme uma única operação.'
+                  : s.mode === 'mirror'
+                    ? 'Clique no segundo ponto do eixo por snap ou coordenadas. Eixo mínimo: 0,01 mm.'
+                    : 'Clique no destino ou use coordenadas no Comando CAD.'}
+        </p>
+      )}
+      {delta && (
+        <p data-testid="mask-move-delta" aria-live="polite">
+          Δ = ({mm(delta.x)}; {mm(delta.y)}) mm ·{' '}
+          {mm(Math.hypot(delta.x, delta.y))} mm
         </p>
       )}
       {s.mode === 'mirror' && (
