@@ -188,10 +188,107 @@ test('abrir um recente respeita alterações não salvas', async ({ page }) => {
     .getByRole('button', { name: 'Salvar e abrir' })
     .click();
   await download;
+  await expect(guard).toContainText('O navegador não confirma');
+  await expect(
+    page.getByRole('banner').getByText('B', { exact: true }),
+  ).toBeVisible();
+  await guard.getByRole('button', { name: 'Confirmar cópia e abrir' }).click();
   await expect(recents(page)).toHaveCount(0);
   await expect(
     page.getByRole('banner').getByText('A', { exact: true }),
   ).toBeVisible();
+});
+
+test('cancelar após solicitar download mantém alterações e a confirmação de não salvo', async ({
+  page,
+}) => {
+  await openFile(page, 'A', 'id-a', 'a.json');
+  await openFile(page, 'B', 'id-b', 'b.json');
+  await makeDirty(page);
+  await showRecents(page);
+  const chooseA = () =>
+    upload(page, 'recent-input', 'a.json', fixture('A', 'id-a'));
+  const reopenA = () =>
+    recents(page)
+      .getByRole('button', { name: 'Reabrir A', exact: true })
+      .click();
+  await reopenA();
+  await chooseA();
+  const guard = recents(page).getByRole('alertdialog');
+  const download = page.waitForEvent('download');
+  await guard.getByRole('button', { name: 'Salvar e abrir' }).click();
+  await download;
+  await expect(guard).toContainText('O navegador não confirma');
+  await guard.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(guard).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Desfazer' })).toBeEnabled();
+  await expect(
+    page.getByRole('banner').getByText('B', { exact: true }),
+  ).toBeVisible();
+  await reopenA();
+  await chooseA();
+  await expect(guard).toContainText('alterações não salvas');
+  await page.keyboard.press('Escape');
+  await expect(recents(page)).toHaveCount(0);
+  await expect(
+    page.getByRole('banner').getByText('B', { exact: true }),
+  ).toBeVisible();
+});
+
+test('download pelo Salvar projeto também mantém a proteção de alterações não salvas', async ({
+  page,
+}) => {
+  await openFile(page, 'A', 'id-a', 'a.json');
+  await openFile(page, 'B', 'id-b', 'b.json');
+  await makeDirty(page);
+  const download = page.waitForEvent('download');
+  await page.keyboard.press('Control+s');
+  await download;
+  await showRecents(page);
+  await recents(page)
+    .getByRole('button', { name: 'Reabrir A', exact: true })
+    .click();
+  await upload(page, 'recent-input', 'a.json', fixture('A', 'id-a'));
+  await expect(recents(page).getByRole('alertdialog')).toContainText(
+    'alterações não salvas',
+  );
+});
+
+test('leitura atrasada de um recente não substitui outro projeto aberto nesse intervalo', async ({
+  page,
+}) => {
+  await openFile(page, 'A', 'id-a', 'a.json');
+  await openFile(page, 'B', 'id-b', 'b.json');
+  await page.evaluate(() => {
+    const text = File.prototype.text;
+    File.prototype.text = function () {
+      if (this.name !== 'atrasado.json') return text.call(this);
+      return new Promise<string>((resolve) => {
+        Object.assign(window, {
+          releaseRecentRead: async () => resolve(await text.call(this)),
+        });
+      });
+    };
+  });
+  await showRecents(page);
+  await recents(page)
+    .getByRole('button', { name: 'Reabrir A', exact: true })
+    .click();
+  await upload(page, 'recent-input', 'atrasado.json', fixture('A', 'id-a'));
+  await page.waitForFunction(() => 'releaseRecentRead' in window);
+  await openFile(page, 'C', 'id-c', 'c.json');
+  await page.evaluate(() =>
+    (
+      window as unknown as { releaseRecentRead: () => Promise<void> }
+    ).releaseRecentRead(),
+  );
+  await expect(recents(page).getByRole('status')).toContainText(
+    'projeto ou contexto mudou',
+  );
+  await expect(
+    page.getByRole('banner').getByText('C', { exact: true }),
+  ).toBeVisible();
+  expect(await titles(page)).toEqual(['C', 'B', 'A']);
 });
 
 test('abrir sem salvar substitui o projeto depois de confirmação explícita', async ({

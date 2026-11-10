@@ -26,6 +26,7 @@ export default function RecentProjects({
   notice: string;
   guard: {
     reasons: string[];
+    downloadPending?: boolean;
     choose: (c: 'save' | 'discard' | 'cancel') => void;
   } | null;
   onReopen: (entry: RecentEntry) => void;
@@ -36,7 +37,11 @@ export default function RecentProjects({
   const labels = useMemo(() => recentLabels(entries), [entries]);
   const [confirmClear, setConfirmClear] = useState(false);
   const closeButton = useRef<HTMLButtonElement>(null);
-  useEffect(() => closeButton.current?.focus(), []);
+  const guardPanel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (guard) guardPanel.current?.querySelector('button')?.focus();
+    else closeButton.current?.focus();
+  }, [guard]);
   useEffect(() => {
     if (!entries.length) setConfirmClear(false);
   }, [entries.length]);
@@ -44,7 +49,7 @@ export default function RecentProjects({
     <div
       className="modal-backdrop"
       onPointerDown={(e) => {
-        if (e.target === e.currentTarget && !busy) onClose();
+        if (e.target === e.currentTarget && (!busy || guard)) onClose();
       }}
     >
       <div
@@ -53,7 +58,7 @@ export default function RecentProjects({
         aria-modal="true"
         aria-labelledby="recent-title"
         onKeyDown={(e) => {
-          if (e.key === 'Escape' && !busy) {
+          if (e.key === 'Escape' && (!busy || guard)) {
             e.stopPropagation();
             onClose();
           }
@@ -65,7 +70,7 @@ export default function RecentProjects({
           className="modal-close"
           aria-label="Fechar Projetos recentes"
           onClick={onClose}
-          disabled={busy}
+          disabled={busy && !guard}
         >
           <X size={19} />
         </button>
@@ -86,6 +91,7 @@ export default function RecentProjects({
         )}
         {guard && (
           <div
+            ref={guardPanel}
             className="recent-guard"
             role="alertdialog"
             aria-label="Alterações não salvas"
@@ -99,15 +105,19 @@ export default function RecentProjects({
                 Cancelar
               </button>
               <button type="button" onClick={() => guard.choose('discard')}>
-                Abrir sem salvar
+                {guard.downloadPending
+                  ? 'Confirmar cópia e abrir'
+                  : 'Abrir sem salvar'}
               </button>
-              <button
-                type="button"
-                className="primary"
-                onClick={() => guard.choose('save')}
-              >
-                Salvar e abrir
-              </button>
+              {!guard.downloadPending && (
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => guard.choose('save')}
+                >
+                  Salvar e abrir
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -181,7 +191,7 @@ export default function RecentProjects({
                 Limpar histórico
               </button>
             ))}
-          <button type="button" onClick={onClose} disabled={busy}>
+          <button type="button" onClick={onClose} disabled={busy && !guard}>
             Fechar
           </button>
         </div>

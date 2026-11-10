@@ -37,6 +37,7 @@ import {
   PROJECT_FILE,
 } from './lib/projectFolder';
 import RecentProjects from './components/RecentProjects';
+import { captureRecentContext } from './lib/recentProjectSafety';
 import {
   readRecents,
   recordRecent,
@@ -703,11 +704,13 @@ export default function App() {
     [recentNotice, setRecentNotice] = useState('');
   const [recentGuard, setRecentGuard] = useState<{
     reasons: string[];
+    downloadPending?: boolean;
     choose: (c: 'save' | 'discard' | 'cancel') => void;
   } | null>(null);
   /** Último projeto aberto/salvo; qualquer outro `present` tem alterações não salvas. */
   const savedBaseline = useRef<Project | undefined>(undefined);
   const recentInput = useRef<HTMLInputElement>(null);
+  const recentInputContext = useRef<(() => void) | undefined>(undefined);
   const rememberRecent = (input: RecentInput) =>
     setRecents(recordRecent(input));
   useEffect(() => {
@@ -5393,12 +5396,14 @@ export default function App() {
     setTool('select');
     setTimeout(() => canvas()?.fit(), 50);
   };
-  const saveCurrent = async (project: Project): Promise<boolean> => {
+  const saveCurrent = async (
+    project: Project,
+  ): Promise<'saved' | 'download' | 'cancelled'> => {
     if (projectFolderLabel(project)) {
       setSaveState('Gravando na pasta…');
       try {
         await saveProjectFolder(project);
-        if (historyRef.current.present !== project) return false;
+        if (historyRef.current.present !== project) return 'cancelled';
         savedBaseline.current = project;
         setSaveState('Salvo na pasta do projeto');
         notify('Arquivo nativo salvo na pasta vinculada.');
@@ -5409,7 +5414,7 @@ export default function App() {
           fileName: PROJECT_FILE,
           location: projectFolderLabel(project),
         });
-        return true;
+        return 'saved';
       } catch (e) {
         if (historyRef.current.present === project)
           setSaveState('Acesso perdido/falha na pasta — alterações em memória');
@@ -5422,21 +5427,25 @@ export default function App() {
       'application/json',
       'json',
     );
-    if (!saved) return false;
+    if (!saved) return 'cancelled';
+    if (historyRef.current.present !== project) return 'cancelled';
+    if (!path) {
+      notify(
+        'Download solicitado. Confira a cópia; o navegador não confirma gravação no disco.',
+      );
+      return 'download';
+    }
     savedBaseline.current = project;
     // Só o desktop confirma a gravação em disco e informa o local.
-    if (path)
-      rememberRecent({
-        kind: 'file',
-        projectId: project.id,
-        name: project.name,
-        fileName: path.split(/[\\/]/).at(-1) || 'projeto.armstruct.json',
-        location: path,
-      });
-    notify(
-      'Cópia/download solicitado. Confira o arquivo; recuperação local não confirma gravação no disco.',
-    );
-    return true;
+    rememberRecent({
+      kind: 'file',
+      projectId: project.id,
+      name: project.name,
+      fileName: path.split(/[\\/]/).at(-1) || 'projeto.armstruct.json',
+      location: path,
+    });
+    notify('Cópia do projeto salva.');
+    return 'saved';
   };
   /** Resolve alterações não salvas e gravações pendentes ANTES de substituir o projeto. */
   const confirmReplace = (): Promise<boolean> => {
@@ -5460,32 +5469,64 @@ export default function App() {
     }
     if (historyRef.current.present === savedBaseline.current)
       return Promise.resolve(true);
-    return new Promise<boolean>((resolve) =>
+    const base = historyRef.current.present;
+    return new Promise<boolean>((resolve) => {
+      let settled = false,
+        saving = false;
+      const finish = (allowed: boolean) => {
+        settled = true;
+        setRecentGuard(null);
+        resolve(allowed);
+      };
+      const choose = async (c: 'save' | 'discard' | 'cancel') => {
+        if (settled || saving) return;
+        if (historyRef.current.present !== base) return finish(false);
+        if (c !== 'save') return finish(c === 'discard');
+        saving = true;
+        setRecentGuard(null);
+        try {
+          const result = await saveCurrent(base);
+          if (historyRef.current.present !== base) return finish(false);
+          if (result !== 'download') return finish(result === 'saved');
+          // Pedir um download não comprova que o usuário salvou a cópia.
+          setRecentGuard({
+            reasons: [
+              'Download solicitado. O navegador não confirma se a cópia foi salva. Confira o arquivo antes de continuar; cancelar mantém o projeto atual com suas alterações.',
+            ],
+            downloadPending: true,
+            choose,
+          });
+        } catch (e) {
+          setRecentNotice(
+            `Não foi possível salvar o projeto atual (${e instanceof Error ? e.message : 'falha'}). Nada foi substituído.`,
+          );
+          finish(false);
+        } finally {
+          saving = false;
+        }
+      };
       setRecentGuard({
         reasons: ['O projeto atual tem alterações não salvas.'],
-        choose: async (c) => {
-          setRecentGuard(null);
-          if (c !== 'save') return resolve(c === 'discard');
-          try {
-            resolve(await saveCurrent(historyRef.current.present));
-          } catch (e) {
-            setRecentNotice(
-              `Não foi possível salvar o projeto atual (${e instanceof Error ? e.message : 'falha'}). Nada foi substituído.`,
-            );
-            resolve(false);
-          }
-        },
-      }),
-    );
+        choose,
+      });
+    });
   };
+  const recentContext = () =>
+    captureRecentContext(
+      () => historyRef.current.present,
+      () => `${maskImportContext.current}:${isolationRef.current ?? ''}`,
+    );
   /** Retorna true ao abrir, false se cancelado, ou a mensagem de erro. */
   const onProjectFile = async (
     file: File,
     guard?: () => Promise<boolean>,
+    assertCurrent = guard ? recentContext() : undefined,
   ): Promise<boolean | string> => {
     try {
       const next = await readProjectFile(file);
+      assertCurrent?.();
       if (guard && !(await guard())) return false;
+      assertCurrent?.();
       if (!commit(() => next)) return false;
       afterProjectReplaced();
       rememberRecent({
@@ -5512,17 +5553,22 @@ export default function App() {
           : 'Abertura cancelada; o projeto atual foi mantido.',
       );
   };
-  const reopenFolder = async (): Promise<boolean | string> => {
+  const reopenFolder = async (
+    assertCurrent = recentContext(),
+  ): Promise<boolean | string> => {
     try {
       const folder = await pickProjectFolder();
+      assertCurrent();
       if (!folder) return false;
       const raw = await folder.read();
+      assertCurrent();
       if (raw === undefined)
         throw Error(`A pasta escolhida não contém ${PROJECT_FILE}`);
       const next = decodeProject(raw);
       if (!(await confirmReplace())) return false;
       if ((await folder.read()) !== raw)
         throw Error('O arquivo mudou após a escolha');
+      assertCurrent();
       attachProjectFolder(next, folder, raw);
       if (!commit(() => next)) return false;
       afterProjectReplaced();
@@ -5547,13 +5593,20 @@ export default function App() {
       return;
     }
     setRecentBusy(true);
+    const assertCurrent = recentContext();
     try {
-      if (entry.kind === 'folder') finishRecentOpen(await reopenFolder());
+      if (entry.kind === 'folder')
+        finishRecentOpen(await reopenFolder(assertCurrent));
       else {
         const file = await pickNativeFile(['json'], entry.location);
-        if (file === undefined) recentInput.current?.click();
-        else if (file)
-          finishRecentOpen(await onProjectFile(file, confirmReplace));
+        assertCurrent();
+        if (file === undefined) {
+          recentInputContext.current = assertCurrent;
+          recentInput.current?.click();
+        } else if (file)
+          finishRecentOpen(
+            await onProjectFile(file, confirmReplace, assertCurrent),
+          );
       }
     } catch (e) {
       finishRecentOpen(
@@ -6038,10 +6091,14 @@ export default function App() {
         onChange={async (e) => {
           const f = e.target.files?.[0];
           e.target.value = '';
-          if (!f) return;
+          const assertCurrent = recentInputContext.current;
+          recentInputContext.current = undefined;
+          if (!f || !assertCurrent) return;
           setRecentBusy(true);
           try {
-            finishRecentOpen(await onProjectFile(f, confirmReplace));
+            finishRecentOpen(
+              await onProjectFile(f, confirmReplace, assertCurrent),
+            );
           } finally {
             setRecentBusy(false);
           }
@@ -8003,6 +8060,7 @@ export default function App() {
           onClear={() => setRecents(clearRecents())}
           onClose={() => {
             recentGuard?.choose('cancel');
+            recentInputContext.current = undefined;
             setRecentOpen(false);
           }}
         />
@@ -8087,7 +8145,9 @@ export default function App() {
                 );
               }
               if (!commit(() => result.project)) return false;
-              savedBaseline.current = historyRef.current.present;
+              savedBaseline.current = folder
+                ? historyRef.current.present
+                : undefined;
               if (folder)
                 rememberRecent({
                   kind: 'folder',

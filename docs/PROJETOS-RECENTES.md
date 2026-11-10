@@ -29,9 +29,11 @@ A leitura e a validação são as do **Abrir projeto** existente (`readProjectFi
 Ao reabrir um recente, o aplicativo:
 
 1. recusa enquanto houver gravação em pasta em andamento, comando em andamento ou edição isolada;
-2. se o projeto tiver alterações desde a última abertura ou gravação, pergunta **Cancelar**, **Abrir sem salvar** ou **Salvar e abrir**. Se salvar falhar ou for cancelado, nada é substituído.
+2. se o projeto tiver alterações desde a última abertura ou gravação, pergunta **Cancelar**, **Abrir sem salvar** ou **Salvar e abrir**. Se salvar falhar ou for cancelado, nada é substituído;
+3. no navegador, solicitar um download não marca o documento como salvo nem abre o recente automaticamente. Depois de conferir o arquivo baixado, use **Confirmar cópia e abrir**, ou **Cancelar** para manter o documento e suas alterações;
+4. revalida o documento e o contexto após as operações assíncronas. Se forem alterados durante a seleção, leitura ou gravação, a abertura é cancelada e deve ser reiniciada.
 
-O estado "salvo" é o último projeto aberto, gravado ou confirmado na pasta vinculada. Um projeto restaurado da recuperação local é tratado como não salvo. O botão **Abrir projeto** existente não mudou.
+O estado "salvo" é o último projeto aberto ou gravado com confirmação da API de arquivos, inclusive na pasta vinculada. Um download solicitado, um projeto novo sem pasta e um projeto restaurado da recuperação local são tratados como não salvos. O botão **Abrir projeto** existente não mudou.
 
 ## Identidade, remoção e privacidade
 
