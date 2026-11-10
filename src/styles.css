@@ -4663,6 +4663,69 @@ button.hierarchy-drawing {
     margin-bottom: 6px;
   }
 }
+.csv-export fieldset {
+  border: 1px solid #e0e7f4;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  min-width: 0;
+}
+.csv-export legend {
+  font-weight: 550;
+  color: #536b94;
+  padding: 0 4px;
+}
+.csv-export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.csv-export label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.csv-export label.field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.csv-export-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 18px;
+}
+.csv-export-list {
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid #e0e7f4;
+  border-radius: 4px;
+  padding: 6px;
+}
+.csv-export-list small {
+  margin-left: auto;
+  color: #9da7b9;
+}
+.csv-export .transfer-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 8px;
+}
+.csv-export-preview {
+  font-size: 11px;
+}
+.csv-export-files {
+  margin: 4px 0;
+  padding-left: 18px;
+  font-family: monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
 .free-text-symbols {
   display: flex;
   gap: 4px;
@@ -4671,4 +4734,17 @@ button.hierarchy-drawing {
   margin: 0;
   min-width: 30px;
   padding: 2px 6px;
+}
+
+.csv-export {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.csv-export::backdrop {
+  background: #0d1c3980;
+  backdrop-filter: blur(3px);
 }

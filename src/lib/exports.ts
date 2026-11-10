@@ -9,6 +9,7 @@ import { validateLayers, dashArray } from '../domain/layers';
 import type { Primitive } from '../domain/types';
 import { quantitySourceLabel } from '../domain/detailQuantities';
 import { jsPDF } from 'jspdf';
+import { csvField } from './csv';
 import { bounds, format } from '../domain/geometry';
 import {
   schedule,
@@ -395,10 +396,7 @@ export function toDxf(p: Project): string {
 }
 export function toCsv(p: Project) {
   assertExportable(p);
-  const safe = (v: unknown) =>
-    `"${String(v)
-      .replace(/^(?=[=+@\-\t\r])/, "'")
-      .replace(/"/g, '""')}"`;
+  const safe = csvField;
   return (
     '\ufeff' +
     [

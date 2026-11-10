@@ -285,6 +285,7 @@ const CadInterpretDialog = lazy(
 );
 const VisibilityDialog = lazy(() => import('./components/VisibilityDialog'));
 const PlotDialog = lazy(() => import('./components/PlotDialog'));
+const CsvExportDialog = lazy(() => import('./components/CsvExportDialog'));
 const LayerManager = lazy(() => import('./components/LayerManager'));
 const ArmatureCloneDialog = lazy(
   () => import('./components/ArmatureCloneDialog'),
@@ -496,6 +497,7 @@ export default function App() {
     projectId: string;
   } | null>(null);
   const [plotOpen, setPlotOpen] = useState(false);
+  const [csvExportOpen, setCsvExportOpen] = useState(false);
   const [alignmentRequest, setAlignmentRequest] =
     useState<AlignmentSession | null>(null);
   const [vertexRequest, setVertexRequest] = useState<VertexSession | null>(
@@ -5684,6 +5686,10 @@ export default function App() {
       setPlotOpen(true);
       return;
     }
+    if (a === 'csv-scoped') {
+      setCsvExportOpen(true);
+      return;
+    }
     if (a === 'layers') {
       setLayersOpen(true);
       return;
@@ -6593,7 +6599,16 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (updateModal || pluginView) {
+      if (updateModal || pluginView || csvExportOpen) {
+        if (
+          csvExportOpen &&
+          !updateModal &&
+          !pluginView &&
+          e.key === 'Escape'
+        ) {
+          e.preventDefault();
+          if (!fileOperations.current) setCsvExportOpen(false);
+        }
         if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -8761,6 +8776,58 @@ export default function App() {
           />
         </Suspense>
       )}
+      {csvExportOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Abrindo exportação CSV…</div>}
+        >
+          <CsvExportDialog
+            key={p.id}
+            project={p}
+            activeSheetId={activeSheet?.id}
+            onClose={() => setCsvExportOpen(false)}
+            onExport={async (selection, options) => {
+              fileOperations.current++;
+              try {
+                const { planScopedCsv, packageCsvFiles } = await import(
+                  './lib/scopedCsv'
+                );
+                if (historyRef.current.present !== p)
+                  throw new Error(
+                    'O projeto mudou durante a preparação do CSV. Confira os escopos e exporte novamente.',
+                  );
+                // Leitura pura do projeto atual; nada é confirmado no histórico.
+                const plan = planScopedCsv(
+                  p,
+                  selection,
+                  options,
+                  activeSheet?.id,
+                );
+                if (plan.issues.length) {
+                  return plan.issues.join(' ');
+                }
+                const pack = packageCsvFiles(plan.files, p.name, selection);
+                const saved = await saveFile(
+                  pack.name,
+                  pack.data,
+                  pack.mime,
+                  pack.ext,
+                );
+                if (saved)
+                  notify(
+                    `Exportação CSV concluída: ${plan.files.length} arquivo(s)${pack.ext === 'zip' ? ' em ZIP' : ''}.`,
+                  );
+                return saved;
+              } catch (e) {
+                return e instanceof Error
+                  ? e.message
+                  : 'Não foi possível exportar o CSV.';
+              } finally {
+                fileOperations.current--;
+              }
+            }}
+          />
+        </Suspense>
+      )}
       {plotOpen && (
         <Suspense
           fallback={<div className="busy-overlay">Abrindo plotagem…</div>}
@@ -9183,6 +9250,7 @@ export default function App() {
               setCadInterpretation(null);
               setCloneRequest(null);
               setPlotOpen(false);
+              setCsvExportOpen(false);
               setLayersOpen(false);
               setVisibilityOpen(false);
               setFabricationOpen(false);

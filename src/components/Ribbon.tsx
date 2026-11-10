@@ -95,6 +95,7 @@ export type Action =
   | 'pdf'
   | 'dxf'
   | 'csv'
+  | 'csv-scoped'
   | 'insert-sheet-schedule'
   | 'schedule'
   | 'help'
@@ -223,6 +224,7 @@ export default function Ribbon({
           item('pdf', 'Prancha PDF', FileText),
           item('dxf', 'Desenho DXF', Download),
           item('csv', 'Quadro CSV', Table2),
+          item('csv-scoped', 'CSV por escopo', Table2),
           item('export-detail', 'Pacote de detalhamento', Download),
         ],
       },

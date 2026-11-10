@@ -23,8 +23,8 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: Plugins UI and IPC contract
-        run: npx playwright test tests/e2e/plugins.spec.ts
+      - name: Plugins and scoped CSV UI contracts
+        run: npx playwright test tests/e2e/plugins.spec.ts tests/e2e/scopedCsv.spec.ts
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
