@@ -27,16 +27,19 @@ import {
   type Project,
 } from './types';
 
-export type MaskManipMode = 'copy' | 'erase' | 'mirror';
-export type MaskManipTransform = Extract<
-  SelectionTransform,
-  { kind: 'translate' | 'mirror' }
->;
+export type MaskManipMode = 'copy' | 'erase' | 'mirror' | 'rotate';
+export type MaskManipTransform = SelectionTransform;
 export const maskManipNames: Record<MaskManipMode, string> = {
   copy: 'Copiar',
   mirror: 'Espelhar',
+  rotate: 'Rotacionar',
   erase: 'Apagar',
 };
+/** 0°, ±360°, 720°… return the geometry to where it was: nothing to commit. */
+export function neutralRotation(angle: number) {
+  const r = ((angle % 360) + 360) % 360;
+  return r < 1e-9 || 360 - r < 1e-9;
+}
 /** References are resolved against this exact snapshot, never by a residual steel selection. */
 export function maskManipSelection(
   p: Project,
@@ -103,7 +106,10 @@ export function transformMaskPrimitive(
     if (s.kind === 'circle' || s.kind === 'arc') {
       const center = at(s.center);
       result.native = { ...s, center };
-      if (s.kind === 'arc' && t.kind === 'mirror') {
+      // Mask scale is always positive, so a model rotation keeps the local
+      // opening; a reflection reverses it. The start is re-derived from the
+      // transformed start point in both cases.
+      if (s.kind === 'arc' && t.kind !== 'translate') {
         const a = (s.startAngle * Math.PI) / 180;
         const start = at({
           x: s.center.x + s.radius * Math.cos(a),
@@ -115,11 +121,11 @@ export function transformMaskPrimitive(
           startAngle:
             (Math.atan2(start.y - center.y, start.x - center.x) * 180) /
             Math.PI,
-          sweepAngle: -s.sweepAngle,
+          sweepAngle: t.kind === 'mirror' ? -s.sweepAngle : s.sweepAngle,
         };
       }
     } else {
-      if (s.kind === 'rectangle' && t.kind === 'mirror') {
+      if (s.kind === 'rectangle' && t.kind !== 'translate') {
         const corners = nativePrimitive(s).points.map(at);
         // Two diagonal corners cannot describe an oblique rectangle. Four exact
         // vertices retain its geometry without tessellating or exploding curves.
@@ -141,6 +147,13 @@ export function transformMaskPrimitive(
     result.points = rendered.points;
     result.closed = rendered.closed;
   } else result.points = q.points.map(at);
+  if (q.text && t.kind === 'rotate') {
+    // Rigid turn: the baseline follows the angle; content, height and
+    // alignment stay. Normalised to (−180°, 180°] so repeats do not accumulate.
+    let angle = ((((q.textRotation ?? 0) + t.angle) % 360) + 360) % 360;
+    if (angle > 180) angle -= 360;
+    result.textRotation = angle;
+  }
   if (q.text && t.kind === 'mirror') {
     const theta = (((q.textRotation ?? 0) + mask.rotation) * Math.PI) / 180;
     const axis = Math.atan2(t.axisEnd.y - t.base.y, t.axisEnd.x - t.base.x);
@@ -210,6 +223,8 @@ export function previewMaskManipulation(
     throw new Error('Copiar usa translação do ponto base ao destino.');
   if (mode === 'mirror' && transform?.kind !== 'mirror')
     throw new Error('Espelhar requer dois pontos do eixo.');
+  if (mode === 'rotate' && transform?.kind !== 'rotate')
+    throw new Error('Rotacionar requer ponto base e ângulo.');
   if (mode === 'erase' && transform)
     throw new Error('Apagar não aceita transformação.');
   if (
@@ -260,6 +275,11 @@ export function applyMaskManipulation(
     Math.hypot(plan.transform.delta.x, plan.transform.delta.y) < 1e-6
   )
     return p;
+  if (
+    plan.transform?.kind === 'rotate' &&
+    neutralRotation(plan.transform.angle)
+  )
+    return p;
   const chosen = new Set(plan.refs.map((r) => r.primitive));
   let primitives: Primitive[];
   if (plan.mode === 'copy' || (plan.mode === 'mirror' && !plan.removeSource)) {
@@ -274,7 +294,8 @@ export function applyMaskManipulation(
         : {}),
     }));
     primitives = [...plan.mask.primitives, ...copies];
-  } else if (plan.mode === 'mirror') {
+  } else if (plan.mode === 'mirror' || plan.mode === 'rotate') {
+    // In-place replacement: same IDs, lineage, layers and styles.
     const replacements = new Map(
       plan.refs.map((r, i) => [r.primitive, fresh.result[i]]),
     );
