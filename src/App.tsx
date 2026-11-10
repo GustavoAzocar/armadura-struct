@@ -274,14 +274,6 @@ const ArmatureCloneDialog = lazy(
   () => import('./components/ArmatureCloneDialog'),
 );
 import type { CloneRequest } from './components/ArmatureCloneDialog';
-const ExampleReviewDialog = lazy(
-  () => import('./components/ExampleReviewDialog'),
-);
-import {
-  initialExampleProject,
-  INITIAL_EXAMPLE_ID,
-  INITIAL_EXAMPLE_SHEETS,
-} from './examples/initial';
 const NumberingDialog = lazy(() => import('./components/NumberingDialog'));
 const FabricationDialog = lazy(() => import('./components/FabricationDialog'));
 const DetailRepetitionDialog = lazy(
@@ -555,7 +547,6 @@ export default function App() {
   const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
-  const [exampleReviewOpen, setExampleReviewOpen] = useState(false);
   const [numberingOpen, setNumberingOpen] = useState(false);
   const [fabricationOpen, setFabricationOpen] = useState(false);
   const [repetitionDetailId, setRepetitionDetailId] = useState<string>();
@@ -1023,20 +1014,11 @@ export default function App() {
         sidebar: key.startsWith('sheet:') ? 'sheets' : 'project',
       });
     }
-    if (p.id === INITIAL_EXAMPLE_ID) setSidebarTab('sheets');
     // File reopen starts outside isolated editing; cached cameras remain available.
     setDocuments({
       projectId: p.id,
-      active:
-        p.id === INITIAL_EXAMPLE_ID
-          ? `sheet:${INITIAL_EXAMPLE_SHEETS[0]}`
-          : 'model',
-      opened: (
-        saved?.opened ??
-        (p.id === INITIAL_EXAMPLE_ID
-          ? INITIAL_EXAMPLE_SHEETS.map((id) => `sheet:${id}`)
-          : [])
-      ).filter((key) => validDocument(key)),
+      active: 'model',
+      opened: (saved?.opened ?? []).filter((key) => validDocument(key)),
     });
     isolationRef.current = undefined;
     setIsolation(null);
@@ -1131,12 +1113,9 @@ export default function App() {
         if (raw && alive) {
           const project = decodeProject(raw);
           setHistory({ past: [], present: project, future: [] });
-        } else if (!raw) {
-          const project = await initialExampleProject();
-          if (alive) {
-            savedBaseline.current = project;
-            setHistory({ past: [], present: project, future: [] });
-          }
+        } else if (!raw && alive) {
+          // Sem projeto recuperável: começa vazio, sem conteúdo de demonstração.
+          savedBaseline.current = historyRef.current.present;
         }
       })
       .catch(() => {
@@ -6756,17 +6735,6 @@ export default function App() {
           if (patch.cover !== undefined) setCover(patch.cover);
         }}
       />
-      {p.id === INITIAL_EXAMPLE_ID && (
-        <div className="example-notice">
-          <span>
-            <strong>Exemplo ArmaduraStruct</strong> · Vigas e pilares · RA
-            original de referência; comprimentos das dobras em conferência.
-          </span>
-          <button onClick={() => setExampleReviewOpen(true)}>
-            Conferir exemplo
-          </button>
-        </div>
-      )}
       <div className="workspace">
         <main className="main-workspace">
           <div className="document-tabs">
@@ -7810,25 +7778,6 @@ export default function App() {
                   if (id === maskId) setMaskId(null);
                 }}
                 onImport={() => action('import')}
-                onDemo={() => {
-                  setBusy('Carregando Exemplo ArmaduraStruct…');
-                  void initialExampleProject()
-                    .then((project) => {
-                      commit(() => project);
-                      select([]);
-                      setTool('select');
-                      setDocuments({
-                        projectId: project.id,
-                        active: `sheet:${INITIAL_EXAMPLE_SHEETS[0]}`,
-                        opened: INITIAL_EXAMPLE_SHEETS.map(
-                          (id) => `sheet:${id}`,
-                        ),
-                      });
-                      setSidebarTab('sheets');
-                    })
-                    .catch((e) => notify(String(e)))
-                    .finally(() => setBusy(''));
-                }}
               />
             ) : selected.length === 1 &&
               p.details.some((d) => d.id === selected[0]) ? (
@@ -8213,16 +8162,6 @@ export default function App() {
           <b>{busy || 'Abrindo projeto…'}</b>
           <span>Processamento local</span>
         </div>
-      )}
-      {exampleReviewOpen && p.id === INITIAL_EXAMPLE_ID && (
-        <Suspense
-          fallback={<div className="busy-overlay">Preparando conferência…</div>}
-        >
-          <ExampleReviewDialog
-            project={p}
-            onClose={() => setExampleReviewOpen(false)}
-          />
-        </Suspense>
       )}
       {detailTransfer && (
         <Suspense
@@ -8853,7 +8792,6 @@ export default function App() {
               setFabricationOpen(false);
               setNumberingOpen(false);
               setRepetitionDetailId(undefined);
-              setExampleReviewOpen(false);
               sessions.current.clear();
               setDocuments({
                 projectId: result.project.id,

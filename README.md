@@ -115,7 +115,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 
 ## Primeiros passos
 
-1. Na primeira abertura, conheça o **[Exemplo ArmaduraStruct](docs/examples/initial/README.md)**: duas pranchas de vigas e pilares, 64 posições e 1.181 peças. Use **Conferir exemplo** para comparar a RA original com os comprimentos e pesos calculados. Projetos recuperados têm prioridade. Em **[Novo projeto](docs/NOVO-PROJETO.md)**, informe o nome, escolha a pasta (ou modo compatível no navegador) e prepare pavimentos, elementos e detalhamentos antes de desenhar; o arquivo nasce vazio, sem armaduras de demonstração.
+1. Sem projeto recuperado, o aplicativo abre vazio; projetos recuperados têm prioridade. Em **[Novo projeto](docs/NOVO-PROJETO.md)**, informe o nome, escolha a pasta (ou modo compatível no navegador) e prepare pavimentos, elementos e detalhamentos antes de desenhar; o arquivo nasce vazio, sem armaduras de demonstração.
 2. Em **Máscaras → Importar DXF / DWG**, escolha um ou vários arquivos, confira os destinos e leia as referências antes de **Aplicar lote**. Abra o resultado e confira a unidade e uma distância conhecida com **Medir**. [Fluxo completo](docs/MASCARAS-LOTE.md).
 3. Use **Barra livre**, **Estribo** ou **Seguir fôrma**. As coordenadas e propriedades geométricas são em **mm**.
 4. Selecione a posição para editar aço, bitola, quantidade e geometria. Ajuste o mandril e os ganchos para o projeto.

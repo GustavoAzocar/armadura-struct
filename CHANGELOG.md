@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## Não lançado
+
+- Removido o Exemplo ArmaduraStruct: o aplicativo abre vazio quando não há projeto para recuperar, sem a opção **Carregar projeto de exemplo**, o aviso e a conferência do exemplo. Projetos salvos e a recuperação local não são afetados.
+
 ## 0.6.0 · 2026-11-10
 
 - Infraestrutura de plugins: aba Plugins, contrato público v1 com JSON Schema/tipos/JSON-RPC, pacotes `.osplugin`, inspeção e registro offline com inventário persistente, instalação atômica e catálogo/download configuráveis com a mesma validação. Pacotes permanecem desativados, com integridade separada de autoria. Exemplo de conformidade reutiliza a API real e AS-09, sem executar terceiros. [Guia](docs/plugins/DEVELOPERS.md). Sem publicação de loja ou release nesta etapa.

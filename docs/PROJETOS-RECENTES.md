@@ -13,7 +13,7 @@
 | Salvar no navegador (download)                                                      | **Não registra**: o navegador não confirma a gravação |
 | Criar, abrir ou salvar projeto em pasta (`save-v1/projeto.armstruct.json`)          | Projeto em pasta, com a pasta                         |
 | Cancelar, falha, arquivo inválido ou inacessível                                    | Nada é registrado                                     |
-| Exemplo inicial, recuperação automática, máscaras DXF/DWG e pacotes de detalhamento | Nada é registrado                                     |
+| Recuperação automática, máscaras DXF/DWG e pacotes de detalhamento                  | Nada é registrado                                     |
 
 ## Reabrir
 

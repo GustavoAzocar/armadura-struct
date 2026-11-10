@@ -18,7 +18,7 @@ O módulo `src/domain/maskContourMeasure.ts` é puro e separado da interface.
 
 - Os pontos passam por `maskPoint`, a mesma transformação de máscara usada por desenho, snaps e cotas. Os valores são mm do modelo e não dependem de zoom, pan ou pixels. Escala da máscara multiplica comprimentos e áreas por k e k²; rotação e translação não mudam os valores.
 - Linhas, polilinhas e retângulos nativos usam os vértices exatos. Círculos e arcos nativos usam raio e ângulo: perímetro 2πr, área πr² e comprimento de arco |θ|·r (cálculo analítico, sem discretização).
-- Entidades importadas ou normalizadas (DXF/DWG, demonstração ou remanescentes não nativos) só possuem a polilinha mantida na importação. O resultado é dessa polilinha e o painel informa que corresponde à aproximação disponível; arcos, círculos, elipses e bulges originais não são reconstruídos.
+- Entidades importadas ou normalizadas (DXF/DWG ou remanescentes não nativos) só possuem a polilinha mantida na importação. O resultado é dessa polilinha e o painel informa que corresponde à aproximação disponível; arcos, círculos, elipses e bulges originais não são reconstruídos.
 - Área pela fórmula de Gauss (shoelace) relativa ao primeiro vértice, sempre em valor absoluto: inverter a ordem dos vértices não altera a área.
 - Tolerâncias documentadas: segmentos com até 1e-6 mm são degenerados; contorno colinear ou com área ≤ 1e-9 × perímetro² é recusado; nos testes, resultados analíticos e transformados coincidem com a referência com erro relativo ≤ 1e-11.
 

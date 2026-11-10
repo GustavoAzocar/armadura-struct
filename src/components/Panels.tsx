@@ -971,7 +971,6 @@ export function ProjectTree({
   onToggleMask,
   onRemoveMask,
   onImport,
-  onDemo,
   activeDetailId,
   onActiveDetail,
   onHierarchy,
@@ -990,7 +989,6 @@ export function ProjectTree({
   onToggleMask: (id: string) => void;
   onRemoveMask: (id: string) => void;
   onImport: () => void;
-  onDemo: () => void;
   activeDetailId: string;
   onActiveDetail: (id: string) => void;
   onHierarchy: (project: Project, expected: Project) => boolean;
@@ -1266,13 +1264,6 @@ export function ProjectTree({
           </small>
         )}
       </div>
-      <button
-        className="example-button"
-        disabled={!!isolatedDetailId}
-        onClick={onDemo}
-      >
-        Carregar projeto de exemplo
-      </button>
     </aside>
   );
 }
