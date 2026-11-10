@@ -139,6 +139,7 @@ export function modelAlignmentItems(
         annotations: p.annotations.filter((v) => set.has(v.id)),
         polylines: p.polylines.filter((v) => set.has(v.id)),
         masks: p.masks.filter((v) => set.has(v.id)),
+        symbolInstances: (p.symbolInstances ?? []).filter((v) => set.has(v.id)),
       };
     const first = live.get(u.ids[0])!;
     return {

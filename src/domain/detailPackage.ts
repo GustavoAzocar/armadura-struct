@@ -642,6 +642,10 @@ export function createDetailPackage(
   if (!d || !e || !f)
     throw new Error('Escolha um detalhamento existente para exportar.');
   const owns = (id: string) => project.hierarchy.objectDetails[id] === detailId;
+  if ((project.symbolInstances ?? []).some((o) => owns(o.id)))
+    throw new Error(
+      'O detalhamento contém instâncias de símbolo, que o pacote OpenStruct ainda não transporta. Desvincule-as em cópias independentes ou remova-as antes de exportar.',
+    );
   const objects = {
     bars: project.bars.filter((o) => owns(o.id)),
     details: project.details.filter((o) => owns(o.id)),

@@ -188,6 +188,7 @@ export function layerProjection(
     details: p.details.filter(keep),
     annotations: p.annotations.filter(keep),
     polylines: p.polylines.filter(keep),
+    symbolInstances: (p.symbolInstances ?? []).filter(keep),
     masks: p.masks.filter(keep).map((m) => ({
       ...m,
       primitives: m.primitives.filter(

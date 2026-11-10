@@ -145,6 +145,7 @@ export function detailEditorView(project: Project, detailId?: string): Project {
     annotations: project.annotations.filter(owns),
     polylines: project.polylines.filter(owns),
     masks: project.masks.filter(owns),
+    symbolInstances: (project.symbolInstances ?? []).filter(owns),
   };
 }
 

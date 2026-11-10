@@ -155,6 +155,7 @@ export function visibilityProjection(
     annotations: base.annotations.filter(keep),
     polylines: base.polylines.filter(keep),
     masks: base.masks.filter(keep),
+    symbolInstances: (base.symbolInstances ?? []).filter(keep),
   };
 }
 /** Ghosts are never capturable/editable or passed to an exporter. */
@@ -167,6 +168,7 @@ export function visibilityReview(p: Project, key: string): Project {
     details: p.details.filter(keep),
     annotations: p.annotations.filter(keep),
     polylines: p.polylines.filter(keep),
+    symbolInstances: (p.symbolInstances ?? []).filter(keep),
     masks: p.masks.filter(keep).map((m) => ({
       ...m,
       primitives:
