@@ -69,6 +69,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: mask-move-evidence
+          if-no-files-found: ignore
+          path: docs/mask-move-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: mask-mirror-evidence
           if-no-files-found: ignore
           path: docs/mask-mirror-*.png

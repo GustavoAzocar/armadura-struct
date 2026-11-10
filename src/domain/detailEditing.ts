@@ -1,4 +1,5 @@
 import type { Project } from './types';
+import { changedSymbolGeometry } from './symbolRender';
 import {
   contentObjects,
   createHierarchyNode,
@@ -212,6 +213,7 @@ export function assertDetailEdit(
     fail();
   const oldObjects = new Map(contentObjects(before).map((o) => [o.id, o]));
   const newObjects = new Map(contentObjects(after).map((o) => [o.id, o]));
+  const changedSymbols = changedSymbolGeometry(before, after);
   for (const [id, object] of oldObjects) {
     const oldOwner = before.hierarchy.objectDetails[id],
       newOwner = after.hierarchy.objectDetails[id];
@@ -219,6 +221,7 @@ export function assertDetailEdit(
       oldOwner !== detailId &&
       (oldOwner !== newOwner ||
         !same(object, newObjects.get(id)) ||
+        ('definitionId' in object && changedSymbols.has(object.definitionId)) ||
         !same(
           before.hierarchy.objectOrigins[id],
           after.hierarchy.objectOrigins[id],

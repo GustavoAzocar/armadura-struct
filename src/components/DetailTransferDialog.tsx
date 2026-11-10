@@ -558,7 +558,7 @@ export default function DetailTransferDialog({
             {Object.entries(plan.counts.after)
               .map(
                 ([key, n]) =>
-                  `${({ bars: 'barras', details: 'rebatimentos', annotations: 'anotações', masks: 'máscaras', polylines: 'polilinhas' } as Record<string, string>)[key]} ${plan.counts.before[key] ?? 0} → ${n}`,
+                  `${({ bars: 'barras', details: 'rebatimentos', annotations: 'anotações', masks: 'máscaras', polylines: 'polilinhas', symbolInstances: 'símbolos' } as Record<string, string>)[key]} ${plan.counts.before[key] ?? 0} → ${n}`,
               )
               .join(' · ')}
           </small>

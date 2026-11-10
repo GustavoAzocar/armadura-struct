@@ -1,3 +1,4 @@
+import { changedSymbolGeometry } from './symbolRender';
 import type { Project } from './types';
 import { layerObjects } from './layers';
 import {
@@ -192,11 +193,13 @@ export function assertVisibilityEdit(
   key: string,
 ) {
   if (before.id !== after.id) return;
+  const changedSymbols = changedSymbolGeometry(before, after);
   const current = new Map(layerObjects(after).map((o) => [o.id, o]));
   for (const o of layerObjects(before))
     if (
       objectHidden(before, key, o.id) &&
-      JSON.stringify(o) !== JSON.stringify(current.get(o.id))
+      (JSON.stringify(o) !== JSON.stringify(current.get(o.id)) ||
+        ('definitionId' in o && changedSymbols.has(o.definitionId)))
     )
       throw new Error(
         'Objeto oculto ou fora do isolamento: recupere-o nesta vista antes de editar.',

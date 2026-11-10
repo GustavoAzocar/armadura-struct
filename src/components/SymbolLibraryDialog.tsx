@@ -48,14 +48,18 @@ export function SymbolPreview({
   label: string;
   size?: number;
 }) {
-  const pts = primitives.flatMap((q) => q.points);
-  if (!pts.length) return null;
-  const xs = pts.map((p) => p.x),
-    ys = pts.map((p) => p.y);
-  const x0 = Math.min(...xs),
-    x1 = Math.max(...xs),
-    y0 = Math.min(...ys),
-    y1 = Math.max(...ys);
+  let x0 = Infinity,
+    x1 = -Infinity,
+    y0 = Infinity,
+    y1 = -Infinity;
+  for (const q of primitives)
+    for (const p of q.points) {
+      x0 = Math.min(x0, p.x);
+      x1 = Math.max(x1, p.x);
+      y0 = Math.min(y0, p.y);
+      y1 = Math.max(y1, p.y);
+    }
+  if (x0 === Infinity) return null;
   const span = Math.max(x1 - x0, y1 - y0, 1),
     pad = span * 0.06;
   return (
@@ -257,13 +261,15 @@ export default function SymbolLibraryDialog({
   const pickedPrimitives = picked.map((r) => r.primitive);
   const selectionBase = (): Point | undefined => {
     if (!activeMask || !picked.length) return undefined;
-    const pts = picked.flatMap((r) =>
-      r.primitive.points.map((p) => maskPoint(p, activeMask)),
-    );
-    return {
-      x: Math.min(...pts.map((p) => p.x)),
-      y: Math.min(...pts.map((p) => p.y)),
-    };
+    let x = Infinity,
+      y = Infinity;
+    for (const r of picked)
+      for (const local of r.primitive.points) {
+        const p = maskPoint(local, activeMask);
+        x = Math.min(x, p.x);
+        y = Math.min(y, p.y);
+      }
+    return x === Infinity ? undefined : { x, y };
   };
   const base = (): Point => {
     const b = { x: num(baseX), y: num(baseY) };

@@ -1583,6 +1583,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             )}
           {!props.nativeDrawing && draft.length > 0 && cursor && (
             <g
+              data-testid="draft-rubber-band"
               stroke="#57d8de"
               strokeWidth={1.5 * stroke}
               fill="none"

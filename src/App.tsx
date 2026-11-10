@@ -90,9 +90,13 @@ import {
   maskManipSelection,
   previewMaskManipulation,
   applyMaskManipulation,
+  previewWholeMaskMove,
+  applyWholeMaskMove,
   type MaskManipMode,
   type MaskManipPlan,
   type MaskManipTransform,
+  type MaskMoveScope,
+  type WholeMaskMovePlan,
 } from './domain/maskManipulation';
 import { maskPoint, maskPrimitives } from './cad/import';
 import { symbolInstanceMask } from './domain/symbolRender';
@@ -2767,11 +2771,15 @@ export default function App() {
     mode: MaskManipMode,
     id = drawingMaskId,
     entityId?: string,
+    scope?: MaskMoveScope,
   ) => {
     try {
       const base = historyRef.current.present;
       const mask = maskEditTarget(base, id, maskDrawingContext);
-      const preId = entityId ?? (maskId === id ? nativeEntity : undefined);
+      const whole = mode === 'move' && scope === 'mask';
+      const preId = whole
+        ? undefined
+        : (entityId ?? (maskId === id ? nativeEntity : undefined));
       const pre = preId
         ? maskCadEntities(base, maskDrawingContext).find(
             (e) => e.mask.id === id && e.ref.id === preId,
@@ -2782,6 +2790,8 @@ export default function App() {
           'Pré-seleção inválida. Selecione novamente a entidade.',
         );
       if (pre) maskManipSelection(base, mask.id, [pre.ref], maskDrawingContext);
+      if (whole)
+        previewWholeMaskMove(base, mask.id, maskDrawingContext, { x: 0, y: 0 });
       const ignored = selected.length;
       setTool('select');
       setMaskControl(false);
@@ -2818,12 +2828,15 @@ export default function App() {
         maskId: mask.id,
         context: { ...maskDrawingContext },
         mode,
-        stage: 'selection',
+        stage: whole ? 'base' : 'selection',
         refs: pre ? [pre.ref] : [],
+        ...(mode === 'move' ? { scope: whole ? 'mask' : 'entities' } : {}),
         hadOperations: false,
       });
       notify(
-        `${maskManipNames[mode]}: selecione entidades da máscara ${mask.name} e pressione Enter.${ignored ? ' Seleção anterior de objetos ignorada; aço não participa.' : ''}`,
+        whole
+          ? `Mover máscara inteira ${mask.name}: escolha o ponto base.${ignored ? ' Seleção anterior de objetos ignorada; aço não participa.' : ''}`
+          : `${maskManipNames[mode]}: selecione entidades da máscara ${mask.name} e pressione Enter.${ignored ? ' Seleção anterior de objetos ignorada; aço não participa.' : ''}`,
       );
       return true;
     } catch (e) {
@@ -2835,6 +2848,10 @@ export default function App() {
     const s = maskManip;
     if (!s || s.stage !== 'selection') return;
     try {
+      if (s.scope === 'mask')
+        throw new Error(
+          'Alcance atual: máscara inteira. Escolha “Entidades selecionadas” para escolher entidades individuais.',
+        );
       if (!ref)
         throw new Error(
           'Clique numa entidade da máscara ativa; aço e outras máscaras não são alvos.',
@@ -2938,11 +2955,28 @@ export default function App() {
         ? { kind: 'mirror', base: s.base, axisEnd: (s.axisEnd ?? at)! }
         : { kind: 'translate', delta: sub(at!, s.base) }
       : undefined;
-  const manipPreview = useMemo<{ plan?: MaskManipPlan; error?: string }>(() => {
+  const wholeMove = (s: MaskManipSession | null) =>
+    s?.mode === 'move' && s.scope === 'mask';
+  const manipPreview = useMemo<{
+    plan?: MaskManipPlan;
+    whole?: WholeMaskMovePlan;
+    error?: string;
+  }>(() => {
     if (!maskManip || !['target', 'confirm'].includes(maskManip.stage))
       return {};
     try {
       const t = manipTransform(maskManip);
+      if (wholeMove(maskManip))
+        return t?.kind === 'translate'
+          ? {
+              whole: previewWholeMaskMove(
+                maskManip.project,
+                maskManip.maskId,
+                maskManip.context,
+                t.delta,
+              ),
+            }
+          : {};
       return t
         ? {
             plan: previewMaskManipulation(
@@ -2960,31 +2994,73 @@ export default function App() {
       return { error: (e as Error).message };
     }
   }, [maskManip]);
-  const manipLines = useMemo(
-    () =>
-      manipPreview.plan
-        ? maskPrimitives({
-            ...manipPreview.plan.mask,
-            primitives: manipPreview.plan.result,
-          })
-        : undefined,
-    [manipPreview.plan],
-  );
+  const manipReach = useMemo(() => {
+    const m = maskManip?.project.masks.find((m) => m.id === maskManip.maskId);
+    return m
+      ? maskPrimitives(
+          wholeMove(maskManip)
+            ? m
+            : { ...m, primitives: maskManip!.refs.map((r) => r.primitive) },
+        )
+      : undefined;
+  }, [
+    maskManip?.project,
+    maskManip?.maskId,
+    maskManip?.refs,
+    maskManip?.scope,
+  ]);
+  const manipReachExtent = useMemo(() => {
+    // Very large references preview their translated extent instead of every vertex.
+    if (!manipReach || manipReach.length <= 20000) return undefined;
+    let x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
+    for (const v of manipReach)
+      for (const a of v.points) {
+        x0 = Math.min(x0, a.x);
+        x1 = Math.max(x1, a.x);
+        y0 = Math.min(y0, a.y);
+        y1 = Math.max(y1, a.y);
+      }
+    return { x0, y0, x1, y1 };
+  }, [manipReach]);
+  const manipLines = useMemo(() => {
+    if (manipPreview.whole && manipReach) {
+      const d = manipPreview.whole.delta;
+      if (manipReachExtent) {
+        const { x0, y0, x1, y1 } = manipReachExtent;
+        return [
+          {
+            layer: manipReach[0].layer,
+            closed: true,
+            points: [
+              { x: x0 + d.x, y: y0 + d.y },
+              { x: x1 + d.x, y: y0 + d.y },
+              { x: x1 + d.x, y: y1 + d.y },
+              { x: x0 + d.x, y: y1 + d.y },
+            ],
+          },
+        ];
+      }
+      return manipReach.map((v) => ({
+        ...v,
+        points: v.points.map((a) => ({ x: a.x + d.x, y: a.y + d.y })),
+      }));
+    }
+    return manipPreview.plan
+      ? maskPrimitives({
+          ...manipPreview.plan.mask,
+          primitives: manipPreview.plan.result,
+        })
+      : undefined;
+  }, [manipPreview, manipReach, manipReachExtent]);
   const manipOverlay = useMemo(
     () =>
-      maskManip
-        ? {
-            mode: 'trim' as const,
-            limits: maskPrimitives({
-              ...maskManip.project.masks.find(
-                (m) => m.id === maskManip.maskId,
-              )!,
-              primitives: maskManip.refs.map((r) => r.primitive),
-            }),
-            change: [],
-          }
+      maskManip && manipReach
+        ? { mode: 'trim' as const, limits: manipReach, change: [] }
         : undefined,
-    [maskManip?.project, maskManip?.maskId, maskManip?.refs],
+    [maskManip, manipReach],
   );
   const applyManip = (at?: Point) => {
     const s = maskManip;
@@ -3006,16 +3082,35 @@ export default function App() {
         distance(lastManipCopy.current.at, at) < 1e-6
       )
         return;
-      const plan = previewMaskManipulation(
-        s.project,
-        s.maskId,
-        s.refs,
-        s.mode,
-        maskDrawingContext,
-        manipTransform(s, at),
-        s.removeSource,
-      );
-      const next = applyMaskManipulation(s.project, plan, maskDrawingContext);
+      const t = manipTransform(s, at);
+      let next: Project;
+      if (wholeMove(s)) {
+        if (t?.kind !== 'translate')
+          throw new Error('Escolha o ponto base e o destino.');
+        next = applyWholeMaskMove(
+          s.project,
+          previewWholeMaskMove(
+            s.project,
+            s.maskId,
+            maskDrawingContext,
+            t.delta,
+          ),
+          maskDrawingContext,
+        );
+      } else
+        next = applyMaskManipulation(
+          s.project,
+          previewMaskManipulation(
+            s.project,
+            s.maskId,
+            s.refs,
+            s.mode,
+            maskDrawingContext,
+            t,
+            s.removeSource,
+          ),
+          maskDrawingContext,
+        );
       if (next === s.project) {
         setMaskManip({
           ...s,
@@ -3047,7 +3142,9 @@ export default function App() {
         manipConsumed.current = false;
       } else endMaskManip();
       notify(
-        `${maskManipNames[s.mode]}: ${s.refs.length} entidade(s) na máscara ativa. Desfazer disponível. Cotas estáticas exigem revisão.`,
+        wholeMove(s)
+          ? `Mover: máscara inteira transladada pela origem (Δ ${t?.kind === 'translate' ? [t.delta.x, t.delta.y].map((n) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })).join('; ') : ''} mm). Desfazer disponível. Cotas estáticas exigem revisão.`
+          : `${maskManipNames[s.mode]}: ${s.refs.length} entidade(s) na máscara ativa. Desfazer disponível. Cotas estáticas exigem revisão.`,
       );
     } catch (e) {
       manipConsumed.current = false;
@@ -3060,7 +3157,13 @@ export default function App() {
     if (!s) return;
     if (s.stage === 'selection') {
       try {
-        maskManipSelection(s.project, s.maskId, s.refs, maskDrawingContext);
+        if (wholeMove(s))
+          previewWholeMaskMove(s.project, s.maskId, maskDrawingContext, {
+            x: 0,
+            y: 0,
+          });
+        else
+          maskManipSelection(s.project, s.maskId, s.refs, maskDrawingContext);
         if (s.mode === 'erase') applyManip();
         else setMaskManip({ ...s, stage: 'base', issue: undefined });
       } catch (e) {
@@ -4796,6 +4899,7 @@ export default function App() {
     )
       endMaskOffset();
     const manipActions: Partial<Record<Action, MaskManipMode>> = {
+      'mask-move': 'move',
       'mask-copy': 'copy',
       'mask-mirror': 'mirror',
       'mask-erase': 'erase',
@@ -5919,6 +6023,9 @@ export default function App() {
       ERASE: 'mask-erase',
       COPIARMASCARA: 'mask-copy',
       MCOPY: 'mask-copy',
+      MOVERMASCARA: 'mask-move',
+      MMOVE: 'mask-move',
+      MOVER: tab === 'Máscaras' ? 'mask-move' : 'move',
       AJUSTAR: 'mask-trim',
       APARAR: 'mask-trim',
       TRIM: 'mask-trim',
@@ -6447,6 +6554,7 @@ export default function App() {
             ? { measure: false, 'measure-contour': true }
             : {}),
           'mask-offset': !!maskOffset,
+          'mask-move': maskManip?.mode === 'move',
           'mask-copy': maskManip?.mode === 'copy',
           'mask-mirror': maskManip?.mode === 'mirror',
           'mask-erase': maskManip?.mode === 'erase',
@@ -7255,6 +7363,24 @@ export default function App() {
                   error={manipPreview.error}
                   onRemoveSource={(value) =>
                     setMaskManip((s) => (s ? { ...s, removeSource: value } : s))
+                  }
+                  hiddenFollowers={manipPreview.whole?.hidden}
+                  onScope={(scope) =>
+                    setMaskManip((s) => {
+                      if (!s || s.mode !== 'move' || s.stage !== 'selection')
+                        return s;
+                      try {
+                        if (scope === 'mask')
+                          previewWholeMaskMove(s.project, s.maskId, s.context, {
+                            x: 0,
+                            y: 0,
+                          });
+                        // Switching reach never carries entities into the whole-mask target.
+                        return { ...s, scope, refs: [], issue: undefined };
+                      } catch (e) {
+                        return { ...s, issue: (e as Error).message };
+                      }
+                    })
                   }
                 />
               )}

@@ -7,8 +7,9 @@ import { nativePrimitive } from './nativeMasks';
 import { maskManipSelection } from './maskManipulation';
 import { maskEditTarget, type MaskEntityRef } from './maskCadEditing';
 import { drawingLayerId, localDrawingLayer } from './maskDrawing';
-import { layerState, objectState } from './layerProfiles';
-import { objectHidden } from './visibility';
+import { layerState, objectState, assertLayerEdit } from './layerProfiles';
+import { objectHidden, assertVisibilityEdit } from './visibility';
+import { assertDetailEdit } from './detailEditing';
 import { layerId } from './layers';
 import type { MaskDrawingContext } from './maskDrawing';
 import {
@@ -477,12 +478,17 @@ export function previewSymbolInsertion(
   if (!d) throw new Error('Símbolo inexistente na biblioteca.');
   assertDrawingContext(p, context);
   validateTransform(transform);
-  const layer = options.layerId ?? defaultInstanceLayer(p);
+  const copyMask =
+    mode === 'copy' ? maskEditTarget(p, options.maskId, context) : undefined;
+  const layer = copyMask
+    ? drawingLayerId(p, copyMask)
+    : (options.layerId ?? defaultInstanceLayer(p));
   if (!p.layers.some((l) => l.id === layer))
     throw new Error('Layer de destino inexistente.');
   if (
-    !layerState(p, context.key, layer).visible ||
-    !layerState(p, context.key, layer).editable
+    mode === 'instance' &&
+    (!layerState(p, context.key, layer).visible ||
+      !layerState(p, context.key, layer).editable)
   )
     throw new Error('Layer de destino oculto ou bloqueado; libere-o antes.');
   let maskId: string | undefined;
@@ -492,7 +498,15 @@ export function previewSymbolInsertion(
         `O projeto comporta até ${SYMBOL_LIMITS.instances} instâncias.`,
       );
   } else {
-    const mask = maskEditTarget(p, options.maskId, context);
+    const mask = copyMask!;
+    const drawingLayer = drawingLayerId(p, mask);
+    if (
+      !layerState(p, context.key, drawingLayer).editable ||
+      mask.layers[localDrawingLayer(mask)] === false
+    )
+      throw new Error(
+        'Layer do desenho local oculto, sem captura ou bloqueado; libere-o antes de inserir a cópia.',
+      );
     if (
       !mask.visible ||
       mask.opacity === 0 ||
@@ -685,21 +699,41 @@ export function previewSymbolEdit(
   const geometryChanged = primitives !== d.primitives;
   const changed = geometryChanged || name !== d.name || category !== d.category;
   if (!changed) throw new Error('Nenhuma alteração a aplicar.');
+  const next = {
+    ...d,
+    name,
+    category,
+    primitives,
+    revision: geometryChanged ? d.revision + 1 : d.revision,
+  };
+  assertDefinitionEdit(
+    p,
+    withSymbols(
+      p,
+      symbolDefinitions(p).map((old) => (old === d ? next : old)),
+      symbolInstances(p),
+    ),
+    context,
+  );
   return {
     kind: 'edit',
     project: p,
     context: { ...context },
     definition: d,
-    next: {
-      ...d,
-      name,
-      category,
-      primitives,
-      revision: geometryChanged ? d.revision + 1 : d.revision,
-    },
+    next,
     affected: geometryChanged ? instancesOf(p, d.id) : [],
     geometryChanged,
   };
+}
+function assertDefinitionEdit(
+  before: Project,
+  after: Project,
+  context: MaskDrawingContext,
+) {
+  assertLayerEdit(before, after, context.key);
+  assertVisibilityEdit(before, after, context.key);
+  if (context.scopeDetailId)
+    assertDetailEdit(before, after, context.scopeDetailId);
 }
 export function applySymbolEdit(
   p: Project,
@@ -712,6 +746,7 @@ export function applySymbolEdit(
     symbolDefinitions(p).map((d) => (d === plan.definition ? plan.next : d)),
     symbolInstances(p),
   );
+  assertDefinitionEdit(p, next, context);
   validateSymbols(next);
   return next;
 }
