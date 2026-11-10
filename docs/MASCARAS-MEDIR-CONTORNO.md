@@ -48,3 +48,7 @@ A seleção é sempre de **uma** entidade. A área é a do contorno selecionado;
 ## Validação
 
 `tests/maskContourMeasure.test.ts` cobre retângulo 3.000 × 4.000, caminho 3.000 + 4.000, círculo r = 1.000, arco, rotação/translação/escala, unidade de origem, ordem dos vértices, fechamento repetido, extremidades coincidentes, autointerseção, degenerações, importado, candidatos e pureza. `tests/e2e/maskContourMeasure.spec.ts` cobre seleção por clique e coordenada, destaque, unidades, zoom/pan, repetição, aviso sem números, importado, cancelamento, histórico, salvamento/CSV, troca de ferramenta/máscara/projeto, layer bloqueado e Foco em 900×650. Capturas são publicadas no artefato **mask-contour-evidence** da CI.
+
+## Contribuição
+
+Funcionalidade contribuída por [NR-racond](https://github.com/NR-racond) no [PR #109](https://github.com/ricardocorsini/armadura-struct/pull/109). O crédito ao perfil do contribuidor é registrado explicitamente porque o commit original usou a identidade da ferramenta de assistência.

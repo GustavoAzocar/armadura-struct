@@ -171,6 +171,12 @@ Os testes cobrem comprimentos analíticos de dobras, estribos, pesos, offsets, v
 
 Abra uma issue descrevendo o caso de uso e, para problemas geométricos, inclua dimensões e resultado esperado. Para importação, anexe somente arquivos que você pode compartilhar. Antes de enviar um PR, execute formatação, verificações e testes. Alterações de comprimento ou quantitativos devem incluir uma referência analítica reproduzível.
 
+Antes do commit, confira `git var GIT_AUTHOR_IDENT`: nome e email devem corresponder ao contribuidor, com email associado à sua conta do GitHub ou o endereço privado `noreply` fornecido pelo GitHub. Ferramentas de assistência não devem substituir essa identidade. Em trabalho conjunto, use trailers `Co-authored-by` com os emails vinculados às contas dos participantes. Abrir o PR com uma conta não corrige automaticamente a autoria dos commits enviados.
+
+### Créditos de contribuições
+
+- [NR-racond](https://github.com/NR-racond): medição de comprimento, perímetro e área de contornos de máscaras, implementada no [PR #109](https://github.com/ricardocorsini/armadura-struct/pull/109). Este registro corrige o crédito da contribuição, cujo commit original foi enviado com a identidade da ferramenta de assistência, preservando o histórico publicado.
+
 Próximas etapas: testes com desenhos reais do escritório, refinamento de comandos CAD, composição de pranchas, biblioteca de detalhes e ferramentas adicionais de edição geométrica.
 
 ## Licença
