@@ -2,6 +2,7 @@
 
 ## Não lançado
 
+- Biblioteca de símbolos CAD: cria definições a partir de entidades da máscara ativa (nome, categoria, ponto base), insere instâncias vinculadas ou cópias independentes com posição/rotação/escala, informa as instâncias afetadas ao editar e remove definições sem deixar órfãs. Catálogo nativo `armadurastruct.symbols/1` validado; projetos passam ao formato `armadurastruct/27`. [Uso e limites](docs/SIMBOLOS.md).
 - Arquivo → Projetos recentes: histórico local (até 10) de projetos abertos ou gravados, separado de autosave/backups; reabrir pede nova seleção e respeita alterações não salvas e gravações pendentes. [Uso e limites](docs/PROJETOS-RECENTES.md).
 
 ## 0.5.0 · 2026-11-09
