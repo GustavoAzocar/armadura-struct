@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { svgTextFont } from '../domain/textStyle';
 import type { Primitive, Project } from '../domain/types';
 import { drawingPrimitives } from '../domain/drawingPrimitives';
 import { bounds } from '../domain/geometry';
@@ -51,6 +52,7 @@ function Preview({
                 y={-at.y / scale}
                 fill={style.stroke}
                 fontSize={(line.textHeight ?? 40) / scale}
+                {...svgTextFont(line)}
                 textAnchor={
                   line.textAlign === 'center'
                     ? 'middle'

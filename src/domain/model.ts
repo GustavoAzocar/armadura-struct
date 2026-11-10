@@ -430,12 +430,36 @@ export const detailContentSchema = schema.pick({
   polylines: true,
 });
 
+/** Free text (native insertion point) or typography written by format 28. */
+export function hasFreeTextData(input: unknown): boolean {
+  const i = input as {
+    masks?: { primitives?: unknown[] }[];
+    symbols?: { primitives?: unknown[] }[];
+  } | null;
+  return [...(i?.masks ?? []), ...(i?.symbols ?? [])].some((m) =>
+    (m?.primitives ?? []).some((q) => {
+      const t = q as {
+        native?: { kind?: string };
+        textFont?: unknown;
+        textPaperScale?: unknown;
+      } | null;
+      return (
+        t?.native?.kind === 'text' ||
+        t?.textFont !== undefined ||
+        t?.textPaperScale !== undefined
+      );
+    }),
+  );
+}
 export function decodeProject(
   raw: string,
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const symbolVersion = input?.schema === 'armadurastruct/27';
+  const textVersion = input?.schema === 'armadurastruct/28';
+  if (!textVersion && hasFreeTextData(input))
+    throw new Error('Textos livres e tipografia CAD exigem formato 28.');
+  const symbolVersion = textVersion || input?.schema === 'armadurastruct/27';
   if (
     !symbolVersion &&
     (input?.symbols !== undefined || input?.symbolInstances !== undefined)
@@ -736,7 +760,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/27',
+    schema: 'armadurastruct/28',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -970,7 +994,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/27',
+    schema: 'armadurastruct/28',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

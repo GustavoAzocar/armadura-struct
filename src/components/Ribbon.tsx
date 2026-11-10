@@ -31,6 +31,7 @@ import {
   SquareDashed,
   Table2,
   Trash2,
+  Type,
   Undo2,
   Scissors,
   Combine,
@@ -70,6 +71,7 @@ export type Action =
   | 'mask-rectangle'
   | 'mask-circle'
   | 'mask-polyline'
+  | 'mask-text'
   | 'new'
   | 'open'
   | 'recent'
@@ -296,6 +298,7 @@ export default function Ribbon({
           item('mask-rectangle', 'Retângulo', SquareDashed),
           item('mask-circle', 'Círculo', Shapes),
           item('mask-polyline', 'Polilinha', Spline),
+          item('mask-text', 'Texto', Type),
         ],
       },
       {

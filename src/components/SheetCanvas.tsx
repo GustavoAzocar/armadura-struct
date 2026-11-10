@@ -1,4 +1,5 @@
 import { sheetScheduleGeometry } from '../domain/sheetSchedule';
+import { svgTextFont } from '../domain/textStyle';
 import { sheetScheduleIssues } from '../domain/paper';
 import { plotPrimitives } from '../domain/plotting';
 import type { SheetSteelSchedule } from '../domain/types';
@@ -430,6 +431,7 @@ const PaperLines = memo(function PaperLines({
             fontFamily={PAPER_FONT}
             textRendering="geometricPrecision"
             fontSize={line.textHeight ?? 2.5}
+            {...svgTextFont(line)}
             fill={line.resolvedStyle?.color ?? paperInk(line.layer)}
             textAnchor={
               (line.textAlign ??
