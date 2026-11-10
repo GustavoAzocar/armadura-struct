@@ -4439,3 +4439,96 @@ button.hierarchy-drawing {
   width: 100%;
   margin: 8px 0;
 }
+
+.symbol-library {
+  width: min(920px, 95vw);
+}
+.symbol-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 15px;
+  min-height: 0;
+  overflow: auto;
+}
+.symbol-list,
+.symbol-instances {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow: auto;
+}
+.symbol-list button,
+.symbol-instances button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.symbol-list button span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.symbol-list small {
+  color: var(--muted, #667);
+}
+.symbol-empty {
+  color: var(--muted, #667);
+  padding: 8px;
+}
+.symbol-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: end;
+  margin: 8px 0;
+}
+.symbol-preview {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel, transparent);
+  color: var(--text, currentColor);
+  flex: none;
+}
+.symbol-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.symbol-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+.symbol-transform {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+}
+.symbol-impact {
+  font-weight: 600;
+}
+@media (max-width: 720px) {
+  .symbol-layout,
+  .symbol-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.symbol-form {
+  padding: 0 6px;
+}
+.symbol-check span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.symbol-check input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+}
