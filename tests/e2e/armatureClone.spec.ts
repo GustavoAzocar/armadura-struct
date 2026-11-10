@@ -70,7 +70,12 @@ test('Copiar includes every owned dependency, one undo removes the graph, and sa
   expect(await save(page)).toEqual(q);
   await select(page, 'N2');
   await page.getByLabel('Bitola (mm)', { exact: true }).selectOption('12.5');
-  await expect(page.locator('.bar-row.selected')).toContainText('Ø12,5');
+  await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
+  await expect(
+    page
+      .locator('.bar-row')
+      .filter({ has: page.getByText('N2', { exact: true }) }),
+  ).toContainText(/Ø\s*12,5/);
   const edited = await save(page);
   expect(edited.bars[0]).toEqual(p.bars[0]);
   expect(edited.bars[1].diameter).toBe(12.5);
