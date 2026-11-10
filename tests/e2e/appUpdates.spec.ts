@@ -470,7 +470,7 @@ test('texto livre pendente impede reiniciar para instalar uma atualização', as
     .fill('Texto ainda não confirmado');
   await page
     .locator('.update-banner')
-    .getByRole('button', { name: 'Ver atualização', exact: true })
+    .getByRole('button', { name: 'Instalar atualização', exact: true })
     .click();
   await modal(page)
     .getByRole('button', { name: 'Baixar versão 0.10.0', exact: true })
