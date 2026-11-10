@@ -284,6 +284,10 @@ test('mantém o foco no diálogo, bloqueia Desfazer e exporta acréscimo fracion
   await expect(
     dialog.getByRole('button', { name: 'Exportar CSV', exact: true }),
   ).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(
+    dialog.getByRole('button', { name: 'Fechar exportação CSV', exact: true }),
+  ).toBeFocused();
   await page.keyboard.press('Control+z');
   await dialog
     .getByRole('checkbox', { name: 'Quadro detalhado', exact: true })

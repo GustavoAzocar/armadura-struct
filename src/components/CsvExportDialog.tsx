@@ -89,6 +89,23 @@ export default function CsvExportDialog({
       aria-labelledby="csv-export-title"
       onKeyDown={(e) => {
         e.stopPropagation();
+        if (e.key === 'Tab') {
+          const nodes = [
+            ...e.currentTarget.querySelectorAll<HTMLElement>(
+              'button:not(:disabled),input:not(:disabled),select:not(:disabled)',
+            ),
+          ].filter((node) => node.getClientRects().length);
+          const first = nodes[0],
+            last = nodes.at(-1);
+          if (!first || !last) e.preventDefault();
+          else if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
         if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
