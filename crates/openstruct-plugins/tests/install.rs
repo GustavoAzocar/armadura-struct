@@ -112,19 +112,15 @@ fn incompatible_required_runtime_and_atomic_failure() {
     let mut m = manifest();
     m["version"] = json!("1.1.0");
     let i = s.inspect_bytes(&archive(m), "new".into()).unwrap();
-    std::fs::rename(
-        tmp.path().join("plugins/.staging"),
-        tmp.path().join("plugins/staging-disabled"),
-    )
-    .unwrap();
-    std::fs::write(tmp.path().join("plugins/.staging"), b"not-a-directory").unwrap();
+    // A file occupying the destination is a portable storage fault. Renaming
+    // .staging while NamedTempFile is open is Unix-specific and not part of
+    // the installer: Windows correctly denies that unrelated directory move.
+    let obstruction = tmp
+        .path()
+        .join("plugins/installed/org.example.straight-bar/1.1.0");
+    std::fs::write(&obstruction, b"not-a-directory").unwrap();
     assert!(s.install(&i.token).is_err());
-    std::fs::remove_file(tmp.path().join("plugins/.staging")).unwrap();
-    std::fs::rename(
-        tmp.path().join("plugins/staging-disabled"),
-        tmp.path().join("plugins/.staging"),
-    )
-    .unwrap();
+    std::fs::remove_file(obstruction).unwrap();
     assert_eq!(s.list().unwrap().len(), 1);
 }
 #[test]
