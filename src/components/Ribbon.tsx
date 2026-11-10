@@ -13,6 +13,7 @@ import {
   Hand,
   HelpCircle,
   Layers,
+  Library,
   Maximize2,
   MousePointer2,
   Move,
@@ -48,6 +49,7 @@ export type Action =
   | 'stirrup-criteria'
   | 'cad-settings'
   | 'mask-control'
+  | 'symbols'
   | 'mask-calibrate'
   | 'match-properties'
   | 'mask-offset'
@@ -281,6 +283,7 @@ export default function Ribbon({
         name: 'Controle de máscaras',
         items: [
           item('mask-control', 'Controle de máscaras', Layers),
+          item('symbols', 'Biblioteca de símbolos', Library),
           item('import', 'Importar DXF / DWG', FolderOpen),
           item('associate-masks', 'Associar máscaras', Layers),
         ],

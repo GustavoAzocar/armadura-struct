@@ -44,8 +44,23 @@ export function defaultLayers(): DrawingLayer[] {
   }));
 }
 export const layerObjects = (
-  p: Pick<Project, 'bars' | 'details' | 'annotations' | 'polylines' | 'masks'>,
-) => [...p.bars, ...p.details, ...p.annotations, ...p.polylines, ...p.masks];
+  p: Pick<
+    Project,
+    | 'bars'
+    | 'details'
+    | 'annotations'
+    | 'polylines'
+    | 'masks'
+    | 'symbolInstances'
+  >,
+) => [
+  ...p.bars,
+  ...p.details,
+  ...p.annotations,
+  ...p.polylines,
+  ...p.masks,
+  ...(p.symbolInstances ?? []),
+];
 export function objectRole(
   p: Project,
   o: LayerBinding & { id: string },
@@ -59,7 +74,10 @@ export function objectRole(
       : a.kind.startsWith('section')
         ? 'CORTES'
         : 'CHAMADAS';
-  return p.masks.some((m) => m.id === o.id) ? 'MASCARA' : 'DESENHO';
+  return p.masks.some((m) => m.id === o.id) ||
+    (p.symbolInstances ?? []).some((i) => i.id === o.id)
+    ? 'MASCARA'
+    : 'DESENHO';
 }
 export function resolveStyle(
   p: Pick<Project, 'layers'>,

@@ -259,6 +259,9 @@ test('máscara inteira explícita, decimal negativo, Esc em cada etapa e troca d
     await start(page);
     await panel(page).getByLabel('Alvo da rotação').selectOption('mask');
     await expect(selection(page)).toHaveCount(0);
+    await expect(
+      page.getByTestId('mask-cad-limits').locator(':scope > *'),
+    ).not.toHaveCount(0);
     await command(page, '');
   };
   for (const steps of [

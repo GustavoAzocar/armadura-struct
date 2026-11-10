@@ -1,3 +1,4 @@
+import { changedSymbolGeometry } from './symbolRender';
 import type { Project } from './types';
 import { layerObjects } from './layers';
 import {
@@ -155,6 +156,7 @@ export function visibilityProjection(
     annotations: base.annotations.filter(keep),
     polylines: base.polylines.filter(keep),
     masks: base.masks.filter(keep),
+    symbolInstances: (base.symbolInstances ?? []).filter(keep),
   };
 }
 /** Ghosts are never capturable/editable or passed to an exporter. */
@@ -167,6 +169,7 @@ export function visibilityReview(p: Project, key: string): Project {
     details: p.details.filter(keep),
     annotations: p.annotations.filter(keep),
     polylines: p.polylines.filter(keep),
+    symbolInstances: (p.symbolInstances ?? []).filter(keep),
     masks: p.masks.filter(keep).map((m) => ({
       ...m,
       primitives:
@@ -190,11 +193,13 @@ export function assertVisibilityEdit(
   key: string,
 ) {
   if (before.id !== after.id) return;
+  const changedSymbols = changedSymbolGeometry(before, after);
   const current = new Map(layerObjects(after).map((o) => [o.id, o]));
   for (const o of layerObjects(before))
     if (
       objectHidden(before, key, o.id) &&
-      JSON.stringify(o) !== JSON.stringify(current.get(o.id))
+      (JSON.stringify(o) !== JSON.stringify(current.get(o.id)) ||
+        ('definitionId' in o && changedSymbols.has(o.definitionId)))
     )
       throw new Error(
         'Objeto oculto ou fora do isolamento: recupere-o nesta vista antes de editar.',

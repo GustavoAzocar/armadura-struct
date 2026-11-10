@@ -24,7 +24,7 @@ export type MaskManipSession = {
   referenceAngle?: number;
   angle?: number;
   refs: MaskEntityRef[];
-  /** Only Mover offers the whole mask; every other mode works on entities. */
+  /** Mover and Rotacionar offer the whole mask as an explicit scope. */
   scope?: MaskManipScope;
   base?: Point;
   cursor?: Point;

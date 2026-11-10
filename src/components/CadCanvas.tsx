@@ -75,7 +75,15 @@ import {
   groupedDetailForObject,
   toggleDetailSelection,
 } from '../domain/detailEditing';
-import type { Bar, Point, Primitive, Project, Tool } from '../domain/types';
+import type {
+  Bar,
+  Mask,
+  Point,
+  Primitive,
+  Project,
+  Tool,
+} from '../domain/types';
+import { symbolRenderMasks } from '../domain/symbolRender';
 export type Camera = { x: number; y: number; s: number };
 export type CadState = {
   view: Camera;
@@ -262,40 +270,48 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       window.removeEventListener('keyup', up);
     };
   }, []);
-  const masks = useMemo(
-    () =>
-      project.masks.map((m) => {
-        const items = maskPrimitives(m).map((item) =>
-          stylePrimitive(source, m, item),
+  const drawable = (m: Mask) => {
+    const items = maskPrimitives(m).map((item) =>
+      stylePrimitive(source, m, item),
+    );
+    const paths = new Map<string, { d: string[]; item: Primitive }>();
+    for (const p of items) {
+      if (p.text || !p.points.length) continue;
+      const key = JSON.stringify([p.layer, p.resolvedStyle, p.closed]);
+      if (!paths.has(key)) paths.set(key, { d: [], item: p });
+      paths
+        .get(key)!
+        .d.push(
+          p.points.map((v, i) => `${i ? 'L' : 'M'}${v.x},${v.y}`).join(' ') +
+            (p.closed ? ' Z' : ''),
         );
-        const paths = new Map<string, { d: string[]; item: Primitive }>();
-        for (const p of items) {
-          if (p.text || !p.points.length) continue;
-          const key = JSON.stringify([p.layer, p.resolvedStyle, p.closed]);
-          if (!paths.has(key)) paths.set(key, { d: [], item: p });
-          paths
-            .get(key)!
-            .d.push(
-              p.points
-                .map((v, i) => `${i ? 'L' : 'M'}${v.x},${v.y}`)
-                .join(' ') + (p.closed ? ' Z' : ''),
-            );
-        }
-        return {
-          mask: m,
-          items,
-          capture: objectState(source, props.layerContext ?? 'model', m)
-            .capture,
-          texts: items.filter((p) => p.text),
-          paths: [...paths].map(([key, group]) => ({
-            key,
-            item: group.item,
-            d: group.d.join(' '),
-          })),
-        };
-      }),
+    }
+    return {
+      mask: m,
+      items,
+      capture: objectState(source, props.layerContext ?? 'model', m).capture,
+      texts: items.filter((p) => p.text),
+      paths: [...paths].map(([key, group]) => ({
+        key,
+        item: group.item,
+        d: group.d.join(' '),
+      })),
+    };
+  };
+  const masks = useMemo(
+    () => project.masks.map(drawable),
     [project.masks, source, props.layerContext],
   );
+  /** Instances draw from the shared definition; they are not capturable mask entities. */
+  const symbolDrawables = useMemo(
+    () => symbolRenderMasks(project).map(drawable),
+    [project.symbols, project.symbolInstances, source, props.layerContext],
+  );
+  const drawn = useMemo(
+    () => [...masks, ...symbolDrawables],
+    [masks, symbolDrawables],
+  );
+
   const annotations = useMemo(
     () =>
       project.annotations.map((a) => ({
@@ -403,11 +419,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       ...(props.previewLines ?? []).flatMap(primitiveBounds),
       ...representationPoints,
       ...annotations.flatMap((a) => a.items.flatMap(primitiveBounds)),
-      ...masks.flatMap((m) => m.items.flatMap(primitiveBounds)),
+      ...drawn.flatMap((m) => m.items.flatMap(primitiveBounds)),
     ],
     [
       project,
-      masks,
+      drawn,
       annotations,
       representationPoints,
       ghosts,
@@ -461,7 +477,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     for (const a of annotations)
       for (const item of a.items)
         addPoints(a.annotation.id, primitiveBounds(item));
-    for (const m of masks)
+    for (const m of drawn)
       for (const item of m.items) addPoints(m.mask.id, primitiveBounds(item));
     return [...boxes].map(([id, box]) => ({
       id,
@@ -476,7 +492,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     barGeometries,
     barDefinitions,
     annotations,
-    masks,
+    drawn,
     props.isolatedDetailId,
   ]);
   const fit = () => {
@@ -693,7 +709,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         );
     }
     if (!hit)
-      for (const m of masks) {
+      for (const m of drawn) {
         if (!m.capture) continue;
         for (const item of m.items) {
           if (
@@ -1102,7 +1118,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const maskContent = useMemo(
     () => (
       <>
-        {masks.map(({ mask, texts, paths, capture }) => (
+        {drawn.map(({ mask, texts, paths, capture }) => (
           <g
             key={mask.id}
             data-mask-id={mask.id}
@@ -1179,7 +1195,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       </>
     ),
     [
-      masks,
+      drawn,
       light,
       stroke,
       props.highlightedMaskId,

@@ -1,6 +1,7 @@
 import { visibilitySchema } from './visibilitySchema';
 import { z } from 'zod';
 import { layerObjects, objectRole, layerId, stylePrimitive } from './layers';
+import { changedSymbolGeometry } from './symbolRender';
 import { uid, type Project, type LayerBinding } from './types';
 export type LayerState = {
   visible: boolean;
@@ -188,6 +189,7 @@ export function layerProjection(
     details: p.details.filter(keep),
     annotations: p.annotations.filter(keep),
     polylines: p.polylines.filter(keep),
+    symbolInstances: (p.symbolInstances ?? []).filter(keep),
     masks: p.masks.filter(keep).map((m) => ({
       ...m,
       primitives: m.primitives.filter(
@@ -219,12 +221,14 @@ function sameValue(a: unknown, b: unknown): boolean {
 }
 export function assertLayerEdit(before: Project, after: Project, key: string) {
   if (before.id !== after.id) return;
+  const changedSymbols = changedSymbolGeometry(before, after);
   const old = layerObjects(before),
     current = new Map(layerObjects(after).map((o) => [o.id, o]));
   for (const o of old) {
     if (
       !objectState(before, key, o).editable &&
-      !sameValue(o, current.get(o.id))
+      (!sameValue(o, current.get(o.id)) ||
+        ('definitionId' in o && changedSymbols.has(o.definitionId)))
     )
       throw new Error(
         'Layer protegido: habilite Exibir, Capturar e Editar antes de alterar seus objetos.',
