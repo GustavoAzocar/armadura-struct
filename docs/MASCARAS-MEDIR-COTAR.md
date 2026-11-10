@@ -1,6 +1,6 @@
 # Medir e cotar geometria de máscaras
 
-**Máscaras → Ferramentas** distingue **Medir distância** e **Medir contorno** (consultas) de **Cota ortogonal** e **Cota alinhada** (anotação persistente). Comprimento, perímetro e área de entidades: [Medir contorno](MASCARAS-MEDIR-CONTORNO.md). Os acessos de Desenho e os atalhos existentes continuam usando o mesmo comando/editor. O seletor **Ferramentas CAD da máscara ativa** mantém os três acessos com Ribbon recolhido ou Foco. Atalhos: `MEDIR` / `DIST`, `DIM` / `DIMENSION` / `COTA` (ortogonal) e `ALINHADA`.
+**Máscaras → Ferramentas** distingue **Medir distância** e **Medir contorno** (consultas) de **Cota ortogonal** e **Cota alinhada** (anotação persistente). Comprimento, perímetro e área de entidades: [Medir contorno](MASCARAS-MEDIR-CONTORNO.md). Os acessos de Desenho e os atalhos existentes continuam usando o mesmo comando/editor. Com Ribbon recolhido ou Foco, o botão **Referências** ao lado das abas mantém os três acessos. Atalhos: `MEDIR` / `DIST`, `DIM` / `DIMENSION` / `COTA` (ortogonal) e `ALINHADA`.
 
 ## Consulta
 

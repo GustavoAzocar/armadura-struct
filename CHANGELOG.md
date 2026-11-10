@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## Em desenvolvimento
+
+- Aba Máscaras mais compacta: Ferramentas, Manipular e Desenhar usam botões só com ícones (28 px, ícones próprios e distintos para medir, cotar, escala, offset, ajustar/estender e formas), com o nome completo ao apontar ou focar pelo teclado. A faixa avulsa **Desenhar em** virou o grupo **Referências**, no final da aba, com pesquisa, escolha, **Ativar** explícito, **Nova máscara**, **Importar**, **Associar** e o estado da máscara ativa. O seletor “Ferramentas CAD…” e o atalho “Escala por 2 pontos” foram consolidados nos comandos dos grupos. Com a faixa recolhida e em Foco, o estado fica ao lado das abas e **Referências** abre os grupos temporariamente. Mesmas ações, histórico e proteções; demais abas inalteradas.
+
 ## 0.6.0 · 2026-11-10
 
 - Infraestrutura de plugins: aba Plugins, contrato público v1 com JSON Schema/tipos/JSON-RPC, pacotes `.osplugin`, inspeção e registro offline com inventário persistente, instalação atômica e catálogo/download configuráveis com a mesma validação. Pacotes permanecem desativados, com integridade separada de autoria. Exemplo de conformidade reutiliza a API real e AS-09, sem executar terceiros. [Guia](docs/plugins/DEVELOPERS.md). Sem publicação de loja ou release nesta etapa.

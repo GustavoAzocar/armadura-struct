@@ -254,8 +254,14 @@ test('Controle reutiliza pré-seleção; Foco, teclado e janela estreita continu
   await page.keyboard.press('Control+0');
   await page.setViewportSize({ width: 900, height: 650 });
   await page
-    .getByLabel('Ferramentas CAD da máscara ativa')
-    .selectOption('erase');
+    .getByRole('button', {
+      name: 'Referências e comandos de máscara',
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('button', { name: 'Apagar entidades da máscara', exact: true })
+    .click();
   await expect(panel(page)).toBeVisible();
   await panel(page).getByRole('checkbox').nth(0).check();
   await page.screenshot({ path: 'docs/mask-manip-compact.png' });

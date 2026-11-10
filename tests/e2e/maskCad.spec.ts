@@ -359,8 +359,17 @@ test('foco, janela estreita, escolha por ID e prévia sem commit conservam geome
   await page.setViewportSize({ width: 900, height: 650 });
   await page.getByRole('button', { name: 'Foco no CAD', exact: true }).click();
   await page
-    .getByLabel('Ferramentas CAD da máscara ativa', { exact: true })
-    .selectOption('trim');
+    .getByRole('button', {
+      name: 'Referências e comandos de máscara',
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('button', {
+      name: 'Ajustar — Aparar / Trim de máscara',
+      exact: true,
+    })
+    .click();
   const d = panel(page);
   await d
     .getByLabel('Entidade limitadora', { exact: true })

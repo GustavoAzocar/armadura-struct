@@ -4672,3 +4672,372 @@ button.hierarchy-drawing {
   min-width: 30px;
   padding: 2px 6px;
 }
+
+/* Issue #119 — Máscaras tab: icon-only command grid, help bubble and the
+   Referências group. Scoped to the classes below; other tabs keep 61 × 59 px
+   captioned buttons. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ribbon {
+  position: relative;
+}
+/* Containing block for the visually hidden descriptions, so they are
+   clipped by the scrolling faixa instead of widening the page. */
+.ribbon-masks .ribbon-content,
+.ribbon-peek-content {
+  position: relative;
+}
+.ribbon-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ribbon-columns, 3), 28px);
+  grid-template-rows: repeat(2, 28px);
+  grid-auto-flow: row;
+  gap: 2px;
+  align-content: center;
+  height: 60px;
+}
+.ribbon-group-compact .ribbon-item-slot {
+  display: flex;
+  width: 28px;
+  height: 28px;
+}
+.ribbon-tool.ribbon-tool-compact {
+  width: 28px;
+  min-width: 24px;
+  height: 28px;
+  min-height: 24px;
+  padding: 0;
+  gap: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #45546d;
+  box-shadow: none;
+}
+.ribbon-tool.ribbon-tool-compact svg {
+  display: block;
+  flex-shrink: 0;
+}
+.ribbon-tool.ribbon-tool-compact:not(:disabled):hover {
+  background: #eef2fb;
+  border-color: #d9e1f0;
+  color: #24324a;
+}
+.ribbon-tool.ribbon-tool-compact.active {
+  background: #e3e9ff;
+  border-color: #aebcf2;
+  color: #2f43c4;
+  box-shadow: inset 0 -2px 0 #3448d1;
+}
+.ribbon-tool.ribbon-tool-compact:focus-visible {
+  outline: 2px solid #6d80ed;
+  outline-offset: 1px;
+  position: relative;
+  z-index: 1;
+}
+.ribbon-tool.ribbon-tool-compact:disabled {
+  opacity: 0.35;
+}
+.ribbon-group-compact .ribbon-group-label {
+  white-space: nowrap;
+}
+
+.ribbon-tooltip {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 260px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 4px;
+  background: #1f2a3d;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.3;
+  box-shadow: 0 4px 14px #0b142433;
+}
+.ribbon-tooltip strong {
+  font-weight: 600;
+}
+.ribbon-tooltip span {
+  color: #cfd8ea;
+  font-size: 10px;
+}
+.ribbon-tooltip kbd {
+  align-self: flex-start;
+  padding: 0 4px;
+  border: 1px solid #56637b;
+  border-radius: 3px;
+  font: inherit;
+  font-size: 10px;
+}
+
+/* Referências: same frame, height and caption as the other groups. */
+.ribbon-group.ribbon-group-references {
+  padding: 0 4px 0 6px;
+}
+.mask-destination.mask-destination-group,
+.mask-destination.mask-destination-peek {
+  display: grid;
+  grid-template-columns: 66px 96px 148px 82px;
+  grid-template-rows: 28px 28px;
+  column-gap: 4px;
+  row-gap: 2px;
+  align-content: center;
+  align-items: center;
+  height: 60px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 10px;
+  flex-wrap: nowrap;
+}
+.mask-destination.mask-destination-peek {
+  grid-template-columns: 66px 110px 180px auto auto;
+  grid-template-rows: 28px;
+}
+.mask-destination-title {
+  grid-area: 1 / 1;
+  font-size: 10px;
+  font-weight: 600;
+  color: #3e4c63;
+  white-space: nowrap;
+}
+.mask-selector.compact {
+  display: contents;
+}
+.mask-selector.compact input {
+  grid-area: 1 / 2;
+}
+.mask-selector.compact select {
+  grid-area: 1 / 3;
+}
+.mask-selector.compact input,
+.mask-selector.compact select {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  font-size: 10px;
+}
+.mask-destination > .mask-destination-activate {
+  grid-area: 1 / 4;
+  justify-self: stretch;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #b9c6f5;
+  border-radius: 3px;
+  background: #f1f4ff;
+  color: #2f43c4;
+  font-weight: 600;
+  font-size: 10px;
+}
+.mask-destination > .mask-destination-activate:disabled {
+  border-color: var(--border);
+  background: none;
+  color: inherit;
+}
+.mask-destination-group .mask-destination-status {
+  grid-area: 2 / 1 / 3 / 4;
+}
+.mask-destination-actions {
+  grid-area: 2 / 4;
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.mask-destination-peek .mask-destination-actions {
+  grid-area: 1 / 5;
+}
+.mask-destination-actions .ribbon-item-slot {
+  display: flex;
+}
+.mask-destination-icon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #45546d;
+}
+.mask-destination-icon:not(:disabled):hover {
+  background: #eef2fb;
+  border-color: #d9e1f0;
+}
+.mask-destination-group .mask-destination-status {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr);
+  grid-template-rows: 13px 13px;
+  gap: 0 5px;
+  align-content: center;
+  align-items: center;
+  min-width: 0;
+  height: 28px;
+  padding: 0 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 13px;
+}
+.mask-destination-group .mask-destination-status strong,
+.mask-destination-group .mask-destination-status span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.mask-destination-group .mask-destination-status strong {
+  font-size: 10px;
+}
+.mask-status-dot {
+  grid-row: 1 / 3;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9aa4b4;
+}
+.mask-destination-status.tone-none .mask-status-dot {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px #9aa4b4;
+}
+.mask-destination-status.tone-editable .mask-status-dot {
+  background: #2f9e6e;
+}
+.mask-destination-status.tone-protected {
+  background: #fff5e6;
+}
+.mask-destination-status.tone-protected .mask-status-dot {
+  background: #c27410;
+}
+.mask-destination-status.tone-protected span {
+  color: #8a4b0c;
+  font-weight: 600;
+}
+
+/* Recolhida / Foco: compact status next to the tabs + temporary panel. */
+.mask-quick-access {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 1 auto;
+  margin-right: 2px;
+}
+.mask-destination-status.compact {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 70px;
+  max-width: min(420px, 40vw);
+  height: 21px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--panel);
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 9px;
+}
+.mask-destination-status.compact.tone-protected {
+  background: #fff5e6;
+  border-color: #f0cf9f;
+}
+.mask-destination-status.compact.tone-protected span {
+  min-width: min(170px, 60%);
+}
+.mask-destination-status.compact .mask-status-dot {
+  flex: 0 0 7px;
+}
+.mask-destination-status.compact strong {
+  flex: 0 3 auto;
+  min-width: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+.mask-destination-status.compact span {
+  flex: 0 1 auto;
+  min-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ribbon-tabs .mask-quick-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  align-self: center;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 10px;
+  text-transform: none;
+  white-space: nowrap;
+  color: #3e4c63;
+}
+.ribbon-tabs .mask-quick-toggle.active {
+  background: #e8edff;
+  border-color: #b9c6f5;
+  color: #2f43c4;
+}
+.ribbon-peek {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 45;
+  background: #fff;
+  border-bottom: 1px solid #d5dce8;
+  box-shadow: 0 10px 20px #14243f26;
+}
+.ribbon-peek-content {
+  display: flex;
+  height: 79px;
+  padding: 3px 4px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+@media (min-width: 1000px) {
+  /* Keep the destination and its state in view while the other groups
+     scroll; keyboard focus never lands under it. */
+  .ribbon-masks .ribbon-content,
+  .ribbon-peek-content {
+    scroll-padding-inline-end: 420px;
+  }
+  .ribbon-group.ribbon-group-references {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    margin-left: auto;
+    background: #fff;
+    border-left: 1px solid #dfe4eb;
+  }
+}
+@media (max-width: 760px) {
+  .ribbon-tabs .mask-quick-toggle span {
+    display: none;
+  }
+}
+@media (forced-colors: active) {
+  .ribbon-tool.ribbon-tool-compact.active {
+    outline: 2px solid Highlight;
+  }
+  .mask-status-dot {
+    forced-color-adjust: none;
+  }
+}

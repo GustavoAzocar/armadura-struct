@@ -131,6 +131,14 @@ test('cria sem aço pela aba com painel recolhido e modo Foco; quatro ferramenta
 }) => {
   await load(page, emptyProject());
   await page.getByRole('button', { name: 'Foco no CAD', exact: true }).click();
+  await expect(destination(page)).toHaveCount(0);
+  await expect(active(page)).toContainText('Nenhuma máscara ativa');
+  await page
+    .getByRole('button', {
+      name: 'Referências e comandos de máscara',
+      exact: true,
+    })
+    .click();
   await destination(page)
     .getByRole('button', { name: 'Nova máscara', exact: true })
     .click();

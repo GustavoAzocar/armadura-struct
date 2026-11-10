@@ -40,12 +40,18 @@ async function activate(page: Page, id: string) {
     .getByRole('button', { name: 'Ativar máscara para desenhar', exact: true })
     .click();
 }
-async function start(page: Page, active = false) {
+async function start(page: Page, compact = false) {
+  // In Foco/faixa recolhida the command is reached through the Referências
+  // panel; the 2-point scale is the same Ajustar escala command.
+  if (compact)
+    await page
+      .getByRole('button', {
+        name: 'Referências e comandos de máscara',
+        exact: true,
+      })
+      .click();
   await page
-    .getByRole('button', {
-      name: active ? 'Ajustar escala da máscara ativa' : 'Ajustar escala',
-      exact: true,
-    })
+    .getByRole('button', { name: 'Ajustar escala', exact: true })
     .click();
   await expect(panel(page)).toBeVisible();
 }

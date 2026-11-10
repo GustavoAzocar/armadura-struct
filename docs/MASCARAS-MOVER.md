@@ -16,7 +16,7 @@ O alcance aparece no painel ("alcance: N entidade(s)" ou "alcance: máscara inte
 
 O vetor global é convertido ao referencial local girado/escalado da máscara uma única vez (modelo → local). Não usa pixels, não altera escala nem rotação e não arredonda geometria para coincidir com o texto exibido. Base igual ao destino é neutra e não cria histórico.
 
-Também disponível em **Ferramentas CAD da máscara ativa**, no Controle de máscaras e por `MOVERMASCARA` / `MMOVE`. `MOVER` usa este fluxo na aba Máscaras; `M`/`MOVE` continuam no Mover de Elementos.
+Em Foco/faixa recolhida, abra **Referências** ao lado das abas. Também disponível no Controle de máscaras e por `MOVERMASCARA` / `MMOVE`. `MOVER` usa este fluxo na aba Máscaras; `M`/`MOVE` continuam no Mover de Elementos.
 
 ## Integridade
 

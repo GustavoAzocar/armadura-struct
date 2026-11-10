@@ -94,13 +94,16 @@ test('Manipular habilita Mover e Rotacionar e preserva a ordem dos comandos', as
     has: page.locator('.ribbon-group-label', { hasText: /^Manipular$/ }),
   });
   await expect(group).toHaveCount(1);
-  await expect(group.getByRole('button')).toHaveText([
-    'Mover',
-    'Espelhar',
-    'Rotacionar',
-    'Copiar',
-    'Apagar',
-  ]);
+  const names = [
+    'Mover entidades da máscara',
+    'Espelhar entidades da máscara',
+    'Rotacionar entidades da máscara',
+    'Copiar entidades da máscara',
+    'Apagar entidades da máscara',
+  ];
+  await expect(group.getByRole('button')).toHaveCount(names.length);
+  for (const [i, name] of names.entries())
+    await expect(group.getByRole('button').nth(i)).toHaveAccessibleName(name);
   await expect(
     group.getByRole('button', { name: 'Mover entidades da máscara' }),
   ).toBeEnabled();

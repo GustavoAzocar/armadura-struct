@@ -1,6 +1,6 @@
 # Offset de entidades de máscaras
 
-**Máscaras → Ferramentas → Offset** cria paralelas gráficas na máscara ativa. Também há acesso no Controle de máscaras e no seletor Ferramentas CAD, disponível em Foco e com a faixa recolhida. Os comandos são `OFFSET` e `PARALELA`.
+**Máscaras → Ferramentas → Offset** cria paralelas gráficas na máscara ativa. Também há acesso no Controle de máscaras; em Foco e com a faixa recolhida, abra **Referências** ao lado das abas. Os comandos são `OFFSET` e `PARALELA`.
 
 ## Uso
 

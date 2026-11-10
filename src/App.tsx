@@ -7001,6 +7001,12 @@ export default function App() {
           'mask-trim': maskCad?.mode === 'trim',
           'mask-extend': maskCad?.mode === 'extend',
           'mask-calibrate': !!maskCalibration,
+          // Icon-only Desenhar commands show which native shape is running.
+          'mask-line': nativeKind === 'line',
+          'mask-rectangle': nativeKind === 'rectangle',
+          'mask-circle': nativeKind === 'circle',
+          'mask-polyline': nativeKind === 'polyline',
+          'mask-text': !!freeText,
           'lock-schedule': !!p.scheduleLock,
           sidebar: sidebarOpen,
           focus,
@@ -7010,13 +7016,13 @@ export default function App() {
         canRedo={canRedo}
         isolated={!!isolatedDetailId}
         groupSelected={groupSelection}
-        maskDestination={
+        maskDestination={(variant) => (
+          // Measure, Offset, Ajustar/Estender, Manipular and the 2-point scale
+          // are reached through the Ferramentas/Manipular commands (same
+          // action ids), so the destination only chooses, activates and
+          // creates/imports/associates masks.
           <MaskDestination
-            onOffset={() => startMaskOffset()}
-            onMeasure={setMeasureMode}
-            onManipulate={(mode) => startMaskManip(mode)}
-            onCadEdit={(mode) => startMaskCad(mode)}
-            onCalibrate={() => startMaskCalibration()}
+            variant={variant}
             onBatch={(mode) => startMaskBatch(mode)}
             project={p}
             activeId={drawingMaskId}
@@ -7029,7 +7035,7 @@ export default function App() {
               setMaskControl(true);
             }}
           />
-        }
+        )}
         collapsed={ribbonCollapsed || focus}
         setCollapsed={(v) => {
           setRibbonCollapsed(v);

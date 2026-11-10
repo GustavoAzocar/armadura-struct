@@ -47,8 +47,35 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { Tool } from '../domain/types';
-import type { ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FocusEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { NumberField } from './Panels';
+import { TooltipProvider, useTooltip } from './RibbonTooltip';
+import type { MaskDestinationVariant } from './MaskDestination';
+import {
+  CircleIcon,
+  DimensionAlignedIcon,
+  DimensionOrthogonalIcon,
+  ExtendIcon,
+  LineIcon,
+  MatchPropertiesIcon,
+  MeasureContourIcon,
+  MeasureDistanceIcon,
+  OffsetIcon,
+  PolylineIcon,
+  RectangleIcon,
+  ScaleIcon,
+  TrimIcon,
+  type IconComponent,
+} from './maskIcons';
 export type Action =
   | Tool
   | 'stirrup-criteria'
@@ -134,16 +161,123 @@ type Item = {
   action: Action;
   label: string;
   caption?: string;
-  icon: LucideIcon;
+  icon: LucideIcon | IconComponent;
   selection?: number;
   disabled?: boolean;
 };
 const item = (
   action: Action,
   label: string,
-  icon: LucideIcon,
+  icon: LucideIcon | IconComponent,
   selection = 0,
 ): Item => ({ action, label, icon, selection });
+type Group = {
+  name: string;
+  items: Item[];
+  creation?: boolean;
+  /** Icon-only grid (issue #119): commands per row; two rows at most. */
+  compact?: { columns: number };
+  /** Mask destination controls rendered as the last group of the tab. */
+  references?: boolean;
+};
+const ISOLATION_BLOCKED: Action[] = [
+  'detail-repetition',
+  'fabrication',
+  'insert-detail',
+  'update-detail',
+  'new',
+  'open',
+  'renumber',
+  'group',
+  'ungroup',
+  'edit-detail',
+  'lock-schedule',
+  'refresh-schedule',
+  'insert-sheet-schedule',
+];
+const GROUP_BLOCKED: string[] = [
+  'copy',
+  'rotate',
+  'mirror',
+  'split',
+  'join',
+  'detail',
+  'range',
+  'repeat',
+  'distribute',
+  'edit-segment',
+  'lengthen-bar',
+];
+/** Why a ribbon command cannot run now; undefined when it can. */
+export function unavailableReason(
+  t: Item,
+  ctx: {
+    selected: number;
+    isolated: boolean;
+    groupSelected: boolean;
+    canUndo: boolean;
+    canRedo: boolean;
+  },
+): string | undefined {
+  if (t.disabled) return 'Indisponível no momento.';
+  if (t.selection && ctx.selected < t.selection)
+    return t.selection > 1
+      ? `Selecione ao menos ${t.selection} objetos.`
+      : 'Selecione um objeto antes.';
+  if (ctx.isolated && ISOLATION_BLOCKED.includes(t.action))
+    return 'Indisponível durante a edição isolada de um detalhamento.';
+  if (ctx.groupSelected && GROUP_BLOCKED.includes(t.action))
+    return 'Indisponível com um detalhamento agrupado na seleção.';
+  if (t.action === 'undo' && !ctx.canUndo) return 'Nada para desfazer.';
+  if (t.action === 'redo' && !ctx.canRedo) return 'Nada para refazer.';
+  return undefined;
+}
+
+/** Icon-only command: name in the help bubble and in the accessible name. */
+function CompactTool({
+  entry,
+  active,
+  reason,
+  onRun,
+}: {
+  entry: Item;
+  active: boolean;
+  reason?: string;
+  onRun: () => void;
+}) {
+  const tip = useTooltip({ label: entry.label, detail: reason });
+  const Icon = entry.icon;
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    tip.focus.onKeyDown(e);
+    // Enter/Space activate the focused command itself; they must not reach
+    // the canvas shortcuts (Enter would otherwise finish the running command).
+    if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+  };
+  return (
+    <span className="ribbon-item-slot" {...tip.hover}>
+      <button
+        type="button"
+        className={`ribbon-tool ribbon-tool-compact ${active ? 'active' : ''}`}
+        data-action={entry.action}
+        aria-label={entry.label}
+        aria-pressed={active}
+        aria-describedby={tip.describedId}
+        disabled={!!reason}
+        onClick={onRun}
+        onFocus={tip.focus.onFocus}
+        onBlur={tip.focus.onBlur}
+        onKeyDown={onKeyDown}
+      >
+        <Icon size={18} strokeWidth={1.6} />
+      </button>
+      {tip.describedId && (
+        <span id={tip.describedId} className="sr-only">
+          {tip.describedText}
+        </span>
+      )}
+    </span>
+  );
+}
 export type CreationSettings = {
   diameter: number;
   quantity: number;
@@ -179,12 +313,10 @@ export default function Ribbon({
   onSettings: (p: Partial<CreationSettings>) => void;
   isolated?: boolean;
   groupSelected?: boolean;
-  maskDestination?: ReactNode;
+  /** Renders the mask destination for the given place in the ribbon. */
+  maskDestination?: (variant: MaskDestinationVariant) => ReactNode;
 }) {
-  const groups: Record<
-    string,
-    { name: string; items: Item[]; creation?: boolean }[]
-  > = {
+  const groups: Record<string, Group[]> = {
     Plugins: [
       {
         name: 'Extensões',
@@ -237,77 +369,51 @@ export default function Ribbon({
     Máscaras: [
       {
         name: 'Ferramentas',
+        compact: { columns: 5 },
         items: [
-          item('match-properties', 'Copiar propriedades', Copy),
-          item('mask-calibrate', 'Ajustar escala', Ruler),
-          {
-            ...item('mask-offset', 'Offset — Paralelas de máscara', Copy),
-            caption: 'Offset',
-          },
-          {
-            ...item(
-              'mask-trim',
-              'Ajustar — Aparar / Trim de máscara',
-              Scissors,
-            ),
-            caption: 'Ajustar',
-          },
-          {
-            ...item('mask-extend', 'Estender — Extend de máscara', Move),
-            caption: 'Estender',
-          },
-          item('measure', 'Medir distância', Ruler),
-          item('measure-contour', 'Medir contorno', SquareDashed),
-          item('dimension-orthogonal', 'Cota ortogonal', Ruler),
-          item('dimension-aligned', 'Cota alinhada', Ruler),
+          item('match-properties', 'Copiar propriedades', MatchPropertiesIcon),
+          item('mask-calibrate', 'Ajustar escala', ScaleIcon),
+          item('mask-offset', 'Offset — Paralelas de máscara', OffsetIcon),
+          item('mask-trim', 'Ajustar — Aparar / Trim de máscara', TrimIcon),
+          item('mask-extend', 'Estender — Extend de máscara', ExtendIcon),
+          item('measure', 'Medir distância', MeasureDistanceIcon),
+          item('measure-contour', 'Medir contorno', MeasureContourIcon),
+          item(
+            'dimension-orthogonal',
+            'Cota ortogonal',
+            DimensionOrthogonalIcon,
+          ),
+          item('dimension-aligned', 'Cota alinhada', DimensionAlignedIcon),
         ],
       },
       {
         name: 'Manipular',
+        compact: { columns: 3 },
         items: [
-          {
-            ...item('mask-move', 'Mover entidades da máscara', Move),
-            caption: 'Mover',
-          },
-          {
-            ...item(
-              'mask-mirror',
-              'Espelhar entidades da máscara',
-              FlipHorizontal2,
-            ),
-            caption: 'Espelhar',
-          },
-          {
-            ...item('mask-rotate', 'Rotacionar entidades da máscara', RotateCw),
-            caption: 'Rotacionar',
-          },
-          {
-            ...item('mask-copy', 'Copiar entidades da máscara', Copy),
-            caption: 'Copiar',
-          },
-          {
-            ...item('mask-erase', 'Apagar entidades da máscara', Trash2),
-            caption: 'Apagar',
-          },
+          item('mask-move', 'Mover entidades da máscara', Move),
+          item('mask-mirror', 'Espelhar entidades da máscara', FlipHorizontal2),
+          item('mask-rotate', 'Rotacionar entidades da máscara', RotateCw),
+          item('mask-copy', 'Copiar entidades da máscara', Copy),
+          item('mask-erase', 'Apagar entidades da máscara', Trash2),
         ],
       },
       {
         name: 'Desenhar',
+        compact: { columns: 3 },
         items: [
-          item('mask-line', 'Linha', PencilRuler),
-          item('mask-rectangle', 'Retângulo', SquareDashed),
-          item('mask-circle', 'Círculo', Shapes),
-          item('mask-polyline', 'Polilinha', Spline),
+          item('mask-line', 'Linha', LineIcon),
+          item('mask-rectangle', 'Retângulo', RectangleIcon),
+          item('mask-circle', 'Círculo', CircleIcon),
+          item('mask-polyline', 'Polilinha', PolylineIcon),
           item('mask-text', 'Texto', Type),
         ],
       },
       {
+        // Importar and Associar moved to Referências: one place, same flows.
         name: 'Controle de máscaras',
         items: [
           item('mask-control', 'Controle de máscaras', Layers),
           item('symbols', 'Biblioteca de símbolos', Library),
-          item('import', 'Importar DXF / DWG', FolderOpen),
-          item('associate-masks', 'Associar máscaras', Layers),
         ],
       },
       {
@@ -322,6 +428,7 @@ export default function Ribbon({
           item('redo', 'Refazer', Redo2),
         ],
       },
+      { name: 'Referências', references: true, items: [] },
     ],
     Desenho: [
       {
@@ -473,172 +580,277 @@ export default function Ribbon({
       },
     ],
   };
-  return (
-    <div className={`ribbon ${collapsed ? 'collapsed' : ''}`}>
-      <div className="ribbon-tabs" role="tablist" aria-label="Ferramentas">
-        {[
-          ...Object.keys(groups).filter(
-            (t) => t !== 'CONFIGURAÇÕES' && t !== 'Plugins',
-          ),
-          'Plugins',
-          'CONFIGURAÇÕES',
-        ].map((t) => (
-          <button
-            role="tab"
-            aria-selected={t === tab}
-            key={t}
-            className={t === tab ? 'active' : ''}
-            onClick={() => {
-              setTab(t);
-              setCollapsed(false);
-            }}
-            onDoubleClick={() => setCollapsed(!collapsed)}
-          >
-            {t}
-          </button>
-        ))}
-        <span className="ribbon-spacer" />
-        <button
-          className="collapse-ribbon"
-          title="Recolher / expandir comandos · Ctrl+F1"
-          aria-label={
-            collapsed
-              ? 'Expandir faixa de comandos'
-              : 'Recolher faixa de comandos'
-          }
-          onClick={() => setCollapsed(!collapsed)}
+  const masksTab = tab === 'Máscaras';
+  const [peek, setPeek] = useState(false);
+  const peekId = useId();
+  const ribbonRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const peekRef = useRef<HTMLDivElement>(null);
+  const focusPeek = useRef(false);
+  const peekOpen = peek && collapsed && masksTab;
+  // The temporary panel only exists while the faixa is recolhida/Foco; it never
+  // changes the collapsed state, the tab or the active mask.
+  useEffect(() => {
+    if (!collapsed || !masksTab) setPeek(false);
+  }, [collapsed, masksTab]);
+  useEffect(() => {
+    if (!peekOpen) return;
+    if (focusPeek.current) {
+      focusPeek.current = false;
+      peekRef.current
+        ?.querySelector<HTMLElement>(
+          'button:not(:disabled),input,select,[tabindex="0"]',
+        )
+        ?.focus();
+    }
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // Esc closes the panel only; it must not also cancel the CAD command.
+      e.stopPropagation();
+      e.preventDefault();
+      const inside = peekRef.current?.contains(document.activeElement);
+      setPeek(false);
+      if (inside) toggleRef.current?.focus();
+    };
+    const onDown = (e: globalThis.PointerEvent) => {
+      if (!ribbonRef.current?.contains(e.target as Node)) setPeek(false);
+    };
+    window.addEventListener('keydown', onKey, true);
+    document.addEventListener('pointerdown', onDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('pointerdown', onDown, true);
+    };
+  }, [peekOpen]);
+  const ctx = { selected, isolated, groupSelected, canUndo, canRedo };
+  // Referências stays pinned at the right on wider windows; a command that
+  // receives keyboard focus is scrolled clear of it (and of the left edge).
+  const keepFocusVisible = (e: FocusEvent<HTMLDivElement>) => {
+    const box = e.currentTarget,
+      el = e.target as HTMLElement,
+      refs = box.querySelector<HTMLElement>('.ribbon-group-references');
+    if (!refs || refs.contains(el) || box.scrollWidth <= box.clientWidth)
+      return;
+    const r = el.getBoundingClientRect(),
+      b = box.getBoundingClientRect(),
+      edge =
+        getComputedStyle(refs).position === 'sticky'
+          ? refs.getBoundingClientRect().left
+          : b.right;
+    if (r.right > edge) box.scrollLeft += r.right - edge + 8;
+    else if (r.left < b.left) box.scrollLeft -= b.left - r.left + 8;
+  };
+  const content = (variant: 'bar' | 'peek') =>
+    (groups[tab] ?? groups.Armaduras).map((g) =>
+      g.references ? (
+        <div
+          key={g.name}
+          className="ribbon-group ribbon-group-references"
+          data-group={g.name}
         >
-          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </button>
-      </div>
-      {tab === 'Máscaras' && maskDestination}
-      {!collapsed && (
-        <div className="ribbon-content">
-          {(groups[tab] ?? groups.Armaduras).map((g) => (
-            <div key={g.name} className="ribbon-group">
-              <div className="ribbon-group-tools">
-                {g.items.map((entry, i) => {
-                  const t =
-                    entry.action === 'lock-schedule' && active['lock-schedule']
-                      ? { ...entry, label: 'Desbloquear RA' }
-                      : entry;
-                  return (
-                    <span className="ribbon-item-slot" key={t.action}>
-                      <button
-                        className={`ribbon-tool ${active[t.action] ? 'active' : ''}`}
-                        onClick={() => onAction(t.action)}
-                        title={t.label}
-                        aria-label={t.label}
-                        aria-pressed={!!active[t.action]}
-                        disabled={
-                          entry.disabled ||
-                          (!!t.selection && selected < t.selection) ||
-                          (isolated &&
-                            [
-                              'detail-repetition',
-                              'fabrication',
-                              'insert-detail',
-                              'update-detail',
-                              'new',
-                              'open',
-                              'renumber',
-                              'group',
-                              'ungroup',
-                              'edit-detail',
-                              'lock-schedule',
-                              'refresh-schedule',
-                              'insert-sheet-schedule',
-                            ].includes(t.action)) ||
-                          (groupSelected &&
-                            [
-                              'copy',
-                              'rotate',
-                              'mirror',
-                              'split',
-                              'join',
-                              'detail',
-                              'range',
-                              'repeat',
-                              'distribute',
-                              'edit-segment',
-                              'lengthen-bar',
-                            ].includes(t.action)) ||
-                          (t.action === 'undo' && !canUndo) ||
-                          (t.action === 'redo' && !canRedo)
-                        }
-                      >
-                        <t.icon size={23} strokeWidth={1.5} />
-                        <span>{t.caption ?? t.label}</span>
-                      </button>
-                      {g.creation && i === 1 && (
-                        <div
-                          className="creation-fields"
-                          title="Parâmetros das próximas armaduras"
-                        >
-                          <NumberField
-                            label="Quantidade de criação"
-                            compactLabel="Qtd."
-                            value={settings.quantity}
-                            min={1}
-                            max={100000}
-                            step={1}
-                            onChange={(quantity) => onSettings({ quantity })}
-                          />
-                          <label className="field">
-                            <span>Bitola</span>
-                            <select
-                              aria-label="Bitola de criação"
-                              value={settings.diameter}
-                              onChange={(e) =>
-                                onSettings({ diameter: Number(e.target.value) })
-                              }
-                            >
-                              {![
-                                4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32,
-                                40,
-                              ].includes(settings.diameter) && (
-                                <option value={settings.diameter}>
-                                  {settings.diameter}
-                                </option>
-                              )}
-                              {[
-                                4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32,
-                                40,
-                              ].map((d) => (
-                                <option key={d} value={d}>
-                                  {d}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <NumberField
-                            label="Espaçamento de criação"
-                            compactLabel="Espaç."
-                            value={settings.spacing}
-                            min={1}
-                            onChange={(spacing) => onSettings({ spacing })}
-                            suffix="mm"
-                          />
-                          <NumberField
-                            label="Cobrimento padrão de criação"
-                            compactLabel="Cobrim."
-                            value={settings.cover}
-                            min={0}
-                            max={10000}
-                            onChange={(cover) => onSettings({ cover })}
-                            suffix="mm"
-                          />
-                        </div>
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-              <span className="ribbon-group-label">{g.name}</span>
-            </div>
-          ))}
+          {maskDestination?.(variant === 'peek' ? 'peek' : 'group')}
+          <span className="ribbon-group-label">{g.name}</span>
         </div>
-      )}
-    </div>
+      ) : g.compact ? (
+        <div
+          key={g.name}
+          className="ribbon-group ribbon-group-compact"
+          data-group={g.name}
+        >
+          <div
+            className="ribbon-group-tools ribbon-compact-grid"
+            style={{ '--ribbon-columns': g.compact.columns } as CSSProperties}
+          >
+            {g.items.map((entry) => (
+              <CompactTool
+                key={entry.action}
+                entry={entry}
+                active={!!active[entry.action]}
+                reason={unavailableReason(entry, ctx)}
+                onRun={() => onAction(entry.action)}
+              />
+            ))}
+          </div>
+          <span className="ribbon-group-label">{g.name}</span>
+        </div>
+      ) : (
+        <div key={g.name} className="ribbon-group" data-group={g.name}>
+          <div className="ribbon-group-tools">
+            {g.items.map((entry, i) => {
+              const t =
+                entry.action === 'lock-schedule' && active['lock-schedule']
+                  ? { ...entry, label: 'Desbloquear RA' }
+                  : entry;
+              return (
+                <span className="ribbon-item-slot" key={t.action}>
+                  <button
+                    className={`ribbon-tool ${active[t.action] ? 'active' : ''}`}
+                    onClick={() => onAction(t.action)}
+                    title={t.label}
+                    aria-label={t.label}
+                    aria-pressed={!!active[t.action]}
+                    disabled={!!unavailableReason(entry, ctx)}
+                  >
+                    <t.icon size={23} strokeWidth={1.5} />
+                    <span>{t.caption ?? t.label}</span>
+                  </button>
+                  {g.creation && i === 1 && (
+                    <div
+                      className="creation-fields"
+                      title="Parâmetros das próximas armaduras"
+                    >
+                      <NumberField
+                        label="Quantidade de criação"
+                        compactLabel="Qtd."
+                        value={settings.quantity}
+                        min={1}
+                        max={100000}
+                        step={1}
+                        onChange={(quantity) => onSettings({ quantity })}
+                      />
+                      <label className="field">
+                        <span>Bitola</span>
+                        <select
+                          aria-label="Bitola de criação"
+                          value={settings.diameter}
+                          onChange={(e) =>
+                            onSettings({ diameter: Number(e.target.value) })
+                          }
+                        >
+                          {![
+                            4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32, 40,
+                          ].includes(settings.diameter) && (
+                            <option value={settings.diameter}>
+                              {settings.diameter}
+                            </option>
+                          )}
+                          {[
+                            4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32, 40,
+                          ].map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <NumberField
+                        label="Espaçamento de criação"
+                        compactLabel="Espaç."
+                        value={settings.spacing}
+                        min={1}
+                        onChange={(spacing) => onSettings({ spacing })}
+                        suffix="mm"
+                      />
+                      <NumberField
+                        label="Cobrimento padrão de criação"
+                        compactLabel="Cobrim."
+                        value={settings.cover}
+                        min={0}
+                        max={10000}
+                        onChange={(cover) => onSettings({ cover })}
+                        suffix="mm"
+                      />
+                    </div>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+          <span className="ribbon-group-label">{g.name}</span>
+        </div>
+      ),
+    );
+  return (
+    <TooltipProvider>
+      <div
+        ref={ribbonRef}
+        className={`ribbon ${collapsed ? 'collapsed' : ''} ${masksTab ? 'ribbon-masks' : ''}`}
+      >
+        <div className="ribbon-tabs" role="tablist" aria-label="Ferramentas">
+          {[
+            ...Object.keys(groups).filter(
+              (t) => t !== 'CONFIGURAÇÕES' && t !== 'Plugins',
+            ),
+            'Plugins',
+            'CONFIGURAÇÕES',
+          ].map((t) => (
+            <button
+              role="tab"
+              aria-selected={t === tab}
+              key={t}
+              className={t === tab ? 'active' : ''}
+              onClick={() => {
+                setTab(t);
+                setCollapsed(false);
+              }}
+              onDoubleClick={() => setCollapsed(!collapsed)}
+            >
+              {t}
+            </button>
+          ))}
+          <span className="ribbon-spacer" />
+          {masksTab && collapsed && maskDestination && (
+            <div className="mask-quick-access">
+              {maskDestination('summary')}
+              <button
+                ref={toggleRef}
+                type="button"
+                className={`mask-quick-toggle ${peekOpen ? 'active' : ''}`}
+                aria-label="Referências e comandos de máscara"
+                title="Referências e comandos de máscara"
+                aria-expanded={peekOpen}
+                aria-controls={peekOpen ? peekId : undefined}
+                onKeyDown={(e) => {
+                  // Keep Enter/Space for the toggle (not the canvas shortcuts).
+                  if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  focusPeek.current = !peekOpen && e.detail === 0;
+                  setPeek(!peekOpen);
+                }}
+              >
+                <Layers size={14} strokeWidth={1.6} aria-hidden="true" />
+                <span>Referências</span>
+                <ChevronDown size={12} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+          <button
+            className="collapse-ribbon"
+            title="Recolher / expandir comandos · Ctrl+F1"
+            aria-label={
+              collapsed
+                ? 'Expandir faixa de comandos'
+                : 'Recolher faixa de comandos'
+            }
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
+        </div>
+        {!collapsed && (
+          <div className="ribbon-content" onFocus={keepFocusVisible}>
+            {content('bar')}
+          </div>
+        )}
+        {peekOpen && (
+          <div
+            ref={peekRef}
+            id={peekId}
+            className="ribbon-peek"
+            role="group"
+            aria-label="Comandos de máscara"
+            onClick={(e) => {
+              // A command or reference action was chosen: give the canvas back.
+              if ((e.target as Element).closest('button')) setPeek(false);
+            }}
+          >
+            <div className="ribbon-peek-content" onFocus={keepFocusVisible}>
+              {content('peek')}
+            </div>
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

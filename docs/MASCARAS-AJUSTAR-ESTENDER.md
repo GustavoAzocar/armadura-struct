@@ -1,6 +1,6 @@
 # Ajustar (Aparar / Trim) e Estender (Extend)
 
-Em **Máscaras → Ferramentas**, escolha **Ajustar** ou **Estender**. O tooltip identifica Aparar / Trim, separado de **Ajustar escala**, que calibra a máscara inteira. O destino é sempre a **máscara ativa** exibida no seletor superior. O Controle de máscaras também permite **Usar esta máscara e Ajustar/Estender**; no modo Foco, use **Ferramentas CAD da máscara ativa** junto ao seletor de destino.
+Em **Máscaras → Ferramentas**, escolha **Ajustar** ou **Estender**. O tooltip identifica Aparar / Trim, separado de **Ajustar escala**, que calibra a máscara inteira. O destino é sempre a **máscara ativa** exibida no grupo **Referências**. O Controle de máscaras também permite **Usar esta máscara e Ajustar/Estender**; no modo Foco, abra **Referências** ao lado das abas.
 
 ## Fluxo comum
 

@@ -292,7 +292,7 @@ test('reassocia várias máscaras e permite cópia explícita sem deslocar geome
   await load(page, base);
   const before = await save(page);
   await page
-    .getByRole('button', { name: 'Associar máscaras', exact: true })
+    .getByRole('button', { name: 'Associar máscaras do projeto', exact: true })
     .click();
   const d = page.getByRole('dialog', {
     name: 'Associar máscaras',
@@ -316,7 +316,7 @@ test('reassocia várias máscaras e permite cópia explícita sem deslocar geome
   );
   await command(page, 'REDO');
   await page
-    .getByRole('button', { name: 'Associar máscaras', exact: true })
+    .getByRole('button', { name: 'Associar máscaras do projeto', exact: true })
     .click();
   await d.getByLabel('Associar a.dxf', { exact: true }).check();
   await d
@@ -348,7 +348,7 @@ test('prancha exige abertura explícita; isolamento pode ser deixado antes de di
     .click();
   await page.getByRole('tab', { name: 'Máscaras', exact: true }).click();
   await page
-    .getByRole('button', { name: 'Importar DXF / DWG', exact: true })
+    .getByRole('button', { name: 'Importar máscaras em lote', exact: true })
     .click();
   await expect(batch(page)).toContainText('Você está na prancha');
   await expect(
@@ -440,6 +440,12 @@ test('painel recolhido, Foco, janela menor e teclado mantêm o rascunho isolado 
   const before = await save(page);
   await page.setViewportSize({ width: 900, height: 650 });
   await page.getByRole('button', { name: 'Foco no CAD', exact: true }).click();
+  await page
+    .getByRole('button', {
+      name: 'Referências e comandos de máscara',
+      exact: true,
+    })
+    .click();
   await page
     .getByRole('button', { name: 'Importar máscaras em lote', exact: true })
     .click();
