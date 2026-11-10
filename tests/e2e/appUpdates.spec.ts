@@ -293,7 +293,7 @@ for (const save of ['cancel', 'fail'])
       .getByRole('button', { name: 'Salvar, instalar e reiniciar' })
       .click();
     await expect(modal(page).getByRole('alert')).toContainText(
-      'O projeto não foi salvo em disco.',
+      save === 'fail' ? 'Sem permissão' : 'O projeto não foi salvo em disco.',
     );
     expect(await calls(page, 'plugin:dialog|save')).toBe(1);
     expect(await calls(page, 'plugin:fs|write_text_file')).toBe(
