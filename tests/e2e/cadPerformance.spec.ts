@@ -70,6 +70,8 @@ test('navegação não regenera descrições; edição, histórico e troca de pr
   });
   await expect(page.locator('[data-bar-id]')).toHaveCount(400);
   await expect(page.locator('[data-representation-id]')).toHaveCount(400);
+  await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
+  await expect(page.locator('.bar-row')).toHaveCount(400);
   await expect(page.locator('.save-status')).toHaveText(
     'Apenas recuperável localmente',
   );
@@ -122,7 +124,6 @@ test('navegação não regenera descrições; edição, histórico e troca de pr
   expect(counts.writes).toBe(0);
   expect(await undo.isDisabled()).toBe(wasDisabled);
   expect(await save(page)).toEqual(before);
-  await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
   await page
     .locator('.bar-row')
     .filter({ has: page.getByText('N2', { exact: true }) })
