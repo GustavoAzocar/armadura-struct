@@ -1,4 +1,4 @@
-import type { Point, Project } from '../domain/types';
+import type { Point, Primitive, Project } from '../domain/types';
 import type { MaskDrawingContext } from '../domain/maskDrawing';
 import {
   formatDimension,
@@ -6,7 +6,26 @@ import {
   type DimensionPresentation,
   type MaskDimensionReference,
 } from '../domain/maskDimensions';
+import {
+  formatArea,
+  type ContourMeasurement,
+} from '../domain/maskContourMeasure';
+export type MeasureMode =
+  | 'measure'
+  | 'measure-contour'
+  | 'dimension-aligned'
+  | 'dimension-orthogonal';
+/** Temporary query state; never stored in the project or the history. */
+export type ContourQuery = {
+  key: string;
+  label: string;
+  result: ContourMeasurement;
+  highlight: Primitive[];
+};
 export type MeasureSession = {
+  /** Sub-mode of the `measure` tool. Absent means distance between points. */
+  mode?: 'distance' | 'contour';
+  contour?: ContourQuery;
   project: Project;
   context: MaskDrawingContext;
   maskId?: string;
@@ -28,9 +47,7 @@ export default function MeasureDimensionPanel({
   session: MeasureSession;
   tool: string;
   points: Point[];
-  onMode: (
-    mode: 'measure' | 'dimension-aligned' | 'dimension-orthogonal',
-  ) => void;
+  onMode: (mode: MeasureMode) => void;
   onPresentation: (v: DimensionPresentation) => void;
   onEnd: () => void;
 }) {
@@ -41,6 +58,15 @@ export default function MeasureDimensionPanel({
   } catch {
     /* Invalid cursor is reported at confirmation. */
   }
+  if (s.mode === 'contour')
+    return (
+      <ContourPanel
+        session={s}
+        onMode={onMode}
+        onPresentation={onPresentation}
+        onEnd={onEnd}
+      />
+    );
   return (
     <section
       className="mask-cad-panel"
@@ -73,58 +99,20 @@ export default function MeasureDimensionPanel({
         <select
           aria-label="Operação de medir e cotar"
           value={tool}
-          onChange={(e) =>
-            onMode(
-              e.target.value as
-                | 'measure'
-                | 'dimension-aligned'
-                | 'dimension-orthogonal',
-            )
-          }
+          onChange={(e) => onMode(e.target.value as MeasureMode)}
         >
           <option value="measure">Medir distância — consulta</option>
+          <option value="measure-contour">Medir contorno — consulta</option>
           <option value="dimension-orthogonal">
             Inserir cota linear / ortogonal
           </option>
           <option value="dimension-aligned">Inserir cota alinhada</option>
         </select>
       </label>
-      <div className="field-row">
-        <label className="field">
-          Unidade
-          <select
-            aria-label="Unidade da medida"
-            value={s.presentation.unit}
-            onChange={(e) =>
-              onPresentation({
-                ...s.presentation,
-                unit: e.target.value as DimensionPresentation['unit'],
-              })
-            }
-          >
-            {['mm', 'cm', 'm'].map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          Casas decimais
-          <select
-            aria-label="Precisão da medida"
-            value={s.presentation.precision}
-            onChange={(e) =>
-              onPresentation({
-                ...s.presentation,
-                precision: Number(e.target.value),
-              })
-            }
-          >
-            {[0, 1, 2, 3, 4, 5, 6].map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <PresentationFields
+        presentation={s.presentation}
+        onPresentation={onPresentation}
+      />
       {values && (
         <p role="status">
           Distância: {formatDimension(values.distance, s.presentation)}
@@ -158,6 +146,159 @@ export default function MeasureDimensionPanel({
           ? 'Máscara ativa disponível para snaps e verificação.'
           : 'Sem máscara ativa: pontos livres, sem verificação de referência.'}{' '}
         Aço e arquivos externos permanecem intactos.
+      </p>
+      {s.issue && <p role="alert">{s.issue}</p>}
+      <button onClick={onEnd}>Concluir / cancelar · Esc</button>
+    </section>
+  );
+}
+
+const exactnessText = {
+  exact: 'Vértices exatos da entidade.',
+  analytic: 'Cálculo analítico (raio e ângulo da curva nativa).',
+  approximation: 'Aproximação disponível da geometria importada.',
+} as const;
+function PresentationFields({
+  presentation,
+  onPresentation,
+}: {
+  presentation: DimensionPresentation;
+  onPresentation: (v: DimensionPresentation) => void;
+}) {
+  return (
+    <div className="field-row">
+      <label className="field">
+        Unidade
+        <select
+          aria-label="Unidade da medida"
+          value={presentation.unit}
+          onChange={(e) =>
+            onPresentation({
+              ...presentation,
+              unit: e.target.value as DimensionPresentation['unit'],
+            })
+          }
+        >
+          {['mm', 'cm', 'm'].map((v) => (
+            <option key={v}>{v}</option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        Casas decimais
+        <select
+          aria-label="Precisão da medida"
+          value={presentation.precision}
+          onChange={(e) =>
+            onPresentation({
+              ...presentation,
+              precision: Number(e.target.value),
+            })
+          }
+        >
+          {[0, 1, 2, 3, 4, 5, 6].map((v) => (
+            <option key={v}>{v}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+function ContourPanel({
+  session: s,
+  onMode,
+  onPresentation,
+  onEnd,
+}: {
+  session: MeasureSession;
+  onMode: (mode: MeasureMode) => void;
+  onPresentation: (v: DimensionPresentation) => void;
+  onEnd: () => void;
+}) {
+  const r = s.contour?.result;
+  return (
+    <section
+      className="mask-cad-panel"
+      aria-label="Medir contorno"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          e.preventDefault();
+          onEnd();
+        }
+        if (e.key === 'Enter') e.stopPropagation();
+      }}
+    >
+      <div className="transform-heading">
+        <b>Medir contorno · consulta</b>
+        <span>
+          {s.contour ? 'Outra entidade / concluir' : 'Selecionar entidade'}
+        </span>
+      </div>
+      <label className="field">
+        Operação
+        <select
+          aria-label="Operação de medir e cotar"
+          value="measure-contour"
+          onChange={(e) => onMode(e.target.value as MeasureMode)}
+        >
+          <option value="measure">Medir distância — consulta</option>
+          <option value="measure-contour">Medir contorno — consulta</option>
+          <option value="dimension-orthogonal">
+            Inserir cota linear / ortogonal
+          </option>
+          <option value="dimension-aligned">Inserir cota alinhada</option>
+        </select>
+      </label>
+      <PresentationFields
+        presentation={s.presentation}
+        onPresentation={onPresentation}
+      />
+      {s.contour && r && (
+        <div
+          className="contour-measure-result"
+          role="status"
+          aria-label="Resultado da medição de contorno"
+        >
+          <b>{s.contour.label}</b>
+          {r.ok ? (
+            r.closed ? (
+              <>
+                <span>Contorno fechado</span>
+                <span>
+                  Perímetro: {formatDimension(r.perimeter, s.presentation)}
+                </span>
+                <span>Área: {formatArea(r.area, s.presentation)}</span>
+              </>
+            ) : (
+              <>
+                <span>Caminho aberto</span>
+                <span>
+                  Comprimento: {formatDimension(r.length, s.presentation)}
+                </span>
+                <span>Área: não se aplica a caminho aberto</span>
+              </>
+            )
+          ) : null}
+          {r.ok && <small>{exactnessText[r.exactness]}</small>}
+          {r.ok && r.notes.map((n) => <small key={n}>{n}</small>)}
+        </div>
+      )}
+      {r && !r.ok && (
+        <p role="alert">
+          Medição indisponível ({r.kind}): {r.reason}
+        </p>
+      )}
+      <p>
+        Clique numa linha, polilinha, retângulo, arco ou círculo de máscara
+        visível e capturável do desenho ativo. Clique em outra entidade para
+        repetir; Esc conclui.
+      </p>
+      <p className="field-help">
+        Valores em mm do modelo, independentes de zoom e pan; unidade e precisão
+        mudam apenas a apresentação. A área é a do contorno selecionado: furos e
+        contornos internos não são descontados. Consulta não cria objetos, não
+        altera aço, quantitativos nem o histórico.
       </p>
       {s.issue && <p role="alert">{s.issue}</p>}
       <button onClick={onEnd}>Concluir / cancelar · Esc</button>
