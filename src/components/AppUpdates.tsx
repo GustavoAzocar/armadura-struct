@@ -70,7 +70,8 @@ export default function AppUpdates({
     }
   };
   useEffect(() => {
-    if (!ready || !bridge.native) return;
+    // A manual check supersedes the delayed startup check, including its UI state.
+    if (!ready || !bridge.native || manualRequest) return;
     const timer = setTimeout(() => {
       void check(false);
     }, 1200);
@@ -78,7 +79,7 @@ export default function AppUpdates({
       clearTimeout(timer);
       sequence.current++;
     };
-  }, [ready, bridge.native]);
+  }, [ready, bridge.native, manualRequest]);
   useEffect(() => {
     if (!manualRequest || lastManual.current === manualRequest) return;
     lastManual.current = manualRequest;
