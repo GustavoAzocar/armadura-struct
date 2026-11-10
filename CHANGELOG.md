@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## Em desenvolvimento
+
+- Máscaras → Manipular → Rotacionar: seleção compartilhada, ponto base, ângulo por clique ou valor digitado (anti-horário +), Referência por dois pontos, guia com arco e sentido no canvas e confirmação com histórico atômico. Gira no lugar preservando IDs, raio/abertura de círculos e arcos e orientação de textos; retângulo fora do contrato de dois cantos vira polilinha de quatro vértices exatos. Aço/RA/CSV intactos. [Uso e limites](docs/MASCARAS-ROTACIONAR.md).
+
 ## 0.5.0 · 2026-11-09
 
 - Lançamento de estribos por critérios: formatos retangular, circular analítico e livre, seção no eixo ou com cobrimento, ganchos independentes, mandril, rotação e apresentação. Seção e faixa longitudinal compartilham a mesma posição, com espaçamento fixo/máximo, afastamentos, prévia, confirmação atômica e histórico. Geometria legada preservada até edição explícita. [Uso e limites](docs/ESTRIBOS.md).

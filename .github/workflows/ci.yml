@@ -63,6 +63,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: mask-rotate-evidence
+          if-no-files-found: ignore
+          path: docs/mask-rotate-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: graphic-properties-evidence
           if-no-files-found: ignore
           path: docs/match-properties-*.png

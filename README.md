@@ -18,6 +18,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 - [Medir e cotar máscaras](docs/MASCARAS-MEDIR-COTAR.md): consulta com ΔX/ΔY e cotas estáticas com posição, unidades e diagnóstico de referência, pelos comandos de Desenho existentes.
 - [Espelhar entidades de máscaras](docs/MASCARAS-ESPELHAR.md): eixo por dois pontos, prévia e escolha explícita sobre os originais, reutilizando Manipular.
+- [Rotacionar entidades de máscaras](docs/MASCARAS-ROTACIONAR.md): ponto base, ângulo por clique, valor ou Referência, guia de arco no canvas e substituição no lugar preservando IDs, reutilizando Manipular.
 - [Copiar e Apagar entidades de máscaras](docs/MASCARAS-COPIAR-APAGAR.md): seleção acumulada no CAD, base comum e múltiplos destinos, prévia, histórico e proteções, sem alterar aço.
 
 - [Ajustar escala da máscara por dois pontos](docs/ESCALA-MASCARA.md): P1 fixo, distância real em mm/cm/m e decimal pt-BR, confirmação imediata, proteções e histórico sem alterar aço.
