@@ -404,6 +404,7 @@ test('troca de projeto durante a preparação invalida a confirmação', async (
 test('mudança da versão disponível descarta a preparação e não instala', async ({
   page,
 }) => {
+  await page.clock.install();
   await setup(page, {
     armError:
       'A versão ou pacote disponível mudou. Verifique novamente antes de instalar',
@@ -412,6 +413,9 @@ test('mudança da versão disponível descarta a preparação e não instala', a
   await modal(page)
     .getByRole('button', { name: 'Instalar e reiniciar', exact: true })
     .click();
+  await expect(modal(page).getByRole('alert')).toContainText('mudou');
+  // The delayed startup check must not clear an error from the manual flow.
+  await page.clock.fastForward(2000);
   await expect(modal(page).getByRole('alert')).toContainText('mudou');
   await expect.poll(() => calls(page, 'updates_cancel')).toBe(1);
   expect(await calls(page, 'updates_finish')).toBe(0);

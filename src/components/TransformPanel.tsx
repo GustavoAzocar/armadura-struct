@@ -1,5 +1,9 @@
 import type { Point, Project } from '../domain/types';
-import { angleByPoints, type SelectionTransform } from '../domain/transforms';
+import {
+  angleByPoints,
+  MAX_ROTATION_ANGLE,
+  type SelectionTransform,
+} from '../domain/transforms';
 import { NumberField } from './Panels';
 export type TransformSession = {
   project: Project;
@@ -32,6 +36,26 @@ export function sessionTransform(
         angle: angleByPoints(s.base, s.reference, target),
       }
     : undefined;
+}
+export function RotationAngleField({
+  label = 'Ângulo de rotação',
+  value,
+  onChange,
+}: {
+  label?: string;
+  value?: number;
+  onChange: (angle: number) => void;
+}) {
+  return (
+    <NumberField
+      label={label}
+      value={value}
+      min={-MAX_ROTATION_ANGLE}
+      max={MAX_ROTATION_ANGLE}
+      suffix="°"
+      onChange={onChange}
+    />
+  );
 }
 export default function TransformPanel({
   value: s,
@@ -170,12 +194,8 @@ export default function TransformPanel({
             </select>
           </label>
           {s.mode === 'angle' && (
-            <NumberField
-              label="Ângulo de rotação"
+            <RotationAngleField
               value={s.angle}
-              min={-360000}
-              max={360000}
-              suffix="°"
               onChange={(angle) => onChange({ ...s, angle })}
             />
           )}

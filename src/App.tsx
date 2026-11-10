@@ -88,6 +88,7 @@ import MaskManipPanel, {
 import {
   maskManipNames,
   maskManipSelection,
+  maskRotationTarget,
   previewMaskManipulation,
   applyMaskManipulation,
   previewWholeMaskMove,
@@ -95,7 +96,7 @@ import {
   type MaskManipMode,
   type MaskManipPlan,
   type MaskManipTransform,
-  type MaskMoveScope,
+  type MaskManipScope,
   type WholeMaskMovePlan,
 } from './domain/maskManipulation';
 import { maskPoint, maskPrimitives } from './cad/import';
@@ -205,7 +206,13 @@ import TransformPanel, {
   sessionTransform,
   type TransformSession,
 } from './components/TransformPanel';
-import { transformSelection, selectionTransformIds } from './domain/transforms';
+import {
+  transformSelection,
+  selectionTransformIds,
+  directionAngle,
+  signedAngleDifference,
+  MAX_ROTATION_ANGLE,
+} from './domain/transforms';
 import { drawingPrimitives } from './domain/drawingPrimitives';
 import { objectState, layerState } from './domain/layerProfiles';
 import {
@@ -2757,8 +2764,11 @@ export default function App() {
     maskOffset,
   ]);
   const manipEntities = useMemo(
-    () => (maskManip ? maskCadEntities(p, maskDrawingContext) : []),
-    [p, documentKey, isolatedDetailId, !!maskManip],
+    () =>
+      maskManip && maskManip.scope !== 'mask'
+        ? maskCadEntities(p, maskDrawingContext)
+        : [],
+    [p, documentKey, isolatedDetailId, !!maskManip, maskManip?.scope],
   );
   const endMaskManip = () => {
     setMaskManip(null);
@@ -2771,7 +2781,7 @@ export default function App() {
     mode: MaskManipMode,
     id = drawingMaskId,
     entityId?: string,
-    scope?: MaskMoveScope,
+    scope?: MaskManipScope,
   ) => {
     try {
       const base = historyRef.current.present;
@@ -2830,7 +2840,9 @@ export default function App() {
         mode,
         stage: whole ? 'base' : 'selection',
         refs: pre ? [pre.ref] : [],
-        ...(mode === 'move' ? { scope: whole ? 'mask' : 'entities' } : {}),
+        ...(mode === 'move' || mode === 'rotate'
+          ? { scope: whole ? 'mask' : 'entities' }
+          : {}),
         hadOperations: false,
       });
       notify(
@@ -2902,6 +2914,54 @@ export default function App() {
     page,
     maskManip,
   ]);
+  const manipAnchor =
+    maskManip?.stage === 'reference-start'
+      ? undefined
+      : maskManip?.stage === 'reference-end'
+        ? maskManip.referenceStart
+        : maskManip?.base;
+  const startManipReference = () => {
+    if (maskManip?.mode === 'rotate' && maskManip.stage === 'target')
+      setMaskManip({
+        ...maskManip,
+        stage: 'reference-start',
+        cursor: undefined,
+        referenceStart: undefined,
+        referenceAngle: undefined,
+        issue: undefined,
+      });
+  };
+  const acceptManipAngle = (angle: number) => {
+    const s = maskManip;
+    if (!s || s.mode !== 'rotate') return;
+    if (!Number.isFinite(angle) || Math.abs(angle) > MAX_ROTATION_ANGLE) {
+      setMaskManip({
+        ...s,
+        issue: 'Informe um ângulo finito entre −360.000° e +360.000°.',
+      });
+      return;
+    }
+    if (s.stage === 'reference-start' || s.stage === 'reference-end') {
+      setMaskManip({
+        ...s,
+        referenceAngle: angle,
+        stage: 'target',
+        cursor: undefined,
+        issue: undefined,
+      });
+    } else if (s.stage === 'target') {
+      setMaskManip({
+        ...s,
+        angle:
+          s.referenceAngle === undefined
+            ? angle
+            : signedAngleDifference(s.referenceAngle, angle),
+        stage: 'confirm',
+        cursor: undefined,
+        issue: undefined,
+      });
+    }
+  };
   useEffect(() => {
     const s = symbolPick;
     if (
@@ -2949,12 +3009,24 @@ export default function App() {
   const manipTransform = (
     s: MaskManipSession,
     at = s.cursor,
-  ): MaskManipTransform | undefined =>
-    s.base && (s.axisEnd ?? at)
-      ? s.mode === 'mirror'
-        ? { kind: 'mirror', base: s.base, axisEnd: (s.axisEnd ?? at)! }
-        : { kind: 'translate', delta: sub(at!, s.base) }
-      : undefined;
+  ): MaskManipTransform | undefined => {
+    if (!s.base) return;
+    if (s.mode === 'rotate') {
+      if (s.angle !== undefined)
+        return { kind: 'rotate', base: s.base, angle: s.angle };
+      if (at && s.stage === 'target') {
+        const direction = directionAngle(s.base, at);
+        return {
+          kind: 'rotate',
+          base: s.base,
+          angle: signedAngleDifference(s.referenceAngle ?? 0, direction),
+        };
+      }
+    } else if (s.mode === 'mirror') {
+      const axisEnd = s.axisEnd ?? at;
+      if (axisEnd) return { kind: 'mirror', base: s.base, axisEnd };
+    } else if (at) return { kind: 'translate', delta: sub(at, s.base) };
+  };
   const wholeMove = (s: MaskManipSession | null) =>
     s?.mode === 'move' && s.scope === 'mask';
   const manipPreview = useMemo<{
@@ -2987,18 +3059,20 @@ export default function App() {
               maskManip.context,
               t,
               maskManip.removeSource,
+              maskManip.scope === 'mask',
+              manipEntities,
             ),
           }
         : {};
     } catch (e) {
       return { error: (e as Error).message };
     }
-  }, [maskManip]);
+  }, [maskManip, manipEntities]);
   const manipReach = useMemo(() => {
     const m = maskManip?.project.masks.find((m) => m.id === maskManip.maskId);
     return m
       ? maskPrimitives(
-          wholeMove(maskManip)
+          maskManip?.scope === 'mask'
             ? m
             : { ...m, primitives: maskManip!.refs.map((r) => r.primitive) },
         )
@@ -3051,6 +3125,7 @@ export default function App() {
     return manipPreview.plan
       ? maskPrimitives({
           ...manipPreview.plan.mask,
+          ...manipPreview.plan.pose,
           primitives: manipPreview.plan.result,
         })
       : undefined;
@@ -3064,11 +3139,19 @@ export default function App() {
   );
   const applyManip = (at?: Point) => {
     const s = maskManip;
-    if (!s || manipConsumed.current) return;
+    if (
+      !s ||
+      manipConsumed.current ||
+      (s.mode === 'rotate' && s.stage !== 'confirm')
+    )
+      return;
     try {
       if (
         s.project !== historyRef.current.present ||
         s.context.key !== documentKey ||
+        s.context.detailId !== activeDetailId ||
+        tab !== 'Máscaras' ||
+        page !== 'drawing' ||
         s.context.scopeDetailId !== isolationRef.current ||
         s.maskId !== drawingMaskId ||
         maskId !== s.maskId
@@ -3108,10 +3191,17 @@ export default function App() {
             maskDrawingContext,
             t,
             s.removeSource,
+            s.scope === 'mask',
           ),
           maskDrawingContext,
         );
       if (next === s.project) {
+        if (s.mode === 'rotate') {
+          manipConsumed.current = true;
+          endMaskManip();
+          notify('Rotação neutra: nenhum objeto alterado.');
+          return;
+        }
         setMaskManip({
           ...s,
           issue: 'Operação neutra: nenhum objeto alterado.',
@@ -3144,7 +3234,7 @@ export default function App() {
       notify(
         wholeMove(s)
           ? `Mover: máscara inteira transladada pela origem (Δ ${t?.kind === 'translate' ? [t.delta.x, t.delta.y].map((n) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })).join('; ') : ''} mm). Desfazer disponível. Cotas estáticas exigem revisão.`
-          : `${maskManipNames[s.mode]}: ${s.refs.length} entidade(s) na máscara ativa. Desfazer disponível. Cotas estáticas exigem revisão.`,
+          : `${maskManipNames[s.mode]}: ${s.scope === 'mask' ? 'máscara inteira' : `${s.refs.length} entidade(s) na máscara ativa`}. Desfazer disponível. Cotas estáticas exigem revisão.`,
       );
     } catch (e) {
       manipConsumed.current = false;
@@ -3162,6 +3252,12 @@ export default function App() {
             x: 0,
             y: 0,
           });
+        else if (s.scope === 'mask')
+          maskRotationTarget(
+            historyRef.current.present,
+            s.maskId,
+            maskDrawingContext,
+          );
         else
           maskManipSelection(s.project, s.maskId, s.refs, maskDrawingContext);
         if (s.mode === 'erase') applyManip();
@@ -3169,7 +3265,7 @@ export default function App() {
       } catch (e) {
         setMaskManip({ ...s, issue: (e as Error).message });
       }
-    } else if (s.mode === 'mirror' && s.stage === 'confirm') applyManip();
+    } else if (s.stage === 'confirm') applyManip();
     else if (s.mode === 'copy' && s.stage === 'target') endMaskManip();
     else
       setMaskManip({
@@ -4186,7 +4282,23 @@ export default function App() {
           cursor: undefined,
           issue: undefined,
         });
-      else if (maskManip.mode === 'mirror') {
+      else if (maskManip.mode === 'rotate') {
+        try {
+          if (maskManip.stage === 'reference-start')
+            setMaskManip({
+              ...maskManip,
+              referenceStart: point,
+              stage: 'reference-end',
+              issue: undefined,
+            });
+          else if (maskManip.stage === 'reference-end')
+            acceptManipAngle(directionAngle(maskManip.referenceStart!, point));
+          else if (maskManip.stage === 'target')
+            acceptManipAngle(directionAngle(maskManip.base!, point));
+        } catch (e) {
+          setMaskManip({ ...maskManip, issue: (e as Error).message });
+        }
+      } else if (maskManip.mode === 'mirror') {
         if (maskManip.stage !== 'target') return;
         try {
           previewMaskManipulation(
@@ -4902,6 +5014,7 @@ export default function App() {
       'mask-move': 'move',
       'mask-copy': 'copy',
       'mask-mirror': 'mirror',
+      'mask-rotate': 'rotate',
       'mask-erase': 'erase',
     };
     if (manipActions[a]) {
@@ -6009,6 +6122,24 @@ export default function App() {
       });
       return;
     }
+    if (
+      maskManip?.mode === 'rotate' &&
+      maskManip.base &&
+      ['target', 'reference-start', 'reference-end'].includes(maskManip.stage)
+    ) {
+      if (/^REFER[ÊE]NCIA$/i.test(value)) {
+        startManipReference();
+        return;
+      }
+      // A bare comma still separates X,Y. Use ° to enter decimal commas here.
+      if (
+        /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*°?$/.test(value) ||
+        /^[+-]?\d+,\d+\s*°$/.test(value)
+      ) {
+        acceptManipAngle(Number(value.replace('°', '').replace(',', '.')));
+        return;
+      }
+    }
     const aliases: Record<string, Action> = {
       B: 'bar',
       BARRA: 'bar',
@@ -6075,8 +6206,10 @@ export default function App() {
       ESTENDERBARRA: 'lengthen-bar',
       SEGMENTOS: 'edit-segment',
       REMOVERVERTICE: 'remove-vertex',
-      ROTACIONAR: 'rotate',
-      GIRAR: 'rotate',
+      ROTACIONAR: tab === 'Máscaras' ? 'mask-rotate' : 'rotate',
+      GIRAR: tab === 'Máscaras' ? 'mask-rotate' : 'rotate',
+      ROTATE: 'mask-rotate',
+      ROTACIONARMASCARA: 'mask-rotate',
       ESPELHAR: tab === 'Máscaras' ? 'mask-mirror' : 'mirror',
       MIRROR: 'mask-mirror',
       ESPELHARMASCARA: 'mask-mirror',
@@ -6119,7 +6252,7 @@ export default function App() {
               stirrupSession?.end ??
               stirrupSession?.start ??
               stirrupSession?.section ??
-              maskManip?.base ??
+              manipAnchor ??
               maskCalibration?.points.at(-1) ??
               draft.at(-1) ?? { x: 0, y: 0 }),
         rotate({ x: Number(polar[1]), y: 0 }, Number(polar[2])),
@@ -6139,7 +6272,7 @@ export default function App() {
               stirrupSession?.end ??
               stirrupSession?.start ??
               stirrupSession?.section ??
-              maskManip?.base ??
+              manipAnchor ??
               maskCalibration?.points.at(-1) ??
               draft.at(-1))) ?? {
             x: 0,
@@ -6557,6 +6690,7 @@ export default function App() {
           'mask-move': maskManip?.mode === 'move',
           'mask-copy': maskManip?.mode === 'copy',
           'mask-mirror': maskManip?.mode === 'mirror',
+          'mask-rotate': maskManip?.mode === 'rotate',
           'mask-erase': maskManip?.mode === 'erase',
           'mask-trim': maskCad?.mode === 'trim',
           'mask-extend': maskCad?.mode === 'extend',
@@ -7026,7 +7160,9 @@ export default function App() {
                             targetMaskId: '',
                             stage: 'limits',
                           }
-                        : maskManip?.stage === 'selection'
+                        : maskManip?.stage === 'selection' &&
+                            (maskManip.mode !== 'rotate' ||
+                              maskManip.scope !== 'mask')
                           ? {
                               entities: manipEntities,
                               targetMaskId: maskManip.maskId,
@@ -7160,7 +7296,7 @@ export default function App() {
                         vertexPreview.previewBar,
                       )
                     : (maskOffset?.points.at(-1) ??
-                      maskManip?.base ??
+                      manipAnchor ??
                       maskCalibration?.points[0] ??
                       transformRequest?.base)
                 }
@@ -7219,8 +7355,10 @@ export default function App() {
                         : []
                     : maskOffset?.stage === 'measure'
                       ? maskOffset.points
-                      : maskManip?.base
-                        ? [maskManip.base]
+                      : maskManip
+                        ? manipAnchor
+                          ? [manipAnchor]
+                          : []
                         : maskCalibration
                           ? maskCalibration.points.length === 1
                             ? maskCalibration.points
@@ -7246,7 +7384,13 @@ export default function App() {
                     setSymbolPick((s) => (s ? { ...s, cursor: point } : s));
                   if (maskManip?.stage === 'target')
                     setMaskManip((s) =>
-                      s ? { ...s, cursor: point, issue: undefined } : s,
+                      s?.stage === 'target'
+                        ? {
+                            ...s,
+                            cursor: point,
+                            issue: s.mode === 'rotate' ? s.issue : undefined,
+                          }
+                        : s,
                     );
                   if (nativeKind) setNativeCursor(point);
                   if (
@@ -7361,16 +7505,40 @@ export default function App() {
                   onConfirm={finishManip}
                   onCancel={endMaskManip}
                   error={manipPreview.error}
+                  previewAngle={
+                    manipPreview.plan?.transform?.kind === 'rotate'
+                      ? manipPreview.plan.transform.angle
+                      : maskManip.angle
+                  }
+                  onAngle={acceptManipAngle}
+                  onReference={startManipReference}
+                  onChangeAngle={() =>
+                    setMaskManip((s) =>
+                      s
+                        ? {
+                            ...s,
+                            stage: 'target',
+                            angle: undefined,
+                            cursor: undefined,
+                            issue: undefined,
+                          }
+                        : s,
+                    )
+                  }
                   onRemoveSource={(value) =>
                     setMaskManip((s) => (s ? { ...s, removeSource: value } : s))
                   }
                   hiddenFollowers={manipPreview.whole?.hidden}
                   onScope={(scope) =>
                     setMaskManip((s) => {
-                      if (!s || s.mode !== 'move' || s.stage !== 'selection')
+                      if (
+                        !s ||
+                        (s.mode !== 'move' && s.mode !== 'rotate') ||
+                        s.stage !== 'selection'
+                      )
                         return s;
                       try {
-                        if (scope === 'mask')
+                        if (s.mode === 'move' && scope === 'mask')
                           previewWholeMaskMove(s.project, s.maskId, s.context, {
                             x: 0,
                             y: 0,

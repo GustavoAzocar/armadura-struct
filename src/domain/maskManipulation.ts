@@ -1,6 +1,6 @@
 import { layerState } from './layerProfiles';
 import { stylePrimitive } from './layers';
-import { maskPoint, maskPrimitives } from '../cad/import';
+import { maskPoint } from '../cad/import';
 import {
   localMaskPoint,
   nativePrimitive,
@@ -27,17 +27,18 @@ import {
   type Project,
 } from './types';
 
-export type MaskManipMode = 'move' | 'copy' | 'erase' | 'mirror';
-/** Move reach: chosen entities (local geometry) or the whole mask (origin only). */
-export type MaskMoveScope = 'entities' | 'mask';
+export type MaskManipMode = 'move' | 'copy' | 'erase' | 'mirror' | 'rotate';
+/** Chosen local entities or the whole mask. */
+export type MaskManipScope = 'entities' | 'mask';
 export type MaskManipTransform = Extract<
   SelectionTransform,
-  { kind: 'translate' | 'mirror' }
+  { kind: 'translate' | 'mirror' | 'rotate' }
 >;
 export const maskManipNames: Record<MaskManipMode, string> = {
   move: 'Mover',
   copy: 'Copiar',
   mirror: 'Espelhar',
+  rotate: 'Rotacionar',
   erase: 'Apagar',
 };
 /** References are resolved against this exact snapshot, never by a residual steel selection. */
@@ -66,14 +67,7 @@ export function maskManipSelection(
       throw new Error(
         'Seleção inválida ou de outra máscara. Reinicie a seleção no alvo ativo.',
       );
-    if (
-      !entity.editable ||
-      !layerState(
-        p,
-        context.key,
-        stylePrimitive(p, mask, entity.ref.primitive).layerId!,
-      ).editable
-    )
+    if (!editableMaskLayer(p, mask, entity.ref.primitive, context))
       throw new Error(
         'Entidade oculta, sem captura ou bloqueada; libere seu layer explicitamente.',
       );
@@ -84,6 +78,53 @@ export function maskManipSelection(
   });
   return { mask, entities };
 }
+function editableMaskLayer(
+  p: Project,
+  mask: Mask,
+  q: Primitive,
+  context: MaskDrawingContext,
+) {
+  return (
+    mask.layers[q.layer] !== false &&
+    (!q.layerId || layerState(p, context.key, q.layerId).editable) &&
+    layerState(p, context.key, stylePrimitive(p, mask, q).layerId!).editable
+  );
+}
+/** Moving the entire reference also moves hidden geometry, so every layer must allow it. */
+export function maskRotationTarget(
+  p: Project,
+  maskId: string,
+  context: MaskDrawingContext,
+) {
+  const mask = maskEditTarget(p, maskId, context);
+  if (mask.primitives.some((q) => !editableMaskLayer(p, mask, q, context)))
+    throw new Error(
+      'Máscara inteira contém entidades ocultas, sem captura ou bloqueadas. Libere os layers ou selecione entidades.',
+    );
+  return mask;
+}
+
+const coordinateValid = (n: number) => Number.isFinite(n) && Math.abs(n) <= 1e9;
+const normalizeAngle = (angle: number) => angle % 360;
+
+function assertMaskCoordinates(q: Primitive, mask: Mask) {
+  if (q.native?.kind === 'circle' || q.native?.kind === 'arc') {
+    const c = maskPoint(q.native.center, mask),
+      r = q.native.radius * mask.scale;
+    if (![c.x - r, c.x + r, c.y - r, c.y + r].every(coordinateValid))
+      throw new Error('Curva fora dos limites de coordenadas.');
+  }
+  if (
+    !q.points.every((local) => {
+      const model = maskPoint(local, mask);
+      return [local.x, local.y, model.x, model.y].every(coordinateValid);
+    })
+  )
+    throw new Error(
+      'Resultado fora dos limites de coordenadas ±1.000.000.000 mm.',
+    );
+}
+
 /** Same rigid transform as the CAD, composed model → local exactly once. */
 export function transformMaskPrimitive(
   q: Primitive,
@@ -91,6 +132,10 @@ export function transformMaskPrimitive(
   input: MaskManipTransform,
 ): Primitive {
   const t = selectionTransformSchema.parse(input);
+  if (t.kind === 'rotate') {
+    t.angle = normalizeAngle(t.angle);
+    if (!t.angle) return q;
+  }
   if (
     t.kind === 'mirror' &&
     Math.hypot(t.axisEnd.x - t.base.x, t.axisEnd.y - t.base.y) < 0.01
@@ -98,14 +143,27 @@ export function transformMaskPrimitive(
     throw new Error(
       'Defina dois pontos distintos para o eixo do espelho (mínimo 0,01 mm).',
     );
+  // Uniform scale and rotation commute. Convert the common pivot once.
+  const localRotation =
+    t.kind === 'rotate'
+      ? { ...t, base: localMaskPoint(t.base, mask) }
+      : undefined;
   const at = (p: Point) =>
-    localMaskPoint(transformPoint(maskPoint(p, mask), t), mask);
+    localRotation
+      ? transformPoint(p, localRotation)
+      : localMaskPoint(transformPoint(maskPoint(p, mask), t), mask);
   const result = structuredClone(q);
   if (q.native) {
     const s = q.native;
     if (s.kind === 'circle' || s.kind === 'arc') {
       const center = at(s.center);
       result.native = { ...s, center };
+      if (s.kind === 'arc' && t.kind === 'rotate')
+        result.native = {
+          ...s,
+          center,
+          startAngle: normalizeAngle(s.startAngle + t.angle),
+        };
       if (s.kind === 'arc' && t.kind === 'mirror') {
         const a = (s.startAngle * Math.PI) / 180;
         const start = at({
@@ -122,15 +180,20 @@ export function transformMaskPrimitive(
         };
       }
     } else {
-      if (s.kind === 'rectangle' && t.kind === 'mirror') {
+      if (s.kind === 'rectangle' && t.kind !== 'translate') {
         const corners = nativePrimitive(s).points.map(at);
         // Two diagonal corners cannot describe an oblique rectangle. Four exact
         // vertices retain its geometry without tessellating or exploding curves.
-        const rectangle = { ...s, points: [corners[0], corners[2]] };
+        const i = t.kind === 'rotate' && Math.abs(t.angle % 180) === 90 ? 1 : 0;
+        const rectangle = { ...s, points: [corners[i], corners[i + 2]] };
         const [a, c] = rectangle.points;
-        const exact = [a, { x: c.x, y: a.y }, c, { x: a.x, y: c.y }].every(
-          (p, i) => Math.hypot(p.x - corners[i].x, p.y - corners[i].y) < 1e-7,
-        );
+        const exact =
+          t.kind === 'rotate'
+            ? t.angle % 90 === 0
+            : [a, { x: c.x, y: a.y }, c, { x: a.x, y: c.y }].every(
+                (p, j) =>
+                  Math.hypot(p.x - corners[j].x, p.y - corners[j].y) < 1e-7,
+              );
         result.native = exact
           ? rectangle
           : { kind: 'polyline', points: corners, closed: true };
@@ -161,30 +224,9 @@ export function transformMaskPrimitive(
           : align
       : align;
   }
-  const coords = [
-    ...result.points,
-    ...maskPrimitives({ ...mask, primitives: [result] }).flatMap(
-      (v) => v.points,
-    ),
-  ];
-  if (result.native?.kind === 'circle' || result.native?.kind === 'arc') {
-    const c = maskPoint(result.native.center, mask),
-      r = result.native.radius * mask.scale;
-    if (
-      ![c.x - r, c.x + r, c.y - r, c.y + r].every(
-        (n) => Number.isFinite(n) && Math.abs(n) <= 1e9,
-      )
-    )
-      throw new Error('Curva fora dos limites de coordenadas.');
-  }
-  if (
-    !coords.every((v) =>
-      [v.x, v.y].every((n) => Number.isFinite(n) && Math.abs(n) <= 1e9),
-    )
-  )
-    throw new Error(
-      'Resultado fora dos limites de coordenadas ±1.000.000.000 mm.',
-    );
+  if (q.text && t.kind === 'rotate')
+    result.textRotation = normalizeAngle((q.textRotation ?? 0) + t.angle);
+  assertMaskCoordinates(result, mask);
   return result;
 }
 export type MaskManipPlan = {
@@ -195,6 +237,7 @@ export type MaskManipPlan = {
   transform?: MaskManipTransform;
   result: Primitive[];
   removeSource: boolean;
+  pose?: Pick<Mask, 'origin' | 'rotation'>;
   context: MaskDrawingContext;
 };
 export function previewMaskManipulation(
@@ -205,8 +248,14 @@ export function previewMaskManipulation(
   context: MaskDrawingContext,
   transform?: MaskManipTransform,
   removeSource = false,
+  wholeMask = false,
+  prepared?: MaskCadEntity[],
 ): MaskManipPlan {
-  const { mask, entities } = maskManipSelection(p, maskId, refs, context);
+  if (wholeMask && (mode !== 'rotate' || refs.length))
+    throw new Error('Escolha apenas um alvo: entidades ou máscara inteira.');
+  const { mask, entities } = wholeMask
+    ? { mask: maskRotationTarget(p, maskId, context), entities: [] }
+    : maskManipSelection(p, maskId, refs, context, prepared);
   if (mode !== 'erase' && !transform)
     throw new Error('Escolha o ponto base e destino da operação.');
   if (mode === 'copy' && transform?.kind !== 'translate')
@@ -215,6 +264,8 @@ export function previewMaskManipulation(
     throw new Error('Mover usa translação do ponto base ao destino.');
   if (mode === 'mirror' && transform?.kind !== 'mirror')
     throw new Error('Espelhar requer dois pontos do eixo.');
+  if (mode === 'rotate' && transform?.kind !== 'rotate')
+    throw new Error('Rotacionar requer ponto base e ângulo.');
   if (mode === 'erase' && transform)
     throw new Error('Apagar não aceita transformação.');
   if (
@@ -222,8 +273,39 @@ export function previewMaskManipulation(
     mask.primitives.length + entities.length > 100000
   )
     throw new Error('Limite de 100 mil entidades da máscara atingido.');
-  const result =
-    mode === 'erase'
+  if (mode === 'rotate') {
+    const selected = wholeMask
+      ? mask.primitives
+      : entities.map((e) => e.ref.primitive);
+    if (
+      selected.some(
+        (q) => !q.native && q.points.length < (q.text ? 1 : q.closed ? 3 : 2),
+      )
+    )
+      throw new Error(
+        'Entidade sem geometria de rotação suportada. Revise o alvo selecionado.',
+      );
+  }
+  let pose: MaskManipPlan['pose'];
+  if (wholeMask && transform?.kind === 'rotate') {
+    selectionTransformSchema.parse(transform);
+    const t = { ...transform, angle: normalizeAngle(transform.angle) };
+    pose = t.angle
+      ? {
+          origin: transformPoint(mask.origin, t),
+          rotation: normalizeAngle(mask.rotation + t.angle),
+        }
+      : { origin: mask.origin, rotation: mask.rotation };
+    if (![pose.origin.x, pose.origin.y].every(coordinateValid))
+      throw new Error('Origem da máscara fora dos limites de coordenadas.');
+    if (t.angle) {
+      const rotated = { ...mask, ...pose };
+      for (const q of mask.primitives) assertMaskCoordinates(q, rotated);
+    }
+  }
+  const result = wholeMask
+    ? mask.primitives
+    : mode === 'erase'
       ? []
       : entities.map((e) =>
           transformMaskPrimitive(e.ref.primitive, mask, transform!),
@@ -236,6 +318,7 @@ export function previewMaskManipulation(
     transform,
     result,
     removeSource,
+    pose,
     context: { ...context },
   };
 }
@@ -259,12 +342,25 @@ export function applyMaskManipulation(
     context,
     plan.transform,
     plan.removeSource,
+    !!plan.pose,
   );
   if (
     plan.transform?.kind === 'translate' &&
     Math.hypot(plan.transform.delta.x, plan.transform.delta.y) < 1e-6
   )
     return p;
+  if (
+    plan.transform?.kind === 'rotate' &&
+    !normalizeAngle(plan.transform.angle)
+  )
+    return p;
+  if (fresh.pose)
+    return {
+      ...p,
+      masks: p.masks.map((m) =>
+        m === fresh.mask ? { ...m, ...fresh.pose } : m,
+      ),
+    };
   const chosen = new Set(plan.refs.map((r) => r.primitive));
   let primitives: Primitive[];
   if (plan.mode === 'copy' || (plan.mode === 'mirror' && !plan.removeSource)) {
@@ -279,7 +375,11 @@ export function applyMaskManipulation(
         : {}),
     }));
     primitives = [...plan.mask.primitives, ...copies];
-  } else if (plan.mode === 'mirror' || plan.mode === 'move') {
+  } else if (
+    plan.mode === 'mirror' ||
+    plan.mode === 'move' ||
+    plan.mode === 'rotate'
+  ) {
     // In-place replacement: IDs, layers, styles and lineage stay with the entity.
     const replacements = new Map(
       plan.refs.map((r, i) => [r.primitive, fresh.result[i]]),
