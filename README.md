@@ -8,9 +8,11 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 [![Validação e build](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml)
 
-**Versão 0.5.0 — lançamento de estribos por critérios, ferramentas CAD de máscaras, pasta do projeto e criação contextual na árvore.** Aplicação desktop Tauri para Linux e Windows, também executável no navegador para desenvolvimento. Os arquivos e os cálculos são processados localmente.
+**Versão 0.6.0 — infraestrutura aberta de plugins, instalação online/offline e inventário persistente.** Aplicação desktop Tauri para Linux e Windows, também executável no navegador para desenvolvimento. Os arquivos e os cálculos são processados localmente.
 
 ## Recursos
+
+- [Plugins](docs/plugins/USER-GUIDE.md): aba dedicada, inspeção de `.osplugin`, confirmação de registro desativado, catálogo configurável e inventário desktop. [Contrato e guia para desenvolvedores](docs/plugins/DEVELOPERS.md). Execução de terceiros e loja pública são etapas futuras.
 
 - [Projetos e documentos recentes](docs/PROJETOS-RECENTES.md): histórico local no menu Arquivo, sem autosave nem acesso permanente; reabrir pede nova seleção e respeita alterações não salvas.
 

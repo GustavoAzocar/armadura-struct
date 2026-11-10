@@ -1,6 +1,8 @@
 # Histórico de versões
 
-## Não lançado
+## 0.6.0 · 2026-11-10
+
+- Infraestrutura de plugins: aba Plugins, contrato público v1 com JSON Schema/tipos/JSON-RPC, pacotes `.osplugin`, inspeção e registro offline com inventário persistente, instalação atômica e catálogo/download configuráveis com a mesma validação. Pacotes permanecem desativados, com integridade separada de autoria. Exemplo de conformidade reutiliza a API real e AS-09, sem executar terceiros. [Guia](docs/plugins/DEVELOPERS.md). Sem publicação de loja ou release nesta etapa.
 
 - Biblioteca de símbolos CAD: cria definições a partir de entidades da máscara ativa (nome, categoria, ponto base), insere instâncias vinculadas ou cópias independentes com posição/rotação/escala, informa as instâncias afetadas ao editar e remove definições sem deixar órfãs. Catálogo nativo `armadurastruct.symbols/1` validado; projetos passam ao formato `armadurastruct/27`. [Uso e limites](docs/SIMBOLOS.md).
 - Máscaras → Manipular → Mover: seleção compartilhada (ou máscara inteira pela origem), ponto base e destino por clique/snap ou coordenadas, prévia com vetor e Δ, uma translação atômica e desfazível. Converte o vetor global ao referencial girado/escalado uma única vez; preserva IDs, layers, estilos, dados analíticos, aço e RA/CSV; cotas com referência indicam divergência. [Uso e limites](docs/MASCARAS-MOVER.md).

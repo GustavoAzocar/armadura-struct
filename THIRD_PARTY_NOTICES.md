@@ -2,17 +2,19 @@
 
 O código original de ArmaduraStruct é Copyright (C) 2026 Ricardo Corsini e colaboradores OpenStruct, disponibilizado sob GPL-3.0-or-later. Consulte [LICENSE](LICENSE).
 
-| Componente                           | Licença informada         | Código-fonte                                   |
-| ------------------------------------ | ------------------------- | ---------------------------------------------- |
-| LibreDWG Web 0.8.4                   | GPL-3.0                   | https://github.com/mlightcad/libredwg-web      |
-| GNU LibreDWG (núcleo do leitor WASM) | GPL-3.0-or-later          | https://www.gnu.org/software/libredwg/         |
-| dxf-parser 1.1.2                     | MIT                       | https://github.com/gdsestimating/dxf-parser    |
-| React                                | MIT                       | https://github.com/facebook/react              |
-| Tauri e plugins fs/dialog            | MIT / Apache-2.0          | https://github.com/tauri-apps/tauri            |
-| Vite, TypeScript, Zod                | MIT / Apache-2.0 / MIT    | Repositórios indicados nos respectivos pacotes |
-| Lucide React                         | ISC                       | https://github.com/lucide-icons/lucide         |
-| jsPDF                                | MIT                       | https://github.com/parallax/jsPDF              |
-| Inter (via Fontsource)               | SIL Open Font License 1.1 | https://github.com/rsms/inter                  |
+| Componente                           | Licença informada         | Código-fonte                                                                                                    |
+| ------------------------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| LibreDWG Web 0.8.4                   | GPL-3.0                   | https://github.com/mlightcad/libredwg-web                                                                       |
+| GNU LibreDWG (núcleo do leitor WASM) | GPL-3.0-or-later          | https://www.gnu.org/software/libredwg/                                                                          |
+| dxf-parser 1.1.2                     | MIT                       | https://github.com/gdsestimating/dxf-parser                                                                     |
+| React                                | MIT                       | https://github.com/facebook/react                                                                               |
+| Tauri e plugins fs/dialog            | MIT / Apache-2.0          | https://github.com/tauri-apps/tauri                                                                             |
+| Vite, TypeScript, Zod                | MIT / Apache-2.0 / MIT    | Repositórios indicados nos respectivos pacotes                                                                  |
+| Lucide React                         | ISC                       | https://github.com/lucide-icons/lucide                                                                          |
+| Ajv / node-semver / fflate           | MIT / ISC / MIT           | https://github.com/ajv-validator/ajv · https://github.com/npm/node-semver · https://github.com/101arrowz/fflate |
+| jsonschema / zip (Rust)              | MIT / MIT                 | https://github.com/Stranger6667/jsonschema · https://github.com/zip-rs/zip2                                     |
+| jsPDF                                | MIT                       | https://github.com/parallax/jsPDF                                                                               |
+| Inter (via Fontsource)               | SIL Open Font License 1.1 | https://github.com/rsms/inter                                                                                   |
 
 O leitor DWG é executado localmente em WebAssembly, sem serviço proprietário ou envio do desenho. O pacote publicado contém o binário do leitor, copiado no `postinstall`. O leitor não foi modificado neste projeto. As instruções e scripts para recompilá-lo ficam no repositório LibreDWG Web. O lockfile identifica a versão e a integridade do pacote utilizado.
 

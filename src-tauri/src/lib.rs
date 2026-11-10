@@ -1,3 +1,4 @@
+mod plugins;
 mod project_folder;
 mod updates;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -7,6 +8,7 @@ pub fn run() {
     }
     tauri::Builder::default()
         .manage(updates::Updates::new())
+        .manage(plugins::Plugins::default())
         .manage(project_folder::Folders::default())
         .on_window_event(|window, event| {
             use tauri::{Emitter, Manager};
@@ -25,6 +27,14 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            plugins::plugins_pick,
+            plugins::plugins_list,
+            plugins::plugins_install,
+            plugins::plugins_remove,
+            plugins::plugins_discard,
+            plugins::plugins_catalog,
+            plugins::plugins_download,
+            plugins::plugins_cancel,
             project_folder::project_folder_choose,
             project_folder::project_folder_read,
             project_folder::project_folder_write,

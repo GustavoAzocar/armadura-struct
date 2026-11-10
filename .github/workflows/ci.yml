@@ -106,6 +106,12 @@ jobs:
             docs/mask-copy-*.png
             docs/mask-manip-*.png
       - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugins-evidence
+          if-no-files-found: ignore
+          path: docs/plugins-*.png
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: browser-test-results
@@ -139,6 +145,8 @@ jobs:
           workspaces: src-tauri -> target
       - run: npm ci
       - run: npm run build
+      - run: cargo fmt --manifest-path crates/openstruct-plugins/Cargo.toml -- --check
+      - run: cargo test --manifest-path crates/openstruct-plugins/Cargo.toml
       - run: cargo test --manifest-path crates/openstruct-distribution/Cargo.toml
       - run: cargo test --manifest-path src-tauri/Cargo.toml project_folder::tests
       - run: npm run desktop:build -- --bundles ${{ matrix.bundles }}

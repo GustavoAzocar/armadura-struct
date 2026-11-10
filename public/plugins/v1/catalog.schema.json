@@ -1,0 +1,452 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://openstruct.com.br/contracts/plugins/v1/catalog.schema.json",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "openstruct.plugin-catalog/1"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "publisher": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9]+([.-][a-z0-9]+)*)+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": ["id", "name"],
+      "additionalProperties": false
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "manifest": {
+            "type": "object",
+            "properties": {
+              "schema": {
+                "const": "openstruct.plugin/1"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9]+([.-][a-z0-9]+)*)+$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "publisher": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9]+([.-][a-z0-9]+)*)+$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                },
+                "required": ["id", "name"],
+                "additionalProperties": false
+              },
+              "license": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "links": {
+                "type": "object",
+                "properties": {
+                  "documentation": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "^https://"
+                  },
+                  "repository": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "^https://"
+                  }
+                },
+                "required": ["documentation", "repository"],
+                "additionalProperties": false
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+              },
+              "compatibility": {
+                "type": "object",
+                "properties": {
+                  "pluginApi": {
+                    "$ref": "#/$defs/range"
+                  },
+                  "rebarApi": {
+                    "$ref": "#/$defs/range"
+                  },
+                  "app": {
+                    "$ref": "#/$defs/range"
+                  }
+                },
+                "required": ["pluginApi", "rebarApi"],
+                "additionalProperties": false
+              },
+              "platforms": {
+                "type": "array",
+                "items": {
+                  "enum": ["any", "linux", "windows", "macos"]
+                },
+                "maxItems": 3,
+                "uniqueItems": true,
+                "minItems": 1
+              },
+              "architectures": {
+                "type": "array",
+                "items": {
+                  "enum": ["any", "x86_64", "aarch64"]
+                },
+                "maxItems": 2,
+                "uniqueItems": true,
+                "minItems": 1
+              },
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9.-]*$"
+                  },
+                  "entry": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*(/[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*)*$"
+                  }
+                },
+                "required": ["kind"],
+                "additionalProperties": false
+              },
+              "capabilities": {
+                "type": "object",
+                "properties": {
+                  "required": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "maxItems": 128,
+                    "uniqueItems": true
+                  },
+                  "optional": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "maxItems": 128,
+                    "uniqueItems": true
+                  }
+                },
+                "required": ["required", "optional"],
+                "additionalProperties": false
+              },
+              "permissions": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "context.read",
+                    "rebar.preview",
+                    "detail.preview",
+                    "network",
+                    "filesystem",
+                    "shell"
+                  ]
+                },
+                "maxItems": 6,
+                "uniqueItems": true
+              },
+              "contributions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "generator"
+                    },
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9.-]*$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "inputSchema": {
+                      "$ref": "#/$defs/parameter"
+                    },
+                    "output": {
+                      "enum": ["rebar-batch/1", "openstruct.detail/16"]
+                    }
+                  },
+                  "required": ["kind", "id", "name", "inputSchema", "output"],
+                  "additionalProperties": false
+                },
+                "maxItems": 64,
+                "uniqueItems": true
+              },
+              "files": {
+                "type": "object",
+                "maxProperties": 255,
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*(/[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*)*$"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777216
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": ["size", "sha256"],
+                  "additionalProperties": false
+                }
+              },
+              "extensions": {
+                "type": "object",
+                "maxProperties": 32,
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9]+([.-][a-z0-9]+)*)+$"
+                },
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "schema",
+              "id",
+              "name",
+              "description",
+              "publisher",
+              "license",
+              "links",
+              "version",
+              "compatibility",
+              "platforms",
+              "architectures",
+              "runtime",
+              "capabilities",
+              "permissions",
+              "contributions",
+              "files"
+            ],
+            "additionalProperties": false
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000,
+                  "pattern": "^https?://"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16777216
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "platform": {
+                  "enum": ["any", "linux", "windows", "macos"]
+                },
+                "architecture": {
+                  "enum": ["any", "x86_64", "aarch64"]
+                },
+                "runtime": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                }
+              },
+              "required": [
+                "url",
+                "size",
+                "sha256",
+                "platform",
+                "architecture",
+                "runtime"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 16,
+            "uniqueItems": true,
+            "minItems": 1
+          }
+        },
+        "required": ["manifest", "artifacts"],
+        "additionalProperties": false
+      },
+      "maxItems": 128,
+      "uniqueItems": true
+    }
+  },
+  "required": ["schema", "name", "publisher", "plugins"],
+  "additionalProperties": false,
+  "$defs": {
+    "range": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+        },
+        "maxExclusive": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+        }
+      },
+      "required": ["min", "maxExclusive"],
+      "additionalProperties": false
+    },
+    "parameter": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["object", "number", "integer", "string", "boolean", "array"]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "x-unit": {
+          "enum": ["mm", "deg", "count", "none"]
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": ["string", "number", "boolean", "null"]
+          },
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "properties": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": {
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]{0,63}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "items": {
+          "$ref": "#/$defs/parameter"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://openstruct.com.br/contracts/plugins/v1/provenance.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "openstruct.plugin-provenance/1"
+    },
+    "pluginId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9]+([.-][a-z0-9]+)*)+$"
+    },
+    "pluginVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "packageSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "generatorId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9.-]*$"
+    },
+    "parameters": {
+      "type": "object"
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "length": {
+          "const": "mm"
+        },
+        "angle": {
+          "const": "deg"
+        }
+      },
+      "required": ["length", "angle"]
+    }
+  },
+  "required": [
+    "schema",
+    "pluginId",
+    "pluginVersion",
+    "packageSha256",
+    "generatorId",
+    "parameters",
+    "units"
+  ]
+}

@@ -1,4 +1,8 @@
 import {
+  Puzzle,
+  Store,
+  PackagePlus,
+  Code2,
   Settings,
   Eye,
   EyeOff,
@@ -70,6 +74,10 @@ export type Action =
   | 'open'
   | 'recent'
   | 'check-updates'
+  | 'plugins-store'
+  | 'plugins-offline'
+  | 'plugins-installed'
+  | 'plugins-develop'
   | 'save'
   | 'import'
   | 'undo'
@@ -175,6 +183,17 @@ export default function Ribbon({
     string,
     { name: string; items: Item[]; creation?: boolean }[]
   > = {
+    Plugins: [
+      {
+        name: 'Extensões',
+        items: [
+          item('plugins-store', 'Loja online', Store),
+          item('plugins-offline', 'Instalar offline', PackagePlus),
+          item('plugins-installed', 'Meus plugins', Puzzle),
+          item('plugins-develop', 'Desenvolver plugins', Code2),
+        ],
+      },
+    ],
     CONFIGURAÇÕES: [
       {
         name: 'Padrões do projeto',
@@ -455,7 +474,10 @@ export default function Ribbon({
     <div className={`ribbon ${collapsed ? 'collapsed' : ''}`}>
       <div className="ribbon-tabs" role="tablist" aria-label="Ferramentas">
         {[
-          ...Object.keys(groups).filter((t) => t !== 'CONFIGURAÇÕES'),
+          ...Object.keys(groups).filter(
+            (t) => t !== 'CONFIGURAÇÕES' && t !== 'Plugins',
+          ),
+          'Plugins',
           'CONFIGURAÇÕES',
         ].map((t) => (
           <button

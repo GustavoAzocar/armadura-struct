@@ -1,0 +1,95 @@
+{
+  "schema": "openstruct.plugin-catalog/1",
+  "name": "Exemplo de catálogo — não oficial",
+  "publisher": {
+    "id": "org.example",
+    "name": "Editor de exemplo"
+  },
+  "plugins": [
+    {
+      "manifest": {
+        "schema": "openstruct.plugin/1",
+        "id": "org.example.straight-bar",
+        "name": "Barra reta — demonstração de conformidade",
+        "description": "Exemplo de contrato de gerador de uma barra nativa editável. Não possui runtime executável.",
+        "publisher": {
+          "id": "org.example",
+          "name": "Editor de exemplo (não verificado)"
+        },
+        "license": "GPL-3.0-or-later",
+        "links": {
+          "documentation": "https://github.com/ricardocorsini/armadura-struct/blob/master/docs/plugins/DEVELOPERS.md",
+          "repository": "https://github.com/ricardocorsini/armadura-struct"
+        },
+        "version": "1.0.0",
+        "compatibility": {
+          "pluginApi": {
+            "min": "1.0.0",
+            "maxExclusive": "2.0.0"
+          },
+          "rebarApi": {
+            "min": "1.0.0",
+            "maxExclusive": "2.0.0"
+          },
+          "app": {
+            "min": "0.6.0",
+            "maxExclusive": "1.0.0"
+          }
+        },
+        "platforms": ["any"],
+        "architectures": ["any"],
+        "runtime": {
+          "kind": "declarative"
+        },
+        "capabilities": {
+          "required": ["host.inspect", "rebar.batch.v1"],
+          "optional": ["future.progress"]
+        },
+        "permissions": ["context.read", "rebar.preview"],
+        "contributions": [
+          {
+            "kind": "generator",
+            "id": "straight-bar",
+            "name": "Barra reta de demonstração",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "length": {
+                  "type": "number",
+                  "minimum": 100,
+                  "maximum": 12000,
+                  "x-unit": "mm"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "x-unit": "count"
+                }
+              },
+              "required": ["length", "quantity"],
+              "additionalProperties": false
+            },
+            "output": "rebar-batch/1"
+          }
+        ],
+        "files": {
+          "README.txt": {
+            "size": 174,
+            "sha256": "f2536363ac27ad1ca7b38108ad6d0d2a6fc0342692cdd3f9bc21ffae40011d77"
+          }
+        }
+      },
+      "artifacts": [
+        {
+          "url": "https://plugins.example.org/straight-bar.osplugin",
+          "size": 2391,
+          "sha256": "8db31c67f9a1378ff91fdfd82c0e61b5c3eaff57bcae35944900f69e48369381",
+          "platform": "any",
+          "architecture": "any",
+          "runtime": "declarative"
+        }
+      ]
+    }
+  ]
+}

@@ -4532,3 +4532,134 @@ button.hierarchy-drawing {
   width: auto;
   margin: 0;
 }
+
+/* Plugins use a transient dialog; the CAD viewport retains its normal footprint. */
+.plugins-dialog {
+  width: min(880px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.plugins-dialog::backdrop {
+  background: #101a3266;
+}
+.plugins-dialog > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  padding: 16px 20px 8px;
+}
+.plugins-dialog h2,
+.plugins-dialog h3 {
+  margin: 0 0 8px;
+}
+.plugins-dialog small {
+  font-weight: 400;
+}
+.plugins-dialog > nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.plugins-dialog > nav button {
+  padding: 8px 10px;
+  border-radius: 5px;
+}
+.plugins-dialog [aria-selected='true'] {
+  color: white;
+  background: var(--accent);
+}
+.plugins-body {
+  padding: 16px 20px;
+  max-height: calc(100dvh - 280px);
+  min-height: 160px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.plugins-dialog > footer {
+  padding: 8px 20px;
+  border-top: 1px solid var(--border);
+}
+.plugins-dialog p {
+  line-height: 1.5;
+}
+.plugins-dialog .error {
+  color: #c83e36;
+}
+.plugins-dialog .plugin-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.plugins-dialog button:not([role='tab']) {
+  border: 1px solid var(--border);
+  padding: 7px 10px;
+  border-radius: 5px;
+  margin: 2px;
+}
+.plugin-card,
+.plugin-inspection {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 12px;
+}
+.plugin-inspection {
+  border-color: var(--accent);
+}
+.plugin-note {
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  background: #3448d10a;
+}
+.plugin-facts {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 5px 12px;
+}
+.plugin-facts dt {
+  color: var(--muted);
+}
+.plugin-facts dd {
+  margin: 0;
+}
+.plugin-source {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+.plugin-source input {
+  width: 100%;
+  padding: 9px;
+}
+.plugin-hash {
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+.plugin-guide {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  line-height: 1.6;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .plugins-body {
+    padding: 12px;
+    max-height: calc(100dvh - 300px);
+  }
+  .plugin-facts {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+  .plugin-facts dd {
+    margin-bottom: 6px;
+  }
+}

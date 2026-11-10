@@ -1,4 +1,5 @@
 import AppUpdates from './components/AppUpdates';
+import type { PluginView } from './lib/plugins';
 import DrawingPropertiesPanel, {
   type DrawingPropertiesSession,
 } from './components/DrawingPropertiesPanel';
@@ -258,6 +259,7 @@ import {
   RefreshCw,
   Shapes,
 } from 'lucide-react';
+const PluginsDialog = lazy(() => import('./components/PluginsDialog'));
 const NewProjectDialog = lazy(() => import('./components/NewProjectDialog'));
 const DetailTransferDialog = lazy(
   () => import('./components/DetailTransferDialog'),
@@ -737,6 +739,7 @@ export default function App() {
   const [folderEpoch, setFolderEpoch] = useState(0);
   const [updateRequest, setUpdateRequest] = useState(0);
   const [updateModal, setUpdateModal] = useState(false);
+  const [pluginView, setPluginView] = useState<PluginView | null>(null);
   const fileOperations = useRef(0);
   const updateInstallGuard = useRef(false);
   const updateInstalling = useCallback((value: boolean) => {
@@ -5807,6 +5810,17 @@ export default function App() {
     }
   };
   const action = async (a: Action) => {
+    const pluginActions: Partial<Record<Action, PluginView>> = {
+      'plugins-store': 'store',
+      'plugins-offline': 'offline',
+      'plugins-installed': 'installed',
+      'plugins-develop': 'develop',
+    };
+    if (pluginActions[a]) {
+      setPluginView(pluginActions[a]!);
+      return;
+    }
+
     if (a === 'check-updates') {
       setUpdateRequest((n) => n + 1);
       return;
@@ -6292,7 +6306,7 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (updateModal) {
+      if (updateModal || pluginView) {
         if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -8639,6 +8653,14 @@ export default function App() {
             return ok;
           }}
         />
+      )}
+      {pluginView && (
+        <Suspense fallback={null}>
+          <PluginsDialog
+            initial={pluginView}
+            onClose={() => setPluginView(null)}
+          />
+        </Suspense>
       )}
       <AppUpdates
         ready={ready && !busy}
