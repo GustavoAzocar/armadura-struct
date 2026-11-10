@@ -8,6 +8,7 @@ import {
   FileText,
   FlipHorizontal2,
   FolderOpen,
+  History,
   Grid2X2,
   Hand,
   HelpCircle,
@@ -64,6 +65,7 @@ export type Action =
   | 'mask-polyline'
   | 'new'
   | 'open'
+  | 'recent'
   | 'save'
   | 'import'
   | 'undo'
@@ -181,6 +183,7 @@ export default function Ribbon({
         items: [
           item('new', 'Novo projeto', FilePlus2),
           item('open', 'Abrir projeto', FolderOpen),
+          item('recent', 'Projetos recentes', History),
           item('save', 'Salvar projeto', Save),
         ],
       },

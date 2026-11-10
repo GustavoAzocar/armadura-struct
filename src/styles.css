@@ -4284,3 +4284,73 @@ button.hierarchy-drawing {
   color: var(--muted, #69758c);
   font-size: 10px;
 }
+.recent-projects {
+  width: 640px;
+  max-width: calc(100vw - 32px);
+}
+.recent-projects .recent-note,
+.recent-projects .recent-empty {
+  font-size: 11px;
+  color: #6f7d96;
+  line-height: 1.7;
+}
+.recent-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.recent-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #e0e7f4;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.recent-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.recent-info strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.recent-meta,
+.recent-where {
+  font-size: 10.5px;
+  color: #6f7d96;
+}
+.recent-where {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.recent-actions button {
+  padding: 6px 10px;
+  border: 1px solid #d3dcee;
+  border-radius: 5px;
+  font-size: 11px;
+}
+.recent-notice,
+.recent-guard {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #f0c9a0;
+  background: #fff7ed;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #7a4a14;
+}
+.recent-guard p {
+  margin: 0;
+}

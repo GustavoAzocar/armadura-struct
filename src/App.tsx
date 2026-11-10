@@ -34,7 +34,17 @@ import {
   createProjectInFolder,
   attachProjectFolder,
   pickProjectFolder,
+  PROJECT_FILE,
 } from './lib/projectFolder';
+import RecentProjects from './components/RecentProjects';
+import {
+  readRecents,
+  recordRecent,
+  removeRecent,
+  clearRecents,
+  type RecentEntry,
+  type RecentInput,
+} from './lib/recentProjects';
 import MeasureDimensionPanel, {
   type MeasureSession,
 } from './components/MeasureDimensionPanel';
@@ -320,6 +330,8 @@ import {
   maskFileSources,
   type MaskSource,
   pickNativeFile,
+  nativePathOf,
+  saveFileAt,
   restore,
   safeName,
   saveFile,
@@ -684,6 +696,20 @@ export default function App() {
     [busy, setBusy] = useState(''),
     [saveState, setSaveState] = useState('Verificando recuperação local…');
   const [folderEpoch, setFolderEpoch] = useState(0);
+  // Histórico local de navegação: independente de autosave, backups e revisões.
+  const [recents, setRecents] = useState<RecentEntry[]>(() => readRecents());
+  const [recentOpen, setRecentOpen] = useState(false),
+    [recentBusy, setRecentBusy] = useState(false),
+    [recentNotice, setRecentNotice] = useState('');
+  const [recentGuard, setRecentGuard] = useState<{
+    reasons: string[];
+    choose: (c: 'save' | 'discard' | 'cancel') => void;
+  } | null>(null);
+  /** Último projeto aberto/salvo; qualquer outro `present` tem alterações não salvas. */
+  const savedBaseline = useRef<Project | undefined>(undefined);
+  const recentInput = useRef<HTMLInputElement>(null);
+  const rememberRecent = (input: RecentInput) =>
+    setRecents(recordRecent(input));
   useEffect(() => {
     if (!isTauri()) return;
     let disposed = false,
@@ -1049,7 +1075,10 @@ export default function App() {
           setHistory({ past: [], present: project, future: [] });
         } else if (!raw) {
           const project = await initialExampleProject();
-          if (alive) setHistory({ past: [], present: project, future: [] });
+          if (alive) {
+            savedBaseline.current = project;
+            setHistory({ past: [], present: project, future: [] });
+          }
         }
       })
       .catch(() => {
@@ -1085,13 +1114,14 @@ export default function App() {
           String(file.reason) +
             ' Use Localizar/associar pasta, tentar Salvar ou salvar cópia.',
         );
-      } else if (disk)
+      } else if (disk) {
+        savedBaseline.current = p;
         setSaveState(
           local.status === 'fulfilled'
             ? 'Salvo na pasta do projeto'
             : 'Salvo na pasta; falha na recuperação local',
         );
-      else
+      } else
         setSaveState(
           local.status === 'fulfilled'
             ? 'Apenas recuperável localmente'
@@ -5106,6 +5136,7 @@ export default function App() {
       [
         'new',
         'open',
+        'recent',
         'renumber',
         'group',
         'ungroup',
@@ -5281,34 +5312,11 @@ export default function App() {
         if (file === undefined) projectInput.current?.click();
         else if (file) await onProjectFile(file);
       }
-      if (a === 'save') {
-        if (projectFolderLabel(p)) {
-          setSaveState('Gravando na pasta…');
-          try {
-            await saveProjectFolder(p);
-            if (historyRef.current.present !== p) return;
-            setSaveState('Salvo na pasta do projeto');
-            notify('Arquivo nativo salvo na pasta vinculada.');
-          } catch (e) {
-            if (historyRef.current.present === p)
-              setSaveState(
-                'Acesso perdido/falha na pasta — alterações em memória',
-              );
-            throw e;
-          }
-          return;
-        }
-        const saved = await saveFile(
-          `${safeName(p.name)}.armstruct.json`,
-          JSON.stringify(p, null, 2),
-          'application/json',
-          'json',
-        );
-        if (saved)
-          notify(
-            'Cópia/download solicitado. Confira o arquivo; recuperação local não confirma gravação no disco.',
-          );
+      if (a === 'recent') {
+        setRecentNotice('');
+        setRecentOpen(true);
       }
+      if (a === 'save') await saveCurrent(p);
       if (a === 'delete') {
         if (
           !commit((current) => {
@@ -5378,19 +5386,181 @@ export default function App() {
       );
     }
   };
-  const onProjectFile = async (file: File) => {
+  const afterProjectReplaced = () => {
+    savedBaseline.current = historyRef.current.present;
+    stirrupCriteria.current = undefined;
+    select([]);
+    setTool('select');
+    setTimeout(() => canvas()?.fit(), 50);
+  };
+  const saveCurrent = async (project: Project): Promise<boolean> => {
+    if (projectFolderLabel(project)) {
+      setSaveState('Gravando na pasta…');
+      try {
+        await saveProjectFolder(project);
+        if (historyRef.current.present !== project) return false;
+        savedBaseline.current = project;
+        setSaveState('Salvo na pasta do projeto');
+        notify('Arquivo nativo salvo na pasta vinculada.');
+        rememberRecent({
+          kind: 'folder',
+          projectId: project.id,
+          name: project.name,
+          fileName: PROJECT_FILE,
+          location: projectFolderLabel(project),
+        });
+        return true;
+      } catch (e) {
+        if (historyRef.current.present === project)
+          setSaveState('Acesso perdido/falha na pasta — alterações em memória');
+        throw e;
+      }
+    }
+    const { saved, path } = await saveFileAt(
+      `${safeName(project.name)}.armstruct.json`,
+      JSON.stringify(project, null, 2),
+      'application/json',
+      'json',
+    );
+    if (!saved) return false;
+    savedBaseline.current = project;
+    // Só o desktop confirma a gravação em disco e informa o local.
+    if (path)
+      rememberRecent({
+        kind: 'file',
+        projectId: project.id,
+        name: project.name,
+        fileName: path.split(/[\\/]/).at(-1) || 'projeto.armstruct.json',
+        location: path,
+      });
+    notify(
+      'Cópia/download solicitado. Confira o arquivo; recuperação local não confirma gravação no disco.',
+    );
+    return true;
+  };
+  /** Resolve alterações não salvas e gravações pendentes ANTES de substituir o projeto. */
+  const confirmReplace = (): Promise<boolean> => {
+    if (hasPendingFolderWrites()) {
+      setRecentNotice(
+        'Gravação em andamento. Aguarde o resultado antes de abrir outro projeto.',
+      );
+      return Promise.resolve(false);
+    }
+    if (
+      draft.length ||
+      transformRequest ||
+      alignmentRequest ||
+      vertexRequest ||
+      scheduleRequest
+    ) {
+      setRecentNotice(
+        'Conclua ou cancele o comando em andamento antes de abrir outro projeto.',
+      );
+      return Promise.resolve(false);
+    }
+    if (historyRef.current.present === savedBaseline.current)
+      return Promise.resolve(true);
+    return new Promise<boolean>((resolve) =>
+      setRecentGuard({
+        reasons: ['O projeto atual tem alterações não salvas.'],
+        choose: async (c) => {
+          setRecentGuard(null);
+          if (c !== 'save') return resolve(c === 'discard');
+          try {
+            resolve(await saveCurrent(historyRef.current.present));
+          } catch (e) {
+            setRecentNotice(
+              `Não foi possível salvar o projeto atual (${e instanceof Error ? e.message : 'falha'}). Nada foi substituído.`,
+            );
+            resolve(false);
+          }
+        },
+      }),
+    );
+  };
+  /** Retorna true ao abrir, false se cancelado, ou a mensagem de erro. */
+  const onProjectFile = async (
+    file: File,
+    guard?: () => Promise<boolean>,
+  ): Promise<boolean | string> => {
     try {
       const next = await readProjectFile(file);
-      if (!commit(() => next)) return;
-      stirrupCriteria.current = undefined;
-      select([]);
-      setTool('select');
-      setTimeout(() => canvas()?.fit(), 50);
+      if (guard && !(await guard())) return false;
+      if (!commit(() => next)) return false;
+      afterProjectReplaced();
+      rememberRecent({
+        kind: 'file',
+        projectId: next.id,
+        name: next.name,
+        fileName: file.name,
+        location: nativePathOf(file),
+      });
       notify('Projeto aberto.');
+      return true;
     } catch (e) {
-      notify(
-        `Projeto não aberto: ${e instanceof Error ? e.message : 'arquivo inválido'}`,
+      const text = `Projeto não aberto: ${e instanceof Error ? e.message : 'arquivo inválido'}`;
+      notify(text);
+      return text;
+    }
+  };
+  const finishRecentOpen = (result: boolean | string) => {
+    if (result === true) setRecentOpen(false);
+    else
+      setRecentNotice(
+        typeof result === 'string'
+          ? `${result}. O projeto atual foi mantido; selecione o arquivo novamente ou remova este item.`
+          : 'Abertura cancelada; o projeto atual foi mantido.',
       );
+  };
+  const reopenFolder = async (): Promise<boolean | string> => {
+    try {
+      const folder = await pickProjectFolder();
+      if (!folder) return false;
+      const raw = await folder.read();
+      if (raw === undefined)
+        throw Error(`A pasta escolhida não contém ${PROJECT_FILE}`);
+      const next = decodeProject(raw);
+      if (!(await confirmReplace())) return false;
+      if ((await folder.read()) !== raw)
+        throw Error('O arquivo mudou após a escolha');
+      attachProjectFolder(next, folder, raw);
+      if (!commit(() => next)) return false;
+      afterProjectReplaced();
+      rememberRecent({
+        kind: 'folder',
+        projectId: next.id,
+        name: next.name,
+        fileName: PROJECT_FILE,
+        location: folder.label,
+      });
+      notify('Projeto aberto.');
+      return true;
+    } catch (e) {
+      return `Projeto não aberto: ${e instanceof Error ? e.message : 'pasta inválida'}`;
+    }
+  };
+  /** Reabrir é sempre explícito: o item só orienta a nova seleção, sem conceder acesso. */
+  const reopenRecent = async (entry: RecentEntry) => {
+    setRecentNotice('');
+    if (isolationRef.current) {
+      setRecentNotice('Conclua a edição isolada antes de abrir outro projeto.');
+      return;
+    }
+    setRecentBusy(true);
+    try {
+      if (entry.kind === 'folder') finishRecentOpen(await reopenFolder());
+      else {
+        const file = await pickNativeFile(['json'], entry.location);
+        if (file === undefined) recentInput.current?.click();
+        else if (file)
+          finishRecentOpen(await onProjectFile(file, confirmReplace));
+      }
+    } catch (e) {
+      finishRecentOpen(
+        `Projeto não aberto: ${e instanceof Error ? e.message : 'arquivo indisponível'}`,
+      );
+    } finally {
+      setRecentBusy(false);
     }
   };
   const runCommand = (raw: string) => {
@@ -5595,6 +5765,14 @@ export default function App() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (stirrupDialog) {
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+        )
+          e.preventDefault();
+        return;
+      }
+      if (recentOpen) {
         if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -5849,6 +6027,24 @@ export default function App() {
           const f = e.target.files?.[0];
           e.target.value = '';
           if (f) onProjectFile(f);
+        }}
+      />
+      <input
+        ref={recentInput}
+        type="file"
+        accept=".json"
+        hidden
+        data-testid="recent-input"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          if (!f) return;
+          setRecentBusy(true);
+          try {
+            finishRecentOpen(await onProjectFile(f, confirmReplace));
+          } finally {
+            setRecentBusy(false);
+          }
         }}
       />
       <header className="titlebar">
@@ -7795,6 +7991,22 @@ export default function App() {
           }}
         />
       )}
+      {recentOpen && (
+        <RecentProjects
+          entries={recents}
+          desktop={isTauri()}
+          busy={recentBusy}
+          notice={recentNotice}
+          guard={recentGuard}
+          onReopen={reopenRecent}
+          onRemove={(key) => setRecents(removeRecent(key))}
+          onClear={() => setRecents(clearRecents())}
+          onClose={() => {
+            recentGuard?.choose('cancel');
+            setRecentOpen(false);
+          }}
+        />
+      )}
       {modal === 'new' && (
         <Suspense
           fallback={
@@ -7838,6 +8050,14 @@ export default function App() {
                 const next = decodeProject(raw);
                 attachProjectFolder(next, folder, raw);
                 if (!commit(() => next)) return false;
+                savedBaseline.current = historyRef.current.present;
+                rememberRecent({
+                  kind: 'folder',
+                  projectId: next.id,
+                  name: next.name,
+                  fileName: PROJECT_FILE,
+                  location: folder.label,
+                });
                 setModal(null);
                 select([]);
                 setTool('select');
@@ -7867,6 +8087,15 @@ export default function App() {
                 );
               }
               if (!commit(() => result.project)) return false;
+              savedBaseline.current = historyRef.current.present;
+              if (folder)
+                rememberRecent({
+                  kind: 'folder',
+                  projectId: result.project.id,
+                  name: result.project.name,
+                  fileName: PROJECT_FILE,
+                  location: folder.label,
+                });
               setContext({
                 projectId: result.project.id,
                 detailId: result.activeDetailId,

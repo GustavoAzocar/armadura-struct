@@ -101,23 +101,30 @@ export async function readDetailSourceFile(
   }
   return { project: decodeProject(raw, { allowOrphanReferences: true }) };
 }
+const nativePaths = new WeakMap<File, string>();
+/** Caminho escolhido no diálogo nativo; serve só de rótulo e dica, nunca de acesso. */
+export const nativePathOf = (file: File) => nativePaths.get(file);
 export async function pickNativeFile(
   extensions: string[],
+  defaultPath?: string,
 ): Promise<File | null | undefined> {
   if (!isTauri()) return undefined;
   const { open } = await import('@tauri-apps/plugin-dialog');
   const path = await open({
     multiple: false,
     directory: false,
+    ...(defaultPath ? { defaultPath } : {}),
     filters: [{ name: extensions.join(' / ').toUpperCase(), extensions }],
   });
   if (!path || Array.isArray(path)) return null;
   const { readFile } = await import('@tauri-apps/plugin-fs');
   const data = await readFile(path);
-  return new File(
+  const file = new File(
     [new Uint8Array(data).buffer],
     path.split(/[\\/]/).at(-1) || 'desenho',
   );
+  nativePaths.set(file, path);
+  return file;
 }
 export const safeName = (s: string) =>
   s
@@ -125,23 +132,30 @@ export const safeName = (s: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9_-]/g, '-')
     .slice(0, 80) || 'armaduras';
-export async function saveFile(
+export const saveFile = async (
   name: string,
   data: string | Uint8Array,
   mime: string,
   extension: string,
-) {
+) => (await saveFileAt(name, data, mime, extension)).saved;
+/** `path` só existe no desktop, depois que a gravação em disco foi concluída. */
+export async function saveFileAt(
+  name: string,
+  data: string | Uint8Array,
+  mime: string,
+  extension: string,
+): Promise<{ saved: boolean; path?: string }> {
   if (isTauri()) {
     const { save } = await import('@tauri-apps/plugin-dialog');
     const path = await save({
       defaultPath: name,
       filters: [{ name: extension.toUpperCase(), extensions: [extension] }],
     });
-    if (!path) return false;
+    if (!path) return { saved: false };
     const fs = await import('@tauri-apps/plugin-fs');
     if (typeof data === 'string') await fs.writeTextFile(path, data);
     else await fs.writeFile(path, data);
-    return true;
+    return { saved: true, path };
   }
   const blob = new Blob(
     [typeof data === 'string' ? data : new Uint8Array(data).buffer],
@@ -153,7 +167,7 @@ export async function saveFile(
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
-  return true;
+  return { saved: true };
 }
 export type MaskSource = {
   name: string;

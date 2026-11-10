@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## Não lançado
+
+- Arquivo → Projetos recentes: histórico local (até 10) de projetos abertos ou gravados, separado de autosave/backups; reabrir pede nova seleção e respeita alterações não salvas e gravações pendentes. [Uso e limites](docs/PROJETOS-RECENTES.md).
+
 ## 0.5.0 · 2026-11-09
 
 - Lançamento de estribos por critérios: formatos retangular, circular analítico e livre, seção no eixo ou com cobrimento, ganchos independentes, mandril, rotação e apresentação. Seção e faixa longitudinal compartilham a mesma posição, com espaçamento fixo/máximo, afastamentos, prévia, confirmação atômica e histórico. Geometria legada preservada até edição explícita. [Uso e limites](docs/ESTRIBOS.md).
