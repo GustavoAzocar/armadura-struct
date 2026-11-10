@@ -93,7 +93,7 @@ describe('máscaras CAD nativas', () => {
       [maskPoint(a, m), maskPoint(b, m)],
       m,
     );
-    if (q.kind === 'circle' || q.kind === 'arc') throw 0;
+    if (q.kind !== 'rectangle') throw new Error('Retângulo esperado.');
     expect(q.points[1].x).toBeCloseTo(101, 10);
     expect(localMaskPoint(maskPoint(a, m), m).y).toBeCloseTo(2, 10);
   });

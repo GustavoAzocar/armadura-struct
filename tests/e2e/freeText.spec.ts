@@ -177,3 +177,54 @@ test('troca de contexto invalida a operação e conteúdo inválido não grava',
   await expect(panel).toHaveCount(0);
   expect(texts(await save(page))).toHaveLength(0);
 });
+
+test('Esc cancela a inserção após voltar do conteúdo ao ponto', async ({
+  page,
+}) => {
+  await start(page);
+  await command(page, 'TEXTO');
+  await command(page, '10,20');
+  const panel = page.getByRole('region', { name: 'Inserir texto' });
+  await panel.getByLabel('Conteúdo do texto').fill('Cancelado');
+  await panel.getByLabel('Conteúdo do texto').press('Escape');
+  await expect(panel).toContainText('1/2');
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0);
+  expect(texts(await save(page))).toHaveLength(0);
+});
+
+test('preserva precisão, cancela a troca de ponto e confirmar uma edição neutra não cria histórico', async ({
+  page,
+}) => {
+  await start(page);
+  await command(page, 'TEXT');
+  await command(page, '123.123456789,-456.987654321');
+  const panel = page.getByRole('region', { name: 'Inserir texto' });
+  await panel.getByLabel('Conteúdo do texto').fill('Precisão');
+  await panel.getByLabel('Altura do texto').fill('48.123456789');
+  await panel.getByLabel('Rotação do texto').fill('33.123456789');
+  await panel
+    .getByRole('button', { name: 'Escolher ponto no desenho' })
+    .click();
+  await page.keyboard.press('Escape');
+  await expect(panel.getByLabel('Conteúdo do texto')).toHaveValue('Precisão');
+  await command(page, '');
+  await expect(panel).toHaveCount(0);
+  const before = texts(await save(page))[0];
+  expect(before.points[0]).toEqual({ x: 123.123456789, y: -456.987654321 });
+  expect(before.textHeight).toBe(48.123456789);
+  await page
+    .getByRole('button', { name: 'Enquadrar', exact: true })
+    .first()
+    .click();
+  const box = (await page
+    .locator(`[data-free-text="${before.id}"]`)
+    .boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const edit = page.getByRole('region', { name: 'Editar texto' });
+  await edit.getByRole('button', { name: /Aplicar edição/ }).click();
+  await expect(edit).toHaveCount(0);
+  expect(texts(await save(page))[0]).toEqual(before);
+  await page.keyboard.press('Control+z');
+  expect(texts(await save(page))).toHaveLength(0);
+});

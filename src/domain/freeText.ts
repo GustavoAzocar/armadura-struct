@@ -1,5 +1,6 @@
 import { cadBinding, cadDefaults } from './cadDefaults';
 import { plotSettings } from './plotting';
+import { maskManipSelection } from './maskManipulation';
 import { maskPoint } from '../cad/import';
 import {
   localMaskPoint,
@@ -203,12 +204,41 @@ export function editFreeText(
   const before = m.primitives[index];
   if (!isFreeText(before))
     throw new Error('Texto livre inexistente nesta máscara.');
-  const after = localText(
-    m,
-    at ?? freeTextWorldPoint(before, m),
-    draft,
-    before,
+  maskManipSelection(
+    p,
+    maskId,
+    [
+      {
+        maskId,
+        index,
+        id: before.id,
+        primitive: before,
+        key: JSON.stringify([maskId, before.id ?? index]),
+      },
+    ],
+    context,
   );
+  const previous = freeTextDraftOf(before, m);
+  const values = validateFreeTextDraft(draft);
+  const world = freeTextWorldPoint(before, m);
+  const after = localText(m, at ?? world, values, before);
+  // Keep exact local data when an editor field did not change. Inverting a
+  // rotated/scaled mask again can otherwise introduce floating-point drift.
+  if (!at || (at.x === world.x && at.y === world.y)) {
+    after.native = before.native;
+    after.points = before.points;
+  }
+  if (freeTextModelHeight(values) === freeTextModelHeight(previous))
+    after.textHeight = before.textHeight;
+  if (values.rotation === validateFreeTextDraft(previous).rotation)
+    after.textRotation = before.textRotation;
+  if (values.align === previous.align) after.textAlign = before.textAlign;
+  if (
+    values.font.family === previous.font.family &&
+    values.font.weight === previous.font.weight &&
+    values.font.style === previous.font.style
+  )
+    after.textFont = before.textFont;
   const next: Mask = {
     ...m,
     primitives: m.primitives.map((q, i) => (i === index ? after : q)),

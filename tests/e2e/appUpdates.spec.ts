@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { emptyProject } from '../../src/domain/model';
+import { maskManipFixture } from '../fixtures/maskManipulation';
 
 // IPC contract fixture only. These tests never download/execute a native installer.
 function nativeMock(options: {
@@ -436,4 +437,61 @@ test('comando CAD pendente impede o fechamento para instalar', async ({
   );
   expect(await calls(page, 'updates_arm')).toBe(0);
   expect(await calls(page, 'updates_finish')).toBe(0);
+});
+
+test('texto livre pendente impede reiniciar para instalar uma atualização', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.getByTestId('project-input').setInputFiles({
+    name: 'mascara.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(maskManipFixture())),
+  });
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Máscaras', exact: true }).click();
+  const destination = page.getByRole('region', {
+    name: 'Destino do desenho de máscaras',
+    exact: true,
+  });
+  await destination
+    .getByLabel('Escolher máscara', { exact: true })
+    .selectOption('target-mask');
+  await destination
+    .getByRole('button', { name: 'Ativar máscara para desenhar', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Texto', exact: true }).click();
+  const command = page.getByRole('textbox', { name: 'Comando CAD' });
+  await command.fill('100,100');
+  await command.press('Enter');
+  const panel = page.getByRole('region', { name: 'Inserir texto' });
+  await panel
+    .getByLabel('Conteúdo do texto')
+    .fill('Texto ainda não confirmado');
+  await page
+    .locator('.update-banner')
+    .getByRole('button', { name: 'Ver atualização', exact: true })
+    .click();
+  await modal(page)
+    .getByRole('button', { name: 'Baixar versão 0.10.0', exact: true })
+    .click();
+  await modal(page)
+    .getByRole('checkbox', {
+      name: 'Autorizo instalar a versão 0.10.0 e reiniciar o aplicativo',
+    })
+    .check();
+  await modal(page)
+    .getByRole('button', { name: 'Instalar e reiniciar', exact: true })
+    .click();
+  await expect(modal(page).getByRole('alert')).toContainText(
+    'Conclua ou cancele',
+  );
+  expect(await calls(page, 'updates_arm')).toBe(0);
+  expect(await calls(page, 'updates_finish')).toBe(0);
+  await modal(page)
+    .getByRole('button', { name: 'Agora não', exact: true })
+    .click();
+  await expect(panel.getByLabel('Conteúdo do texto')).toHaveValue(
+    'Texto ainda não confirmado',
+  );
 });

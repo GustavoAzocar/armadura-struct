@@ -9,11 +9,11 @@ Texto independente na máscara ativa, sem vínculo com barras, quantitativos ou 
 3. **Conteúdo e formatação:** conteúdo de uma linha, botões Ø ± ° ² µ, altura, família, peso, estilo, alinhamento, rotação e X/Y de inserção. Os padrões vêm das Configurações CAD (altura e alinhamento de **Textos**, layer/aparência de **Máscaras → entidade**); a última formatação confirmada é reaproveitada no mesmo projeto.
 4. **Inserir texto · Enter** grava uma única operação de histórico. **Desfazer/Refazer** removem/restauram o texto.
 
-**Esc** volta uma etapa: na formatação, retorna ao ponto (mantendo os valores); no ponto, cancela. A prévia nunca altera o projeto. Trocar de projeto, documento, detalhamento, isolamento, máscara ativa ou aba cancela a operação pendente; Desfazer/Refazer com texto pendente apenas o cancelam. Confirmações repetidas não duplicam: cada inserção tem ID fixo.
+**Esc** volta uma etapa: na formatação, retorna ao ponto (mantendo os valores); no ponto, cancela. Ao usar **Escolher ponto no desenho**, Esc desiste apenas da troca do ponto e retorna ao conteúdo. A prévia nunca altera o projeto. Um texto pendente impede o reinício para instalar uma atualização até ser confirmado ou cancelado. Trocar de projeto, documento, detalhamento, isolamento, máscara ativa ou aba cancela a operação pendente; Desfazer/Refazer com texto pendente apenas o cancelam. Confirmações repetidas não duplicam: cada inserção tem ID fixo.
 
 ## Editar
 
-Clique no texto com **Selecionar** (ou **Controle de máscaras → entidade → Editar texto…**). O painel **Editar texto** altera conteúdo, formatação e ponto (**Escolher ponto no desenho**). Mantém ID, layer, overrides e posição na lista. Esc cancela sem gravar; confirmar sem mudanças não cria histórico. Mover, Copiar, Espelhar e Apagar do menu Manipular também aceitam textos livres; neles o clique seleciona o texto pelo ponto de inserção.
+Clique no texto com **Selecionar** (ou **Controle de máscaras → entidade → Editar texto…**). O painel **Editar texto** altera conteúdo, formatação e ponto (**Escolher ponto no desenho**). Mantém ID, layer, overrides e posição na lista. Abrir e confirmar sem mudanças preserva os valores locais exatos, inclusive em máscaras giradas/escaladas; alterar só o conteúdo não arredonda a geometria. Esc cancela sem gravar; confirmar sem mudanças não cria histórico. Mover, Copiar, Espelhar e Apagar do menu Manipular também aceitam textos livres; neles o clique seleciona o texto pelo ponto de inserção.
 
 ## Altura: modelo × folha
 

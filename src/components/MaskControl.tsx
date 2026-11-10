@@ -494,6 +494,7 @@ export default function MaskControl({
                             circle: 'Círculo',
                             arc: 'Arco',
                             polyline: 'Polilinha',
+                            text: 'Texto',
                           }[shape.kind]
                         : ''}
                     </p>

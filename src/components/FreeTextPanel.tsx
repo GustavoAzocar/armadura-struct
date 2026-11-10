@@ -31,6 +31,7 @@ export type FreeTextSession = {
   /** Ribbon tab at the start; changing it invalidates the pending operation. */
   tab: string;
   stage: 'point' | 'content';
+  repicking?: boolean;
   fields: FreeTextFields;
   cursor?: Point;
   issue?: string;
@@ -41,16 +42,16 @@ const num = (s: string) =>
 export function fieldsOf(d: FreeTextDraft, at?: Point): FreeTextFields {
   return {
     text: d.text,
-    height: String(Number(d.height.toFixed(6))),
+    height: String(d.height),
     size: d.size,
     paperScale: String(d.paperScale),
-    rotation: String(Number(d.rotation.toFixed(6))),
+    rotation: String(d.rotation),
     align: d.align,
     family: d.font.family,
     weight: d.font.weight,
     style: d.font.style,
-    x: at ? String(Number(at.x.toFixed(6))) : '',
-    y: at ? String(Number(at.y.toFixed(6))) : '',
+    x: at ? String(at.x) : '',
+    y: at ? String(at.y) : '',
   };
 }
 export function draftOf(f: FreeTextFields): FreeTextDraft {

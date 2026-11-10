@@ -888,12 +888,20 @@ export default function App() {
   const canvas = () => (activeSheet ? paperCanvas.current : cad.current);
   const captureDocument = (): DocumentSession => ({
     selected,
-    maskId: maskOffset || match || maskManip || measureSession ? null : maskId,
+    maskId:
+      freeText || maskOffset || match || maskManip || measureSession
+        ? null
+        : maskId,
     tool: nativeKind || tool === 'follow' || measureSession ? 'select' : tool,
     draft: nativeKind || measureSession ? [] : draft,
     page,
     command:
-      nativeKind || maskOffset || match || maskManip || measureSession
+      freeText ||
+      nativeKind ||
+      maskOffset ||
+      match ||
+      maskManip ||
+      measureSession
         ? ''
         : command,
     detailId: activeDetailId,
@@ -3089,8 +3097,17 @@ export default function App() {
         notify('Texto livre inexistente nesta máscara.');
         return;
       }
-      if (q.layerId && !layerState(current, documentKey, q.layerId).editable) {
-        notify('Layer do texto bloqueado ou desligado; libere-o para editar.');
+      try {
+        editFreeText(
+          current,
+          mask.id,
+          edit.entityId,
+          freeTextDraftOf(q, mask),
+          context,
+          mask,
+        );
+      } catch (e) {
+        notify((e as Error).message);
         return;
       }
       setMaskId(null);
@@ -3139,7 +3156,7 @@ export default function App() {
   const backFreeText = () => {
     const s = freeText;
     if (!s) return;
-    if (s.stage === 'point' && (s.editId || s.fields.x !== ''))
+    if (s.stage === 'point' && (s.editId || s.repicking))
       setFreeText({
         ...s,
         stage: 'content',
@@ -3147,7 +3164,7 @@ export default function App() {
         issue: undefined,
       });
     else if (s.stage === 'content' && !s.editId)
-      setFreeText({ ...s, stage: 'point', issue: undefined });
+      setFreeText({ ...s, stage: 'point', repicking: false, issue: undefined });
     else endFreeText();
   };
   const confirmFreeText = () => {
@@ -4373,6 +4390,11 @@ export default function App() {
     }
   }
   const finish = () => {
+    if (freeText) {
+      if (freeText.stage === 'content') confirmFreeText();
+      else notify('Escolha o ponto de inserção do texto. Esc cancela.');
+      return;
+    }
     if (stirrupSession) {
       if (stirrupSession.stage === 'shape') finishStirrupShape();
       else if (stirrupSession.stage === 'ready') confirmStirrup();
@@ -4484,12 +4506,13 @@ export default function App() {
       setFreeText({
         ...freeText,
         stage: 'content',
+        repicking: false,
         cursor: undefined,
         issue: undefined,
         fields: {
           ...freeText.fields,
-          x: String(Number(point.x.toFixed(6))),
-          y: String(Number(point.y.toFixed(6))),
+          x: String(point.x),
+          y: String(point.y),
         },
       });
       return;
@@ -7766,7 +7789,14 @@ export default function App() {
                   onConfirm={confirmFreeText}
                   onRepick={() =>
                     setFreeText((s) =>
-                      s ? { ...s, stage: 'point', issue: undefined } : s,
+                      s
+                        ? {
+                            ...s,
+                            stage: 'point',
+                            repicking: true,
+                            issue: undefined,
+                          }
+                        : s,
                     )
                   }
                   onBack={backFreeText}
@@ -8987,6 +9017,7 @@ export default function App() {
               stirrupDialog ||
               followRequest ||
               measureSession ||
+              freeText ||
               maskManip ||
               match ||
               maskOffset ||
