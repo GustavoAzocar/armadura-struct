@@ -336,6 +336,30 @@ describe('Mover entidades e máscara inteira', () => {
     ).toThrow();
     expect(JSON.stringify(p)).toBe(snapshot);
   });
+  it('conta entidades em layers locais ocultos e valida seus limites ao mover a máscara inteira', () => {
+    const p = maskManipFixture();
+    p.masks[0].primitives.push(
+      nativePrimitive(
+        {
+          kind: 'line',
+          points: [
+            { x: 999999900, y: 0 },
+            { x: 999999950, y: 10 },
+          ],
+          closed: false,
+        },
+        'hidden-line',
+        'OCULTO',
+      ),
+    );
+    p.masks[0].layers.OCULTO = false;
+    expect
+      .soft(
+        previewWholeMaskMove(p, p.masks[0].id, ctx(p), { x: 10, y: 0 }).hidden,
+      )
+      .toBe(1);
+    expect(() => moveWhole(p, { x: 100, y: 0 })).toThrow(/limites/);
+  });
   it('salvar/reabrir, pacote de intercâmbio, DXF e PDF concordam com o resultado', () => {
     for (const whole of [false, true]) {
       const p = maskManipFixture();

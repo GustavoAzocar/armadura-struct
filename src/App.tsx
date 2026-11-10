@@ -2754,7 +2754,10 @@ export default function App() {
     try {
       const base = historyRef.current.present;
       const mask = maskEditTarget(base, id, maskDrawingContext);
-      const preId = entityId ?? (maskId === id ? nativeEntity : undefined);
+      const whole = mode === 'move' && scope === 'mask';
+      const preId = whole
+        ? undefined
+        : (entityId ?? (maskId === id ? nativeEntity : undefined));
       const pre = preId
         ? maskCadEntities(base, maskDrawingContext).find(
             (e) => e.mask.id === id && e.ref.id === preId,
@@ -2765,7 +2768,6 @@ export default function App() {
           'Pré-seleção inválida. Selecione novamente a entidade.',
         );
       if (pre) maskManipSelection(base, mask.id, [pre.ref], maskDrawingContext);
-      const whole = mode === 'move' && scope === 'mask' && !pre;
       if (whole)
         previewWholeMaskMove(base, mask.id, maskDrawingContext, { x: 0, y: 0 });
       const ignored = selected.length;

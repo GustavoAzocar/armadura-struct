@@ -230,6 +230,32 @@ test('pré-seleção pelo Controle de máscaras, destino por snap e resultado ig
   );
   expect(after.masks[1]).toEqual(before.masks[1]);
 });
+test('botão de máscara inteira ignora a entidade pré-selecionada no Controle de máscaras', async ({
+  page,
+}) => {
+  await open(page);
+  const before = await save(page);
+  await click(page, 500, 0);
+  await page
+    .getByRole('dialog', { name: 'Controle de máscaras', exact: true })
+    .getByRole('button', {
+      name: 'Mover máscara inteira (origem)',
+      exact: true,
+    })
+    .click();
+  await expect(panel(page).getByTestId('mask-move-scope')).toContainText(
+    'máscara inteira',
+  );
+  await expect(panel(page)).toContainText('Ponto base');
+  await command(page, '100,100');
+  await command(page, '@250,-50');
+  await expect(panel(page)).toHaveCount(0);
+  const after = await save(page);
+  expect(after.masks[0].origin).toEqual({ x: 250, y: -50 });
+  expect(after.masks[0].primitives).toEqual(before.masks[0].primitives);
+  expect(after.masks[1]).toEqual(before.masks[1]);
+  expect(after.bars).toEqual(before.bars);
+});
 test('máscara inteira girada 30° e escala 2: só a origem muda, alcance explícito, Foco compacto', async ({
   page,
 }) => {

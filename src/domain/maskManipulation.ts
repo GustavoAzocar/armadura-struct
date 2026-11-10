@@ -329,7 +329,7 @@ export function previewWholeMaskMove(
       throw new Error(
         'A máscara inteira contém entidades em layer bloqueado; libere o layer ou mova somente as entidades editáveis.',
       );
-    if (!s.visible) hidden++;
+    if (!s.visible || mask.layers[q.layer] === false) hidden++;
   }
   const origin = { x: mask.origin.x + delta.x, y: mask.origin.y + delta.y };
   const result = { ...mask, origin };
@@ -338,8 +338,10 @@ export function previewWholeMaskMove(
   let e = extents.get(mask);
   if (!e) {
     e = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
-    for (const v of maskPrimitives(mask))
-      for (const a of v.points) {
+    // Hidden local layers also follow the origin and must stay within bounds.
+    for (const v of mask.primitives)
+      for (const local of v.points) {
+        const a = maskPoint(local, mask);
         e.x0 = Math.min(e.x0, a.x);
         e.y0 = Math.min(e.y0, a.y);
         e.x1 = Math.max(e.x1, a.x);
