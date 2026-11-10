@@ -86,7 +86,7 @@ const shifted = (
     expect(a.x).toBeCloseTo(v.x + d.x, digits);
     expect(a.y).toBeCloseTo(v.y + d.y, digits);
   });
-test('Manipular habilita Mover na ordem Mover, Espelhar, Rotacionar, Copiar, Apagar', async ({
+test('Manipular habilita Mover e Rotacionar e preserva a ordem dos comandos', async ({
   page,
 }) => {
   await open(page);
@@ -106,7 +106,7 @@ test('Manipular habilita Mover na ordem Mover, Espelhar, Rotacionar, Copiar, Apa
   ).toBeEnabled();
   await expect(
     group.getByRole('button', { name: 'Rotacionar entidades da máscara' }),
-  ).toBeDisabled();
+  ).toBeEnabled();
 });
 test('sem pré-seleção: acumula/retira, Δ=(250,−50) por coordenadas, uma operação, Undo/Redo e recuperação', async ({
   page,

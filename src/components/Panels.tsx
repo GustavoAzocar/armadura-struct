@@ -55,7 +55,7 @@ export function NumberField({
 }: {
   label: string;
   compactLabel?: string;
-  value: number;
+  value: number | undefined;
   onChange: (n: number) => void | boolean;
   min?: number;
   max?: number;
@@ -63,13 +63,13 @@ export function NumberField({
   suffix?: string;
   disabled?: boolean;
 }) {
-  const [text, setText] = useState(String(value));
+  const [text, setText] = useState(String(value ?? ''));
   const cancelled = useRef(false);
-  useEffect(() => setText(String(value)), [value]);
+  useEffect(() => setText(String(value ?? '')), [value]);
   const commit = () => {
     if (cancelled.current) {
       cancelled.current = false;
-      setText(String(value));
+      setText(String(value ?? ''));
       return;
     }
     const n = Number(text.replace(',', '.'));
@@ -80,8 +80,8 @@ export function NumberField({
       n <= max &&
       (step !== 1 || Number.isInteger(n))
     ) {
-      if (n !== value && onChange(n) === false) setText(String(value));
-    } else setText(String(value));
+      if (n !== value && onChange(n) === false) setText(String(value ?? ''));
+    } else setText(String(value ?? ''));
   };
   return (
     <label className="field">
@@ -98,7 +98,7 @@ export function NumberField({
             if (e.key === 'Enter') e.currentTarget.blur();
             if (e.key === 'Escape') {
               cancelled.current = true;
-              setText(String(value));
+              setText(String(value ?? ''));
               e.currentTarget.blur();
             }
           }}

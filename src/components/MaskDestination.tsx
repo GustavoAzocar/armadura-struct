@@ -1,3 +1,4 @@
+import type { MaskManipMode } from '../domain/maskManipulation';
 import { useEffect, useMemo, useState } from 'react';
 import type { Project } from '../domain/types';
 import type { MeasureMode } from './MeasureDimensionPanel';
@@ -86,7 +87,7 @@ export default function MaskDestination({
   onCalibrate: () => void;
   onCadEdit: (mode: 'trim' | 'extend') => void;
   onMeasure: (mode: MeasureMode) => void;
-  onManipulate: (mode: 'move' | 'copy' | 'erase' | 'mirror') => void;
+  onManipulate: (mode: MaskManipMode) => void;
   onOffset: () => void;
   onBatch: (mode: 'import' | 'associate') => void;
 }) {
@@ -156,7 +157,8 @@ export default function MaskDestination({
             e.target.value === 'move' ||
             e.target.value === 'copy' ||
             e.target.value === 'erase' ||
-            e.target.value === 'mirror'
+            e.target.value === 'mirror' ||
+            e.target.value === 'rotate'
           )
             onManipulate(e.target.value);
           else if (e.target.value)
@@ -173,6 +175,7 @@ export default function MaskDestination({
         <option value="extend">Estender — Extend</option>
         <option value="move">Mover entidades</option>
         <option value="mirror">Espelhar entidades</option>
+        <option value="rotate">Rotacionar</option>
         <option value="copy">Copiar entidades</option>
         <option value="erase">Apagar entidades</option>
       </select>

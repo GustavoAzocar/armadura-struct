@@ -11,6 +11,8 @@ import { maskCadEntities } from '../domain/maskCadEditing';
 import {
   applyMaskManipulation,
   previewMaskManipulation,
+  maskManipNames,
+  type MaskManipMode,
 } from '../domain/maskManipulation';
 import {
   maskDrawingState,
@@ -58,7 +60,7 @@ export default function MaskControl({
     entityId?: string,
   ) => boolean;
   onManipulate: (
-    mode: 'move' | 'copy' | 'erase' | 'mirror',
+    mode: MaskManipMode,
     id: string,
     entityId?: string,
     scope?: 'entities' | 'mask',
@@ -210,23 +212,19 @@ export default function MaskControl({
             >
               Usar esta máscara e Offset
             </button>
-            {(['move', 'mirror', 'copy', 'erase'] as const).map((mode) => (
-              <button
-                key={mode}
-                disabled={!ready}
-                onClick={() => {
-                  if (onManipulate(mode, m.id, eid || undefined)) onClose();
-                }}
-              >
-                {mode === 'move'
-                  ? 'Usar esta máscara e Mover entidades'
-                  : mode === 'copy'
-                    ? 'Usar esta máscara e Copiar entidades'
-                    : mode === 'mirror'
-                      ? 'Usar esta máscara e Espelhar entidades'
-                      : 'Usar esta máscara e Apagar entidades'}
-              </button>
-            ))}
+            {(['move', 'mirror', 'rotate', 'copy', 'erase'] as const).map(
+              (mode) => (
+                <button
+                  key={mode}
+                  disabled={!ready}
+                  onClick={() => {
+                    if (onManipulate(mode, m.id, eid || undefined)) onClose();
+                  }}
+                >
+                  {`Usar esta máscara e ${maskManipNames[mode]} entidades`}
+                </button>
+              ),
+            )}
             <button
               disabled={!ready}
               title="Translada somente a origem; as entidades acompanham sem nova transformação local."

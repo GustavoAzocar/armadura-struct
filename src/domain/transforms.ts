@@ -14,13 +14,18 @@ const point = z
     y: z.number().finite().min(-1e9).max(1e9),
   })
   .strict();
+export const MAX_ROTATION_ANGLE = 360000;
 export const selectionTransformSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('translate'), delta: point }).strict(),
   z
     .object({
       kind: z.literal('rotate'),
       base: point,
-      angle: z.number().finite().min(-360000).max(360000),
+      angle: z
+        .number()
+        .finite()
+        .min(-MAX_ROTATION_ANGLE)
+        .max(MAX_ROTATION_ANGLE),
     })
     .strict(),
   z.object({ kind: z.literal('mirror'), base: point, axisEnd: point }).strict(),
@@ -34,6 +39,13 @@ export function angleByPoints(base: Point, reference: Point, target: Point) {
   return (
     (Math.atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y) * 180) / Math.PI
   );
+}
+export function directionAngle(start: Point, end: Point) {
+  return angleByPoints(start, { x: start.x + 1, y: start.y }, end);
+}
+export function signedAngleDifference(reference: number, target: number) {
+  const angle = (target - reference) % 360;
+  return angle > 180 ? angle - 360 : angle < -180 ? angle + 360 : angle;
 }
 export function transformPoint(p: Point, t: SelectionTransform): Point {
   if (t.kind === 'translate') return add(p, t.delta);
