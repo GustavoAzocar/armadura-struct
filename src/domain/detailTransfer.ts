@@ -1,3 +1,4 @@
+import { cloneDrawingMetadata } from './drawingMetadata';
 import { remapDimensionMasks } from './maskDimensions';
 import { mergeLayers, remapLayer } from './layers';
 import {
@@ -284,6 +285,32 @@ export function previewDetailTransfer(
       occupied.add(id);
       return id;
     };
+    if (!oldDetail) {
+      const sourceDrawings = source.hierarchy.drawings.filter(
+        (d) => d.detailId === incoming.id,
+      );
+      if (sourceDrawings.length) {
+        const initialDrawing = next.hierarchy.drawings.find(
+          (d) => d.detailId === detailId,
+        )!;
+        const importedDrawings = sourceDrawings.map((d, i) =>
+          cloneDrawingMetadata(d, {
+            id: i === 0 ? initialDrawing.id : fresh(),
+            detailId,
+          }),
+        );
+        next = {
+          ...next,
+          hierarchy: {
+            ...next.hierarchy,
+            drawings: [
+              ...next.hierarchy.drawings.filter((d) => d.detailId !== detailId),
+              ...importedDrawings,
+            ],
+          },
+        };
+      }
+    }
     const sourceToLocal = new Map<string, string>(),
       originUpdates = new Map<string, ObjectOrigin>(),
       usedLocal = new Set<string>();

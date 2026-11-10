@@ -979,6 +979,7 @@ export function ProjectTree({
   onEditDetail,
   onSelectDetail,
   onOpenDrawing,
+  onDrawingProperties,
   onOrganizeHierarchy,
 }: {
   project: Project;
@@ -997,6 +998,7 @@ export function ProjectTree({
   onEditDetail: (id: string) => void;
   onSelectDetail: (id: string) => void;
   onOpenDrawing: (id: string) => void;
+  onDrawingProperties?: (id: string) => void;
   onOrganizeHierarchy: () => void;
 }) {
   const treeKey = `armadurastruct.contentTree.${project.id}`;
@@ -1081,6 +1083,7 @@ export function ProjectTree({
           onEditDetail={onEditDetail}
           onSelectDetail={onSelectDetail}
           onOpenDrawing={onOpenDrawing}
+          onDrawingProperties={onDrawingProperties}
           scopeDetailId={isolatedDetailId}
           onOrganize={onOrganizeHierarchy}
         />

@@ -515,7 +515,7 @@ describe('transação CAD, persistência e integridade', () => {
     expect(
       readDetailPackage(legacyPack).project.masks[0].primitives,
     ).toMatchObject(p.masks[0].primitives);
-    expect(decodeProject(JSON.stringify(raw)).schema).toBe('armadurastruct/25');
+    expect(decodeProject(JSON.stringify(raw)).schema).toBe('armadurastruct/26');
     const shape = {
       kind: 'arc' as const,
       center: { x: 0, y: 0 },

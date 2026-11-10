@@ -160,7 +160,17 @@ export type DetailRepetition = {
   /** Origins whose physical definitions were explicitly consolidated into this detail. */
   absorbedOrigins?: DetailOrigin[];
 };
-export type DetailDrawing = { id: string; detailId: string; name: string };
+export type DetailDrawing = {
+  id: string;
+  detailId: string;
+  name: string;
+  /** User-informed documentary author; never inferred from OS, account or VCS. */
+  author?: string;
+  /** Civil calendar date YYYY-MM-DD without time or timezone offset. */
+  date?: string;
+  /** Documentary comments specific to this drawing, rendered as plain text. */
+  notes?: string;
+};
 export type SheetFormat = 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'custom';
 export type SheetSteelSchedule = {
   /** Upper left insertion point, in paper mm (Y increases upward). */
@@ -272,7 +282,7 @@ export type DraftPolyline = LayerBinding & {
   color: string;
 };
 export type Project = {
-  schema: 'armadurastruct/25';
+  schema: 'armadurastruct/26';
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
   cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;

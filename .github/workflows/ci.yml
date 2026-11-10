@@ -27,6 +27,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: drawing-metadata-evidence
+          if-no-files-found: ignore
+          path: docs/drawing-metadata-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: stirrup-launch-evidence
           if-no-files-found: ignore
           path: docs/stirrup-*.png

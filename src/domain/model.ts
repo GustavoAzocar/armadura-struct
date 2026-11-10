@@ -1,3 +1,4 @@
+import { drawingSchema, hasDrawingMetadata } from './drawingMetadata';
 import {
   stirrupProfileSchema,
   stirrupDisplaySchema,
@@ -114,10 +115,7 @@ const hierarchySchema = z.object({
     )
     .min(1)
     .max(10000),
-  drawings: z
-    .array(z.object({ ...named, detailId: identity }))
-    .min(1)
-    .max(10000),
+  drawings: z.array(drawingSchema).min(1).max(10000),
   placements: z
     .array(
       z.object({
@@ -470,7 +468,14 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const stirrupVersion = input?.schema === 'armadurastruct/25';
+  const drawingMetadataVersion = input?.schema === 'armadurastruct/26';
+  if (
+    !drawingMetadataVersion &&
+    input?.hierarchy?.drawings?.some(hasDrawingMetadata)
+  )
+    throw Error('Metadados documentais de desenho exigem formato 26.');
+  const stirrupVersion =
+    drawingMetadataVersion || input?.schema === 'armadurastruct/25';
   if (
     !stirrupVersion &&
     (input?.stirrupDefaults ||
@@ -756,7 +761,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/25',
+    schema: 'armadurastruct/26',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -988,7 +993,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/25',
+    schema: 'armadurastruct/26',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

@@ -1,3 +1,12 @@
+import DrawingPropertiesPanel, {
+  type DrawingPropertiesSession,
+} from './components/DrawingPropertiesPanel';
+import {
+  formatDrawingDate,
+  sameDrawingMetadata,
+  updateDrawingMetadata,
+  type DrawingMetadataInput,
+} from './domain/drawingMetadata';
 import StirrupCriteriaDialog from './components/StirrupCriteriaDialog';
 import StirrupLaunchPanel, {
   type StirrupSession,
@@ -1149,6 +1158,94 @@ export default function App() {
   const commitLayout = (change: (current: Project) => Project) => {
     sessions.current.set(documentKey, captureDocument());
     return commit(change);
+  };
+  const [drawingProperties, setDrawingProperties] =
+    useState<DrawingPropertiesSession | null>(null);
+  const drawingPropertiesSeq = useRef(0);
+  const openDrawingProperties = (drawingId: string) => {
+    const current = historyRef.current.present;
+    const drawing = current.hierarchy.drawings.find((d) => d.id === drawingId);
+    if (!drawing) return;
+    if (isolationRef.current && drawing.detailId !== isolationRef.current) {
+      notify(
+        'Conclua a edição isolada antes de editar propriedades de outro detalhamento.',
+      );
+      return;
+    }
+    if (!isolationRef.current && activeDetailId !== drawing.detailId)
+      activateDetail(drawing.detailId);
+    drawingPropertiesSeq.current += 1;
+    setDrawingProperties({
+      key: drawingPropertiesSeq.current,
+      projectId: current.id,
+      drawingId: drawing.id,
+      baseDrawing: structuredClone(drawing),
+      contextKey: documentKey,
+      detailId: drawing.detailId,
+    });
+  };
+  useEffect(() => {
+    if (!drawingProperties) return;
+    if (drawingProperties.projectId !== p.id) {
+      setDrawingProperties(null);
+      return;
+    }
+    if (
+      !p.hierarchy.drawings.some((d) => d.id === drawingProperties.drawingId)
+    ) {
+      setDrawingProperties(null);
+      notify('Edição descartada: o desenho não existe mais no projeto.');
+      return;
+    }
+    if (
+      drawingProperties.contextKey !== documentKey ||
+      drawingProperties.detailId !== activeDetailId
+    ) {
+      setDrawingProperties(null);
+    }
+  }, [
+    p.id,
+    p.hierarchy.drawings,
+    documentKey,
+    activeDetailId,
+    drawingProperties,
+  ]);
+  const saveDrawingProperties = (
+    session: DrawingPropertiesSession,
+    draft: DrawingMetadataInput,
+  ) => {
+    const current = historyRef.current.present;
+    if (
+      !drawingProperties ||
+      drawingProperties.key !== session.key ||
+      drawingProperties.drawingId !== session.drawingId ||
+      current.id !== session.projectId ||
+      documentKey !== session.contextKey ||
+      activeDetailId !== session.detailId
+    ) {
+      setDrawingProperties(null);
+      notify('O contexto mudou; a edição pendente não foi aplicada.');
+      return false;
+    }
+    const existing = current.hierarchy.drawings.find(
+      (d) => d.id === session.drawingId,
+    );
+    if (!existing || !sameDrawingMetadata(existing, session.baseDrawing)) {
+      setDrawingProperties(null);
+      notify(
+        'O desenho mudou ou foi removido; nenhuma alteração foi aplicada.',
+      );
+      return false;
+    }
+    const next = updateDrawingMetadata(current, session.drawingId, draft);
+    if (next === current) {
+      setDrawingProperties(null);
+      return true;
+    }
+    if (!commit(() => next)) return false;
+    setDrawingProperties(null);
+    notify('Propriedades do desenho atualizadas.');
+    return true;
   };
   useEffect(() => {
     const objects = new Map(layerObjects(p).map((o) => [o.id, o]));
@@ -5595,6 +5692,11 @@ export default function App() {
           setTransformRequest(null);
           return;
         }
+        if (drawingProperties) {
+          setDrawingProperties(null);
+          cmdInput.current?.blur();
+          return;
+        }
         setModal(null);
         setTool('select');
         cmdInput.current?.blur();
@@ -6023,6 +6125,15 @@ export default function App() {
               <span className="isolation-hint">
                 Demais detalhamentos protegidos
               </span>
+              {activeDrawing && (
+                <button
+                  type="button"
+                  className="isolation-secondary"
+                  onClick={() => openDrawingProperties(activeDrawing.id)}
+                >
+                  Propriedades do desenho
+                </button>
+              )}
               <button onClick={finishDetailEdit}>Concluir edição</button>
             </div>
           )}
@@ -6073,6 +6184,15 @@ export default function App() {
                 )}
               </div>
             )}
+          {drawingProperties && drawingProperties.projectId === p.id && (
+            <DrawingPropertiesPanel
+              key={`${drawingProperties.projectId}:${drawingProperties.drawingId}:${drawingProperties.key}`}
+              project={p}
+              session={drawingProperties}
+              onSave={saveDrawingProperties}
+              onCancel={() => setDrawingProperties(null)}
+            />
+          )}
           {scheduleRequest && activeSheet && (
             <SheetSchedulePanel
               project={p}
@@ -6814,6 +6934,7 @@ export default function App() {
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 onOpenDrawing={openDrawing}
+                onDrawingProperties={openDrawingProperties}
                 onOrganizeHierarchy={() => {
                   switchDocument('model');
                   isolationRef.current = undefined;
@@ -6995,10 +7116,38 @@ export default function App() {
                   <Shapes size={15} />
                   <b>Edição do detalhamento</b>
                 </div>
-                <p className="isolation-empty">
-                  Selecione um objeto deste detalhamento para editar suas
-                  propriedades. Use Concluir edição para voltar ao projeto.
-                </p>
+                <div className="panel-scroll">
+                  <p className="isolation-empty">
+                    Selecione um objeto deste detalhamento para editar suas
+                    propriedades. Use Concluir edição para voltar ao projeto.
+                  </p>
+                  {activeDrawing && (
+                    <div className="drawing-inspector-card">
+                      <b>{activeDrawing.name}</b>
+                      <small>{detailPath(p, activeDrawing.detailId)}</small>
+                      {activeDrawing.author && (
+                        <small>Autor: {activeDrawing.author}</small>
+                      )}
+                      {activeDrawing.date && (
+                        <small>
+                          Data: {formatDrawingDate(activeDrawing.date)}
+                        </small>
+                      )}
+                      {activeDrawing.notes && (
+                        <p className="drawing-inspector-notes">
+                          {activeDrawing.notes}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        className="detail-edit-action"
+                        onClick={() => openDrawingProperties(activeDrawing.id)}
+                      >
+                        Propriedades do desenho
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <Inspector

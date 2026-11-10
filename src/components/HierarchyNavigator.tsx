@@ -7,6 +7,7 @@ import {
   X,
   Pencil,
   FilePenLine,
+  FileText,
 } from 'lucide-react';
 import type { Project } from '../domain/types';
 import {
@@ -55,6 +56,7 @@ export default function HierarchyNavigator({
   onEditDetail,
   onSelectDetail,
   onOpenDrawing,
+  onDrawingProperties,
   scopeDetailId,
   onOrganize,
 }: {
@@ -68,6 +70,7 @@ export default function HierarchyNavigator({
   onEditDetail: (id: string) => void;
   onSelectDetail: (id: string) => void;
   onOpenDrawing: (id: string) => void;
+  onDrawingProperties?: (id: string) => void;
   scopeDetailId?: string;
   onOrganize: () => void;
 }) {
@@ -363,18 +366,41 @@ export default function HierarchyNavigator({
           </button>
           <small>{count}</small>
           {kind === 'detail' ? (
-            <button
-              type="button"
-              className="hierarchy-row-action"
-              title="Renomear ou mover detalhamento"
-              aria-label={`Editar detalhamento ${title}`}
-              disabled={!!scopeDetailId && scopeDetailId !== id}
-              onClick={() => {
-                if (begin(kind, id)) onActive(id);
-              }}
-            >
-              <Pencil size={12} />
-            </button>
+            <>
+              {onDrawingProperties &&
+                index.drawings.get(id)?.length === 1 &&
+                (() => {
+                  const single = index.drawings.get(id)![0];
+                  return (
+                    <button
+                      type="button"
+                      className="hierarchy-row-action"
+                      title="Propriedades do desenho"
+                      aria-label={`Propriedades do desenho ${drawingLabel(project, single)}`}
+                      disabled={
+                        (!!scopeDetailId && scopeDetailId !== id) || finishing
+                      }
+                      onClick={() =>
+                        openDetail(() => onDrawingProperties(single.id))
+                      }
+                    >
+                      <FileText size={12} />
+                    </button>
+                  );
+                })()}
+              <button
+                type="button"
+                className="hierarchy-row-action"
+                title="Renomear ou mover detalhamento"
+                aria-label={`Editar detalhamento ${title}`}
+                disabled={!!scopeDetailId && scopeDetailId !== id}
+                onClick={() => {
+                  if (begin(kind, id)) onActive(id);
+                }}
+              >
+                <Pencil size={12} />
+              </button>
+            </>
           ) : (
             <button
               type="button"
@@ -491,15 +517,35 @@ export default function HierarchyNavigator({
                           d.id,
                           detailTitle(project, d.id),
                           (index.drawings.get(d.id) || []).map((v) => (
-                            <button
-                              onClick={() => onOpenDrawing(v.id)}
-                              aria-label={`Abrir desenho ${drawingLabel(project, v)}`}
-                              className="hierarchy-drawing"
-                              key={v.id}
-                              title={v.name}
-                            >
-                              ⌗ {drawingLabel(project, v)}
-                            </button>
+                            <div className="hierarchy-drawing-row" key={v.id}>
+                              <button
+                                type="button"
+                                onClick={() => onOpenDrawing(v.id)}
+                                aria-label={`Abrir desenho ${drawingLabel(project, v)}`}
+                                className="hierarchy-drawing"
+                                title={v.name}
+                              >
+                                ⌗ {drawingLabel(project, v)}
+                              </button>
+                              {onDrawingProperties && (
+                                <button
+                                  type="button"
+                                  className="hierarchy-row-action"
+                                  title="Propriedades do desenho"
+                                  aria-label={`Propriedades do desenho ${drawingLabel(project, v)}`}
+                                  disabled={
+                                    (!!scopeDetailId &&
+                                      scopeDetailId !== d.id) ||
+                                    finishing
+                                  }
+                                  onClick={() =>
+                                    openDetail(() => onDrawingProperties(v.id))
+                                  }
+                                >
+                                  <FileText size={12} />
+                                </button>
+                              )}
+                            </div>
                           )),
                           index.counts.get(d.id) || 0,
                         ),

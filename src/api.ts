@@ -202,3 +202,20 @@ export {
 } from './domain/stirrups';
 export { defaultStirrupCriteria } from './domain/stirrupSchema';
 export type { StirrupCriteria, StirrupProfile } from './domain/stirrupSchema';
+
+export {
+  DRAWING_METADATA_LIMITS,
+  isValidDrawingDate,
+  formatDrawingDate,
+  drawingHierarchyContext,
+  drawingMetadataIssues,
+  normalizeDrawingMetadata,
+  updateDrawingMetadata,
+  duplicateDrawing,
+} from './domain/drawingMetadata';
+export type {
+  DrawingMetadataInput,
+  DrawingMetadataIssue,
+  DrawingHierarchyContext,
+} from './domain/drawingMetadata';
+export type { DetailDrawing } from './domain/types';

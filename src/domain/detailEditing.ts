@@ -177,8 +177,23 @@ export function assertDetailEdit(
     'layers',
   ] as const)
     if (!same(before[field], after[field])) fail();
-  for (const field of ['floors', 'elements', 'drawings', 'placements'] as const)
+  for (const field of ['floors', 'elements', 'placements'] as const)
     if (!same(before.hierarchy[field], after.hierarchy[field])) fail();
+  if (
+    before.hierarchy.drawings !== after.hierarchy.drawings &&
+    (!same(
+      before.hierarchy.drawings.filter((d) => d.detailId !== detailId),
+      after.hierarchy.drawings.filter((d) => d.detailId !== detailId),
+    ) ||
+      before.hierarchy.drawings
+        .filter((d) => d.detailId === detailId)
+        .some(
+          (old) =>
+            after.hierarchy.drawings.find((d) => d.id === old.id)?.detailId !==
+            detailId,
+        ))
+  )
+    fail();
   if (
     before.hierarchy.details !== after.hierarchy.details &&
     !same(
