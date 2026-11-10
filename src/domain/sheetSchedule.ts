@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Point, Project, ScheduleRow, SheetSteelSchedule } from './types';
 import { schedule, scheduleChanged } from './model';
 import { detailTitle } from './detailQuantities';
+import { weldedMeshSchedule } from './weldedMeshSchedule';
 import {
   paperTextWidth,
   wrapPaperText,
@@ -17,6 +18,8 @@ export const sheetSteelScheduleSchema = z
       .strict(),
     textHeight: z.number().finite().min(1.8).max(5),
     allowancePercent: z.number().finite().min(0).max(100),
+    /** Perda das telas soldadas (%), sobre a massa aplicada; ausente = 0. */
+    meshLossPercent: z.number().finite().min(0).max(100).optional(),
   })
   .strict();
 export const defaultSheetSchedule = (
@@ -42,9 +45,21 @@ export function sheetScheduleData(p: Project, sheetId: string) {
   for (const r of p.details)
     if (details.has(p.hierarchy.objectDetails[r.id])) ids.add(r.barId);
   const { rows, barIds } = scheduleForBarIds(p, ids);
+  // Telas dos detalhamentos da prancha: quadro à parte, com a perda configurada nele.
+  const meshIds = (p.weldedMeshes ?? [])
+    .filter((l) => details.has(p.hierarchy.objectDetails[l.id]))
+    .map((l) => l.id);
+  const meshes = weldedMeshSchedule(p, {
+    ids: new Set(meshIds),
+    lossPercent:
+      p.sheets.find((s) => s.id === sheetId)?.steelSchedule?.meshLossPercent ??
+      0,
+  });
   return {
     rows,
     barIds,
+    meshIds,
+    meshes,
     detailIds: [...details],
     names: [...new Set([...details].map((id) => detailTitle(p, id)))],
     summary: steelSummary(rows),

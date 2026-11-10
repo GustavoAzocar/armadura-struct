@@ -177,6 +177,8 @@ export type SheetSteelSchedule = {
   origin: Point;
   textHeight: number;
   allowancePercent: number;
+  /** Perda das telas soldadas (%) sobre a massa aplicada; ausente = 0 (formato 29). */
+  meshLossPercent?: number;
 };
 export type Sheet = {
   /** One live schedule per sheet, independent of drawing scales and physical steel. */
@@ -347,6 +349,8 @@ export type Project = {
     origins?: Record<string, string>;
     detailIds?: Record<string, string>;
     quantities?: Record<string, { repetitions: number; detailTitle: string }>;
+    /** Fotografia das telas soldadas; ausente quando o projeto não tem telas. */
+    weldedMeshes?: import('./weldedMeshLaunch').WeldedMeshLaunch[];
   };
 };
 export type Tool =
