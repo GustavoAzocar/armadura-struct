@@ -27,6 +27,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: product-update-evidence
+          if-no-files-found: ignore
+          path: docs/updates-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: drawing-metadata-evidence
           if-no-files-found: ignore
           path: docs/drawing-metadata-*.png
@@ -115,10 +121,13 @@ jobs:
           workspaces: src-tauri -> target
       - run: npm ci
       - run: npm run build
+      - run: cargo test --manifest-path crates/openstruct-distribution/Cargo.toml
       - run: cargo test --manifest-path src-tauri/Cargo.toml project_folder::tests
       - run: npm run desktop:build -- --bundles ${{ matrix.bundles }}
         env:
           APPIMAGE_EXTRACT_AND_RUN: '1'
+      - name: Native update adapter in isolated installation
+        run: node scripts/test-native-update-adapter.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: ArmaduraStruct-${{ github.sha }}-${{ matrix.artifact }}

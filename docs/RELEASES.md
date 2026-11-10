@@ -16,3 +16,7 @@ O ArmaduraStruct utiliza a identidade de assinatura do publicador central (`laun
 ## Identidade nativa
 
 O PNG original é mantido no acervo de identidade visual do projeto. Para regenerar os formatos de desktop: `npx tauri icon /caminho/ArmaduraStruct_Icone_Original_1254x1254.png --fit contain`. Mantenha no repositório apenas os PNG/ICO utilizados no Windows e Linux. O WebP em `public/brand` é usado no cabeçalho do editor.
+
+## Atualização pelo aplicativo
+
+Os próximos pacotes incluem a consulta ao catálogo e o helper de atualização consentida, descritos em [ATUALIZACOES.md](ATUALIZACOES.md). Continuam usando as assinaturas e o publicador central existentes; não há novo feed, nova chave ou segredo no build do produto. O CI valida os adaptadores nativos em diretório temporário depois de gerar os pacotes.

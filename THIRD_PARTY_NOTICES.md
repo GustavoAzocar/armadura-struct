@@ -25,3 +25,29 @@ As distribuições devem preservar estas licenças e disponibilizar o código-fo
 ## Identidade
 
 O símbolo provisório de OpenStruct foi reaproveitado do projeto ConsoloStruct do mesmo autor. O ícone definitivo do ArmaduraStruct será desenvolvido posteriormente. AutoCAD e DWG são marcas de seus respectivos titulares; o projeto não possui afiliação com a Autodesk.
+
+## Núcleo de distribuição OpenStruct
+
+Os contratos e adaptadores vendorizados de `launcher-core` 0.2.4 são distribuídos sob MIT, copyright (c) 2026 Ricardo Corsini e colaboradores. A origem e as adaptações estão em `crates/openstruct-distribution/UPSTREAM.md`.
+
+MIT License
+
+Copyright (c) 2026 Ricardo Corsini e colaboradores
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

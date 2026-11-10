@@ -66,6 +66,7 @@ export type Action =
   | 'new'
   | 'open'
   | 'recent'
+  | 'check-updates'
   | 'save'
   | 'import'
   | 'undo'
@@ -201,7 +202,13 @@ export default function Ribbon({
           item('export-detail', 'Pacote de detalhamento', Download),
         ],
       },
-      { name: 'Ajuda', items: [item('help', 'Guia de uso', HelpCircle)] },
+      {
+        name: 'Ajuda',
+        items: [
+          item('help', 'Guia de uso', HelpCircle),
+          item('check-updates', 'Verificar atualizações', RefreshCw),
+        ],
+      },
     ],
     Máscaras: [
       {

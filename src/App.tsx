@@ -1,3 +1,4 @@
+import AppUpdates from './components/AppUpdates';
 import DrawingPropertiesPanel, {
   type DrawingPropertiesSession,
 } from './components/DrawingPropertiesPanel';
@@ -697,6 +698,13 @@ export default function App() {
     [busy, setBusy] = useState(''),
     [saveState, setSaveState] = useState('Verificando recuperação local…');
   const [folderEpoch, setFolderEpoch] = useState(0);
+  const [updateRequest, setUpdateRequest] = useState(0);
+  const [updateModal, setUpdateModal] = useState(false);
+  const fileOperations = useRef(0);
+  const updateInstallGuard = useRef(false);
+  const updateInstalling = useCallback((value: boolean) => {
+    updateInstallGuard.current = value;
+  }, []);
   // Histórico local de navegação: independente de autosave, backups e revisões.
   const [recents, setRecents] = useState<RecentEntry[]>(() => readRecents());
   const [recentOpen, setRecentOpen] = useState(false),
@@ -720,6 +728,13 @@ export default function App() {
     void import('@tauri-apps/api/window')
       .then(async ({ getCurrentWindow }) => {
         const stop = await getCurrentWindow().onCloseRequested((e) => {
+          if (updateInstallGuard.current) {
+            e.preventDefault();
+            notify(
+              'Aguarde o salvamento e a confirmação da atualização antes de fechar.',
+            );
+            return;
+          }
           if (hasPendingFolderWrites()) {
             e.preventDefault();
             notify(
@@ -4518,7 +4533,7 @@ export default function App() {
     );
     return true;
   };
-  const action = async (a: Action) => {
+  const runAction = async (a: Action) => {
     if (a === 'stirrup-criteria') {
       setTool('select');
       startStirrup(true);
@@ -5389,6 +5404,26 @@ export default function App() {
       );
     }
   };
+  const action = async (a: Action) => {
+    if (a === 'check-updates') {
+      setUpdateRequest((n) => n + 1);
+      return;
+    }
+    const tracked = [
+      'open',
+      'save',
+      'pdf',
+      'dxf',
+      'csv',
+      'export-detail',
+    ].includes(a);
+    if (tracked) fileOperations.current++;
+    try {
+      await runAction(a);
+    } finally {
+      if (tracked) fileOperations.current--;
+    }
+  };
   const afterProjectReplaced = () => {
     savedBaseline.current = historyRef.current.present;
     stirrupCriteria.current = undefined;
@@ -5399,53 +5434,60 @@ export default function App() {
   const saveCurrent = async (
     project: Project,
   ): Promise<'saved' | 'download' | 'cancelled'> => {
-    if (projectFolderLabel(project)) {
-      setSaveState('Gravando na pasta…');
-      try {
-        await saveProjectFolder(project);
-        if (historyRef.current.present !== project) return 'cancelled';
-        savedBaseline.current = project;
-        setSaveState('Salvo na pasta do projeto');
-        notify('Arquivo nativo salvo na pasta vinculada.');
-        rememberRecent({
-          kind: 'folder',
-          projectId: project.id,
-          name: project.name,
-          fileName: PROJECT_FILE,
-          location: projectFolderLabel(project),
-        });
-        return 'saved';
-      } catch (e) {
-        if (historyRef.current.present === project)
-          setSaveState('Acesso perdido/falha na pasta — alterações em memória');
-        throw e;
+    fileOperations.current++;
+    try {
+      if (projectFolderLabel(project)) {
+        setSaveState('Gravando na pasta…');
+        try {
+          await saveProjectFolder(project);
+          if (historyRef.current.present !== project) return 'cancelled';
+          savedBaseline.current = project;
+          setSaveState('Salvo na pasta do projeto');
+          notify('Arquivo nativo salvo na pasta vinculada.');
+          rememberRecent({
+            kind: 'folder',
+            projectId: project.id,
+            name: project.name,
+            fileName: PROJECT_FILE,
+            location: projectFolderLabel(project),
+          });
+          return 'saved';
+        } catch (e) {
+          if (historyRef.current.present === project)
+            setSaveState(
+              'Acesso perdido/falha na pasta — alterações em memória',
+            );
+          throw e;
+        }
       }
-    }
-    const { saved, path } = await saveFileAt(
-      `${safeName(project.name)}.armstruct.json`,
-      JSON.stringify(project, null, 2),
-      'application/json',
-      'json',
-    );
-    if (!saved) return 'cancelled';
-    if (historyRef.current.present !== project) return 'cancelled';
-    if (!path) {
-      notify(
-        'Download solicitado. Confira a cópia; o navegador não confirma gravação no disco.',
+      const { saved, path } = await saveFileAt(
+        `${safeName(project.name)}.armstruct.json`,
+        JSON.stringify(project, null, 2),
+        'application/json',
+        'json',
       );
-      return 'download';
+      if (!saved) return 'cancelled';
+      if (historyRef.current.present !== project) return 'cancelled';
+      if (!path) {
+        notify(
+          'Download solicitado. Confira a cópia; o navegador não confirma gravação no disco.',
+        );
+        return 'download';
+      }
+      savedBaseline.current = project;
+      // Só o desktop confirma a gravação em disco e informa o local.
+      rememberRecent({
+        kind: 'file',
+        projectId: project.id,
+        name: project.name,
+        fileName: path.split(/[\\/]/).at(-1) || 'projeto.armstruct.json',
+        location: path,
+      });
+      notify('Cópia do projeto salva.');
+      return 'saved';
+    } finally {
+      fileOperations.current--;
     }
-    savedBaseline.current = project;
-    // Só o desktop confirma a gravação em disco e informa o local.
-    rememberRecent({
-      kind: 'file',
-      projectId: project.id,
-      name: project.name,
-      fileName: path.split(/[\\/]/).at(-1) || 'projeto.armstruct.json',
-      location: path,
-    });
-    notify('Cópia do projeto salva.');
-    return 'saved';
   };
   /** Resolve alterações não salvas e gravações pendentes ANTES de substituir o projeto. */
   const confirmReplace = (): Promise<boolean> => {
@@ -5522,26 +5564,31 @@ export default function App() {
     guard?: () => Promise<boolean>,
     assertCurrent = guard ? recentContext() : undefined,
   ): Promise<boolean | string> => {
+    fileOperations.current++;
     try {
-      const next = await readProjectFile(file);
-      assertCurrent?.();
-      if (guard && !(await guard())) return false;
-      assertCurrent?.();
-      if (!commit(() => next)) return false;
-      afterProjectReplaced();
-      rememberRecent({
-        kind: 'file',
-        projectId: next.id,
-        name: next.name,
-        fileName: file.name,
-        location: nativePathOf(file),
-      });
-      notify('Projeto aberto.');
-      return true;
-    } catch (e) {
-      const text = `Projeto não aberto: ${e instanceof Error ? e.message : 'arquivo inválido'}`;
-      notify(text);
-      return text;
+      try {
+        const next = await readProjectFile(file);
+        assertCurrent?.();
+        if (guard && !(await guard())) return false;
+        assertCurrent?.();
+        if (!commit(() => next)) return false;
+        afterProjectReplaced();
+        rememberRecent({
+          kind: 'file',
+          projectId: next.id,
+          name: next.name,
+          fileName: file.name,
+          location: nativePathOf(file),
+        });
+        notify('Projeto aberto.');
+        return true;
+      } catch (e) {
+        const text = `Projeto não aberto: ${e instanceof Error ? e.message : 'arquivo inválido'}`;
+        notify(text);
+        return text;
+      }
+    } finally {
+      fileOperations.current--;
     }
   };
   const finishRecentOpen = (result: boolean | string) => {
@@ -5817,6 +5864,14 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (updateModal) {
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+        )
+          e.preventDefault();
+        return;
+      }
       if (stirrupDialog) {
         if (
           (e.ctrlKey || e.metaKey) &&
@@ -8048,6 +8103,67 @@ export default function App() {
           }}
         />
       )}
+      <AppUpdates
+        ready={ready && !busy}
+        manualRequest={updateRequest}
+        needsSave={p !== savedBaseline.current}
+        onModal={setUpdateModal}
+        onInstalling={updateInstalling}
+        protect={async () => {
+          const base = historyRef.current.present;
+          const context = maskImportContext.current;
+          const assertIdle = () => {
+            if (
+              fileOperations.current ||
+              hasPendingFolderWrites() ||
+              busy ||
+              !ready ||
+              draft.length ||
+              (tool !== 'select' && tool !== 'pan') ||
+              stirrupSession ||
+              stirrupDialog ||
+              followRequest ||
+              measureSession ||
+              maskManip ||
+              match ||
+              maskOffset ||
+              maskCad ||
+              maskCalibration ||
+              cloneRequest ||
+              transformRequest ||
+              alignmentRequest ||
+              vertexRequest ||
+              scheduleRequest ||
+              maskBatch ||
+              detailTransfer ||
+              cadInterpretation ||
+              modal === 'new'
+            )
+              throw new Error(
+                'Conclua ou cancele o comando e as operações de arquivo antes de instalar.',
+              );
+            if (
+              historyRef.current.present !== base ||
+              maskImportContext.current !== context
+            )
+              throw new Error(
+                'O projeto ou contexto mudou. Confira e tente instalar novamente.',
+              );
+          };
+          assertIdle();
+          if (base !== savedBaseline.current) {
+            const result = await saveCurrent(base);
+            if (result !== 'saved')
+              throw new Error(
+                'O projeto não foi salvo em disco. A atualização foi adiada.',
+              );
+          }
+          assertIdle();
+          await autosave(base);
+          assertIdle();
+          return assertIdle;
+        }}
+      />
       {recentOpen && (
         <RecentProjects
           entries={recents}
