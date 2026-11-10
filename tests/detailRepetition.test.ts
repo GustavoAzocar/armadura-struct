@@ -220,7 +220,7 @@ describe('repetição de elementos e levantamento consistente', () => {
       const q = decodeProject(
         JSON.stringify({ ...p, schema: `armadurastruct/${v}` }),
       );
-      expect(q.schema).toBe('armadurastruct/28');
+      expect(q.schema).toBe('armadurastruct/29');
       expect(q.bars).toEqual(p.bars);
       expect(pieces(q)).toBe(4);
       expect(weight(q)).toBeCloseTo(weight(p), 10);

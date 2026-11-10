@@ -89,7 +89,7 @@ test('insere texto livre com prévia, Esc por etapa, Desfazer/Refazer sem duplic
   await panel.getByRole('button', { name: /Inserir texto/ }).dblclick();
   await expect(panel).toHaveCount(0);
   let p = await save(page);
-  expect(p.schema).toBe('armadurastruct/28');
+  expect(p.schema).toBe('armadurastruct/29');
   expect(p.bars).toEqual([]);
   expect(texts(p)).toHaveLength(1);
   expect(texts(p)[0]).toMatchObject({

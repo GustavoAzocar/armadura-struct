@@ -21,6 +21,11 @@ import {
   validateSymbols,
 } from './symbols';
 import { layerEnvironmentSchema } from './layerProfiles';
+import { weldedMeshCriteriaSchema } from './weldedMesh';
+import {
+  weldedMeshLaunchIssues,
+  weldedMeshLaunchSchema,
+} from './weldedMeshLaunch';
 import { defaultLayers, completeLayers, validateLayers } from './layers';
 import { drawingLayerSchema, layerBindingShape } from './layerSchema';
 import { armatureReferences } from './armatureReferences';
@@ -255,6 +260,8 @@ const schema = z.object({
     'armadurastruct/19',
   ]),
   stirrupDefaults: stirrupCriteriaSchema.optional(),
+  weldedMeshes: z.array(weldedMeshLaunchSchema).max(2000).optional(),
+  weldedMeshDefaults: weldedMeshCriteriaSchema.optional(),
   cadDefaults: cadDefaultsSchema.optional(),
   layerEnvironment: layerEnvironmentSchema.optional(),
   plotting: plotSettingsSchema.optional(),
@@ -456,7 +463,14 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const textVersion = input?.schema === 'armadurastruct/28';
+  const meshVersion = input?.schema === 'armadurastruct/29';
+  if (
+    !meshVersion &&
+    (input?.weldedMeshes !== undefined ||
+      input?.weldedMeshDefaults !== undefined)
+  )
+    throw new Error('Telas soldadas exigem formato 29.');
+  const textVersion = meshVersion || input?.schema === 'armadurastruct/28';
   if (!textVersion && hasFreeTextData(input))
     throw new Error('Textos livres e tipografia CAD exigem formato 28.');
   const symbolVersion = textVersion || input?.schema === 'armadurastruct/27';
@@ -760,7 +774,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/28',
+    schema: 'armadurastruct/29',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -815,9 +829,15 @@ export function decodeProject(
     ...p.annotations,
     ...p.polylines,
     ...(p.symbolInstances ?? []),
+    ...(p.weldedMeshes ?? []),
   ].map((o) => o.id);
   if (new Set(allIds).size !== allIds.length)
     throw new Error('Identificadores de objetos duplicados.');
+  for (const l of p.weldedMeshes ?? []) {
+    const issues = weldedMeshLaunchIssues(l);
+    if (issues.length)
+      throw new Error(`Tela soldada ${l.criteria.mark}: ${issues.join(' ')}`);
+  }
   if (
     !options.allowOrphanReferences &&
     [...p.annotations, ...p.polylines].some((a) =>
@@ -994,7 +1014,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/28',
+    schema: 'armadurastruct/29',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

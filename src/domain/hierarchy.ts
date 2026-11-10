@@ -8,7 +8,13 @@ import { uid, type Project, type ProjectHierarchy } from './types';
 export type HierarchyKind = 'floor' | 'element' | 'detail';
 type Content = Pick<
   Project,
-  'bars' | 'details' | 'annotations' | 'masks' | 'polylines' | 'symbolInstances'
+  | 'bars'
+  | 'details'
+  | 'annotations'
+  | 'masks'
+  | 'polylines'
+  | 'symbolInstances'
+  | 'weldedMeshes'
 >;
 
 export function contentObjects(project: Content) {
@@ -19,6 +25,7 @@ export function contentObjects(project: Content) {
     ...project.masks,
     ...project.polylines,
     ...(project.symbolInstances ?? []),
+    ...(project.weldedMeshes ?? []),
   ];
 }
 

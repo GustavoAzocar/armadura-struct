@@ -313,10 +313,14 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/28';
+  schema: 'armadurastruct/29';
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
+  /** Telas soldadas lançadas (formato 29): critérios e região estáticos. */
+  weldedMeshes?: import('./weldedMeshLaunch').WeldedMeshLaunch[];
+  /** Últimos critérios de tela confirmados num lançamento. */
+  weldedMeshDefaults?: import('./weldedMesh').WeldedMeshCriteria;
   cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;

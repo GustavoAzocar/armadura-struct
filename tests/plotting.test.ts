@@ -348,7 +348,7 @@ describe('AS-21 · aparência de tela e plotagem', () => {
       const q = decodeProject(
         JSON.stringify({ ...p, schema: `armadurastruct/${v}` }),
       );
-      expect(q.schema).toBe('armadurastruct/28');
+      expect(q.schema).toBe('armadurastruct/29');
       expect(q.bars[0].id).toBe('a');
       expect(q.bars[0].points).toEqual(p.bars[0].points);
       expect(q.bars[0].plot).toBeUndefined();
