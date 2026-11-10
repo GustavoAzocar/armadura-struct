@@ -47,8 +47,13 @@ import {
   type RecentInput,
 } from './lib/recentProjects';
 import MeasureDimensionPanel, {
+  type MeasureMode,
   type MeasureSession,
 } from './components/MeasureDimensionPanel';
+import {
+  contourMeasureCandidates,
+  measureMaskEntity,
+} from './domain/maskContourMeasure';
 import {
   dimensionTool,
   measuredDistance,
@@ -1403,6 +1408,19 @@ export default function App() {
     setToolRaw('select');
     setDraft([]);
   };
+  /** "Medir contorno" is a sub-mode of the Medir query: no history, no commit. */
+  const startContourMeasure = () => {
+    setTool('measure');
+    setMeasureSession((s) =>
+      s ? { ...s, mode: 'contour', result: undefined, cursor: undefined } : s,
+    );
+    if (!activeSheet)
+      setMessage(
+        'Selecione uma entidade de máscara para medir comprimento, perímetro e área.',
+      );
+  };
+  const setMeasureMode = (m: MeasureMode) =>
+    m === 'measure-contour' ? startContourMeasure() : setTool(m);
   useEffect(() => {
     const s = measureSession;
     if (
@@ -1426,6 +1444,59 @@ export default function App() {
     tool,
     measureSession,
   ]);
+  const contourEntities = useMemo(
+    () =>
+      measureSession?.mode === 'contour'
+        ? contourMeasureCandidates(p, maskDrawingContext)
+        : [],
+    [p, documentKey, activeDetailId, isolatedDetailId, measureSession?.mode],
+  );
+  const pickContour = (ref?: MaskEntityRef) => {
+    const s = measureSession;
+    if (!s || s.mode !== 'contour') return;
+    if (
+      s.project !== historyRef.current.present ||
+      s.context.key !== documentKey ||
+      s.context.detailId !== activeDetailId ||
+      s.context.scopeDetailId !== isolationRef.current ||
+      s.maskId !== drawingMaskId
+    ) {
+      endMeasure();
+      notify('Contexto mudou. Reinicie Medir contorno.');
+      return;
+    }
+    const e = ref && contourEntities.find((e) => e.ref.key === ref.key);
+    if (!e) {
+      setMeasureSession({
+        ...s,
+        issue:
+          'Nenhuma entidade de máscara visível e capturável do desenho ativo neste ponto. Aço, textos e outras vistas não são medidos.',
+      });
+      return;
+    }
+    const result = measureMaskEntity(e.mask, e.ref.primitive);
+    setMeasureSession({
+      ...s,
+      contour: {
+        key: e.ref.key,
+        label: `${e.mask.name} · ${e.ref.index + 1} · ${result.kind}`,
+        result,
+        highlight: maskPrimitives({ ...e.mask, primitives: [e.ref.primitive] }),
+      },
+      issue: undefined,
+    });
+  };
+  const contourOverlay = useMemo(
+    () =>
+      measureSession?.contour
+        ? {
+            mode: 'trim' as const,
+            limits: measureSession.contour.highlight,
+            change: [],
+          }
+        : undefined,
+    [measureSession?.contour],
+  );
   const staleDimensions = useMemo(
     () =>
       p.annotations.filter(
@@ -3797,7 +3868,8 @@ export default function App() {
       return;
     }
     if (measureSession) {
-      if (tool === 'measure' && !draft.length) endMeasure();
+      if (measureSession.mode === 'contour') endMeasure();
+      else if (tool === 'measure' && !draft.length) endMeasure();
       else
         notify(
           'Indique o próximo ponto; a posição da cota é confirmada pelo terceiro ponto. Esc cancela.',
@@ -4099,6 +4171,11 @@ export default function App() {
     if (tool === 'bar' || tool === 'polyline') {
       if (!draft.length || distance(draft.at(-1)!, point) > 0.01)
         setDraft([...draft, point]);
+      return;
+    }
+    if (measureSession?.mode === 'contour') {
+      // Typed coordinates select the entity under that model point.
+      pickContour(hitMaskCadEntity(contourEntities, point, 1e-5)?.ref);
       return;
     }
     if (measureSession && dimensionTool(tool)) {
@@ -4549,6 +4626,7 @@ export default function App() {
       measureSession &&
       ![
         'measure',
+        'measure-contour',
         'dimension-aligned',
         'dimension-orthogonal',
         'fit',
@@ -4562,6 +4640,10 @@ export default function App() {
       ].includes(a)
     )
       endMeasure();
+    if (a === 'measure-contour') {
+      startContourMeasure();
+      return;
+    }
     if (a === 'match-properties') {
       startMatch();
       return;
@@ -5749,6 +5831,9 @@ export default function App() {
       D: 'distribute',
       DIST: 'measure',
       MEDIR: 'measure',
+      CONTORNO: 'measure-contour',
+      PERIMETRO: 'measure-contour',
+      AREA: 'measure-contour',
       F: 'fit',
       ZOOM: 'fit',
       U: 'undo',
@@ -6194,6 +6279,9 @@ export default function App() {
           snap,
           ortho,
           dimensions,
+          ...(measureSession?.mode === 'contour'
+            ? { measure: false, 'measure-contour': true }
+            : {}),
           'mask-offset': !!maskOffset,
           'mask-copy': maskManip?.mode === 'copy',
           'mask-mirror': maskManip?.mode === 'mirror',
@@ -6213,7 +6301,7 @@ export default function App() {
         maskDestination={
           <MaskDestination
             onOffset={() => startMaskOffset()}
-            onMeasure={setTool}
+            onMeasure={setMeasureMode}
             onManipulate={(mode) => startMaskManip(mode)}
             onCadEdit={(mode) => startMaskCad(mode)}
             onCalibrate={() => startMaskCalibration()}
@@ -6660,32 +6748,41 @@ export default function App() {
                           targetMaskId: maskOffset.maskId,
                           stage: 'targets',
                         }
-                      : maskManip?.stage === 'selection'
+                      : measureSession?.mode === 'contour'
                         ? {
-                            entities: manipEntities,
-                            targetMaskId: maskManip.maskId,
-                            stage: 'targets',
+                            entities: contourEntities,
+                            targetMaskId: '',
+                            stage: 'limits',
                           }
-                        : maskCad
+                        : maskManip?.stage === 'selection'
                           ? {
-                              entities: cadMaskEntities,
-                              targetMaskId: maskCad.maskId,
-                              all: maskCad.all,
-                              stage: maskCad.stage,
-                              selectedTarget: maskCad.selectedTarget,
+                              entities: manipEntities,
+                              targetMaskId: maskManip.maskId,
+                              stage: 'targets',
                             }
-                          : undefined
+                          : maskCad
+                            ? {
+                                entities: cadMaskEntities,
+                                targetMaskId: maskCad.maskId,
+                                all: maskCad.all,
+                                stage: maskCad.stage,
+                                selectedTarget: maskCad.selectedTarget,
+                              }
+                            : undefined
                 }
                 onMaskEntityPick={
                   match
                     ? (ref) => {
                         if (ref) pickMatch(ref.key);
                       }
-                    : maskOffset
-                      ? (ref, at, tolerance) => offsetPoint(at, ref, tolerance)
-                      : maskManip
-                        ? (ref) => toggleManipEntity(ref)
-                        : pickMaskCad
+                    : measureSession?.mode === 'contour'
+                      ? (ref) => pickContour(ref)
+                      : maskOffset
+                        ? (ref, at, tolerance) =>
+                            offsetPoint(at, ref, tolerance)
+                        : maskManip
+                          ? (ref) => toggleManipEntity(ref)
+                          : pickMaskCad
                 }
                 onMaskEntityHover={(ref, at, tolerance) =>
                   maskOffset?.stage === 'side'
@@ -6709,7 +6806,12 @@ export default function App() {
                           : s,
                       )
                 }
-                maskCadOverlay={offsetOverlay ?? manipOverlay ?? maskCadOverlay}
+                maskCadOverlay={
+                  offsetOverlay ??
+                  manipOverlay ??
+                  contourOverlay ??
+                  maskCadOverlay
+                }
                 highlightedMaskId={
                   maskOffset?.maskId ??
                   maskManip?.maskId ??
@@ -6902,7 +7004,7 @@ export default function App() {
                   session={measureSession}
                   tool={tool}
                   points={draft}
-                  onMode={setTool}
+                  onMode={setMeasureMode}
                   onPresentation={(v) => {
                     measurePresentation.current = v;
                     setMeasureSession((s) =>

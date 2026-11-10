@@ -59,6 +59,7 @@ export type Action =
   | 'mask-mirror'
   | 'mask-rotate'
   | 'associate-masks'
+  | 'measure-contour'
   | 'mask-line'
   | 'mask-rectangle'
   | 'mask-circle'
@@ -226,6 +227,7 @@ export default function Ribbon({
             caption: 'Estender',
           },
           item('measure', 'Medir distância', Ruler),
+          item('measure-contour', 'Medir contorno', SquareDashed),
           item('dimension-orthogonal', 'Cota ortogonal', Ruler),
           item('dimension-aligned', 'Cota alinhada', Ruler),
         ],

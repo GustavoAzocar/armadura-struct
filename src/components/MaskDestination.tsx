@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Project } from '../domain/types';
+import type { MeasureMode } from './MeasureDimensionPanel';
 import {
   maskPath,
   maskDrawingState,
@@ -84,9 +85,7 @@ export default function MaskDestination({
   onCreate: () => void;
   onCalibrate: () => void;
   onCadEdit: (mode: 'trim' | 'extend') => void;
-  onMeasure: (
-    mode: 'measure' | 'dimension-aligned' | 'dimension-orthogonal',
-  ) => void;
+  onMeasure: (mode: MeasureMode) => void;
   onManipulate: (mode: 'copy' | 'erase' | 'mirror') => void;
   onOffset: () => void;
   onBatch: (mode: 'import' | 'associate') => void;
@@ -144,16 +143,14 @@ export default function MaskDestination({
         value=""
         onChange={(e) => {
           if (
-            ['measure', 'dimension-aligned', 'dimension-orthogonal'].includes(
-              e.target.value,
-            )
+            [
+              'measure',
+              'measure-contour',
+              'dimension-aligned',
+              'dimension-orthogonal',
+            ].includes(e.target.value)
           )
-            onMeasure(
-              e.target.value as
-                | 'measure'
-                | 'dimension-aligned'
-                | 'dimension-orthogonal',
-            );
+            onMeasure(e.target.value as MeasureMode);
           else if (e.target.value === 'offset') onOffset();
           else if (
             e.target.value === 'copy' ||
@@ -167,6 +164,7 @@ export default function MaskDestination({
       >
         <option value="">Ferramentas CAD…</option>
         <option value="measure">Medir distância — consulta</option>
+        <option value="measure-contour">Medir contorno — consulta</option>
         <option value="dimension-orthogonal">Inserir cota ortogonal</option>
         <option value="dimension-aligned">Inserir cota alinhada</option>
         <option value="offset">Offset — Paralelas</option>

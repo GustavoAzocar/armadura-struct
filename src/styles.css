@@ -3929,6 +3929,21 @@ button.hierarchy-drawing {
   width: 100%;
   min-width: 0;
 }
+.contour-measure-result {
+  display: grid;
+  gap: 3px;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+.contour-measure-result span {
+  font-size: 12px;
+}
+.contour-measure-result small {
+  opacity: 0.8;
+}
 
 .mask-manip-list {
   max-height: 140px;

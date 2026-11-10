@@ -57,6 +57,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: mask-contour-evidence
+          if-no-files-found: ignore
+          path: docs/mask-contour-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: mask-mirror-evidence
           if-no-files-found: ignore
           path: docs/mask-mirror-*.png
