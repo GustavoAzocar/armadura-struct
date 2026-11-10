@@ -73,6 +73,9 @@ import {
   maskManipSelection,
   previewMaskManipulation,
   applyMaskManipulation,
+  referenceDirection,
+  rotationAngle,
+  typedRotationAngle,
   type MaskManipMode,
   type MaskManipPlan,
   type MaskManipTransform,
@@ -2748,11 +2751,109 @@ export default function App() {
     s: MaskManipSession,
     at = s.cursor,
   ): MaskManipTransform | undefined =>
-    s.base && (s.axisEnd ?? at)
-      ? s.mode === 'mirror'
-        ? { kind: 'mirror', base: s.base, axisEnd: (s.axisEnd ?? at)! }
-        : { kind: 'translate', delta: sub(at!, s.base) }
-      : undefined;
+    s.mode === 'rotate'
+      ? rotateTransform(s, at)
+      : s.base && (s.axisEnd ?? at)
+        ? s.mode === 'mirror'
+          ? { kind: 'mirror', base: s.base, axisEnd: (s.axisEnd ?? at)! }
+          : { kind: 'translate', delta: sub(at!, s.base) }
+        : undefined;
+  /** Fixed angle once chosen; otherwise the live direction base → cursor. */
+  const rotateTransform = (
+    s: MaskManipSession,
+    at?: Point,
+  ): MaskManipTransform | undefined => {
+    if (!s.base) return undefined;
+    if (s.angle !== undefined)
+      return { kind: 'rotate', base: s.base, angle: s.angle };
+    if (s.stage !== 'target' || !at) return undefined;
+    return {
+      kind: 'rotate',
+      base: s.base,
+      angle: rotationAngle(s.base, at, s.refPoints),
+    };
+  };
+  /** Guia visual do Rotacionar: base, direção inicial (+X/Referência) e ângulo. */
+  const manipRotationGuide = (s: MaskManipSession | null) => {
+    if (s?.mode !== 'rotate' || !s.base || s.stage === 'selection')
+      return undefined;
+    if (s.stage === 'reference')
+      return {
+        base: s.base,
+        from: { x: 1, y: 0 },
+        cursor: s.cursor,
+        reference: s.refPoints ?? [],
+      };
+    let from = { x: 1, y: 0 },
+      angle = s.angle;
+    try {
+      from = referenceDirection(s.refPoints);
+      if (angle === undefined && s.cursor)
+        angle = rotationAngle(s.base, s.cursor, s.refPoints);
+    } catch {
+      // Cursor sobre a base: mostra só a base e a direção inicial.
+    }
+    return {
+      base: s.base,
+      from,
+      angle,
+      cursor: s.angle === undefined ? s.cursor : undefined,
+    };
+  };
+  /** Validates the angle against the snapshot before entering confirmation. */
+  const fixManipAngle = (s: MaskManipSession, angle: number) => {
+    try {
+      previewMaskManipulation(
+        s.project,
+        s.maskId,
+        s.refs,
+        'rotate',
+        maskDrawingContext,
+        { kind: 'rotate', base: s.base!, angle },
+      );
+      setMaskManip({
+        ...s,
+        angle,
+        stage: 'confirm',
+        cursor: undefined,
+        issue: undefined,
+      });
+    } catch (e) {
+      setMaskManip({ ...s, issue: (e as Error).message });
+    }
+  };
+  /** Typed value: the rotation, or the new direction when Referência is set. */
+  const typeManipAngle = (value: number) => {
+    const s = maskManip;
+    if (
+      !s ||
+      s.mode !== 'rotate' ||
+      !s.base ||
+      !['target', 'confirm'].includes(s.stage)
+    )
+      return;
+    try {
+      fixManipAngle(
+        { ...s, stage: 'target' },
+        typedRotationAngle(value, s.refPoints),
+      );
+    } catch (e) {
+      setMaskManip({ ...s, issue: (e as Error).message });
+    }
+  };
+  /** Referência: restart the direction from two new points. */
+  const startManipReference = () => {
+    const s = maskManip;
+    if (!s || s.mode !== 'rotate' || !s.base) return;
+    setMaskManip({
+      ...s,
+      stage: 'reference',
+      refPoints: [],
+      angle: undefined,
+      cursor: undefined,
+      issue: undefined,
+    });
+  };
   const manipPreview = useMemo<{ plan?: MaskManipPlan; error?: string }>(() => {
     if (!maskManip || !['target', 'confirm'].includes(maskManip.stage))
       return {};
@@ -2881,7 +2982,11 @@ export default function App() {
       } catch (e) {
         setMaskManip({ ...s, issue: (e as Error).message });
       }
-    } else if (s.mode === 'mirror' && s.stage === 'confirm') applyManip();
+    } else if (
+      (s.mode === 'mirror' || s.mode === 'rotate') &&
+      s.stage === 'confirm'
+    )
+      applyManip();
     else if (s.mode === 'copy' && s.stage === 'target') endMaskManip();
     else
       setMaskManip({
@@ -3905,6 +4010,32 @@ export default function App() {
         } catch (e) {
           setMaskManip({ ...maskManip, issue: (e as Error).message });
         }
+      } else if (maskManip.mode === 'rotate') {
+        if (maskManip.stage === 'reference') {
+          const refPoints = [...(maskManip.refPoints ?? []), point];
+          try {
+            if (refPoints.length === 2) referenceDirection(refPoints);
+          } catch (e) {
+            setMaskManip({ ...maskManip, issue: (e as Error).message });
+            return;
+          }
+          setMaskManip({
+            ...maskManip,
+            refPoints,
+            stage: refPoints.length === 2 ? 'target' : 'reference',
+            cursor: undefined,
+            issue: undefined,
+          });
+        } else if (maskManip.stage === 'target') {
+          try {
+            fixManipAngle(
+              maskManip,
+              rotationAngle(maskManip.base!, point, maskManip.refPoints),
+            );
+          } catch (e) {
+            setMaskManip({ ...maskManip, issue: (e as Error).message });
+          }
+        }
       } else applyManip(point);
       return;
     }
@@ -4589,6 +4720,7 @@ export default function App() {
     const manipActions: Partial<Record<Action, MaskManipMode>> = {
       'mask-copy': 'copy',
       'mask-mirror': 'mirror',
+      'mask-rotate': 'rotate',
       'mask-erase': 'erase',
     };
     if (manipActions[a]) {
@@ -5450,6 +5582,21 @@ export default function App() {
       });
       return;
     }
+    // Rotacionar máscara: a number is the angle; R/REF starts Referência.
+    // Checked before aliases so "R" is not taken as Rebater.
+    if (
+      maskManip?.mode === 'rotate' &&
+      ['target', 'confirm'].includes(maskManip.stage)
+    ) {
+      if (/^[-+]?\d+(?:\.\d+)?$/.test(value)) {
+        typeManipAngle(Number(value));
+        return;
+      }
+      if (/^(R|REF|REFERENCIA|REFERÊNCIA)$/i.test(value)) {
+        startManipReference();
+        return;
+      }
+    }
     const aliases: Record<string, Action> = {
       B: 'bar',
       BARRA: 'bar',
@@ -5513,8 +5660,10 @@ export default function App() {
       ESTENDERBARRA: 'lengthen-bar',
       SEGMENTOS: 'edit-segment',
       REMOVERVERTICE: 'remove-vertex',
-      ROTACIONAR: 'rotate',
-      GIRAR: 'rotate',
+      ROTACIONAR: tab === 'Máscaras' ? 'mask-rotate' : 'rotate',
+      GIRAR: tab === 'Máscaras' ? 'mask-rotate' : 'rotate',
+      ROTATE: 'mask-rotate',
+      ROTACIONARMASCARA: 'mask-rotate',
       ESPELHAR: tab === 'Máscaras' ? 'mask-mirror' : 'mirror',
       MIRROR: 'mask-mirror',
       ESPELHARMASCARA: 'mask-mirror',
@@ -5944,6 +6093,7 @@ export default function App() {
           'mask-offset': !!maskOffset,
           'mask-copy': maskManip?.mode === 'copy',
           'mask-mirror': maskManip?.mode === 'mirror',
+          'mask-rotate': maskManip?.mode === 'rotate',
           'mask-erase': maskManip?.mode === 'erase',
           'mask-trim': maskCad?.mode === 'trim',
           'mask-extend': maskCad?.mode === 'extend',
@@ -6519,6 +6669,7 @@ export default function App() {
                       }
                     : undefined
                 }
+                rotationGuide={manipRotationGuide(maskManip)}
                 previewBase={
                   vertexRequest?.mode === 'lengthen' &&
                   vertexPreview.previewBar &&
@@ -6589,15 +6740,18 @@ export default function App() {
                         : []
                     : maskOffset?.stage === 'measure'
                       ? maskOffset.points
-                      : maskManip?.base
-                        ? [maskManip.base]
-                        : maskCalibration
-                          ? maskCalibration.points.length === 1
-                            ? maskCalibration.points
-                            : []
-                          : vertexRequest && vertexPreview.anchor
-                            ? [vertexPreview.anchor]
-                            : draft
+                      : maskManip?.stage === 'reference' &&
+                          maskManip.refPoints?.length
+                        ? maskManip.refPoints
+                        : maskManip?.base
+                          ? [maskManip.base]
+                          : maskCalibration
+                            ? maskCalibration.points.length === 1
+                              ? maskCalibration.points
+                              : []
+                            : vertexRequest && vertexPreview.anchor
+                              ? [vertexPreview.anchor]
+                              : draft
                 }
                 grid={grid}
                 snap={snap}
@@ -6612,7 +6766,10 @@ export default function App() {
                     );
                   if (measureSession)
                     setMeasureSession((s) => (s ? { ...s, cursor: point } : s));
-                  if (maskManip?.stage === 'target')
+                  if (
+                    maskManip?.stage === 'target' ||
+                    maskManip?.stage === 'reference'
+                  )
                     setMaskManip((s) =>
                       s ? { ...s, cursor: point, issue: undefined } : s,
                     );
@@ -6732,6 +6889,8 @@ export default function App() {
                   onRemoveSource={(value) =>
                     setMaskManip((s) => (s ? { ...s, removeSource: value } : s))
                   }
+                  onAngle={typeManipAngle}
+                  onReference={startManipReference}
                 />
               )}
               {maskCad && (

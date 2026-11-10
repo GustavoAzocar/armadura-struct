@@ -245,7 +245,6 @@ export default function Ribbon({
           },
           {
             ...item('mask-rotate', 'Rotacionar entidades da máscara', RotateCw),
-            disabled: true,
             caption: 'Rotacionar',
           },
           {

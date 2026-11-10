@@ -2,21 +2,57 @@ import { useState } from 'react';
 import type { Point, Project } from '../domain/types';
 import type { MaskDrawingContext } from '../domain/maskDrawing';
 import type { MaskCadEntity, MaskEntityRef } from '../domain/maskCadEditing';
-import { maskManipNames, type MaskManipMode } from '../domain/maskManipulation';
+import {
+  maskManipNames,
+  neutralRotation,
+  type MaskManipMode,
+} from '../domain/maskManipulation';
 export type MaskManipSession = {
   project: Project;
   maskId: string;
   context: MaskDrawingContext;
   mode: MaskManipMode;
-  stage: 'selection' | 'base' | 'target' | 'confirm';
+  stage: 'selection' | 'base' | 'reference' | 'target' | 'confirm';
   refs: MaskEntityRef[];
   base?: Point;
   cursor?: Point;
   axisEnd?: Point;
+  /** Rotacionar: fixed rotation once typed or picked (degrees, CCW +). */
+  angle?: number;
+  /** Rotacionar → Referência: existing direction, two points. */
+  refPoints?: Point[];
   removeSource?: boolean;
   hadOperations: boolean;
   issue?: string;
 };
+/** Rotacionar: rótulo curto da etapa atual (cabeçalho do painel). */
+function rotateStageLabel(s: MaskManipSession) {
+  if (s.stage === 'base') return 'Ponto base';
+  if (s.stage === 'reference')
+    return `Referência · ${(s.refPoints?.length ?? 0) + 1}º ponto`;
+  if (s.stage === 'confirm') return 'Confirmar rotação';
+  return s.refPoints?.length === 2 ? 'Nova direção' : 'Ângulo';
+}
+/** Rotacionar: instrução da etapa atual. */
+function rotateStageHelp(s: MaskManipSession) {
+  if (s.stage === 'base')
+    return 'Clique no ponto base ou informe coordenadas no Comando CAD.';
+  if (s.stage === 'reference')
+    return (s.refPoints?.length ?? 0) === 0
+      ? 'Referência: clique no 1º ponto da direção existente (snap ou coordenadas).'
+      : 'Referência: clique no 2º ponto da direção existente. Mínimo: 0,01 mm do 1º ponto.';
+  if (s.stage === 'confirm')
+    return 'Ângulo definido. Confira a prévia e confirme uma única operação; digite outro valor para corrigir.';
+  return s.refPoints?.length === 2
+    ? 'Clique a nova direção a partir da base ou digite o ângulo absoluto dela; a rotação é a diferença até a referência.'
+    : 'Clique a direção a partir da base (a prévia acompanha o cursor) ou digite o ângulo. Positivo = anti-horário.';
+}
+/** "90° · anti-horário" — o sinal explicado em palavras. */
+export function describeRotation(angle: number) {
+  const value = `${angle.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}°`;
+  if (neutralRotation(angle)) return `${value} · neutro, nada muda`;
+  return `${value} · ${angle > 0 ? 'anti-horário' : 'horário'}`;
+}
 export default function MaskManipPanel({
   session: s,
   entities,
@@ -25,6 +61,8 @@ export default function MaskManipPanel({
   onCancel,
   error,
   onRemoveSource,
+  onAngle,
+  onReference,
 }: {
   session: MaskManipSession;
   entities: MaskCadEntity[];
@@ -33,8 +71,20 @@ export default function MaskManipPanel({
   onCancel: () => void;
   error?: string;
   onRemoveSource: (value: boolean) => void;
+  /** Rotacionar: ângulo digitado no painel (graus, anti-horário +). */
+  onAngle?: (value: number) => void;
+  /** Rotacionar: iniciar a Referência (dois pontos da direção existente). */
+  onReference?: () => void;
 }) {
   const [query, setQuery] = useState('');
+  const [angleText, setAngleText] = useState('');
+  const rotating = s.mode === 'rotate';
+  const submitAngle = () => {
+    const text = angleText.trim().replace(',', '.');
+    if (!text) return;
+    onAngle?.(Number(text));
+    setAngleText('');
+  };
   return (
     <section
       className="mask-cad-panel"
@@ -59,15 +109,17 @@ export default function MaskManipPanel({
         <span>
           {s.stage === 'selection'
             ? 'Selecionar entidades'
-            : s.stage === 'base'
-              ? s.mode === 'mirror'
-                ? 'Primeiro ponto do eixo'
-                : 'Ponto base'
-              : s.stage === 'confirm'
-                ? 'Apagar origem?'
-                : s.mode === 'mirror'
-                  ? 'Segundo ponto do eixo'
-                  : 'Destino / prévia'}
+            : rotating
+              ? rotateStageLabel(s)
+              : s.stage === 'base'
+                ? s.mode === 'mirror'
+                  ? 'Primeiro ponto do eixo'
+                  : 'Ponto base'
+                : s.stage === 'confirm'
+                  ? 'Apagar origem?'
+                  : s.mode === 'mirror'
+                    ? 'Segundo ponto do eixo'
+                    : 'Destino / prévia'}
         </span>
       </div>
       <p>
@@ -124,17 +176,19 @@ export default function MaskManipPanel({
         </>
       ) : (
         <p>
-          {s.stage === 'base'
-            ? s.mode === 'mirror'
-              ? 'Clique no primeiro ponto do eixo ou informe coordenadas no Comando CAD.'
-              : 'Clique no ponto base ou informe coordenadas no Comando CAD.'
-            : s.mode === 'copy'
-              ? 'Escolha destino(s) por clique/snap ou coordenadas. O conjunto original e a base permanecem para novas cópias. Enter/Esc encerra.'
-              : s.stage === 'confirm'
-                ? 'Eixo definido. Confira a prévia e confirme uma única operação.'
-                : s.mode === 'mirror'
-                  ? 'Clique no segundo ponto do eixo por snap ou coordenadas. Eixo mínimo: 0,01 mm.'
-                  : 'Clique no destino ou use coordenadas no Comando CAD.'}
+          {rotating
+            ? rotateStageHelp(s)
+            : s.stage === 'base'
+              ? s.mode === 'mirror'
+                ? 'Clique no primeiro ponto do eixo ou informe coordenadas no Comando CAD.'
+                : 'Clique no ponto base ou informe coordenadas no Comando CAD.'
+              : s.mode === 'copy'
+                ? 'Escolha destino(s) por clique/snap ou coordenadas. O conjunto original e a base permanecem para novas cópias. Enter/Esc encerra.'
+                : s.stage === 'confirm'
+                  ? 'Eixo definido. Confira a prévia e confirme uma única operação.'
+                  : s.mode === 'mirror'
+                    ? 'Clique no segundo ponto do eixo por snap ou coordenadas. Eixo mínimo: 0,01 mm.'
+                    : 'Clique no destino ou use coordenadas no Comando CAD.'}
         </p>
       )}
       {s.mode === 'mirror' && (
@@ -147,7 +201,57 @@ export default function MaskManipPanel({
           analítico.
         </p>
       )}
-      {s.stage === 'confirm' && (
+      {rotating && ['target', 'confirm', 'reference'].includes(s.stage) && (
+        <>
+          {s.angle !== undefined && (
+            <p>
+              Rotação: <strong>{describeRotation(s.angle)}</strong>
+            </p>
+          )}
+          {s.stage !== 'reference' && (
+            <label className="field">
+              Ângulo (graus, + anti-horário)
+              <input
+                aria-label="Ângulo da rotação"
+                inputMode="decimal"
+                placeholder={
+                  s.refPoints?.length === 2
+                    ? 'ex.: 90 (nova direção)'
+                    : 'ex.: 90 ou -45'
+                }
+                value={angleText}
+                onChange={(e) => setAngleText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return;
+                  // Enter aqui define o ângulo; não confirma a operação.
+                  e.stopPropagation();
+                  e.preventDefault();
+                  submitAngle();
+                }}
+              />
+            </label>
+          )}
+          <button onClick={onReference}>
+            {s.refPoints?.length ? 'Refazer Referência · R' : 'Referência · R'}
+          </button>
+        </>
+      )}
+      {rotating && (
+        <p>
+          Entidades giradas no lugar, preservando IDs. Textos giram junto
+          (orientação normalizada entre −180° e 180°). Círculos e arcos
+          permanecem analíticos, com raio e abertura preservados. Retângulo
+          continua retângulo quando os cantos mantêm a ordem do contrato (ex.:
+          180°); a 90°, 270° ou em ângulos oblíquos vira polilinha fechada com
+          quatro vértices exatos.
+        </p>
+      )}
+      {s.stage === 'confirm' && rotating && (
+        <button className="primary" disabled={!!error} onClick={onConfirm}>
+          Confirmar rotação · Enter
+        </button>
+      )}
+      {s.stage === 'confirm' && !rotating && (
         <>
           <label className="field">
             Apagar objetos de origem?

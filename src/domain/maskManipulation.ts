@@ -15,10 +15,12 @@ import {
 } from './maskCadEditing';
 import type { MaskDrawingContext } from './maskDrawing';
 import {
+  angleByPoints,
   selectionTransformSchema,
   transformPoint,
   type SelectionTransform,
 } from './transforms';
+import { sub } from './geometry';
 import {
   uid,
   type Mask,
@@ -39,6 +41,47 @@ export const maskManipNames: Record<MaskManipMode, string> = {
 export function neutralRotation(angle: number) {
   const r = ((angle % 360) + 360) % 360;
   return r < 1e-9 || 360 - r < 1e-9;
+}
+const finitePoint = (p: Point) =>
+  [p.x, p.y].every((n) => Number.isFinite(n) && Math.abs(n) <= 1e9);
+/** Direction of an optional Reference (two points); +X when absent. */
+export function referenceDirection(reference?: readonly Point[]): Point {
+  if (!reference?.length) return { x: 1, y: 0 };
+  if (reference.length !== 2 || !reference.every(finitePoint))
+    throw new Error('Referência requer dois pontos finitos.');
+  const d = sub(reference[1], reference[0]);
+  if (Math.hypot(d.x, d.y) < 0.01)
+    throw new Error(
+      'Referência requer dois pontos distintos (mínimo 0,01 mm).',
+    );
+  return d;
+}
+/**
+ * Rotation that takes the reference direction (default +X) to base → target,
+ * counter-clockwise positive, in model mm.
+ */
+export function rotationAngle(
+  base: Point,
+  target: Point,
+  reference?: readonly Point[],
+) {
+  if (!finitePoint(base) || !finitePoint(target))
+    throw new Error('Informe um ponto finito dentro dos limites do modelo.');
+  const from = referenceDirection(reference);
+  if (Math.hypot(target.x - base.x, target.y - base.y) < 0.01)
+    throw new Error('A direção precisa de um ponto distinto da base.');
+  return angleByPoints({ x: 0, y: 0 }, from, sub(target, base));
+}
+/** A typed value is the rotation itself, or the new absolute direction under Reference. */
+export function typedRotationAngle(
+  value: number,
+  reference?: readonly Point[],
+) {
+  if (!Number.isFinite(value) || Math.abs(value) > 360000)
+    throw new Error('Ângulo deve ser um número finito entre ±360000°.');
+  if (!reference?.length) return value;
+  const d = referenceDirection(reference);
+  return value - (Math.atan2(d.y, d.x) * 180) / Math.PI;
 }
 /** References are resolved against this exact snapshot, never by a residual steel selection. */
 export function maskManipSelection(

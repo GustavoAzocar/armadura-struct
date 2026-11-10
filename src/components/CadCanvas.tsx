@@ -70,6 +70,7 @@ import {
   distributionPrimitives,
 } from '../domain/drafting';
 import { projectPoints } from '../domain/model';
+import { rotationGuide } from '../cad/rotationGuide';
 import {
   detailEditorView,
   groupedDetailForObject,
@@ -127,6 +128,15 @@ type Props = {
   dimensionPresentation?: import('../domain/maskDimensions').DimensionPresentation;
   previewBase?: Point;
   mirrorAxis?: { base: Point; end: Point };
+  /** Rotacionar: base, direção inicial (+X ou Referência), ângulo e cursor. */
+  rotationGuide?: {
+    base: Point;
+    from: Point;
+    angle?: number;
+    cursor?: Point;
+    /** Etapa Referência: pontos já clicados (o cursor fecha o segmento). */
+    reference?: Point[];
+  };
   onContextRequest: (ids: string[], point: Point, screen: Point) => void;
   commandActive?: boolean;
   layerContext?: string;
@@ -1493,6 +1503,113 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                   strokeDasharray={`${8 / view.s} ${5 / view.s}`}
                   pointerEvents="none"
                 />
+              );
+            })()}
+          {props.rotationGuide &&
+            (() => {
+              const { base, from, angle, cursor, reference } =
+                props.rotationGuide;
+              const toCursor = cursor
+                ? Math.hypot(cursor.x - base.x, cursor.y - base.y)
+                : 0;
+              const g =
+                angle === undefined
+                  ? undefined
+                  : rotationGuide(
+                      base,
+                      from,
+                      angle,
+                      Math.max(toCursor, 80 * stroke),
+                      36 * stroke,
+                    );
+              const fromEnd =
+                g?.fromEnd ??
+                rotationGuide(base, from, 0, 80 * stroke, 36 * stroke)?.fromEnd;
+              const pts = (list: Point[]) =>
+                list.map((q) => `${q.x},${q.y}`).join(' ');
+              const refEnd = reference?.length
+                ? (reference[1] ?? cursor)
+                : undefined;
+              return (
+                <g data-testid="rotation-guide" pointerEvents="none">
+                  {reference?.[0] && refEnd && (
+                    <line
+                      data-testid="rotation-reference"
+                      x1={reference[0].x}
+                      y1={reference[0].y}
+                      x2={refEnd.x}
+                      y2={refEnd.y}
+                      stroke="#f59e0b"
+                      strokeWidth={1.5 * stroke}
+                      strokeDasharray={`${8 * stroke} ${5 * stroke}`}
+                    />
+                  )}
+                  {!reference && fromEnd && (
+                    <line
+                      x1={base.x}
+                      y1={base.y}
+                      x2={fromEnd.x}
+                      y2={fromEnd.y}
+                      stroke="#94a3b8"
+                      strokeWidth={stroke}
+                      strokeDasharray={`${6 * stroke} ${4 * stroke}`}
+                    />
+                  )}
+                  {g && (
+                    <>
+                      <line
+                        x1={base.x}
+                        y1={base.y}
+                        x2={g.toEnd.x}
+                        y2={g.toEnd.y}
+                        stroke="#c084fc"
+                        strokeWidth={1.5 * stroke}
+                      />
+                      {g.arc.length > 0 && (
+                        <polyline
+                          data-testid="rotation-arc"
+                          points={pts(g.arc)}
+                          fill="none"
+                          stroke="#f59e0b"
+                          strokeWidth={1.5 * stroke}
+                        />
+                      )}
+                      {g.arrow.length > 0 && (
+                        <polyline
+                          points={pts(g.arrow)}
+                          fill="none"
+                          stroke="#f59e0b"
+                          strokeWidth={1.5 * stroke}
+                          strokeLinejoin="round"
+                        />
+                      )}
+                      <text
+                        data-testid="rotation-angle-label"
+                        transform={`translate(${g.label.x} ${g.label.y}) scale(1 -1)`}
+                        fontSize={12 * stroke}
+                        fill="#f59e0b"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        {`${angle!.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}°`}
+                      </text>
+                    </>
+                  )}
+                  <circle
+                    data-testid="rotation-base"
+                    cx={base.x}
+                    cy={base.y}
+                    r={5 * stroke}
+                    fill="none"
+                    stroke="#f59e0b"
+                    strokeWidth={1.5 * stroke}
+                  />
+                  <path
+                    d={`M ${base.x - 8 * stroke} ${base.y} H ${base.x + 8 * stroke} M ${base.x} ${base.y - 8 * stroke} V ${base.y + 8 * stroke}`}
+                    stroke="#f59e0b"
+                    strokeWidth={stroke}
+                  />
+                </g>
               );
             })()}
           {props.previewLines && (

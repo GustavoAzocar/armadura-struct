@@ -4,6 +4,8 @@ import { maskCadEntities } from '../src/domain/maskCadEditing';
 import {
   previewMaskManipulation,
   applyMaskManipulation,
+  rotationAngle,
+  typedRotationAngle,
 } from '../src/domain/maskManipulation';
 import { nativePrimitive, validateNativeMask } from '../src/domain/nativeMasks';
 import { maskPoint, parseDxf } from '../src/cad/import';
@@ -354,5 +356,47 @@ describe('Rotacionar entidades de máscara', () => {
     // Um ângulo neutro ainda valida a seleção antes de devolver o projeto.
     expect(() => rotate(p, turn(360), [])).toThrow();
     expect(JSON.stringify(p)).toBe(snapshot);
+  });
+});
+describe('Ângulo do Rotacionar a partir de pontos e valores digitados', () => {
+  const base = { x: 10, y: 10 };
+  it('cursor dá a direção a partir do eixo X, anti-horário positivo', () => {
+    expect(rotationAngle(base, { x: 10, y: 110 })).toBeCloseTo(90, 9);
+    expect(rotationAngle(base, { x: 10, y: -90 })).toBeCloseTo(-90, 9);
+    expect(rotationAngle(base, { x: -90, y: 10 })).toBeCloseTo(180, 9);
+    expect(rotationAngle(base, { x: 110, y: 110 })).toBeCloseTo(45, 9);
+  });
+  it('Referência: gira da direção existente (2 pontos) até a nova direção', () => {
+    const ref = [
+      { x: 0, y: 0 },
+      { x: 300, y: 400 },
+    ];
+    const expected = (-Math.atan2(400, 300) * 180) / Math.PI;
+    expect(rotationAngle({ x: 0, y: 0 }, { x: 1000, y: 0 }, ref)).toBeCloseTo(
+      expected,
+      9,
+    );
+    // A referência não precisa passar pela base: só a direção importa.
+    const shifted = ref.map((v) => ({ x: v.x + 500, y: v.y - 70 }));
+    expect(rotationAngle(base, { x: 10, y: 110 }, shifted)).toBeCloseTo(
+      90 + expected,
+      9,
+    );
+    // Valor digitado com Referência é a nova direção absoluta.
+    expect(typedRotationAngle(0, ref)).toBeCloseTo(expected, 9);
+    expect(typedRotationAngle(90, ref)).toBeCloseTo(90 + expected, 9);
+    expect(typedRotationAngle(-12.75)).toBe(-12.75);
+  });
+  it('recusa cursor sobre a base, referência degenerada e valores não finitos', () => {
+    expect(() => rotationAngle(base, { x: 10.001, y: 10 })).toThrow();
+    expect(() =>
+      rotationAngle(base, { x: 10, y: 110 }, [
+        { x: 5, y: 5 },
+        { x: 5, y: 5.001 },
+      ]),
+    ).toThrow(/Referência/);
+    expect(() => rotationAngle(base, { x: NaN, y: 0 })).toThrow();
+    for (const v of [NaN, Infinity, 1e7])
+      expect(() => typedRotationAngle(v)).toThrow();
   });
 });
