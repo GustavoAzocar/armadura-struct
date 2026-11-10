@@ -8803,8 +8803,7 @@ export default function App() {
                   activeSheet?.id,
                 );
                 if (plan.issues.length) {
-                  notify(plan.issues.join(' '));
-                  return false;
+                  return plan.issues.join(' ');
                 }
                 const pack = packageCsvFiles(plan.files, p.name, selection);
                 const saved = await saveFile(
@@ -8819,12 +8818,9 @@ export default function App() {
                   );
                 return saved;
               } catch (e) {
-                notify(
-                  e instanceof Error
-                    ? e.message
-                    : 'Não foi possível exportar o CSV.',
-                );
-                return false;
+                return e instanceof Error
+                  ? e.message
+                  : 'Não foi possível exportar o CSV.';
               } finally {
                 fileOperations.current--;
               }

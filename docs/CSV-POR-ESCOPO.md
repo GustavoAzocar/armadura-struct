@@ -47,7 +47,7 @@ No total físico, o acréscimo só é aplicado quando todos os escopos usam o me
 
 ## Bloqueios e mensagens
 
-A exportação usa os mesmos bloqueios do CSV global: RA bloqueada e desatualizada, geometria inválida e anotações inválidas. Sem seleção, com prancha ativa ausente, item removido ou escopo sem armaduras, a prévia mostra a mensagem e o botão fica desativado. Nunca se exporta outro escopo no lugar. As seleções guardam IDs do projeto aberto; trocar de projeto recria o diálogo e descarta as seleções anteriores.
+A exportação usa os mesmos bloqueios do CSV global: RA bloqueada e desatualizada, geometria inválida e anotações inválidas. Sem seleção, com prancha ativa ausente, item removido ou escopo sem armaduras, a prévia mostra a mensagem e o botão fica desativado. Nunca se exporta outro escopo no lugar. Falhas de gravação são mostradas dentro do diálogo, que mantém a configuração para permitir nova tentativa. As seleções guardam IDs do projeto aberto; trocar de projeto recria o diálogo e descarta as seleções anteriores.
 
 ## Colunas
 

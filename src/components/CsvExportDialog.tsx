@@ -31,7 +31,7 @@ export default function CsvExportDialog({
   onExport: (
     selection: ScopeSelection,
     options: CsvExportOptions,
-  ) => Promise<boolean>;
+  ) => Promise<boolean | string>;
   onClose: () => void;
 }) {
   const close = useRef<HTMLButtonElement>(null);
@@ -57,6 +57,7 @@ export default function CsvExportDialog({
   const [detailIds, setDetailIds] = useState<string[]>([]);
   const [o, setO] = useState<CsvExportOptions>(defaultCsvExportOptions);
   const [busy, setBusy] = useState(false);
+  const [issue, setIssue] = useState('');
   const sheets = useMemo(() => sheetOptions(p), [p]);
   const details = useMemo(() => detailOptions(p), [p]);
   const selection: ScopeSelection =
@@ -449,6 +450,7 @@ export default function CsvExportDialog({
           </p>
         ))}
       </div>
+      {issue && <p role="alert">{issue}</p>}
       <div className="modal-actions">
         <button disabled={busy} onClick={onClose}>
           Cancelar
@@ -457,9 +459,14 @@ export default function CsvExportDialog({
           className="primary"
           disabled={busy || !!plan.issues.length}
           onClick={async () => {
+            setIssue('');
             setBusy(true);
             try {
-              if (await onExport(selection, o)) onClose();
+              const result = await onExport(selection, o);
+              if (result === true) onClose();
+              else if (typeof result === 'string') setIssue(result);
+            } catch (e) {
+              setIssue(e instanceof Error ? e.message : String(e));
             } finally {
               setBusy(false);
             }

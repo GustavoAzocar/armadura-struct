@@ -303,3 +303,37 @@ test('mantém o foco no diálogo, bloqueia Desfazer e exporta acréscimo fracion
   for (const row of rows) expect(row['Acréscimo (%)']).toBe('7.5');
   expect(await save(page)).toEqual(p);
 });
+
+test('falha de gravação aparece no diálogo e permite repetir sem alterar o projeto', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const p = fixture();
+  await load(page, p);
+  const dialog = await openDialog(page);
+  const restore = await page.evaluateHandle(() => {
+    const original = URL.createObjectURL;
+    URL.createObjectURL = () => {
+      throw new Error('Falha de gravação simulada');
+    };
+    return () => {
+      URL.createObjectURL = original;
+    };
+  });
+  await dialog
+    .getByRole('button', { name: 'Exportar CSV', exact: true })
+    .click();
+  await expect(dialog.getByRole('alert')).toContainText(
+    'Falha de gravação simulada',
+  );
+  await expect(
+    dialog.getByRole('button', { name: 'Exportar CSV', exact: true }),
+  ).toBeEnabled();
+  await restore.evaluate((fn) => fn());
+  await restore.dispose();
+  const result = await exportFile(page, dialog);
+  expect(Object.keys(unzipSync(result.bytes))).toHaveLength(2);
+  expect(await save(page)).toEqual(p);
+  expect(errors).toEqual([]);
+});
