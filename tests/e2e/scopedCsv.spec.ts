@@ -270,3 +270,36 @@ test('CSV por escopo: cancelar, validação, prancha ativa, elementos homônimos
   expect(await save(page)).toEqual(p);
   expect(errors).toEqual([]);
 });
+
+test('mantém o foco no diálogo, bloqueia Desfazer e exporta acréscimo fracionário com ponto', async ({
+  page,
+}) => {
+  const p = fixture();
+  await load(page, p);
+  const dialog = await openDialog(page);
+  await expect(
+    dialog.getByRole('button', { name: 'Fechar exportação CSV', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(
+    dialog.getByRole('button', { name: 'Exportar CSV', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Control+z');
+  await dialog
+    .getByRole('checkbox', { name: 'Quadro detalhado', exact: true })
+    .uncheck();
+  await dialog
+    .getByRole('combobox', { name: 'Separador decimal' })
+    .selectOption('.');
+  await dialog
+    .getByRole('combobox', { name: 'Política de acréscimo' })
+    .selectOption('override');
+  await dialog
+    .getByRole('spinbutton', { name: 'Percentual de acréscimo' })
+    .fill('7.5');
+  const result = await exportFile(page, dialog);
+  const rows = parse(text(result.bytes));
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) expect(row['Acréscimo (%)']).toBe('7.5');
+  expect(await save(page)).toEqual(p);
+});

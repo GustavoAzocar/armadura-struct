@@ -109,6 +109,29 @@ function parse(csv: string) {
 }
 
 describe('exportação CSV configurável por escopo', () => {
+  it.each([
+    ['.', '7.5'],
+    [',', '7,5'],
+  ] as const)(
+    'o percentual fracionário respeita o separador decimal %s',
+    (decimal, expected) => {
+      const { p } = fixture();
+      const plan = planScopedCsv(
+        p,
+        { kind: 'project' },
+        options({
+          detailed: false,
+          decimal,
+          allowance: { mode: 'override', percent: 7.5 },
+        }),
+      );
+      expect(plan.issues).toEqual([]);
+      const rows = parse(plan.files[0].content);
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) expect(row['Acréscimo (%)']).toBe(expected);
+    },
+  );
+
   it('prancha A não inclui aço exclusivo da B e vistas repetidas não multiplicam', () => {
     let { p } = fixture();
     p = duplicatePlacement(p, p.hierarchy.placements[0].id).project;

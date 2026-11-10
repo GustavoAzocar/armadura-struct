@@ -104,7 +104,7 @@ export function maskCadEntities(
       const entity: MaskCadEntity = {
         ref,
         mask: m,
-        label: `${m.name} · ${index + 1} · ${q.native?.kind ?? (q.text ? 'texto' : q.closed ? 'contorno' : 'polilinha')} · [${q.id?.slice(0, 8) ?? index + 1}]`,
+        label: `${m.name} · ${index + 1} · ${q.text !== undefined ? 'texto' : (q.native?.kind ?? (q.closed ? 'contorno' : 'polilinha'))} · [${q.id?.slice(0, 8) ?? index + 1}]`,
         editable:
           objectState(p, context.key, m).editable &&
           (!q.layerId || layerState(p, context.key, q.layerId).editable),

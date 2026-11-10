@@ -20,7 +20,8 @@ import { annotationError, primitiveBounds } from '../domain/drafting';
 import { version as appVersion } from '../../package.json';
 import { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
 export { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
-import type { Point, Project } from '../domain/types';
+import type { Point, Project, TextFont } from '../domain/types';
+import { resolveTextFont, type ResolvedTextFont } from '../domain/textStyle';
 import {
   assertPaperExportable,
   paperInk,
@@ -129,6 +130,18 @@ export function toDxf(p: Project): string {
     ]),
   );
   typeName({ name: 'CONTINUOUS', pattern: [] });
+  const styleKey = (f: TextFont) =>
+    JSON.stringify([f.family, f.weight, f.style]);
+  const textStyles = new Map<string, ResolvedTextFont['dxf']>();
+  for (const l of lines)
+    if (l.text && l.textFont && !textStyles.has(styleKey(l.textFont))) {
+      const dxf = resolveTextFont(l.textFont).dxf;
+      let style = dxf.style,
+        n = 2;
+      while ([...textStyles.values()].some((s) => s.style === style))
+        style = `${dxf.style}_${n++}`;
+      textStyles.set(styleKey(l.textFont), { ...dxf, style });
+    }
   put(
     0,
     'SECTION',
@@ -197,7 +210,46 @@ export function toDxf(p: Project): string {
       290,
       l.plot?.include === false ? 0 : 1,
     );
-  put(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
+  put(0, 'ENDTAB');
+  if (textStyles.size) {
+    // Requested typography only; readers without the family substitute it.
+    put(0, 'TABLE', 2, 'STYLE', 5, '12', 70, textStyles.size);
+    for (const f of textStyles.values())
+      put(
+        0,
+        'STYLE',
+        100,
+        'AcDbSymbolTableRecord',
+        100,
+        'AcDbTextStyleTableRecord',
+        2,
+        f.style,
+        70,
+        0,
+        40,
+        0,
+        41,
+        1,
+        50,
+        0,
+        71,
+        0,
+        42,
+        2.5,
+        3,
+        clean(f.file),
+        4,
+        '',
+        1001,
+        'ACAD',
+        1000,
+        clean(f.family),
+        1071,
+        f.flags,
+      );
+    put(0, 'ENDTAB');
+  }
+  put(0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
   const common = (item: Primitive) => {
     const style = item.resolvedStyle!;
     const layer = plottedLayers.find((l) => l.id === item.layerId);
@@ -238,6 +290,9 @@ export function toDxf(p: Project): string {
         clean(item.text),
         50,
         item.textRotation ?? 0,
+        ...(item.textFont
+          ? [7, textStyles.get(styleKey(item.textFont))!.style]
+          : []),
         72,
         item.textAlign === 'right'
           ? 2
@@ -468,6 +523,8 @@ export function toPdf(p: Project): Uint8Array {
     doc.setLineDashPattern(dashArray(item.resolvedStyle), 0);
     if (item.text) {
       const a = map(item.points[0]);
+      const font = resolveTextFont(item.textFont);
+      doc.setFont(font.pdf, font.pdfStyle);
       doc.setFontSize(((item.textHeight ?? 40) * s * 72) / 25.4);
       doc.text(item.text.replace(/%%c/g, 'Ø'), a.x, a.y, {
         angle: item.textRotation ?? 0,
@@ -626,6 +683,8 @@ export function toSheetPdf(
       doc.setLineDashPattern(dashArray(line.resolvedStyle), 0);
       if (line.text) {
         const at = line.points[0];
+        const font = resolveTextFont(line.textFont);
+        doc.setFont(font.pdf, font.pdfStyle);
         doc.setFontSize(((line.textHeight ?? 2.5) * 72) / 25.4);
         doc.text(line.text, at.x, page.size.height - at.y, {
           angle: line.textRotation ?? 0,

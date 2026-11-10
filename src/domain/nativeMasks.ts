@@ -7,6 +7,7 @@ import {
   type Project,
 } from './types';
 import { maskPoint } from '../cad/import';
+import { validateFreeTextPrimitive } from './textStyle';
 export type NativeShape =
   | {
       kind: 'line' | 'rectangle' | 'polyline';
@@ -20,13 +21,16 @@ export type NativeShape =
       radius: number;
       startAngle: number;
       sweepAngle: number;
-    };
-export type NativeDrawKind = Exclude<NativeShape['kind'], 'arc'>;
+    }
+  /** Free text insertion point; content and typography live on the primitive. */
+  | { kind: 'text'; at: Point };
+export type NativeDrawKind = Exclude<NativeShape['kind'], 'arc' | 'text'>;
 /** Scale analytic data to edit any mask in physical mm along its local axes. */
 export function scaleNativeShape(s: NativeShape, k: number): NativeShape {
   if (!Number.isFinite(k) || k <= 0)
     throw new Error('Fator de escala inválido.');
   const point = (p: Point) => ({ x: p.x * k, y: p.y * k });
+  if (s.kind === 'text') return { ...s, at: point(s.at) };
   return s.kind === 'circle' || s.kind === 'arc'
     ? { ...s, center: point(s.center), radius: s.radius * k }
     : { ...s, points: s.points.map(point) };
@@ -37,6 +41,10 @@ export function nativePoints(s: NativeShape): Point[] {
     Number.isFinite(p.y) &&
     Math.abs(p.x) <= 1e9 &&
     Math.abs(p.y) <= 1e9;
+  if (s.kind === 'text') {
+    if (!valid(s.at)) throw new Error('Ponto de inserção do texto inválido.');
+    return [{ ...s.at }];
+  }
   if (s.kind === 'circle' || s.kind === 'arc') {
     if (
       !valid(s.center) ||
@@ -110,7 +118,7 @@ export function nativePrimitive(
     closed:
       shape.kind === 'circle' ||
       shape.kind === 'rectangle' ||
-      (shape.kind !== 'arc' && shape.closed),
+      (shape.kind !== 'arc' && shape.kind !== 'text' && shape.closed),
   };
 }
 export function newNativeMask(name: string, p?: Project): Mask {
@@ -181,6 +189,11 @@ export function validateNativeMask(m: Mask) {
       expected.closed !== p.closed
     )
       throw new Error('Representação da entidade nativa inconsistente.');
+    if ((p.native.kind === 'text') !== (p.text !== undefined))
+      throw new Error(
+        'Texto livre requer conteúdo e ponto de inserção nativos.',
+      );
+    if (p.native.kind === 'text') validateFreeTextPrimitive(p);
   }
 }
 export function nativeWorldPrimitive(s: NativeShape, m: Mask): Primitive {

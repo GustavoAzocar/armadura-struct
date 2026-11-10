@@ -1,6 +1,6 @@
 # CSV da relação do aço por escopo
 
-**Arquivo → Exportar → CSV por escopo** exporta o quadro detalhado e/ou o resumo do aço do projeto completo, de pranchas ou de elementos selecionados. A configuração vale somente para a exportação: não altera o projeto, as pranchas, a relação de aço, o estado de salvo nem o histórico. Cancelar fecha o diálogo sem efeito.
+**Arquivo → Exportar → CSV por escopo** exporta o quadro detalhado e/ou o resumo do aço do projeto completo, de pranchas ou de elementos selecionados. A configuração vale somente para a exportação: não altera o projeto, as pranchas, a relação de aço, o estado de salvo nem o histórico. Cancelar fecha o diálogo sem efeito. O foco permanece no diálogo e os atalhos globais de edição ficam bloqueados; durante a gravação, aguarde ou cancele o seletor de arquivo para voltar às opções.
 
 **Quadro CSV** continua exportando o quadro global anterior, com as mesmas colunas e semântica.
 
@@ -42,7 +42,7 @@ No total físico, o acréscimo só é aplicado quando todos os escopos usam o me
 - Comprimentos do quadro em **cm** (padrão) ou m; do resumo em **m** (padrão) ou cm. Bitolas em mm e pesos em kg. As unidades estão nos cabeçalhos.
 - **Como no quadro (0,1)** usa as mesmas casas do quadro visual da prancha; com unidades iguais, os valores conferem. **Ampliado** usa 0,01 cm, 0,001 m e 0,001 kg. O cálculo usa precisão completa e só a apresentação é arredondada.
 - Comprimentos variáveis informam _Comprimento variável = Sim_, a faixa (`100,0-120,0`), mínimo, máximo e as contribuições, sem sugerir peças idênticas.
-- UTF-8 com BOM, separador `;`, CRLF e decimal vírgula (ou ponto, se escolhido). Todos os campos ficam entre aspas, aspas são duplicadas, e textos iniciados por `=`, `+`, `-`, `@`, tabulação ou retorno recebem `'` para não virarem fórmula. Não há macros nem dados externos.
+- UTF-8 com BOM, separador `;`, CRLF e decimal vírgula (ou ponto, se escolhido), inclusive na coluna de acréscimo percentual. Todos os campos ficam entre aspas, aspas são duplicadas, e textos iniciados por `=`, `+`, `-`, `@`, tabulação ou retorno recebem `'` para não virarem fórmula. Não há macros nem dados externos.
 - Nomes: `<projeto>_<escopo>_<quadro|resumo>.csv`, sem acentos ou caracteres inválidos, e `<projeto>_relacao-aco_<pranchas|elementos|projeto>.zip`.
 
 ## Bloqueios e mensagens

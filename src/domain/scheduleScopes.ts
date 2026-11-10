@@ -284,7 +284,7 @@ export function buildScopedSchedule(
           }
         : {
             allowanceNote: `Percentuais diferentes entre escopos (${percents
-              .map(percentLabel)
+              .map((n) => percentLabel(n))
               .join(
                 ', ',
               )}%). Reserva não aplicada ao total físico; defina um percentual único na exportação.`,
@@ -293,8 +293,11 @@ export function buildScopedSchedule(
   }
   return { scopes: data, physicalTotal, sharedBarIds };
 }
-export const percentLabel = (n: number) =>
-  n.toLocaleString('pt-BR', { maximumFractionDigits: 10, useGrouping: false });
+export const percentLabel = (n: number, decimal: ',' | '.' = ',') =>
+  n.toLocaleString(decimal === ',' ? 'pt-BR' : 'en-US', {
+    maximumFractionDigits: 10,
+    useGrouping: false,
+  });
 /** Peso com reserva em precisão completa; quantidade e comprimento não mudam. */
 export const weightWithAllowance = (weight: number, percent: number) =>
   weight * (1 + percent / 100);

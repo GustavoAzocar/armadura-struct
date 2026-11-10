@@ -4726,3 +4726,25 @@ button.hierarchy-drawing {
   font-size: 10px;
   overflow-wrap: anywhere;
 }
+.free-text-symbols {
+  display: flex;
+  gap: 4px;
+}
+.mask-cad-panel .free-text-symbols button {
+  margin: 0;
+  min-width: 30px;
+  padding: 2px 6px;
+}
+
+.csv-export {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.csv-export::backdrop {
+  background: #0d1c3980;
+  backdrop-filter: blur(3px);
+}

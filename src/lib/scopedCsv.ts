@@ -337,7 +337,7 @@ export function summaryCsv(data: ScopeData[], o: CsvExportOptions) {
     const reserve = (weight: number) =>
       d.allowance
         ? [
-            percentLabel(d.allowance.percent),
+            percentLabel(d.allowance.percent, o.decimal),
             d.allowance.source,
             n(weightWithAllowance(weight, d.allowance.percent), wd),
           ]
