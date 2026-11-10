@@ -1,7 +1,16 @@
 import { maskPoint } from '../cad/import';
 import { nativePoints } from './nativeMasks';
 import { contourKindLabel, measurePolyline } from './maskContourMeasure';
+import {
+  facesContaining,
+  pointInPolygon,
+  signedArea,
+  type FaceCycle,
+  type FacePath,
+} from './planarFaces';
 import type { Mask, Point, Primitive } from './types';
+
+export { signedArea };
 
 /**
  * Região de lançamento de telas soldadas: contorno externo e aberturas, em mm
@@ -17,11 +26,15 @@ import type { Mask, Point, Primitive } from './types';
  *   máximo de 0,05 mm medido no modelo (independe da escala da máscara).
  * - Aberturas a até 0,01 mm do contorno externo ou de outra abertura são tratadas
  *   como encostadas e recusadas.
+ * - Clique interno: faces das entidades recebidas (planarFaces.ts), com nós a
+ *   0,01 mm, pontes de lacuna até 1 mm (com confirmação) e no máximo
+ *   REGION_MAX_CLICK_SEGMENTS segmentos.
  */
 export const REGION_POINT_TOLERANCE = 0.01;
 export const REGION_MAX_CLOSURE_GAP = 1;
 export const REGION_CURVE_TOLERANCE = 0.05;
 export const REGION_MAX_VERTICES = 50000;
+export const REGION_MAX_CLICK_SEGMENTS = 20000;
 const MAX_CIRCLE_SEGMENTS = 4096;
 const LIMIT = 1e9;
 
@@ -35,8 +48,10 @@ export type RegionOutline = {
   area: number;
   exactness: RegionExactness;
   closure: RegionClosure;
-  /** mm entre as pontas de um contorno aberto; 0 quando a entidade é fechada. */
+  /** mm: maior lacuna fechada por ajuste (ou entre pontas); 0 quando fechada. */
   gap: number;
+  /** mm: todas as lacunas fechadas por ajuste (vazia se nenhuma). */
+  gaps: number[];
   kind: string;
   notes: string[];
 };
@@ -75,16 +90,12 @@ const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const capitalize = (s: string) => s[0].toUpperCase() + s.slice(1);
 const tooMany = (count: number) =>
   `Região com vértices demais: ${fmt(count)} (limite de ${fmt(REGION_MAX_VERTICES)} vértices).`;
-
-/** Área com sinal (positiva no sentido anti-horário), relativa ao 1º vértice. */
-export function signedArea(points: Point[]) {
-  if (points.length < 3) return 0;
-  const o = points[0];
-  let twice = 0;
-  for (let i = 1; i < points.length - 1; i++)
-    twice += cross(sub(points[i], o), sub(points[i + 1], o));
-  return twice / 2;
-}
+const invalidTransform = (m: Mask) =>
+  !Number.isFinite(m.scale) ||
+  m.scale <= 0 ||
+  ![m.rotation, m.origin.x, m.origin.y].every(Number.isFinite);
+const INVALID_TRANSFORM =
+  'Transformação da máscara inválida: a região não pode ser obtida.';
 
 /** Une vértices consecutivos a até REGION_POINT_TOLERANCE. */
 function mergeRepeated(points: Point[]) {
@@ -153,13 +164,44 @@ function closeOutline(
     return { ok: false, reason: 'O contorno não delimita uma região.' };
   return {
     ok: true,
-    outline: { points, area: m.area, exactness, closure, gap, kind, notes },
+    outline: {
+      points,
+      area: m.area,
+      exactness,
+      closure,
+      gap,
+      gaps: closure === 'adjusted' ? [gap] : [],
+      kind,
+      notes,
+    },
   };
 }
 
 /** Região indicada por pontos: o fechamento é explícito (Enter ou clique no 1º ponto). */
 export function outlineFromPoints(points: Point[]): OutlineResult {
   return closeOutline(points, true, 'pontos', 'exact', []);
+}
+
+/**
+ * Polígono inscrito num círculo/arco já no espaço do modelo (ângulos em rad,
+ * anti-horário +). Cada lado abrange θ e tem flecha r·(1 − cos(θ/2)) ≤ 0,05 mm.
+ */
+function curvePoints(
+  c: Point,
+  r: number,
+  start: number,
+  sweep: number,
+  closed: boolean,
+) {
+  const ratio = Math.min(1, REGION_CURVE_TOLERANCE / r);
+  const needed = Math.ceil(Math.abs(sweep) / (2 * Math.acos(1 - ratio)));
+  const n = Math.min(MAX_CIRCLE_SEGMENTS, Math.max(closed ? 8 : 1, needed));
+  const points = Array.from({ length: closed ? n : n + 1 }, (_, i) => {
+    const a = start + (sweep * i) / n;
+    return { x: c.x + r * Math.cos(a), y: c.y + r * Math.sin(a) };
+  });
+  const error = r * (1 - Math.cos(Math.abs(sweep) / (2 * n)));
+  return { points, n, needed, error };
 }
 
 function circleOutline(c: Point, r: number, kind: string): OutlineResult {
@@ -171,15 +213,7 @@ function circleOutline(c: Point, r: number, kind: string): OutlineResult {
     Math.abs(c.y) + r > LIMIT
   )
     return { ok: false, reason: 'Centro/raio fora dos limites do modelo.' };
-  // Polígono inscrito: flecha r·(1 − cos(π/n)) ≤ tolerância.
-  const ratio = Math.min(1, REGION_CURVE_TOLERANCE / r);
-  const needed = Math.ceil(Math.PI / Math.acos(1 - ratio));
-  const n = Math.min(MAX_CIRCLE_SEGMENTS, Math.max(8, needed));
-  const points = Array.from({ length: n }, (_, i) => {
-    const a = (2 * Math.PI * i) / n;
-    return { x: c.x + r * Math.cos(a), y: c.y + r * Math.sin(a) };
-  });
-  const error = r * (1 - Math.cos(Math.PI / n));
+  const { points, n, needed, error } = curvePoints(c, r, 0, 2 * Math.PI, true);
   const notes = [
     `Círculo representado por polígono de ${n} lados, com erro radial máximo de ${fmt(error)} mm (tolerância de ${fmt(REGION_CURVE_TOLERANCE)} mm).`,
   ];
@@ -193,16 +227,7 @@ function circleOutline(c: Point, r: number, kind: string): OutlineResult {
 /** Região a partir de uma entidade fechada da máscara, em mm do modelo. */
 export function outlineFromMaskEntity(m: Mask, q: Primitive): OutlineResult {
   const kind = contourKindLabel(q, m);
-  if (
-    !Number.isFinite(m.scale) ||
-    m.scale <= 0 ||
-    ![m.rotation, m.origin.x, m.origin.y].every(Number.isFinite)
-  )
-    return {
-      ok: false,
-      reason:
-        'Transformação da máscara inválida: a região não pode ser obtida.',
-    };
+  if (invalidTransform(m)) return { ok: false, reason: INVALID_TRANSFORM };
   if (q.text || q.native?.kind === 'text')
     return { ok: false, reason: 'Texto não delimita região.' };
   const n = q.native;
@@ -323,19 +348,6 @@ function ringContact(
   }
   return best;
 }
-function pointInPolygon(p: Point, poly: Point[]) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const a = poly[i],
-      b = poly[j];
-    if (
-      a.y > p.y !== b.y > p.y &&
-      p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x
-    )
-      inside = !inside;
-  }
-  return inside;
-}
 
 /**
  * Monta a região útil: contorno externo menos aberturas indicadas
@@ -404,7 +416,9 @@ export function buildRegion(
   const adjustments = rings.flatMap((r, i) =>
     r.closure === 'adjusted'
       ? [
-          `${capitalize(name(i))}: lacuna de ${fmt(r.gap)} mm fechada por ajuste.`,
+          r.gaps.length > 1
+            ? `${capitalize(name(i))}: ${r.gaps.length} lacunas fechadas por ajuste (maior: ${fmt(r.gap)} mm).`
+            : `${capitalize(name(i))}: lacuna de ${fmt(r.gap)} mm fechada por ajuste.`,
         ]
       : [],
   );
@@ -423,4 +437,143 @@ export function buildRegion(
       r.notes.map((n) => `${capitalize(name(i))}: ${n}`),
     ),
   };
+}
+
+/** Caminhos em mm do modelo das entidades recebidas, para a seleção por clique. */
+function entityPaths(m: Mask, primitives: Primitive[]) {
+  const paths: FacePath[] = [];
+  let invalid = 0;
+  const curveNote = `Inclui curva convertida em segmentos com erro radial máximo de ${fmt(REGION_CURVE_TOLERANCE)} mm.`;
+  const importedNote =
+    'Inclui geometria importada/normalizada: usa a polilinha disponível.';
+  const deg = Math.PI / 180;
+  for (const q of primitives) {
+    if (q.text || q.native?.kind === 'text') continue;
+    const n = q.native;
+    if (!n) {
+      if (q.points.length > 1)
+        paths.push({
+          points: q.points.map((v) => maskPoint(v, m)),
+          closed: !!q.closed,
+          approximate: true,
+          note: importedNote,
+        });
+      continue;
+    }
+    try {
+      nativePoints(n);
+    } catch {
+      invalid++;
+      continue;
+    }
+    if (n.kind === 'circle' || n.kind === 'arc') {
+      const c = maskPoint(n.center, m),
+        r = n.radius * m.scale;
+      const curve =
+        n.kind === 'circle'
+          ? curvePoints(c, r, 0, 2 * Math.PI, true)
+          : curvePoints(
+              c,
+              r,
+              (n.startAngle + m.rotation) * deg,
+              n.sweepAngle * deg,
+              false,
+            );
+      paths.push({
+        points: curve.points,
+        closed: n.kind === 'circle',
+        approximate: true,
+        note: curveNote,
+      });
+      continue;
+    }
+    paths.push({
+      points: nativePoints(n).map((v) => maskPoint(v, m)),
+      closed: q.closed ?? n.closed,
+    });
+  }
+  return { paths, invalid };
+}
+
+function outlineFromCycle(c: FaceCycle, kind: string): OutlineResult {
+  const r = closeOutline(
+    c.points,
+    true,
+    kind,
+    c.approximate ? 'approximation' : 'exact',
+    [...c.notes],
+  );
+  if (!r.ok || !c.bridges.length) return r;
+  const gaps = c.bridges.map((b) => b.length);
+  const gap = Math.max(...gaps);
+  return {
+    ok: true,
+    outline: {
+      ...r.outline,
+      closure: 'adjusted',
+      gap,
+      gaps,
+      notes: [
+        ...r.outline.notes,
+        `${gaps.length} lacuna(s) entre entidades fechada(s) por ajuste (maior: ${fmt(gap)} mm): confirme na prévia.`,
+      ],
+    },
+  };
+}
+
+export type ClickRegionResult =
+  | {
+      ok: true;
+      /** Regiões que contêm o ponto, da menor para a maior. */
+      candidates: RegionOutline[];
+      /** Por candidata: contornos internos, oferecidos (nunca aplicados) como aberturas. */
+      islands: RegionOutline[][];
+      notes: string[];
+    }
+  | { ok: false; reason: string };
+
+/**
+ * Região pelo clique interno. A interface passa somente as entidades visíveis e
+ * capturáveis da máscara ativa (mesma regra da seleção CAD); camadas ocultas
+ * não participam. Uma linha que atravessa a região a divide.
+ */
+export function outlinesAtPoint(
+  m: Mask,
+  primitives: Primitive[],
+  at: Point,
+): ClickRegionResult {
+  if (invalidTransform(m)) return { ok: false, reason: INVALID_TRANSFORM };
+  const { paths, invalid } = entityPaths(m, primitives);
+  const pick = facesContaining(paths, at, {
+    snap: REGION_POINT_TOLERANCE,
+    bridge: REGION_MAX_CLOSURE_GAP,
+    maxSegments: REGION_MAX_CLICK_SEGMENTS,
+  });
+  if (!pick.ok) return pick;
+  const notes = [...pick.notes];
+  if (invalid)
+    notes.push(`${invalid} entidade(s) com geometria inválida ignorada(s).`);
+  const candidates: RegionOutline[] = [];
+  const islands: RegionOutline[][] = [];
+  let failure = '';
+  pick.candidates.forEach((c, i) => {
+    const r = outlineFromCycle(c, 'região por clique');
+    if (!r.ok) {
+      failure ||= r.reason;
+      return;
+    }
+    candidates.push(r.outline);
+    islands.push(
+      pick.islands[i].flatMap((d) => {
+        const o = outlineFromCycle(d, 'contorno interno');
+        return o.ok ? [o.outline] : [];
+      }),
+    );
+  });
+  if (!candidates.length)
+    return {
+      ok: false,
+      reason: `A região encontrada não é válida: ${failure}`,
+    };
+  return { ok: true, candidates, islands, notes };
 }
