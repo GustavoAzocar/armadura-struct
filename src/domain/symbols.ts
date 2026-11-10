@@ -136,7 +136,8 @@ export function transformSymbolPrimitive(
             closed: true,
             points: nativePrimitive(n).points.map(at),
           };
-    } else out.native = { ...n, points: n.points.map(at) };
+    } else if (n.kind === 'text') out.native = { ...n, at: at(n.at) };
+    else out.native = { ...n, points: n.points.map(at) };
     const rendered = nativePrimitive(out.native, q.id ?? 'symbol', q.layer);
     out.points = rendered.points;
     out.closed = rendered.closed;
@@ -179,6 +180,8 @@ const neutral = (q: Primitive, id: string): Primitive => ({
         textHeight: q.textHeight,
         textRotation: q.textRotation,
         textAlign: q.textAlign,
+        textFont: q.textFont,
+        textPaperScale: q.textPaperScale,
       }
     : {}),
 });

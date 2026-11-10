@@ -63,6 +63,8 @@ import {
   world,
 } from '../domain/geometry';
 import { maskPrimitives } from '../cad/import';
+import { insideTextBox, svgTextFont } from '../domain/textStyle';
+import { paperPrimitiveBounds } from '../domain/paperText';
 import {
   annotationPrimitives,
   primitiveBounds,
@@ -797,10 +799,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           if (
             item.id &&
             item.native &&
-            points.some(
-              (v, i) =>
-                i && distance(p, nearest(p, points[i - 1], v)) < 9 / view.s,
-            )
+            (item.native.kind === 'text'
+              ? insideTextBox(p, paperPrimitiveBounds(item), 4 / view.s)
+              : points.some(
+                  (v, i) =>
+                    i && distance(p, nearest(p, points[i - 1], v)) < 9 / view.s,
+                ))
           ) {
             props.onNativePick?.(m.mask.id, item.id);
             return;
@@ -1071,6 +1075,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             fill={item.resolvedStyle?.color ?? color}
             textRendering="geometricPrecision"
             fontSize={item.textHeight ?? 40}
+            {...svgTextFont(item)}
             textAnchor={
               item.textAlign === 'right'
                 ? 'end'
@@ -1178,6 +1183,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
                   stroke="none"
                   textRendering="geometricPrecision"
                   fontSize={p.textHeight}
+                  {...svgTextFont(p)}
+                  data-free-text={p.native?.kind === 'text' ? p.id : undefined}
                   textAnchor={
                     p.textAlign === 'center'
                       ? 'middle'

@@ -287,7 +287,7 @@ const transformIssue = (m: Mask) =>
 /** Human label for an entity kind, used by the panel. */
 export function contourKindLabel(q: Primitive, m: Mask) {
   const n = q.native?.kind;
-  if (n)
+  if (n && n !== 'text')
     return {
       line: 'linha',
       polyline: q.closed ? 'polilinha fechada' : 'polilinha',

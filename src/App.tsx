@@ -174,6 +174,22 @@ import {
   type NativeDrawKind,
 } from './domain/nativeMasks';
 import { prepareProjectSetup } from './domain/projectSetup';
+import FreeTextPanel, {
+  draftOf,
+  fieldsOf,
+  pointOf,
+  type FreeTextFields,
+  type FreeTextSession,
+} from './components/FreeTextPanel';
+import {
+  appendFreeText,
+  editFreeText,
+  freeTextDefaults,
+  freeTextDraftOf,
+  freeTextPreview,
+  freeTextWorldPoint,
+  isFreeText,
+} from './domain/freeText';
 import SheetSchedulePanel, {
   type SheetScheduleRequest,
 } from './components/SheetSchedulePanel';
@@ -494,6 +510,8 @@ export default function App() {
   });
   const measureConsumed = useRef(false);
   const [maskManip, setMaskManip] = useState<MaskManipSession | null>(null);
+  /** Free CAD text insertion/edition; the project is written only on confirmation. */
+  const [freeText, setFreeText] = useState<FreeTextSession | null>(null);
   /** Click-to-pick for the symbol library; the dialog hides while it is active. */
   const [symbolPick, setSymbolPick] = useState<{
     kind: 'base' | 'place';
@@ -1374,6 +1392,7 @@ export default function App() {
   };
   const setTool = (t: Tool) => {
     setSymbolPick(null);
+    setFreeText(null);
     setStirrupSession(null);
     setStirrupDialog(null);
     setMeasureSession(null);
@@ -3009,6 +3028,215 @@ export default function App() {
       return undefined;
     }
   }, [symbolPick]);
+  const freeTextConfirming = useRef('');
+  /** Last formatting confirmed in this project; content and point are never reused. */
+  const freeTextLast = useRef<{ projectId: string; fields?: FreeTextFields }>({
+    projectId: '',
+  });
+  useEffect(() => {
+    const s = freeText;
+    if (
+      s &&
+      (s.project !== p ||
+        s.context.key !== documentKey ||
+        s.context.detailId !== activeDetailId ||
+        s.context.scopeDetailId !== isolatedDetailId ||
+        (!s.editId && s.mask.id !== drawingMaskId) ||
+        s.tab !== tab ||
+        page !== 'drawing')
+    ) {
+      setFreeText(null);
+      notify(
+        'Texto cancelado: projeto, contexto ou máscara ativa mudou. Nada foi gravado.',
+      );
+    }
+  }, [
+    p,
+    documentKey,
+    activeDetailId,
+    isolatedDetailId,
+    drawingMaskId,
+    tab,
+    page,
+    freeText,
+  ]);
+  const startFreeText = (edit?: { maskId: string; entityId: string }) => {
+    const current = historyRef.current.present;
+    const context = { ...maskDrawingContext };
+    const state = maskDrawingState(
+      current,
+      edit?.maskId ?? drawingMaskId,
+      context,
+    );
+    setTool('select');
+    setSelectedRaw([]);
+    setNativeEntity(undefined);
+    if (!state.editable || !state.mask) {
+      if (edit) {
+        notify(state.reason);
+        return;
+      }
+      setMaskId(drawingMaskId || null);
+      setCreatingMask(false);
+      setMaskControl(true);
+      notify(state.reason);
+      return;
+    }
+    const mask = state.mask;
+    if (edit) {
+      const q = mask.primitives.find((q) => q.id === edit.entityId);
+      if (!isFreeText(q)) {
+        notify('Texto livre inexistente nesta máscara.');
+        return;
+      }
+      if (q.layerId && !layerState(current, documentKey, q.layerId).editable) {
+        notify('Layer do texto bloqueado ou desligado; libere-o para editar.');
+        return;
+      }
+      setMaskId(null);
+      setMaskControl(false);
+      setFreeText({
+        id: edit.entityId,
+        editId: edit.entityId,
+        project: current,
+        mask,
+        context,
+        tab,
+        stage: 'content',
+        fields: fieldsOf(freeTextDraftOf(q, mask), freeTextWorldPoint(q, mask)),
+      });
+      setMessage(
+        `Editar texto em ${mask.name}: altere e confirme com Enter; Esc cancela.`,
+      );
+      return;
+    }
+    const last =
+      freeTextLast.current.projectId === current.id
+        ? freeTextLast.current.fields
+        : undefined;
+    setMaskId(null);
+    setFreeText({
+      id: uid(),
+      project: current,
+      mask,
+      context,
+      tab,
+      stage: 'point',
+      fields: {
+        ...fieldsOf(freeTextDefaults(current)),
+        ...(last ? { ...last, text: '', x: '', y: '' } : {}),
+      },
+    });
+    setMessage(
+      `${mask.name}: clique o ponto de inserção do texto (mm do modelo). Esc cancela.`,
+    );
+  };
+  const endFreeText = (message = 'Texto cancelado; nada foi gravado.') => {
+    setFreeText(null);
+    notify(message);
+  };
+  /** Esc: leave the current step only; the project is never touched. */
+  const backFreeText = () => {
+    const s = freeText;
+    if (!s) return;
+    if (s.stage === 'point' && (s.editId || s.fields.x !== ''))
+      setFreeText({
+        ...s,
+        stage: 'content',
+        cursor: undefined,
+        issue: undefined,
+      });
+    else if (s.stage === 'content' && !s.editId)
+      setFreeText({ ...s, stage: 'point', issue: undefined });
+    else endFreeText();
+  };
+  const confirmFreeText = () => {
+    const s = freeText;
+    if (!s || s.stage !== 'content' || freeTextConfirming.current === s.id)
+      return;
+    freeTextConfirming.current = s.id;
+    try {
+      const draft = draftOf(s.fields),
+        at = pointOf(s.fields),
+        current = historyRef.current.present;
+      if (current !== s.project)
+        throw new Error('O projeto mudou. Reinicie o texto; nada foi gravado.');
+      const result = s.editId
+        ? editFreeText(
+            current,
+            s.mask.id,
+            s.editId,
+            draft,
+            s.context,
+            s.mask,
+            at,
+          )
+        : {
+            ...appendFreeText(
+              current,
+              s.mask.id,
+              at,
+              draft,
+              s.context,
+              s.mask,
+              s.id,
+            ),
+            changed: true,
+          };
+      if (!result.changed) {
+        endFreeText('Texto sem alterações; o histórico não mudou.');
+        return;
+      }
+      const ok = commit((c) => {
+        if (
+          c !== s.project ||
+          maskImportContext.current !==
+            `${s.project.id}:${s.context.key}:${s.context.detailId}`
+        )
+          throw new Error('Destino do texto mudou. Reinicie o texto.');
+        return result.project;
+      });
+      if (!ok) {
+        setFreeText({
+          ...s,
+          issue: 'Confirmação bloqueada. Confira layers, contexto e proteções.',
+        });
+        return;
+      }
+      freeTextLast.current = { projectId: s.project.id, fields: s.fields };
+      setFreeText(null);
+      notify(
+        s.editId
+          ? `Texto atualizado em ${s.mask.name} (mesmo ID). Desfazer reverte.`
+          : `Texto inserido em ${s.mask.name}. Desfazer remove.`,
+      );
+    } catch (e) {
+      setFreeText({ ...s, issue: (e as Error).message });
+    } finally {
+      freeTextConfirming.current = '';
+    }
+  };
+  const freeTextState = useMemo(() => {
+    const s = freeText;
+    if (!s) return {};
+    const at = s.stage === 'point' ? s.cursor : undefined;
+    try {
+      const point = at ?? pointOf(s.fields);
+      const draft = draftOf({
+        ...s.fields,
+        text: s.fields.text || 'Texto',
+      });
+      return { lines: [freeTextPreview(s.project, s.mask, point, draft)] };
+    } catch (e) {
+      return {
+        lines: undefined,
+        error:
+          s.stage === 'content' && s.fields.text
+            ? (e as Error).message
+            : undefined,
+      };
+    }
+  }, [freeText]);
   const manipTransform = (
     s: MaskManipSession,
     at = s.cursor,
@@ -4243,6 +4471,29 @@ export default function App() {
       );
       return;
     }
+    if (freeText) {
+      if (freeText.stage !== 'point') return;
+      if (
+        ![point.x, point.y].every(
+          (n) => Number.isFinite(n) && Math.abs(n) <= 1e9,
+        )
+      ) {
+        notify('Informe um ponto finito dentro dos limites do modelo.');
+        return;
+      }
+      setFreeText({
+        ...freeText,
+        stage: 'content',
+        cursor: undefined,
+        issue: undefined,
+        fields: {
+          ...freeText.fields,
+          x: String(Number(point.x.toFixed(6))),
+          y: String(Number(point.y.toFixed(6))),
+        },
+      });
+      return;
+    }
     if (symbolPick) {
       if (
         ![point.x, point.y].every(
@@ -5052,6 +5303,12 @@ export default function App() {
       ].includes(a)
     )
       setSymbolPick(null);
+    if (freeText && ['undo', 'redo'].includes(a)) {
+      endFreeText(
+        'Texto pendente cancelado; nada foi gravado. Use Desfazer novamente para reverter operações anteriores.',
+      );
+      return;
+    }
     if (maskManip && ['undo', 'redo'].includes(a)) {
       const had = maskManip.hadOperations;
       endMaskManip();
@@ -5144,6 +5401,10 @@ export default function App() {
       setNativeEntity(undefined);
       setCreatingMask(false);
       setMaskControl(true);
+      return;
+    }
+    if (a === 'mask-text') {
+      startFreeText();
       return;
     }
     if (a.startsWith('mask-')) {
@@ -6177,6 +6438,9 @@ export default function App() {
       EXTEND: 'mask-extend',
       ESTENDERMASCARA: 'mask-extend',
       LINHA: 'mask-line',
+      TEXTO: 'mask-text',
+      TEXT: 'mask-text',
+      DTEXT: 'mask-text',
       RETANGULO: 'mask-rectangle',
       CIRCULO: 'mask-circle',
       MPL: 'mask-polyline',
@@ -6383,6 +6647,11 @@ export default function App() {
         }
         if (maskOffset) {
           endMaskOffset();
+          cmdInput.current?.blur();
+          return;
+        }
+        if (freeText) {
+          backFreeText();
           cmdInput.current?.blur();
           return;
         }
@@ -7249,6 +7518,16 @@ export default function App() {
                     );
                     return;
                   }
+                  if (
+                    isFreeText(
+                      p.masks
+                        .find((m) => m.id === maskId)
+                        ?.primitives.find((q) => q.id === entityId),
+                    )
+                  ) {
+                    startFreeText({ maskId, entityId });
+                    return;
+                  }
                   setSelectedRaw([]);
                   setMaskId(maskId);
                   setNativeEntity(entityId);
@@ -7273,6 +7552,7 @@ export default function App() {
                   offsetLines ??
                   manipLines ??
                   symbolPickLines ??
+                  freeTextState.lines ??
                   calibrationLines ??
                   nativePreview ??
                   (vertexRequest
@@ -7315,6 +7595,7 @@ export default function App() {
                       transformRequest?.base)
                 }
                 commandActive={
+                  !!freeText ||
                   !!symbolPick ||
                   !!stirrupSession ||
                   !!measureSession ||
@@ -7340,6 +7621,7 @@ export default function App() {
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 tool={
+                  freeText ||
                   symbolPick ||
                   stirrupSession ||
                   match ||
@@ -7396,6 +7678,8 @@ export default function App() {
                     setMeasureSession((s) => (s ? { ...s, cursor: point } : s));
                   if (symbolPick?.kind === 'place')
                     setSymbolPick((s) => (s ? { ...s, cursor: point } : s));
+                  if (freeText?.stage === 'point')
+                    setFreeText((s) => (s ? { ...s, cursor: point } : s));
                   if (maskManip?.stage === 'target')
                     setMaskManip((s) =>
                       s?.stage === 'target'
@@ -7468,6 +7752,25 @@ export default function App() {
                   }}
                   onApply={applyMatch}
                   onEnd={endMatch}
+                />
+              )}
+              {freeText && (
+                <FreeTextPanel
+                  session={freeText}
+                  error={freeTextState.error}
+                  onFields={(fields) =>
+                    setFreeText((s) =>
+                      s ? { ...s, fields, issue: undefined } : s,
+                    )
+                  }
+                  onConfirm={confirmFreeText}
+                  onRepick={() =>
+                    setFreeText((s) =>
+                      s ? { ...s, stage: 'point', issue: undefined } : s,
+                    )
+                  }
+                  onBack={backFreeText}
+                  onEnd={() => endFreeText()}
                 />
               )}
               {maskOffset && (
@@ -8563,6 +8866,7 @@ export default function App() {
           activeId={drawingMaskId}
           initial={maskId ?? drawingMaskId}
           entity={nativeEntity}
+          onEditText={(maskId, entityId) => startFreeText({ maskId, entityId })}
           onActivate={activateDrawingMask}
           onOpenContext={openMaskContext}
           onOffset={startMaskOffset}

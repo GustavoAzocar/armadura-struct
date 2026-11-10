@@ -33,6 +33,7 @@ export default function MaskControl({
   creating,
   onDelete,
   onBatch,
+  onEditText,
   onCalibrate,
   onCadEdit,
   onManipulate,
@@ -66,6 +67,8 @@ export default function MaskControl({
     scope?: 'entities' | 'mask',
   ) => boolean;
   onBatch: (mode: 'import' | 'associate') => void;
+  /** Opens the free text editor; the text keeps its ID. */
+  onEditText?: (maskId: string, entityId: string) => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
@@ -429,6 +432,7 @@ export default function MaskControl({
                                 circle: 'Círculo',
                                 arc: 'Arco',
                                 polyline: 'Polilinha',
+                                text: `Texto “${(p.text ?? '').slice(0, 24)}”`,
                               }[p.native.kind]
                             : ''}{' '}
                           · {p.layer}
@@ -436,7 +440,50 @@ export default function MaskControl({
                       ))}
                   </select>
                 </label>
-                {e && (
+                {e?.native?.kind === 'text' && (
+                  <>
+                    <p data-testid="mask-control-text">
+                      Texto livre: “{e.text}”. Conteúdo, altura, fonte,
+                      alinhamento, rotação e ponto são editados no painel de
+                      texto, mantendo o mesmo ID.
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (e.id) onEditText?.(m.id, e.id);
+                      }}
+                    >
+                      Editar texto…
+                    </button>
+                    <button
+                      onClick={() =>
+                        run(() => {
+                          const ref = maskCadEntities(project, context).find(
+                            (entity) =>
+                              entity.mask.id === m.id && entity.ref.id === eid,
+                          )?.ref;
+                          const next = applyMaskManipulation(
+                            project,
+                            previewMaskManipulation(
+                              project,
+                              m.id,
+                              ref ? [ref] : [],
+                              'erase',
+                              context,
+                            ),
+                            context,
+                          );
+                          if (
+                            change(next.masks.find((mask) => mask.id === m.id)!)
+                          )
+                            setEid('');
+                        })
+                      }
+                    >
+                      Excluir texto
+                    </button>
+                  </>
+                )}
+                {e && e.native?.kind !== 'text' && (
                   <>
                     <p>
                       Eixos da máscara · mm do modelo (escala já considerada) ·{' '}
@@ -499,7 +546,8 @@ export default function MaskControl({
                         </label>
                       </>
                     ) : (
-                      shape && (
+                      shape &&
+                      shape.kind !== 'text' && (
                         <>
                           {pointFields(shape.points, (v) =>
                             setRaw(JSON.stringify({ ...shape, points: v })),

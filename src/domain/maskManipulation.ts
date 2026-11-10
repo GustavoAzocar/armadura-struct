@@ -197,7 +197,8 @@ export function transformMaskPrimitive(
         result.native = exact
           ? rectangle
           : { kind: 'polyline', points: corners, closed: true };
-      } else result.native = { ...s, points: s.points.map(at) };
+      } else if (s.kind === 'text') result.native = { ...s, at: at(s.at) };
+      else result.native = { ...s, points: s.points.map(at) };
     }
     const rendered = nativePrimitive(
       result.native,
