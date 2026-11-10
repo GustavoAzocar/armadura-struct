@@ -2,6 +2,8 @@
 
 ## Ambiente e procedimento
 
+> Nota posterior: o exemplo inicial foi removido do aplicativo. A cena `example` não existe mais em `scripts/cad-benchmark.mjs`; os resultados abaixo e em `docs/performance/` são registros históricos.
+
 Base: ArmaduraStruct **0.3.0**, `master` em `4b25f9e773c47e10c5722b5da0aaaed42ba6e77e`. Medições no **build de produção** Vite, com source maps para atribuição do perfil, e não no servidor de desenvolvimento/React StrictMode. A versão corrigida é a do commit que acrescenta este relatório.
 
 Ambiente: Linux x86-64, kernel 6.18.57; CPU exposta AMD EPYC 9V74, 9 processadores lógicos; 9,7 GiB de memória; Node 24.22.1; Chromium headless 141.0.7390.37; viewport 1600 × 1000. Uma consulta CDP `SystemInfo.getInfo` ao mesmo executável/parâmetros confirmou **SwiftShader**, com composição/rasterização de GPU em modo software. O roteiro passou a registrar esse dado em novos ensaios. É um ambiente de teste compartilhado, não o computador do usuário. Não foram utilizados os DWGs enviados em outras tarefas: o exemplo incorporado e a cena sintética bastam para reproduzir o problema.
@@ -84,7 +86,7 @@ Para comparar novamente com a base, compile `4b25f9e` em um worktree separado co
 
 ## Conferência pelo usuário e preservação funcional
 
-1. Abra o **Exemplo ArmaduraStruct** e ative **Desenho**. Faça pan com o botão do meio e aproxime/afaste com a roda.
+1. Abra um projeto com armaduras e máscaras e ative **Desenho**. Faça pan com o botão do meio e aproxime/afaste com a roda.
 2. Mova o cursor e use **F3** para comparar encaixes ligados/desligados. Selecione por clique e por janela, e arraste um vértice de uma barra livre.
 3. Confira a atualização das inserções e do quadro após confirmar a edição. Desfaça/refaça e alterne entre desenhos e pranchas; confira que não ficaram textos/prévias antigos.
 4. Salve/reabra. Pan, zoom e movimento do cursor devem conservar o arquivo físico e o quadro; editar um vértice continua sendo uma alteração real e reversível.

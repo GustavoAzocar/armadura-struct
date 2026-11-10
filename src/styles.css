@@ -526,11 +526,6 @@ svg {
   border-top: 1px solid #e0e6f1;
   padding-top: 9px;
 }
-.example-button {
-  font-size: 9px;
-  color: #8d99af;
-  height: 35px;
-}
 .main-workspace {
   position: relative;
   flex: 1;
@@ -3142,68 +3137,6 @@ button.hierarchy-drawing {
   overflow: auto;
 }
 
-.example-notice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 12px;
-  font-size: 11px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-}
-.example-notice button {
-  flex-shrink: 0;
-  padding: 3px 8px;
-}
-.example-review {
-  width: min(1180px, 94vw);
-  max-height: 90vh;
-  padding: 20px;
-  color: var(--text);
-  background: var(--panel, #fff);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px;
-}
-.example-review::backdrop {
-  background: #0008;
-}
-.example-review-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.example-review-heading h2 {
-  font-size: 17px;
-}
-.example-review p {
-  line-height: 1.5;
-}
-.example-review-table {
-  overflow: auto;
-  max-height: 42vh;
-  margin: 12px 0;
-}
-.example-review table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
-  font-size: 11px;
-}
-.example-review th,
-.example-review td {
-  text-align: left;
-  padding: 6px 9px;
-  border-bottom: 1px solid var(--border);
-}
-.example-review th {
-  position: sticky;
-  top: 0;
-  background: var(--panel, #fff);
-}
-
 .armature-clone-modal {
   width: min(610px, 94vw);
 }
@@ -4663,6 +4596,69 @@ button.hierarchy-drawing {
     margin-bottom: 6px;
   }
 }
+.csv-export fieldset {
+  border: 1px solid #e0e7f4;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  min-width: 0;
+}
+.csv-export legend {
+  font-weight: 550;
+  color: #536b94;
+  padding: 0 4px;
+}
+.csv-export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.csv-export label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.csv-export label.field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.csv-export-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 18px;
+}
+.csv-export-list {
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid #e0e7f4;
+  border-radius: 4px;
+  padding: 6px;
+}
+.csv-export-list small {
+  margin-left: auto;
+  color: #9da7b9;
+}
+.csv-export .transfer-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 8px;
+}
+.csv-export-preview {
+  font-size: 11px;
+}
+.csv-export-files {
+  margin: 4px 0;
+  padding-left: 18px;
+  font-family: monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
 .free-text-symbols {
   display: flex;
   gap: 4px;
@@ -4671,4 +4667,17 @@ button.hierarchy-drawing {
   margin: 0;
   min-width: 30px;
   padding: 2px 6px;
+}
+
+.csv-export {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.csv-export::backdrop {
+  background: #0d1c3980;
+  backdrop-filter: blur(3px);
 }

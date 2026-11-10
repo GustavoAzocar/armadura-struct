@@ -1,8 +1,3 @@
-import {
-  initialExampleProject,
-  INITIAL_EXAMPLE_SHEETS,
-} from '../src/examples/initial';
-import { initialReference } from '../src/examples/review';
 import { describe, it, expect } from 'vitest';
 import {
   emptyProject,
@@ -85,33 +80,6 @@ function fixture() {
 }
 const config = defaultSheetSchedule({ x: 20, y: 270 });
 describe('quadro vetorial de aço por prancha', () => {
-  it('exemplo real separa vigas e pilares e fecha as 64 posições/1181 peças sem contar as vistas duas vezes', async () => {
-    const p = await initialExampleProject();
-    const data = INITIAL_EXAMPLE_SHEETS.map((id) => sheetScheduleData(p, id));
-    initialReference.sources.forEach((source, i) => {
-      const expected = initialReference.positions.filter(
-        (r) => r.sheetKey === source.key,
-      );
-      expect(new Set(data[i].barIds)).toEqual(
-        new Set(expected.flatMap((r) => r.occurrences.map((o) => o.barId))),
-      );
-      expect(data[i].rows).toHaveLength(expected.length);
-      expect(data[i].rows.reduce((s, r) => s + r.quantity, 0)).toBe(
-        expected.reduce((s, r) => s + r.quantity, 0),
-      );
-    });
-    expect(data.reduce((s, d) => s + d.rows.length, 0)).toBe(64);
-    expect(
-      data.flatMap((d) => d.rows).reduce((s, r) => s + r.quantity, 0),
-    ).toBe(1181);
-    expect(
-      data.flatMap((d) => d.rows).reduce((s, r) => s + r.weight, 0),
-    ).toBeCloseTo(
-      schedule(p).reduce((s, r) => s + r.weight, 0),
-      8,
-    );
-  });
-
   it('separa folhas e deduplica vistas/rebatimentos por ID físico, sem multiplicar o aço', () => {
     let p = fixture();
     p = duplicatePlacement(p, p.hierarchy.placements[0].id).project;

@@ -24,12 +24,8 @@ const { performanceScene } = await loader.ssrLoadModule(
 const { emptyProject, decodeProject } = await loader.ssrLoadModule(
   '/src/domain/model.ts',
 );
-const example = JSON.parse(
-  await readFile('src/examples/initial.armstruct.json', 'utf8'),
-);
 const scenes = {
   empty: emptyProject(),
-  example,
   large: performanceScene(),
   'large-no-mask': performanceScene(false),
 };

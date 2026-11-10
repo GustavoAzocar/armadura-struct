@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## Não lançado
+
+- Removido o Exemplo ArmaduraStruct: o aplicativo abre vazio quando não há projeto para recuperar, sem a opção **Carregar projeto de exemplo**, o aviso e a conferência do exemplo. Projetos salvos e a recuperação local não são afetados.
+- Arquivo → Exportar → CSV por escopo: quadro detalhado e/ou resumo do aço do projeto, de pranchas (ativa, selecionadas ou todas) ou de elementos/detalhamentos, em arquivos separados ou consolidados (ZIP quando houver mais de um). Reutiliza o motor da relação de aço e a fonte do quadro da folha; total físico opcional pela união dos IDs; acréscimo do quadro da folha ou definido só na exportação, sempre explícito. Quadro CSV global inalterado. [Uso e limites](docs/CSV-POR-ESCOPO.md).
+
 ## 0.6.0 · 2026-11-10
 
 - Infraestrutura de plugins: aba Plugins, contrato público v1 com JSON Schema/tipos/JSON-RPC, pacotes `.osplugin`, inspeção e registro offline com inventário persistente, instalação atômica e catálogo/download configuráveis com a mesma validação. Pacotes permanecem desativados, com integridade separada de autoria. Exemplo de conformidade reutiliza a API real e AS-09, sem executar terceiros. [Guia](docs/plugins/DEVELOPERS.md). Sem publicação de loja ou release nesta etapa.
