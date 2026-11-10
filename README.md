@@ -20,6 +20,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 - [Medir e cotar máscaras](docs/MASCARAS-MEDIR-COTAR.md): consulta com ΔX/ΔY e cotas estáticas com posição, unidades e diagnóstico de referência, pelos comandos de Desenho existentes.
 - [Medir contorno de máscaras](docs/MASCARAS-MEDIR-CONTORNO.md): comprimento de caminhos abertos e perímetro/área de contornos fechados em mm do modelo, com arcos/círculos analíticos, avisos de geometria inválida e sem alterar o projeto.
+- [Mover entidades e máscaras](docs/MASCARAS-MOVER.md): entidades selecionadas ou máscara inteira pela origem, ponto base e destino com prévia, snap e coordenadas, em uma operação desfazível sem alterar aço.
 - [Espelhar entidades de máscaras](docs/MASCARAS-ESPELHAR.md): eixo por dois pontos, prévia e escolha explícita sobre os originais, reutilizando Manipular.
 - [Copiar e Apagar entidades de máscaras](docs/MASCARAS-COPIAR-APAGAR.md): seleção acumulada no CAD, base comum e múltiplos destinos, prévia, histórico e proteções, sem alterar aço.
 
