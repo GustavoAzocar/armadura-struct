@@ -23,6 +23,7 @@ import { launchWeldedMesh } from './domain/weldedMeshLaunch';
 import {
   outlineFromMaskEntity,
   outlineFromPoints,
+  outlinesAtPoint,
 } from './domain/weldedMeshRegion';
 import BeamClampCriteriaDialog from './components/BeamClampCriteriaDialog';
 import BeamClampLaunchPanel, {
@@ -4640,8 +4641,71 @@ export default function App() {
   const meshByPoints = (s: WeldedMeshSession) =>
     (s.stage === 'region' && s.mode === 'points') ||
     (s.stage === 'openings' && s.openingInput === 'points');
+  /**
+   * Modo clique: só a máscara ativa (escolhida em Referências), com as
+   * entidades visíveis e capturáveis dela; o ponto é o do clique, sem snap.
+   */
+  function pickWeldedMeshClick(at: Point) {
+    const s = meshSession;
+    if (!s || s.stage !== 'region' || s.mode !== 'click') return;
+    const mask = s.base.masks.find((m) => m.id === drawingMaskId);
+    if (!mask) {
+      setMeshSession({
+        ...s,
+        issue:
+          'Escolha a máscara ativa em Máscaras → Referências para usar o modo Clique.',
+      });
+      return;
+    }
+    const primitives = maskCadEntities(s.base, maskDrawingContext)
+      .filter((e) => e.mask.id === mask.id && !e.ref.primitive.text)
+      .map((e) => e.ref.primitive);
+    const r = outlinesAtPoint(mask, primitives, at);
+    if (!r.ok) {
+      setMeshSession({ ...s, issue: r.reason });
+      return;
+    }
+    setMeshSession({
+      ...s,
+      outer: r.candidates[0],
+      outerRef: undefined,
+      click: {
+        maskId: mask.id,
+        candidates: r.candidates,
+        islands: r.islands,
+        index: 0,
+        chosen: r.islands[0].map(() => false),
+        notes: r.notes,
+      },
+      stage: 'openings',
+      openingInput: 'entity',
+      confirmed: false,
+      issue: undefined,
+    });
+  }
+  function chooseWeldedMeshCandidate(index: number) {
+    setMeshSession((s) =>
+      s?.click && index >= 0 && index < s.click.candidates.length
+        ? {
+            ...s,
+            outer: s.click.candidates[index],
+            click: {
+              ...s.click,
+              index,
+              chosen: s.click.islands[index].map(() => false),
+            },
+            confirmed: false,
+            issue: undefined,
+          }
+        : s,
+    );
+  }
   function weldedMeshPoint(point: Point) {
     const s = meshSession;
+    if (s?.stage === 'ready' && s.anchorPick) {
+      setMeshSession({ ...s, anchor: point, anchorPick: false });
+      return;
+    }
     if (!s || !meshByPoints(s)) return;
     if (s.points.length && distance(s.points.at(-1)!, point) <= 0.01) return;
     setMeshSession({ ...s, points: [...s.points, point], issue: undefined });
@@ -4693,7 +4757,9 @@ export default function App() {
         issue:
           s.mode === 'contour'
             ? 'Clique numa entidade fechada da máscara.'
-            : 'Indique ao menos 3 pontos.',
+            : s.mode === 'click'
+              ? 'Clique dentro da região.'
+              : 'Indique ao menos 3 pontos.',
       });
   }
   function nextWeldedMesh() {
@@ -4711,6 +4777,8 @@ export default function App() {
     if (!s) return;
     if (s.points.length)
       setMeshSession({ ...s, points: s.points.slice(0, -1), issue: undefined });
+    else if (s.stage === 'ready' && s.anchorPick)
+      setMeshSession({ ...s, anchorPick: false, issue: undefined });
     else if (s.stage === 'ready')
       setMeshSession({ ...s, stage: 'openings', issue: undefined });
     else if (s.stage === 'openings')
@@ -4719,6 +4787,8 @@ export default function App() {
         stage: 'region',
         outer: undefined,
         outerRef: undefined,
+        click: undefined,
+        anchor: undefined,
         openings: [],
         confirmed: false,
         issue: undefined,
@@ -4861,16 +4931,21 @@ export default function App() {
   const meshPreview = useMemo(() => {
     const s = meshSession;
     if (!s?.outer) return undefined;
+    const islands = s.click
+      ? s.click.islands[s.click.index].filter((_, i) => s.click!.chosen[i])
+      : [];
+    const maskId = s.outerRef?.maskId ?? s.click?.maskId;
     return previewWeldedMeshDraft({
       criteria: s.c,
       mode: s.mode,
       outer: s.outer,
-      openings: s.openings.map((o) => o.outline),
-      ...(s.outerRef ? { maskId: s.outerRef.maskId } : {}),
+      openings: [...s.openings.map((o) => o.outline), ...islands],
+      ...(maskId ? { maskId } : {}),
       entityIds: [
         ...(s.outerRef ? [s.outerRef.key] : []),
         ...s.openings.flatMap((o) => (o.ref ? [o.ref] : [])),
       ],
+      ...(s.anchor ? { anchor: s.anchor } : {}),
     });
   }, [
     meshSession?.outer,
@@ -4878,6 +4953,8 @@ export default function App() {
     meshSession?.c,
     meshSession?.mode,
     meshSession?.outerRef,
+    meshSession?.click,
+    meshSession?.anchor,
   ]);
   const meshLines = useMemo(() => {
     const s = meshSession;
@@ -4895,8 +4972,32 @@ export default function App() {
       ...(s.cursor && s.points.length ? [s.cursor] : []),
     ];
     if (drawing.length >= 2) lines.push(outline(drawing, false));
+    if (s.anchor) {
+      // Marca do ponto de partida: uma cruz de 300 mm.
+      const { x, y } = s.anchor;
+      lines.push(
+        outline(
+          [
+            { x: x - 150, y },
+            { x: x + 150, y },
+          ],
+          false,
+        ),
+      );
+      lines.push(
+        outline(
+          [
+            { x, y: y - 150 },
+            { x, y: y + 150 },
+          ],
+          false,
+        ),
+      );
+    }
     return lines;
   }, [meshSession, meshPreview]);
+  const meshClicking =
+    meshSession?.stage === 'region' && meshSession.mode === 'click';
   const stirrupPreview = useMemo(() => {
     const s = stirrupSession;
     if (!s || s.stage === 'shape') return {};
@@ -8439,7 +8540,7 @@ export default function App() {
                       }
                     : undefined
                 }
-                maskSidePick={maskOffset?.stage === 'side'}
+                maskSidePick={meshClicking || maskOffset?.stage === 'side'}
                 maskEditing={
                   meshPicking
                     ? {
@@ -8484,20 +8585,22 @@ export default function App() {
                               : undefined
                 }
                 onMaskEntityPick={
-                  meshPicking
-                    ? (ref) => pickWeldedMeshEntity(ref)
-                    : match
-                      ? (ref) => {
-                          if (ref) pickMatch(ref.key);
-                        }
-                      : measureSession?.mode === 'contour'
-                        ? (ref) => pickContour(ref)
-                        : maskOffset
-                          ? (ref, at, tolerance) =>
-                              offsetPoint(at, ref, tolerance)
-                          : maskManip
-                            ? (ref) => toggleManipEntity(ref)
-                            : pickMaskCad
+                  meshClicking
+                    ? (_ref, at) => pickWeldedMeshClick(at)
+                    : meshPicking
+                      ? (ref) => pickWeldedMeshEntity(ref)
+                      : match
+                        ? (ref) => {
+                            if (ref) pickMatch(ref.key);
+                          }
+                        : measureSession?.mode === 'contour'
+                          ? (ref) => pickContour(ref)
+                          : maskOffset
+                            ? (ref, at, tolerance) =>
+                                offsetPoint(at, ref, tolerance)
+                            : maskManip
+                              ? (ref) => toggleManipEntity(ref)
+                              : pickMaskCad
                 }
                 onMaskEntityHover={(ref, at, tolerance) =>
                   maskOffset?.stage === 'side'
@@ -8827,6 +8930,36 @@ export default function App() {
                 <WeldedMeshLaunchPanel
                   session={meshSession}
                   preview={meshPreview}
+                  activeMask={p.masks.find((m) => m.id === drawingMaskId)?.name}
+                  onCandidate={chooseWeldedMeshCandidate}
+                  onIsland={(i, use) =>
+                    setMeshSession((s) =>
+                      s?.click
+                        ? {
+                            ...s,
+                            click: {
+                              ...s.click,
+                              chosen: s.click.chosen.map((v, j) =>
+                                j === i ? use : v,
+                              ),
+                            },
+                            confirmed: false,
+                          }
+                        : s,
+                    )
+                  }
+                  onAnchorPick={() =>
+                    setMeshSession((s) =>
+                      s
+                        ? { ...s, anchorPick: !s.anchorPick, issue: undefined }
+                        : s,
+                    )
+                  }
+                  onClearAnchor={() =>
+                    setMeshSession((s) =>
+                      s ? { ...s, anchor: undefined, anchorPick: false } : s,
+                    )
+                  }
                   onMode={(mode) =>
                     setMeshSession((s) =>
                       s

@@ -11,7 +11,7 @@ export type WeldedMeshSession = {
   scope?: string;
   maskId?: string;
   c: WeldedMeshCriteria;
-  mode: 'contour' | 'points';
+  mode: 'contour' | 'click' | 'points';
   stage: 'region' | 'openings' | 'ready';
   /** Como as aberturas são indicadas: entidades fechadas ou pontos. */
   openingInput: 'entity' | 'points';
@@ -22,6 +22,22 @@ export type WeldedMeshSession = {
   /** Polígono sendo desenhado por pontos (contorno ou abertura). */
   points: Point[];
   cursor?: Point;
+  /**
+   * Modo clique: regiões que contêm o ponto (da menor para a maior), a
+   * escolhida e os contornos internos de cada uma, oferecidos como aberturas
+   * (nunca aplicados sozinhos).
+   */
+  click?: {
+    maskId: string;
+    candidates: RegionOutline[];
+    islands: RegionOutline[][];
+    index: number;
+    chosen: boolean[];
+    notes: string[];
+  };
+  /** Ponto de partida explícito da paginação (opcional, na conferência). */
+  anchor?: Point;
+  anchorPick?: boolean;
   /** Lacunas fechadas por ajuste confirmadas pelo usuário. */
   confirmed: boolean;
   issue?: string;
@@ -33,11 +49,21 @@ const num = (v: number, digits: number) =>
     maximumFractionDigits: digits,
   });
 const m2 = (mm2: number) => `${num(mm2 / 1e6, 2)} m²`;
+/** mm com no máximo 1 casa, sem "-0". */
+const mm = (v: number) => {
+  const r = Math.round(v * 10) / 10 || 0;
+  return num(r, r % 1 ? 1 : 0);
+};
 
 export default function WeldedMeshLaunchPanel({
   session: s,
   preview,
+  activeMask,
   onMode,
+  onCandidate,
+  onIsland,
+  onAnchorPick,
+  onClearAnchor,
   onOpeningInput,
   onCriteria,
   onRemoveOpening,
@@ -49,7 +75,13 @@ export default function WeldedMeshLaunchPanel({
 }: {
   session: WeldedMeshSession;
   preview?: WeldedMeshDraftPreview;
+  /** Nome da máscara ativa (modo clique), se houver. */
+  activeMask?: string;
   onMode: (m: WeldedMeshSession['mode']) => void;
+  onCandidate: (index: number) => void;
+  onIsland: (index: number, use: boolean) => void;
+  onAnchorPick: () => void;
+  onClearAnchor: () => void;
   onOpeningInput: (v: WeldedMeshSession['openingInput']) => void;
   onCriteria: () => void;
   onRemoveOpening: (index: number) => void;
@@ -66,12 +98,18 @@ export default function WeldedMeshLaunchPanel({
     s.stage === 'region'
       ? s.mode === 'contour'
         ? 'Clique numa entidade fechada da máscara: retângulo, polilinha fechada ou círculo.'
-        : `Clique os vértices do contorno (${s.points.length} ponto(s)). Enter fecha; Backspace remove o último.`
+        : s.mode === 'click'
+          ? activeMask
+            ? `Clique dentro da região, na máscara ativa (${activeMask}). Linhas que se cruzam também delimitam.`
+            : 'Escolha a máscara ativa em Máscaras → Referências para usar o modo Clique.'
+          : `Clique os vértices do contorno (${s.points.length} ponto(s)). Enter fecha; Backspace remove o último.`
       : s.stage === 'openings'
         ? byPoints
           ? `Abertura por pontos (${s.points.length} ponto(s)): Enter fecha a abertura. Sem pontos, Enter segue para a conferência.`
           : 'Aberturas (opcional): clique entidades fechadas dentro da região. Enter ou "Concluir aberturas" segue para a conferência.'
-        : 'Confira a prévia. "Confirmar lançamento" ou Enter grava a tela.';
+        : s.anchorPick
+          ? 'Clique o ponto de partida da paginação (o snap ajuda).'
+          : 'Confira a prévia. "Confirmar lançamento" ou Enter grava a tela.';
   const layout = preview?.ok ? preview.layout : undefined;
   const blocked = !!preview?.ok && preview.needsConfirmation && !s.confirmed;
   return (
@@ -87,6 +125,7 @@ export default function WeldedMeshLaunchPanel({
           {(
             [
               ['contour', 'Contorno'],
+              ['click', 'Clique'],
               ['points', 'Pontos'],
             ] as const
           ).map(([mode, label]) => (
@@ -127,6 +166,51 @@ export default function WeldedMeshLaunchPanel({
             </button>
           ))}
         </nav>
+      )}
+      {s.click && s.stage !== 'region' && (
+        <fieldset className="welded-mesh-gaps" aria-label="Região pelo clique">
+          <legend>
+            Região {s.click.index + 1} de {s.click.candidates.length} ·{' '}
+            {m2(s.click.candidates[s.click.index].area)}
+          </legend>
+          {s.click.candidates.length > 1 && (
+            <div className="welded-mesh-launch-modes">
+              <button
+                type="button"
+                disabled={s.stage === 'ready' || s.click.index === 0}
+                onClick={() => onCandidate(s.click!.index - 1)}
+              >
+                Região menor
+              </button>
+              <button
+                type="button"
+                disabled={
+                  s.stage === 'ready' ||
+                  s.click.index === s.click.candidates.length - 1
+                }
+                onClick={() => onCandidate(s.click!.index + 1)}
+              >
+                Região maior
+              </button>
+            </div>
+          )}
+          {s.click.islands[s.click.index].map((o, i) => (
+            <label className="check" key={i}>
+              <input
+                type="checkbox"
+                checked={s.click!.chosen[i] ?? false}
+                disabled={s.stage === 'ready'}
+                onChange={(e) => onIsland(i, e.target.checked)}
+              />
+              Usar contorno interno {i + 1} ({m2(o.area)}) como abertura
+            </label>
+          ))}
+          {s.click.notes.map((n) => (
+            <small key={n} className="welded-mesh-note">
+              {n}
+            </small>
+          ))}
+        </fieldset>
       )}
       {s.openings.length > 0 && (
         <ul className="welded-mesh-openings" aria-label="Aberturas">
@@ -192,6 +276,25 @@ export default function WeldedMeshLaunchPanel({
             Confirmo o fechamento das lacunas acima
           </label>
         </fieldset>
+      )}
+      {s.stage === 'ready' && (
+        <div className="welded-mesh-launch-modes">
+          <button
+            type="button"
+            aria-pressed={!!s.anchorPick}
+            onClick={onAnchorPick}
+          >
+            Indicar ponto de partida
+          </button>
+          {s.anchor && (
+            <span>
+              Ponto de partida: {mm(s.anchor.x)}; {mm(s.anchor.y)} mm{' '}
+              <button type="button" onClick={onClearAnchor}>
+                Limpar
+              </button>
+            </span>
+          )}
+        </div>
       )}
       {(s.issue || (preview && !preview.ok && s.stage !== 'region')) && (
         <p role="alert" className="stirrup-error">

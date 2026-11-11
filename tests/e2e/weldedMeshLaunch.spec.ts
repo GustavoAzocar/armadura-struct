@@ -41,9 +41,38 @@ function fixture(): Project {
       },
       'lacuna',
     ),
+    // Região só de linhas soltas que se cruzam (3 × 2 m), como numa fôrma real.
+    ...(
+      [
+        [P(11800, 0), P(15200, 0)],
+        [P(15000, -200), P(15000, 2200)],
+        [P(15200, 2000), P(11800, 2000)],
+        [P(12000, 2200), P(12000, -200)],
+      ] as const
+    ).map(([a, b], i) =>
+      nativePrimitive(
+        { kind: 'line', points: [a, b], closed: false },
+        `linha-${i}`,
+      ),
+    ),
   ];
   p.masks[1].primitives = [];
   return p;
+}
+/** Modo clique usa a máscara ativa, escolhida em Máscaras → Referências. */
+async function activateMask(p: Page) {
+  await p.getByRole('tab', { name: 'Máscaras', exact: true }).click();
+  const d = p.getByRole('region', {
+    name: 'Destino do desenho de máscaras',
+    exact: true,
+  });
+  await d
+    .getByLabel('Escolher máscara', { exact: true })
+    .selectOption('target-mask');
+  await d
+    .getByRole('button', { name: 'Ativar máscara para desenhar', exact: true })
+    .click();
+  await p.getByRole('tab', { name: 'Armaduras', exact: true }).click();
 }
 async function open(p: Page) {
   await p.goto('/');
@@ -219,5 +248,111 @@ test('pontos, lacuna com confirmação obrigatória e Esc sem lançar', async ({
   const saved = await save(page);
   expect(saved.weldedMeshes).toHaveLength(1);
   expect(saved.weldedMeshes![0].source.mode).toBe('points');
+  expect(errors).toEqual([]);
+});
+
+test('clique: linhas que se cruzam, região maior, contorno interno como abertura e ponto de partida', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await open(page);
+  await command(page, 'TS');
+  const d = page.getByRole('dialog', {
+    name: 'Critérios de telas soldadas',
+    exact: true,
+  });
+  await d.getByRole('button', { name: 'Paginação', exact: true }).click();
+  await d
+    .getByLabel('Sobreposição na largura (mm)', { exact: true })
+    .fill('150');
+  await d
+    .getByRole('button', { name: 'Usar critérios e lançar', exact: true })
+    .click();
+  // Sem máscara ativa, o modo clique pede para escolher uma.
+  await panel(page)
+    .getByRole('button', { name: 'Clique', exact: true })
+    .click();
+  await expect(panel(page).getByRole('status')).toContainText(
+    'Escolha a máscara ativa',
+  );
+  // E clicar mesmo assim não usa outra máscara por conta própria.
+  await clickModel(page, P(13500, 1000));
+  await expect(panel(page).getByRole('alert')).toContainText(
+    'Escolha a máscara ativa em Máscaras → Referências',
+  );
+  await page.keyboard.press('Escape');
+  await activateMask(page);
+
+  // Linhas soltas que se cruzam delimitam a região.
+  await command(page, 'TS');
+  await panel(page)
+    .getByRole('button', { name: 'Clique', exact: true })
+    .click();
+  await expect(panel(page).getByRole('status')).toContainText(
+    'máscara ativa (Fôrma ativa)',
+  );
+  await clickModel(page, P(13500, 1000));
+  await expect(
+    panel(page).getByRole('group', { name: 'Região pelo clique' }),
+  ).toContainText('Região 1 de 1 · 6,00 m²');
+  await expect(numbers(page)).toContainText('6,00 m²');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await expect(meshes(page)).toHaveCount(1);
+
+  // Na laje, fora do furo: o furo é oferecido, desmarcado, desde o 1º clique.
+  await command(page, 'TS');
+  await panel(page)
+    .getByRole('button', { name: 'Clique', exact: true })
+    .click();
+  await clickModel(page, P(4000, 3000));
+  const region = panel(page).getByRole('group', { name: 'Região pelo clique' });
+  await expect(region).toContainText('Região 1 de 1 · 28,50 m²');
+  await expect(
+    region.getByLabel('Usar contorno interno 1 (1,00 m²) como abertura'),
+  ).not.toBeChecked();
+  await expect(numbers(page)).toContainText('Área útil28,50 m²');
+  // Dentro do furo: a menor é o furo; a maior, a laje, que oferece o furo.
+  await panel(page)
+    .getByRole('button', { name: 'Voltar etapa', exact: true })
+    .click();
+  await clickModel(page, P(1500, 1500));
+  await expect(region).toContainText('Região 1 de 2 · 1,00 m²');
+  await region
+    .getByRole('button', { name: 'Região maior', exact: true })
+    .click();
+  await expect(region).toContainText('Região 2 de 2 · 28,50 m²');
+  const island = region.getByLabel(
+    'Usar contorno interno 1 (1,00 m²) como abertura',
+  );
+  await expect(island).not.toBeChecked();
+  await expect(numbers(page)).toContainText('Área útil28,50 m²');
+  await island.check();
+  await expect(numbers(page)).toContainText('Área útil27,50 m²');
+
+  // Conferência: ponto de partida explícito muda a grade (2 → 3 painéis).
+  await panel(page)
+    .getByRole('button', { name: 'Concluir aberturas', exact: true })
+    .click();
+  await expect(numbers(page)).toContainText('Painéis-base2 (');
+  await panel(page)
+    .getByRole('button', { name: 'Indicar ponto de partida', exact: true })
+    .click();
+  // Coordenada exata digitada na linha de comando (o clique livre não é redondo).
+  await command(page, '0,1000');
+  await expect(panel(page)).toContainText('Ponto de partida: 0; 1.000 mm');
+  await expect(numbers(page)).toContainText('Painéis-base3 (');
+  await panel(page)
+    .getByRole('button', { name: 'Confirmar lançamento', exact: true })
+    .click();
+  await expect(meshes(page)).toHaveCount(2);
+
+  const saved = await save(page);
+  const [lines, slab] = saved.weldedMeshes!;
+  expect(lines.source).toEqual({ mode: 'click', maskId: 'target-mask' });
+  expect(slab.source.mode).toBe('click');
+  expect(slab.region.openings).toHaveLength(1);
+  expect(slab.anchor).toEqual({ x: 0, y: 1000 });
   expect(errors).toEqual([]);
 });
