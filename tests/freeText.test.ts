@@ -403,7 +403,7 @@ describe('texto CAD livre na máscara', () => {
         producer: { app: 'Test', version: '1' },
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/17');
+      expect(pack.schema).toBe('openstruct.detail/18');
       const r = readDetailPackage(pack).project;
       const a = maskPrimitives(q.masks[0]).at(-1)!,
         b = maskPrimitives(r.masks[0]).at(-1)!;

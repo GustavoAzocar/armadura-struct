@@ -349,7 +349,7 @@ describe('AS-24 · transformação rígida da seleção', () => {
         producer: { app: 'AS24', version: '1' },
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/17');
+      expect(pack.schema).toBe('openstruct.detail/18');
       const result = readDetailPackage(pack).project;
       expect(weight(result)).toBeCloseTo(weight(q), 9);
       expect(result.bars[1].stirrupMirrored).toBe(true);

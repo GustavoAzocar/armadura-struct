@@ -9,8 +9,8 @@ import type { Point, Primitive } from './types';
  * - fios: malha nominal centrada no painel (não representa fios de borda
  *   comerciais); acima do limite, a malha é omitida e só as peças ficam;
  * - identificação: posição, tela e número de painéis-base.
- * Camada: a dos critérios, se escolhida; senão ARMADURAS (geometria) e
- * IDENTIFICACAO (texto). O vínculo do próprio lançamento, se houver, prevalece.
+ * Camada: ARMADURAS (geometria) e IDENTIFICACAO (texto), pelo papel; o vínculo
+ * do lançamento (`layerId`), se houver, vale para o desenho inteiro.
  */
 export function weldedMeshPrimitives(
   l: WeldedMeshLaunch,
@@ -19,14 +19,12 @@ export function weldedMeshPrimitives(
   const plan = weldedMeshPlan(l);
   if (!plan.ok) return [];
   const { layout } = plan,
-    display = l.criteria.display,
-    bound = l.criteria.layerId ? { layerId: l.criteria.layerId } : {};
+    display = l.criteria.display;
   const out: Primitive[] = [];
   const shape = (points: Point[], closed: boolean): Primitive => ({
     layer: 'ARMADURAS',
     points,
     closed,
-    ...bound,
   });
   if (display.panels)
     for (const panel of layout.panels)
@@ -58,7 +56,6 @@ export function weldedMeshPrimitives(
       textHeight,
       textAlign: 'center',
       textRotation: angle,
-      ...bound,
     });
   }
   return out;

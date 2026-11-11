@@ -495,7 +495,7 @@ describe('transação CAD, persistência e integridade', () => {
       back = readDetailPackage(JSON.stringify(pack)).project;
     expect(back.masks[0].primitives[0].native?.kind).toBe('arc');
     expect(back.masks[0].primitives[0].native).toEqual(arc.native);
-    expect(pack.schema).toBe('openstruct.detail/17');
+    expect(pack.schema).toBe('openstruct.detail/18');
     expect(() =>
       readDetailPackage({ ...pack, schema: 'openstruct.detail/13' }),
     ).toThrow(/v14/);

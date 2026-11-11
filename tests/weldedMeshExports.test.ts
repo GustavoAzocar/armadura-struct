@@ -6,7 +6,11 @@ import {
   type WeldedMeshCriteria,
 } from '../src/domain/weldedMesh';
 import { buildRegion, outlineFromPoints } from '../src/domain/weldedMeshRegion';
-import { launchWeldedMesh } from '../src/domain/weldedMeshLaunch';
+import {
+  launchWeldedMesh,
+  previewWeldedMeshUpdate,
+  weldedMeshLaunchIssues,
+} from '../src/domain/weldedMeshLaunch';
 import { weldedMeshPrimitives } from '../src/domain/weldedMeshDrawing';
 import {
   drawingPrimitives,
@@ -20,6 +24,7 @@ import {
   layerId,
   layerUsage,
   removeLayer,
+  validateLayers,
 } from '../src/domain/layers';
 import { toCsv, toDxf, toPdf } from '../src/lib/exports';
 import { defaultCsvExportOptions, planScopedCsv } from '../src/lib/scopedCsv';
@@ -120,9 +125,78 @@ describe('Camadas', () => {
   it('camada dos critérios vira o vínculo do lançamento, visível no uso', () => {
     const p = project({ layerId: layerId('DESENHO') });
     expect(p.weldedMeshes![0].layerId).toBe(layerId('DESENHO'));
+    // Uma só fonte: o lançamento não guarda a camada também nos critérios.
+    expect('layerId' in p.weldedMeshes![0].criteria).toBe(false);
+    expect(p.weldedMeshDefaults!.layerId).toBe(layerId('DESENHO'));
     expect([...(layerUsage(p).get(layerId('DESENHO')) ?? [])]).toContain(
       'tela-1',
     );
+  });
+
+  it('camada inexistente é recusada, e um lançamento não aceita camada nos critérios', () => {
+    expect(() => project({ layerId: 'layer:NAO-EXISTE' })).toThrow(
+      /Layer inexistente/,
+    );
+    const p = project(),
+      l = p.weldedMeshes![0];
+    expect(() =>
+      previewWeldedMeshUpdate(p, 'tela-1', {
+        criteria: criteria({ layerId: 'layer:NAO-EXISTE' }),
+      }),
+    ).toThrow(/Layer inexistente/);
+    expect(
+      weldedMeshLaunchIssues({
+        ...l,
+        criteria: { ...l.criteria, layerId: layerId('DESENHO') },
+      } as never),
+    ).toEqual(['Dados do lançamento inválidos.']);
+  });
+
+  it('editar com outra camada nos critérios move o vínculo; sem camada, mantém o atual', () => {
+    const p = project({ layerId: layerId('DESENHO') });
+    const moved = previewWeldedMeshUpdate(p, 'tela-1', {
+      criteria: criteria({ layerId: layerId('ARMADURAS') }),
+    }).project.weldedMeshes![0];
+    expect(moved.layerId).toBe(layerId('ARMADURAS'));
+    expect('layerId' in moved.criteria).toBe(false);
+    const kept = previewWeldedMeshUpdate(p, 'tela-1', {
+      criteria: criteria({ mark: 'TS2' }),
+    }).project.weldedMeshes![0];
+    expect(kept.layerId).toBe(layerId('DESENHO'));
+    expect(kept.criteria.mark).toBe('TS2');
+  });
+
+  it('apagar a camada dos critérios padrão: os próximos lançamentos seguem a reassociação ou voltam ao papel', () => {
+    const created = createLayer(emptyProject(), 'TELAS');
+    const p = launchWeldedMesh(
+      created.project,
+      {
+        criteria: criteria({ layerId: created.id }),
+        region: region(rect(0, 0, 6000, 4750)),
+        source: { mode: 'points' },
+        exactness: 'exact',
+        adjustments: [],
+      },
+      created.project.hierarchy.details[0].id,
+      'tela-1',
+    );
+    expect(p.weldedMeshDefaults!.layerId).toBe(created.id);
+    const reassigned = removeLayer(p, created.id, layerId('DESENHO'));
+    expect(reassigned.weldedMeshes![0].layerId).toBe(layerId('DESENHO'));
+    expect(reassigned.weldedMeshDefaults!.layerId).toBe(layerId('DESENHO'));
+    // Camada usada só pelos critérios padrão (a tela foi para outra): sai sem destino.
+    const onlyDefaults = assignLayer(p, ['tela-1'], layerId('ARMADURAS'));
+    const removed = removeLayer(onlyDefaults, created.id);
+    expect('layerId' in removed.weldedMeshDefaults!).toBe(false);
+    expect(() =>
+      validateLayers({
+        ...p,
+        weldedMeshDefaults: {
+          ...p.weldedMeshDefaults!,
+          layerId: 'layer:NAO-EXISTE',
+        },
+      }),
+    ).toThrow(/critérios de telas/);
   });
 
   it('reassociar e apagar camada: a tela muda de camada e não fica órfã', () => {

@@ -463,7 +463,7 @@ describe('AS-56 · quantidade por grupo, nervura e lance', () => {
         producer: { app: 'test', version: '1' },
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/17');
+      expect(pack.schema).toBe('openstruct.detail/18');
       const source = readDetailPackage(pack).project;
       expect(pieces(source)).toBe(72);
       expect(source.bars[0].quantitySource).toEqual({

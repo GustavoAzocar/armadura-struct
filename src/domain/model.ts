@@ -436,6 +436,7 @@ export const detailContentSchema = schema.pick({
   masks: true,
   annotations: true,
   polylines: true,
+  weldedMeshes: true,
 });
 
 /** Free text (native insertion point) or typography written by format 28. */

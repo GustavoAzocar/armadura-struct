@@ -430,7 +430,7 @@ describe('AS-54 · posição de fabricação e ocorrências', () => {
         producer: { app: 'test', version: '1' },
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/17');
+      expect(pack.schema).toBe('openstruct.detail/18');
       const source = readDetailPackage(JSON.stringify(pack)).project;
       expect(schedule(source)).toHaveLength(1);
       expect(pieces(source)).toBe(7);

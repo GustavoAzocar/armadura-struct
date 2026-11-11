@@ -329,7 +329,7 @@ describe('AS-21 · aparência de tela e plotagem', () => {
         unit,
       });
       const q = readDetailPackage(pack).project;
-      expect(pack.schema).toBe('openstruct.detail/17');
+      expect(pack.schema).toBe('openstruct.detail/18');
       expect(q.bars[0].points).toEqual(p.bars[0].points);
       expect(q.bars[0].plot).toEqual(p.bars[0].plot);
       expect(q.layers.find((l) => l.id === steel)?.plot).toEqual(

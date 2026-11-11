@@ -20,8 +20,9 @@ import { detailOrigin, objectOrigin } from './detailTransfer';
 import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
+import type { WeldedMeshLaunch } from './weldedMeshLaunch';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/17' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/18' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -45,6 +46,7 @@ export const detailPackageSchema = z
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -124,6 +126,31 @@ function scaleBar(b: Bar, k: number): Bar {
           },
         }
       : {}),
+  };
+}
+/**
+ * Tela soldada: a geometria (região, âncora) e os comprimentos dos critérios
+ * (afastamentos, sobreposições) seguem units.length. A definição da tela é um
+ * registro de catálogo com unidades próprias (mm, mm²/m, kg/m², kg) e não é
+ * convertida: assim um modelo do catálogo volta idêntico, sem deriva numérica.
+ */
+function scaleWeldedMesh(l: WeldedMeshLaunch, k: number): WeldedMeshLaunch {
+  const point = (p: Point) => mul(p, k),
+    c = l.criteria;
+  return {
+    ...l,
+    region: {
+      outer: l.region.outer.map(point),
+      openings: l.region.openings.map((h) => h.map(point)),
+    },
+    ...(l.anchor ? { anchor: point(l.anchor) } : {}),
+    criteria: {
+      ...c,
+      edgeOffset: c.edgeOffset * k,
+      openingOffset: c.openingOffset * k,
+      lengthOverlap: c.lengthOverlap * k,
+      widthOverlap: c.widthOverlap * k,
+    },
   };
 }
 /** Every length, including diameter and text height, uses units.length. Angles/counts/scales do not. */
@@ -219,6 +246,13 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
           textHeight: (p.textHeight ?? 2.5) * k,
         })),
       })),
+      ...(o.weldedMeshes
+        ? {
+            weldedMeshes: o.weldedMeshes.map((l) =>
+              styled(scaleWeldedMesh(l, k)),
+            ),
+          }
+        : {}),
     },
     dependencies: value.dependencies.map((b) => styled(scaleBar(b, k))),
   };
@@ -231,7 +265,11 @@ export function detailPackageProject(value: DetailPackage): Project {
     factors[value.units.length],
   );
   if (
-    !['openstruct.detail/16', 'openstruct.detail/17'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/16',
+      'openstruct.detail/17',
+      'openstruct.detail/18',
+    ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
         b.stirrupProfile ||
@@ -263,6 +301,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -286,6 +325,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -307,6 +347,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -330,6 +371,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -347,6 +389,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
@@ -364,6 +407,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     (pack.layers?.some((l) => l.plot) ||
       [
@@ -383,6 +427,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     ([...pack.objects.bars, ...pack.dependencies].some(
       (b) => b.stirrupMirrored !== undefined,
@@ -400,6 +445,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) => m.format === 'NATIVE')
   )
@@ -412,6 +458,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     pack.objects.masks.some(
       (m) => m.format !== 'NATIVE' && m.primitives.some((q) => q.native),
@@ -425,6 +472,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     [
       ...pack.objects.bars,
@@ -443,6 +491,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) =>
       m.primitives.some((q) => q.native?.kind === 'arc' || q.sourceEntityId),
@@ -454,6 +503,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     pack.objects.annotations.some(
       (a) => a.maskReferences || a.dimensionPresentation,
@@ -463,10 +513,15 @@ export function detailPackageProject(value: DetailPackage): Project {
       'Referências de máscara e unidades de cota exigem pacote v15.',
     );
   if (
-    pack.schema !== 'openstruct.detail/17' &&
+    !['openstruct.detail/17', 'openstruct.detail/18'].includes(pack.schema) &&
     hasFreeTextData({ masks: pack.objects.masks })
   )
     throw new Error('Textos livres e tipografia CAD exigem pacote v17.');
+  if (
+    pack.schema !== 'openstruct.detail/18' &&
+    pack.objects.weldedMeshes !== undefined
+  )
+    throw new Error('Telas soldadas exigem pacote v18.');
   const o = pack.objects,
     c = pack.context;
   const objects = [...contentObjects(o), ...pack.dependencies];
@@ -607,6 +662,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/14',
       'openstruct.detail/15',
       'openstruct.detail/16',
+      'openstruct.detail/17',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -615,7 +671,11 @@ export function readDetailPackage(raw: unknown): {
     );
   const pack = detailPackageSchema.parse(input);
   if (
-    !['openstruct.detail/16', 'openstruct.detail/17'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/16',
+      'openstruct.detail/17',
+      'openstruct.detail/18',
+    ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
         b.stirrupProfile ||
@@ -640,6 +700,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/15',
       'openstruct.detail/16',
       'openstruct.detail/17',
+      'openstruct.detail/18',
     ].includes(pack.schema) &&
     !pack.layers
   )
@@ -678,6 +739,12 @@ export function createDetailPackage(
     masks: project.masks.filter((o) => owns(o.id)),
     annotations: project.annotations.filter((o) => owns(o.id)),
     polylines: project.polylines.filter((o) => owns(o.id)),
+    // Telas só entram quando existem: pacotes sem telas mantêm a mesma forma.
+    ...((project.weldedMeshes ?? []).some((o) => owns(o.id))
+      ? {
+          weldedMeshes: (project.weldedMeshes ?? []).filter((o) => owns(o.id)),
+        }
+      : {}),
   };
   const owned = new Set(objects.bars.map((b) => b.id));
   const refs = new Set(

@@ -233,7 +233,7 @@ describe('repetição de elementos e levantamento consistente', () => {
       producer: { app: 'test', version: '1' },
       unit: 'cm',
     });
-    expect(pack.schema).toBe('openstruct.detail/17');
+    expect(pack.schema).toBe('openstruct.detail/18');
     expect(pieces(detailPackageProject(pack))).toBe(12);
     expect(pieces(readDetailPackage(JSON.stringify(pack)).project)).toBe(12);
     expect(() =>

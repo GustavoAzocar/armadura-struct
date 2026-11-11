@@ -248,7 +248,7 @@ describe('AS-19 · layers nativos e estilos', () => {
         unit,
         producer: { app: 'AS19', version: '1' },
       });
-      expect(pack.schema).toBe('openstruct.detail/17');
+      expect(pack.schema).toBe('openstruct.detail/18');
       const source = readDetailPackage(pack).project;
       expect(source.layers).toEqual(q.layers);
       expect(source.bars[1].style).toEqual(q.bars[1].style);

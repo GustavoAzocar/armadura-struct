@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   weldedMeshCriteriaIssues,
   weldedMeshCriteriaSchema,
+  type WeldedMeshCriteria,
 } from './weldedMesh';
 import {
   planWeldedMeshLayout,
@@ -31,7 +32,14 @@ export const weldedMeshLaunchSchema = z
     /** Camada, estilo e plotagem: o mesmo vínculo de todo objeto desenhável. */
     ...layerBindingShape,
     id: z.string().min(1).max(200),
-    criteria: weldedMeshCriteriaSchema,
+    /**
+     * Cópia dos critérios efetivos, sem a camada: a camada do lançamento é só o
+     * vínculo acima (`layerId`), mantido pelo sistema de camadas. A camada dos
+     * critérios configura os próximos lançamentos e, ao lançar ou editar, vira
+     * esse vínculo; guardá-la também aqui criaria uma segunda fonte, que ficaria
+     * desatualizada ao reassociar ou apagar a camada.
+     */
+    criteria: weldedMeshCriteriaSchema.omit({ layerId: true }),
     region: z
       .object({
         outer: z.array(point).min(3).max(50000),
@@ -54,10 +62,16 @@ export const weldedMeshLaunchSchema = z
   })
   .strict();
 export type WeldedMeshLaunch = z.infer<typeof weldedMeshLaunchSchema>;
-export type WeldedMeshLaunchInput = Omit<WeldedMeshLaunch, 'id'>;
+/** Entrada do lançamento: os critérios podem trazer a camada escolhida. */
+export type WeldedMeshLaunchInput = Omit<
+  WeldedMeshLaunch,
+  'id' | 'criteria'
+> & {
+  criteria: WeldedMeshCriteria;
+};
 export type WeldedMeshPatch = Partial<
-  Pick<WeldedMeshLaunch, 'criteria' | 'region' | 'anchor'>
->;
+  Pick<WeldedMeshLaunch, 'region' | 'anchor'>
+> & { criteria?: WeldedMeshCriteria };
 
 /** Plano (painéis, áreas, massas) recalculado a partir do lançamento. */
 export function weldedMeshPlan(l: WeldedMeshLaunch): LayoutResult {
@@ -105,7 +119,9 @@ const find = (p: Project, id: string) => {
   if (!l) throw new Error('Tela soldada inexistente.');
   return l;
 };
-const assertValid = (l: WeldedMeshLaunch) => {
+const assertValid = (p: Project, l: WeldedMeshLaunch) => {
+  if (l.layerId && !p.layers.some((x) => x.id === l.layerId))
+    throw new Error('Layer inexistente.');
   const issues = weldedMeshLaunchIssues(l);
   if (issues.length) throw new Error(issues.join(' '));
 };
@@ -123,17 +139,17 @@ export function launchWeldedMesh(
 ): Project {
   if (!p.hierarchy.details.some((d) => d.id === detailId))
     throw new Error('Detalhamento de destino inexistente.');
-  const launch: WeldedMeshLaunch = { id, ...structuredClone(input) };
+  const { layerId, ...criteria } = structuredClone(input.criteria);
+  const launch: WeldedMeshLaunch = { id, ...structuredClone(input), criteria };
   // A camada escolhida nos critérios vira o vínculo do próprio lançamento,
   // visível ao sistema de camadas (uso, reassociação, exclusão).
-  if (!launch.layerId && launch.criteria.layerId)
-    launch.layerId = launch.criteria.layerId;
-  assertValid(launch);
+  if (!launch.layerId && layerId) launch.layerId = layerId;
+  assertValid(p, launch);
   if (usedIds(p).has(id)) throw new Error('Identificador já usado no projeto.');
   return {
     ...p,
     weldedMeshes: [...(p.weldedMeshes ?? []), launch],
-    weldedMeshDefaults: structuredClone(launch.criteria),
+    weldedMeshDefaults: structuredClone(input.criteria),
     hierarchy: {
       ...p.hierarchy,
       objectDetails: { ...p.hierarchy.objectDetails, [id]: detailId },
@@ -190,7 +206,7 @@ export function copyWeldedMesh(
   newId: string = uid(),
 ): Project {
   const copy = { ...transformWeldedMesh(find(p, id), t), id: newId };
-  assertValid(copy);
+  assertValid(p, copy);
   if (usedIds(p).has(newId))
     throw new Error('Identificador já usado no projeto.');
   return {
@@ -226,7 +242,8 @@ export function deleteWeldedMesh(p: Project, id: string): Project {
 
 /**
  * Edição explícita de um lançamento: devolve o projeto atualizado e os planos
- * antes/depois, para a prévia do impacto. Não muda os critérios padrão.
+ * antes/depois, para a prévia do impacto. Não muda os critérios padrão. Uma
+ * camada informada nos critérios passa a ser o vínculo do lançamento.
  */
 export function previewWeldedMeshUpdate(
   p: Project,
@@ -236,12 +253,14 @@ export function previewWeldedMeshUpdate(
   const current = find(p, id);
   const before = weldedMeshPlan(current);
   if (!before.ok) throw new Error(before.reason);
-  const next: WeldedMeshLaunch = {
-    ...structuredClone(current),
-    ...structuredClone(patch),
-    id,
-  };
-  assertValid(next);
+  const { criteria, ...rest } = structuredClone(patch);
+  const next: WeldedMeshLaunch = { ...structuredClone(current), ...rest, id };
+  if (criteria) {
+    const { layerId, ...own } = criteria;
+    next.criteria = own;
+    if (layerId) next.layerId = layerId;
+  }
+  assertValid(p, next);
   const after = weldedMeshPlan(next);
   if (!after.ok) throw new Error(after.reason);
   return {

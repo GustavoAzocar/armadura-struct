@@ -417,7 +417,7 @@ describe('AS-53 · grafo físico e dependências de apresentação', () => {
       unit: 'cm',
       producer: { app: 'AS53', version: '1' },
     });
-    expect(pack.schema).toBe('openstruct.detail/17');
+    expect(pack.schema).toBe('openstruct.detail/18');
     expect(pack.dependencies.map((b) => b.id)).toEqual(['other']);
     const imported = readDetailPackage(pack).project;
     expect(imported.polylines[0].barIds).toEqual(['original', 'other']);

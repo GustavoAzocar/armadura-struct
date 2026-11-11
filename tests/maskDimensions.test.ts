@@ -176,7 +176,7 @@ describe('Medir e cotar referências de máscaras', () => {
           unit,
         }),
         q = readDetailPackage(JSON.stringify(pack)).project;
-      expect(pack.schema).toBe('openstruct.detail/17');
+      expect(pack.schema).toBe('openstruct.detail/18');
       const r = q.annotations.find((v) => v.id === a.id)!;
       expect(dimensionReferenceIssue(q, r)).toBeUndefined();
       expect(r.maskReferences).toEqual(a.maskReferences);

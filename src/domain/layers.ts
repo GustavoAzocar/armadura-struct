@@ -168,6 +168,8 @@ export function validateLayers(p: Project) {
         throw new Error(
           'Layer ainda usado nos padrões CAD. Reassocie-o em Configurações CAD antes de remover.',
         );
+  if (p.weldedMeshDefaults?.layerId && !ids.has(p.weldedMeshDefaults.layerId))
+    throw new Error('Layer inexistente nos critérios de telas soldadas.');
   for (const o of [
     ...layerObjects(p),
     ...p.masks.flatMap((m) => m.primitives),
@@ -389,6 +391,16 @@ export function removeLayer(p: Project, id: string, reassign?: string) {
     )
     .map((o) => o.id);
   if (ids.length && reassign) next = assignLayer(next, ids, reassign);
+  // Os critérios de telas dos próximos lançamentos seguem a reassociação; sem
+  // destino, voltam à camada pelo papel (ARMADURAS).
+  const meshDefaults = next.weldedMeshDefaults;
+  if (meshDefaults?.layerId === id) {
+    const { layerId: _removed, ...rest } = meshDefaults;
+    next = {
+      ...next,
+      weldedMeshDefaults: reassign ? { ...rest, layerId: reassign } : rest,
+    };
+  }
   next = {
     ...next,
     layers: next.layers.filter((l) => l.id !== id),

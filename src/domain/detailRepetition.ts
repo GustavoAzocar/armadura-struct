@@ -4,6 +4,8 @@ import { completeOwnership, contentObjects, detailPath } from './hierarchy';
 import { detailOrigin, sameDetailOrigin } from './detailTransfer';
 import { repetitionNames } from './detailQuantities';
 import { add, sub, geometry, world, vertices } from './geometry';
+import { weldedMeshSchedule } from './weldedMeshSchedule';
+import type { WeldedMeshLaunch } from './weldedMeshLaunch';
 
 export function setDetailRepetition(
   p: Project,
@@ -62,10 +64,30 @@ function barKey(b: Bar) {
 }
 const barsOf = (p: Project, id: string) =>
   p.bars.filter((b) => p.hierarchy.objectDetails[b.id] === id);
+const meshesOf = (p: Project, id: string) =>
+  (p.weldedMeshes ?? []).filter((l) => p.hierarchy.objectDetails[l.id] === id);
+/** Tela independente da posição: critérios e região relativos ao 1º vértice. */
+function meshKey(l: WeldedMeshLaunch) {
+  const o = l.region.outer[0];
+  const rel = (q: { x: number; y: number }) => ({
+    x: Math.round((q.x - o.x) * 1e6) / 1e6,
+    y: Math.round((q.y - o.y) * 1e6) / 1e6,
+  });
+  return JSON.stringify({
+    criteria: l.criteria,
+    outer: l.region.outer.map(rel),
+    openings: l.region.openings.map((h) => h.map(rel)),
+    anchor: l.anchor ? rel(l.anchor) : null,
+  });
+}
+/** Detalhamentos só são repetição quando barras e telas coincidem. */
 function signature(p: Project, id: string) {
   const bars = barsOf(p, id);
   return bars.length && bars.every((b) => !geometry(b).errors.length)
-    ? JSON.stringify(bars.map(barKey).sort())
+    ? JSON.stringify({
+        bars: bars.map(barKey).sort(),
+        meshes: meshesOf(p, id).map(meshKey).sort(),
+      })
     : undefined;
 }
 export function repetitionCandidates(p: Project, representativeId: string) {
@@ -121,14 +143,17 @@ export type MergeRepetitionPlan = {
   factor: number;
   names: string[];
 };
-const totals = (p: Project) =>
-  schedule({ ...p, scheduleLock: undefined }).reduce(
+const totals = (p: Project) => ({
+  ...schedule({ ...p, scheduleLock: undefined }).reduce(
     (sum, r) => ({
       pieces: sum.pieces + r.quantity,
       weight: sum.weight + r.weight,
     }),
     { pieces: 0, weight: 0 },
-  );
+  ),
+  /** kg: massa das telas (com repetição); a reunião não pode alterá-la. */
+  meshes: weldedMeshSchedule({ ...p, scheduleLock: undefined }).total,
+});
 export function previewMergeRepetitions(
   p: Project,
   representativeId: string,
@@ -285,6 +310,11 @@ export function previewMergeRepetitions(
       symbolInstances: (p.symbolInstances ?? []).filter(
         (o) => !removedIds.has(o.id),
       ),
+      ...(p.weldedMeshes
+        ? {
+            weldedMeshes: p.weldedMeshes.filter((o) => !removedIds.has(o.id)),
+          }
+        : {}),
       hierarchy: {
         ...p.hierarchy,
         details: p.hierarchy.details
@@ -308,7 +338,9 @@ export function previewMergeRepetitions(
     plan.afterWeight = after.weight;
     if (
       after.pieces !== before.pieces ||
-      Math.abs(after.weight - before.weight) > 1e-8 * Math.max(1, before.weight)
+      Math.abs(after.weight - before.weight) >
+        1e-8 * Math.max(1, before.weight) ||
+      Math.abs(after.meshes - before.meshes) > 1e-8 * Math.max(1, before.meshes)
     )
       throw new Error(
         'A reunião alteraria o quantitativo físico. Nenhuma alteração foi aplicada.',
