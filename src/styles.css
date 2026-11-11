@@ -1296,6 +1296,27 @@ svg {
   margin: 25px 0 27px;
   gap: 15px;
 }
+.schedule-stats.with-meshes {
+  grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr;
+}
+.schedule-meshes {
+  margin-top: 28px;
+}
+.schedule-meshes > h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: #26324d;
+}
+.schedule-mesh-summary {
+  margin-top: 14px;
+  max-width: 560px;
+}
+.tree-summary .tree-summary-mesh {
+  margin: 9px 0 0;
+  font-size: 11px;
+  color: #8d99b2;
+}
 .schedule-stats > div {
   padding: 16px 18px;
   border: 1px solid #e2e7f0;

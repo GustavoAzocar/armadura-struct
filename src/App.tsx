@@ -6632,6 +6632,9 @@ export default function App() {
         options: {
           textHeight: options.textHeight,
           allowancePercent: options.allowancePercent,
+          ...(options.meshLossPercent
+            ? { meshLossPercent: options.meshLossPercent }
+            : {}),
         },
       });
       notify(

@@ -56,6 +56,18 @@ export default function SheetSchedulePanel({
           onChange({ ...value.options, allowancePercent })
         }
       />
+      {(project.weldedMeshes?.length ?? 0) > 0 && (
+        <NumberField
+          label="Perda das telas"
+          value={value.options.meshLossPercent ?? 0}
+          min={0}
+          max={100}
+          suffix="%"
+          onChange={(meshLossPercent) =>
+            onChange({ ...value.options, meshLossPercent })
+          }
+        />
+      )}
       <p>
         Mova o cursor sobre o papel e clique para inserir pelo canto superior
         esquerdo. O quadro acompanha as armaduras desta folha; vistas repetidas

@@ -17,7 +17,11 @@ import {
   previewWeldedMeshUpdate,
 } from '../src/domain/weldedMeshLaunch';
 import { weldedMeshSchedule } from '../src/domain/weldedMeshSchedule';
-import { sheetScheduleData } from '../src/domain/sheetSchedule';
+import {
+  defaultSheetSchedule,
+  setSheetSchedule,
+  sheetScheduleData,
+} from '../src/domain/sheetSchedule';
 import { setDetailRepetition } from '../src/domain/detailRepetition';
 import {
   createSheet,
@@ -179,6 +183,22 @@ describe('Pranchas, união de IDs e relação de aço', () => {
     expect(b.meshes.total).toBeCloseTo(43.512, 9);
     // O total físico é o quadro global (IDs únicos), não a soma das pranchas.
     expect(weldedMeshSchedule(p).total).toBeCloseTo(43.512, 9);
+  });
+
+  it('perda 0% no quadro da prancha não é gravada; outro valor é', () => {
+    const p = caso2(),
+      id = p.sheets[0].id;
+    const zero = setSheetSchedule(p, id, {
+      ...defaultSheetSchedule(),
+      meshLossPercent: 0,
+    });
+    expect(zero.sheets[0].steelSchedule).not.toHaveProperty('meshLossPercent');
+    const five = setSheetSchedule(zero, id, {
+      ...zero.sheets[0].steelSchedule!,
+      meshLossPercent: 5,
+    });
+    expect(five.sheets[0].steelSchedule!.meshLossPercent).toBe(5);
+    expect(sheetScheduleData(five, id).meshes.lossPercent).toBe(5);
   });
 
   it('perda configurada no quadro da prancha, guardada no arquivo', () => {

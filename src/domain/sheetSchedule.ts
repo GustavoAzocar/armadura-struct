@@ -123,6 +123,8 @@ export function setSheetSchedule(
     throw new Error('Folha inexistente.');
   const value =
     input === undefined ? undefined : sheetSteelScheduleSchema.parse(input);
+  // 0% é o padrão: não grava, para um quadro sem perda manter a forma de antes.
+  if (value?.meshLossPercent === 0) delete value.meshLossPercent;
   return {
     ...p,
     sheets: p.sheets.map((s) =>
