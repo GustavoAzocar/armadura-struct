@@ -144,7 +144,7 @@ describe('metadados documentais por desenho', () => {
       date: '2026-11-09',
       notes: '  Linha 1\r\nLinha 2  ',
     });
-    expect(p1.schema).toBe('armadurastruct/28');
+    expect(p1.schema).toBe('armadurastruct/31');
     expect(
       updateDrawingMetadata(p1, id, {
         name: 'Corte AA',
@@ -205,7 +205,7 @@ describe('metadados documentais por desenho', () => {
       if (version < 4) delete legacy.sheets;
       if (version < 14) delete legacy.layers;
       const migrated = decodeProject(JSON.stringify(legacy));
-      expect(migrated.schema).toBe('armadurastruct/28');
+      expect(migrated.schema).toBe('armadurastruct/31');
       for (const d of migrated.hierarchy.drawings) {
         expect(d.author).toBeUndefined();
         expect(d.date).toBeUndefined();

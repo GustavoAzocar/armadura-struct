@@ -22,7 +22,11 @@ import {
   defaultStirrupCriteria,
   type StirrupCriteria,
 } from './domain/stirrupSchema';
-import { stirrupPrimitives } from './domain/stirrupGeometry';
+import {
+  stirrupPrimitives,
+  isColumnClamp,
+  columnClampReferencePrimitives,
+} from './domain/stirrupGeometry';
 import { distributionPrimitives } from './domain/drafting';
 import { isTauri } from '@tauri-apps/api/core';
 import {
@@ -730,6 +734,7 @@ export default function App() {
     maskId?: string;
     c: StirrupCriteria;
     editId?: string;
+    resume?: StirrupSession;
   } | null>(null);
   const stirrupCriteria = useRef<
     { projectId: string; c: StirrupCriteria } | undefined
@@ -4086,7 +4091,11 @@ export default function App() {
     try {
       const origin = s.section ?? s.cursor;
       if (!origin) return {};
-      let bar = criteriaBar(s.c, origin, s.mark, s.id);
+      const c =
+        s.stage === 'center-2' && s.cursor
+          ? capturedClampCriteria(s.c, origin, s.cursor)
+          : s.c;
+      let bar = criteriaBar(c, origin, s.mark, s.id);
       const end = s.end ?? (s.stage === 'range-end' ? s.cursor : undefined);
       if (s.start && end)
         bar = withStirrupRange(
@@ -4098,7 +4107,11 @@ export default function App() {
         );
       return {
         bar,
-        lines: [...stirrupPrimitives(bar), ...distributionPrimitives(bar)],
+        lines: [
+          ...stirrupPrimitives(bar),
+          ...columnClampReferencePrimitives(bar),
+          ...distributionPrimitives(bar),
+        ],
       };
     } catch (e) {
       return { error: (e as Error).message };
@@ -4175,6 +4188,19 @@ export default function App() {
       notify('O projeto mudou. Abra novamente os critérios.');
       return;
     }
+    if (d.resume) {
+      setStirrupDialog(null);
+      setStirrupSession({
+        ...d.resume,
+        c,
+        stage:
+          d.resume.stage === 'ready' && c.distribute && !d.resume.start
+            ? 'range-start'
+            : d.resume.stage,
+        error: undefined,
+      });
+      return;
+    }
     if (d.editId) {
       const b = criteriaBar(c, { x: 0, y: 0 }, 'prévia', 'preview');
       if (
@@ -4208,6 +4234,19 @@ export default function App() {
       points: [],
     });
   }
+  function capturedClampCriteria(
+    c: StirrupCriteria,
+    a: Point,
+    b: Point,
+  ): StirrupCriteria {
+    return {
+      ...c,
+      profile: {
+        ...c.profile,
+        points: [{ x: 0, y: 0 }, rotate(sub(b, a), -c.rotation)],
+      },
+    };
+  }
   function stirrupPoint(point: Point) {
     const s = stirrupSession;
     if (!s || stirrupConsumed.current) return;
@@ -4240,11 +4279,31 @@ export default function App() {
       });
       return;
     }
+    if (s.stage === 'center-2') {
+      try {
+        const c = capturedClampCriteria(s.c, s.section!, point);
+        criteriaBar(c, s.section!, s.mark, s.id);
+        setStirrupSession({
+          ...s,
+          c,
+          stage: c.distribute ? 'range-start' : 'ready',
+          cursor: undefined,
+          error: undefined,
+        });
+      } catch (e) {
+        setStirrupSession({ ...s, error: (e as Error).message });
+      }
+      return;
+    }
     if (s.stage === 'section')
       setStirrupSession({
         ...s,
         section: point,
-        stage: s.c.distribute ? 'range-start' : 'ready',
+        stage: isColumnClamp(s.c.profile)
+          ? 'center-2'
+          : s.c.distribute
+            ? 'range-start'
+            : 'ready',
         cursor: undefined,
         error: undefined,
       });
@@ -4308,15 +4367,18 @@ export default function App() {
       return;
     }
     const stage =
-      s.stage === 'ready'
-        ? s.c.distribute
-          ? 'label'
-          : 'section'
-        : s.stage === 'label'
-          ? 'range-end'
-          : s.stage === 'range-end'
-            ? 'range-start'
-            : 'section';
+      isColumnClamp(s.c.profile) &&
+      (s.stage === 'range-start' || (s.stage === 'ready' && !s.c.distribute))
+        ? 'center-2'
+        : s.stage === 'ready'
+          ? s.c.distribute
+            ? 'label'
+            : 'section'
+          : s.stage === 'label'
+            ? 'range-end'
+            : s.stage === 'range-end'
+              ? 'range-start'
+              : 'section';
     setStirrupSession({
       ...s,
       stage,
@@ -7726,6 +7788,13 @@ export default function App() {
                   bar={stirrupPreview.bar}
                   error={stirrupPreview.error}
                   onConfirm={confirmStirrup}
+                  onCriteria={() => {
+                    setStirrupDialog({
+                      ...stirrupSession,
+                      resume: stirrupSession,
+                    });
+                    setStirrupSession(null);
+                  }}
                   onBack={backStirrup}
                   onCancel={cancelStirrup}
                 />

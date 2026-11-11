@@ -237,7 +237,9 @@ export function Inspector({
               <div>
                 <b>
                   {bar.kind === 'stirrup'
-                    ? `Estribo ${bar.stirrupProfile?.shape === 'circle' ? 'circular' : bar.stirrupProfile?.shape === 'free' ? 'livre' : 'retangular'}`
+                    ? bar.stirrupProfile?.clamp
+                      ? `Grampo de pilar ${bar.stirrupProfile.shape === 'clamp-s' ? 'S' : 'C'}`
+                      : `Estribo ${bar.stirrupProfile?.shape === 'circle' ? 'circular' : bar.stirrupProfile?.shape === 'free' ? 'livre' : 'retangular'}`
                     : 'Barra livre'}
                 </b>
                 <small>{bar.element}</small>
@@ -560,11 +562,13 @@ export function Inspector({
               {bar.stirrupProfile && (
                 <p className="field-help">
                   Forma{' '}
-                  {bar.stirrupProfile.shape === 'circle'
-                    ? 'circular'
-                    : bar.stirrupProfile.shape === 'free'
-                      ? 'livre'
-                      : 'retangular'}{' '}
+                  {bar.stirrupProfile.clamp
+                    ? `grampo de pilar ${bar.stirrupProfile.shape === 'clamp-s' ? 'S' : 'C'}`
+                    : bar.stirrupProfile.shape === 'circle'
+                      ? 'circular'
+                      : bar.stirrupProfile.shape === 'free'
+                        ? 'livre'
+                        : 'retangular'}{' '}
                   · medidas{' '}
                   {bar.stirrupProfile.reference === 'axis'
                     ? 'no eixo'

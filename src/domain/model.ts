@@ -456,7 +456,21 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const textVersion = input?.schema === 'armadurastruct/28';
+  const clampVersion = input?.schema === 'armadurastruct/31';
+  const clampData = [
+    input?.stirrupDefaults?.profile,
+    ...[...(input?.bars ?? []), ...(input?.scheduleLock?.bars ?? [])].map(
+      (b) => b.stirrupProfile,
+    ),
+  ];
+  if (
+    !clampVersion &&
+    clampData.some(
+      (p) => p?.clamp || p?.shape === 'clamp-s' || p?.shape === 'clamp-c',
+    )
+  )
+    throw Error('Grampos S/C exigem formato 31.');
+  const textVersion = clampVersion || input?.schema === 'armadurastruct/28';
   if (!textVersion && hasFreeTextData(input))
     throw new Error('Textos livres e tipografia CAD exigem formato 28.');
   const symbolVersion = textVersion || input?.schema === 'armadurastruct/27';
@@ -760,7 +774,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/28',
+    schema: 'armadurastruct/31',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -994,7 +1008,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/28',
+    schema: 'armadurastruct/31',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,
@@ -1165,6 +1179,8 @@ export function scheduleChanged(p: Project) {
         hook: b.hook,
         mandrel: b.mandrel,
         manufacturing: b.manufacturing,
+        stirrupProfile: b.stirrupProfile,
+        stirrupMirrored: b.stirrupMirrored,
         repetitions: quantities?.[b.id]?.repetitions ?? 1,
         detailTitle: quantities?.[b.id]?.detailTitle ?? '',
       })),

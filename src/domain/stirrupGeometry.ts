@@ -9,6 +9,7 @@ import {
   geometryFromPoints,
   sampled,
   world,
+  dot,
 } from './geometry';
 import type { StirrupProfile } from './stirrupSchema';
 
@@ -115,7 +116,11 @@ export function stirrupGeometry(b: Bar, bodyOnly = false): Geometry {
     errors.push(
       'Forma livre usa pontos no eixo; não deriva cobrimento automaticamente.',
     );
-  if (p.shape === 'circle') {
+  if (isColumnClamp(p)) {
+    const g = columnClampGeometry(b, bodyOnly);
+    body = g.segments;
+    errors.push(...g.errors);
+  } else if (p.shape === 'circle') {
     const radius = w / 2;
     if (!(radius >= r))
       errors.push('Raio do eixo menor que o raio de dobra informado.');
@@ -188,7 +193,7 @@ export function stirrupGeometry(b: Bar, bodyOnly = false): Geometry {
     errors.push(...g.errors);
   }
   let segments = body;
-  if (body.length && !bodyOnly) {
+  if (body.length && !bodyOnly && !isColumnClamp(p)) {
     const start = hookGeometry(
       body[0].a,
       mul(startTangent(body[0]), -1),
@@ -312,4 +317,228 @@ export function stirrupDimensionLabels(b: Bar): { text: string; at: Point }[] {
       text: `${fmt(distance(s.a, s.b))} cm reto`,
       at: { x: (s.a.x + s.b.x) / 2, y: (s.a.y + s.b.y) / 2 + 40 },
     }));
+}
+
+export const isColumnClamp = (p: StirrupProfile) =>
+  p.shape === 'clamp-s' || p.shape === 'clamp-c';
+
+/** Minimum exact distance to an analytic centerline segment (not its display chords). */
+export function segmentPointDistance(s: Segment, p: Point): number {
+  if (s.type === 'line') {
+    const v = sub(s.b, s.a),
+      l2 = dot(v, v);
+    return distance(
+      p,
+      add(
+        s.a,
+        mul(v, l2 ? Math.max(0, Math.min(1, dot(sub(p, s.a), v) / l2)) : 0),
+      ),
+    );
+  }
+  const tau = 2 * Math.PI,
+    mod = (a: number) => ((a % tau) + tau) % tau;
+  const a = Math.atan2(p.y - s.center.y, p.x - s.center.x);
+  const along = mod(Math.sign(s.angle) * (a - s.startAngle));
+  return along <= Math.abs(s.angle) + 1e-10
+    ? Math.abs(distance(p, s.center) - s.radius)
+    : Math.min(distance(p, s.a), distance(p, s.b));
+}
+
+function columnClampGeometry(b: Bar, bodyOnly: boolean): Geometry {
+  const p = b.stirrupProfile!,
+    c = p.clamp,
+    errors: string[] = [];
+  const fail = (message: string): Geometry => ({
+    segments: [],
+    vertices: [],
+    length: 0,
+    errors: [message],
+  });
+  if (!c || p.points.length !== 2 || p.reference !== 'axis' || p.closed)
+    return fail(
+      'Grampo exige dois centros estáticos, referência no eixo e contorno aberto.',
+    );
+  const [a, z] = p.points,
+    d = distance(a, z),
+    r = (b.mandrel + b.diameter) / 2;
+  if (
+    ![a.x, a.y, z.x, z.y, ...c.diameters, c.clearance, r].every(
+      Number.isFinite,
+    ) ||
+    c.diameters.some((v) => v <= 0) ||
+    c.clearance < 0 ||
+    !(r > 0)
+  )
+    return fail(
+      'Centros, bitolas, folga e mandril do grampo devem ser finitos e válidos.',
+    );
+  if (d < 0.01)
+    return fail(
+      'Os centros longitudinais são coincidentes ou quase coincidentes.',
+    );
+  if (d <= (c.diameters[0] + c.diameters[1]) / 2 + 0.01)
+    return fail('As barras longitudinais estão sobrepostas.');
+  if (
+    c.diameters.some((phi) => r + 1e-8 < (phi + b.diameter) / 2 + c.clearance)
+  )
+    return fail(
+      'Mandril interno insuficiente para envolver a bitola longitudinal e a folga informadas.',
+    );
+  if (
+    !p.start.angle ||
+    !p.end.angle ||
+    p.start.length <= 0 ||
+    p.end.length <= 0
+  )
+    return fail(
+      'Cada centro exige gancho de 90°, 135° ou 180° e trecho reto positivo.',
+    );
+  const s = c.orientation,
+    same = p.shape === 'clamp-c';
+  if (p.start.turn !== s || p.end.turn !== (same ? -s : s))
+    return fail(
+      'Sentidos dos ganchos incompatíveis com a forma S/C e a orientação.',
+    );
+  if (!same && d <= 2 * r + 0.01)
+    return fail(
+      'Distância entre centros insuficiente para a tangente interna do grampo S; revise mandril ou centros.',
+    );
+  const u = rotate(
+    unit(sub(z, a)),
+    same ? 0 : (-Math.asin((2 * s * r) / d) * 180) / Math.PI,
+  );
+  const n = { x: -u.y, y: u.x };
+  const q1 = add(a, mul(n, s * r)),
+    q2 = add(z, mul(n, (same ? s : -s) * r));
+  const body: Segment = { type: 'line', a: q1, b: q2 };
+  const start = hookGeometry(q1, mul(u, -1), p.start, b);
+  const end = hookGeometry(q2, u, p.end, b);
+  const all = [...[...start].reverse().map(reverse), body, ...end];
+  for (let i = 0; i < 2; i++) {
+    const envelope = (c.diameters[i] + b.diameter) / 2 + c.clearance;
+    if (
+      all.some(
+        (seg) => segmentPointDistance(seg, p.points[i]) < envelope - 1e-7,
+      )
+    )
+      errors.push(
+        `O grampo atravessa o envelope físico da barra longitudinal ${i + 1}; revise ganchos, mandril ou distância.`,
+      );
+  }
+  if (clampSelfIntersects(all))
+    errors.push(
+      'Os retornos do grampo se cruzam ou se sobrepõem; revise os trechos dos ganchos.',
+    );
+  const segments = bodyOnly ? [body] : all;
+  return {
+    segments,
+    vertices: sampled(segments),
+    errors,
+    length: segments.reduce(
+      (sum, seg) =>
+        sum +
+        (seg.type === 'line'
+          ? distance(seg.a, seg.b)
+          : seg.radius * Math.abs(seg.angle)),
+      0,
+    ),
+  };
+}
+
+/** Static reference circles for previews only: these are not physical project bars. */
+export function columnClampReferencePrimitives(b: Bar): Primitive[] {
+  const p = b.stirrupProfile!;
+  if (!isColumnClamp(p) || !p.clamp) return [];
+  return p.points.flatMap((center, i) => {
+    const radius = p.clamp!.diameters[i] / 2;
+    const transform = (q: Point) =>
+      world(b.stirrupMirrored ? { x: q.x, y: -q.y } : q, b);
+    return [
+      {
+        layer: 'ARMADURAS',
+        points: Array.from({ length: 65 }, (_, k) =>
+          transform(
+            add(center, {
+              x: radius * Math.cos((k * Math.PI) / 32),
+              y: radius * Math.sin((k * Math.PI) / 32),
+            }),
+          ),
+        ),
+      },
+      {
+        layer: 'ARMADURAS',
+        points: [
+          transform(add(center, { x: -4, y: 0 })),
+          transform(add(center, { x: 4, y: 0 })),
+        ],
+      },
+      {
+        layer: 'ARMADURAS',
+        points: [
+          transform(add(center, { x: 0, y: -4 })),
+          transform(add(center, { x: 0, y: 4 })),
+        ],
+      },
+    ];
+  });
+}
+
+/** Exact intersections of nonadjacent lines/arcs. Display sampling never validates fabrication. */
+function clampSelfIntersects(segments: Segment[]): boolean {
+  const cross = (a: Point, b: Point) => a.x * b.y - a.y * b.x;
+  const on = (s: Segment, p: Point) => segmentPointDistance(s, p) < 1e-7;
+  const intersections = (a: Segment, b: Segment): Point[] => {
+    if (a.type === 'line' && b.type === 'line') {
+      const u = sub(a.b, a.a),
+        v = sub(b.b, b.a),
+        den = cross(u, v);
+      if (Math.abs(den) < 1e-10)
+        return [a.a, a.b, b.a, b.b].filter((p) => on(a, p) && on(b, p));
+      const t = cross(sub(b.a, a.a), v) / den;
+      const p = add(a.a, mul(u, t));
+      return on(a, p) && on(b, p) ? [p] : [];
+    }
+    if (a.type === 'line' && b.type === 'arc') {
+      const v = sub(a.b, a.a),
+        w = sub(a.a, b.center),
+        aa = dot(v, v),
+        bb = 2 * dot(w, v),
+        cc = dot(w, w) - b.radius ** 2;
+      const disc = bb * bb - 4 * aa * cc;
+      if (disc < -1e-8 || !aa) return [];
+      return [-1, 1]
+        .map((sign) =>
+          add(
+            a.a,
+            mul(v, (-bb + sign * Math.sqrt(Math.max(0, disc))) / (2 * aa)),
+          ),
+        )
+        .filter((p) => on(a, p) && on(b, p));
+    }
+    if (a.type === 'arc' && b.type === 'line') return intersections(b, a);
+    if (a.type === 'arc' && b.type === 'arc') {
+      const d = distance(a.center, b.center);
+      if (d < 1e-8)
+        return Math.abs(a.radius - b.radius) < 1e-8
+          ? [a.a, a.b, b.a, b.b].filter((p) => on(a, p) && on(b, p))
+          : [];
+      if (
+        d > a.radius + b.radius + 1e-8 ||
+        d < Math.abs(a.radius - b.radius) - 1e-8
+      )
+        return [];
+      const x = (a.radius ** 2 - b.radius ** 2 + d * d) / (2 * d),
+        h = Math.sqrt(Math.max(0, a.radius ** 2 - x * x)),
+        u = unit(sub(b.center, a.center));
+      const mid = add(a.center, mul(u, x)),
+        n = { x: -u.y, y: u.x };
+      return [-1, 1]
+        .map((sign) => add(mid, mul(n, sign * h)))
+        .filter((p) => on(a, p) && on(b, p));
+    }
+    return [];
+  };
+  return segments.some((s, i) =>
+    segments.slice(i + 2).some((t) => intersections(s, t).length > 0),
+  );
 }
