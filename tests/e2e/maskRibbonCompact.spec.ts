@@ -8,6 +8,7 @@ import {
 import { newNativeMask } from '../../src/domain/nativeMasks';
 import { setLayerState } from '../../src/domain/layerProfiles';
 import { layerId } from '../../src/domain/layers';
+import { MASK_LIMIT } from '../../src/domain/maskBatch';
 import type { Project } from '../../src/domain/types';
 
 // Issue #119: icon-only Ferramentas/Manipular/Desenhar and the Referências
@@ -58,9 +59,9 @@ async function load(page: Page, p: Project) {
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(p)),
   });
-  await expect(
-    page.getByRole('banner').getByText(p.name, { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('banner').locator('.window-project')).toHaveText(
+    p.name,
+  );
   await expect(page.locator('.busy-overlay')).toHaveCount(0);
   await page.getByRole('tab', { name: 'Máscaras', exact: true }).click();
 }
@@ -89,7 +90,7 @@ function fixture(long = false) {
     { ...newNativeMask('Fôrma'), id: 'homonym-0001' },
     { ...newNativeMask('Fôrma'), id: 'homonym-0002' },
     ...(long
-      ? Array.from({ length: 30 }, (_, i) => ({
+      ? Array.from({ length: MASK_LIMIT - 2 }, (_, i) => ({
           ...newNativeMask(
             `Planta de fôrmas do pavimento tipo com nome bem longo ${i + 1}`,
           ),
@@ -290,10 +291,13 @@ test('Referências: candidata ≠ ativa, ativação explícita, estados protegid
   });
   await destination(page)
     .getByLabel('Escolher máscara', { exact: true })
-    .selectOption('long-29');
-  await expect(
-    destination(page).getByLabel('Escolher máscara', { exact: true }),
-  ).toHaveAttribute('title', /nome bem longo 30 .*\[long-29\]/);
+    .selectOption(p.masks.at(-1)!.id);
+  const last = p.masks.at(-1)!;
+  const title = await destination(page)
+    .getByLabel('Escolher máscara', { exact: true })
+    .getAttribute('title');
+  expect(title).toContain(last.name);
+  expect(title).toContain(`[${last.id}]`);
   const ref = (await group(page, 'Referências').boundingBox())!;
   expect(ref.x + ref.width).toBeLessThanOrEqual(1366);
   expect(ref.width).toBeLessThan(440);
