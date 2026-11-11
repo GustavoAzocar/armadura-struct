@@ -18,6 +18,7 @@ import {
   visibilityState,
 } from '../domain/visibility';
 import { drawingPrimitives } from '../domain/drawingPrimitives';
+import { weldedMeshPrimitives } from '../domain/weldedMeshDrawing';
 import { objectState, layerState } from '../domain/layerProfiles';
 import { stylePrimitive, resolveStyle, dashArray } from '../domain/layers';
 import {
@@ -323,6 +324,17 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         ),
       })),
     [project],
+  );
+  // Telas soldadas: o mesmo desenho das exportações (peças, fios, identificação).
+  const meshes = useMemo(
+    () =>
+      (project.weldedMeshes ?? []).map((l) => ({
+        launch: l,
+        items: weldedMeshPrimitives(l).map((item) =>
+          stylePrimitive(source, l, item),
+        ),
+      })),
+    [project, source],
   );
   const barGeometries = useMemo(
     () => new Map(source.bars.map((b) => [b.id, geometry(b)])),
@@ -1237,6 +1249,19 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             )}
           </g>
         ))}
+        {meshes.map(({ launch: l, items }) => (
+          <g key={l.id} data-testid="cad-welded-mesh" data-mesh-id={l.id}>
+            {renderPrimitives(
+              items,
+              selected.includes(l.id)
+                ? '#58bce8'
+                : light
+                  ? '#394861'
+                  : '#4a88ff',
+              selected.includes(l.id),
+            )}
+          </g>
+        ))}
         {representations.map(({ detail: d, bar: b, items }) => {
           return (
             <g key={d.id} data-representation-id={d.id}>
@@ -1299,6 +1324,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       barDefinitions,
       barGeometries,
       barPresentations,
+      meshes,
       representations,
       polylineItems,
       distributions,

@@ -4076,6 +4076,54 @@ button.hierarchy-drawing {
 .welded-mesh-preview svg text {
   font-family: inherit;
 }
+.welded-mesh-launch-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.welded-mesh-launch-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: space-between;
+}
+.welded-mesh-launch-modes nav {
+  display: flex;
+  gap: 6px;
+}
+.welded-mesh-launch-modes button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.welded-mesh-launch-numbers {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+.welded-mesh-launch-numbers dt {
+  color: var(--muted);
+}
+.welded-mesh-launch-numbers dd {
+  margin: 0;
+}
+.welded-mesh-openings {
+  margin: 0;
+  padding-left: 18px;
+}
+.welded-mesh-note {
+  display: block;
+  color: var(--muted);
+}
+.welded-mesh-gaps {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+}
+.welded-mesh-gaps ul {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
 .stirrup-launch-panel {
   position: absolute;
   z-index: 8;

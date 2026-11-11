@@ -48,11 +48,13 @@ const wires = (d: WeldedMeshDirection) =>
 export default function WeldedMeshCriteriaDialog({
   initial,
   layers,
+  submitLabel = 'Usar critérios',
   onAccept,
   onClose,
 }: {
   initial: WeldedMeshCriteria;
   layers: DrawingLayer[];
+  submitLabel?: string;
   onAccept: (c: WeldedMeshCriteria) => void;
   onClose: () => void;
 }) {
@@ -467,7 +469,7 @@ export default function WeldedMeshCriteriaDialog({
             type="submit"
             disabled={issues.length > 0}
           >
-            Usar critérios
+            {submitLabel}
           </button>
         </footer>
       </form>

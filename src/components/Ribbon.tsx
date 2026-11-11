@@ -14,6 +14,7 @@ import {
   FolderOpen,
   History,
   Grid2X2,
+  Grid2x2Plus,
   Grid3x3,
   Hand,
   HelpCircle,
@@ -582,7 +583,10 @@ export default function Ribbon({
         // Grupo pequeno e próprio, para não conflitar com a reorganização do
         // menu Armaduras (#120).
         name: 'Telas soldadas',
-        items: [item('welded-mesh-criteria', 'Critérios de telas', Grid3x3)],
+        items: [
+          item('welded-mesh-criteria', 'Critérios de telas', Grid3x3),
+          item('welded-mesh', 'Lançar tela', Grid2x2Plus),
+        ],
       },
       {
         name: 'Relação do aço',

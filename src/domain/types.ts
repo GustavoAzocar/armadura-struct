@@ -368,6 +368,7 @@ export type Tool =
   | 'convert'
   | 'repeat'
   | 'range'
+  | 'welded-mesh'
   | AnnotationKind;
 export type Segment =
   | { type: 'line'; a: Point; b: Point }

@@ -26,6 +26,12 @@ import {
   removeLayer,
   validateLayers,
 } from '../src/domain/layers';
+import { setLayerState } from '../src/domain/layerProfiles';
+import {
+  hideObjects,
+  visibilityProjection,
+  visibilityReview,
+} from '../src/domain/visibility';
 import { toCsv, toDxf, toPdf } from '../src/lib/exports';
 import { defaultCsvExportOptions, planScopedCsv } from '../src/lib/scopedCsv';
 import type { Point, Project } from '../src/domain/types';
@@ -209,6 +215,35 @@ describe('Camadas', () => {
     expect(() => removeLayer(p, created.id)).toThrow(/em uso/);
     p = removeLayer(p, created.id, layerId('ARMADURAS'));
     expect(p.weldedMeshes![0].layerId).toBe(layerId('ARMADURAS'));
+  });
+});
+
+describe('Visibilidade', () => {
+  const ids = (p: Project) => (p.weldedMeshes ?? []).map((l) => l.id);
+  it('layer desligada e objeto oculto tiram a tela da vista e da impressão; o realce mostra só a oculta', () => {
+    const p = project();
+    expect(ids(visibilityProjection(p, 'model', 'visible'))).toEqual([
+      'tela-1',
+    ]);
+    const off = setLayerState(p, 'model', layerId('ARMADURAS'), {
+      visible: false,
+    });
+    expect(ids(visibilityProjection(off, 'model', 'visible'))).toEqual([]);
+    expect(ids(visibilityProjection(off, 'model', 'print'))).toEqual([]);
+    expect(ids(visibilityReview(off, 'model'))).toEqual(['tela-1']);
+    const hidden = hideObjects(p, 'model', ['tela-1']);
+    expect(ids(visibilityProjection(hidden, 'model', 'visible'))).toEqual([]);
+    expect(ids(visibilityReview(hidden, 'model'))).toEqual(['tela-1']);
+    // Visível e sem ocultação: nada a realçar.
+    expect(ids(visibilityReview(p, 'model'))).toEqual([]);
+    // Captura bloqueada: some da projeção de captura, continua visível.
+    const locked = setLayerState(p, 'model', layerId('ARMADURAS'), {
+      capture: false,
+    });
+    expect(ids(visibilityProjection(locked, 'model', 'capture'))).toEqual([]);
+    expect(ids(visibilityProjection(locked, 'model', 'visible'))).toEqual([
+      'tela-1',
+    ]);
   });
 });
 
