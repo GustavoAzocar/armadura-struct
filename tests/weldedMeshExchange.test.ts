@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createScheduleLock, emptyProject, newBar } from '../src/domain/model';
+import {
+  createScheduleLock,
+  decodeProject,
+  emptyProject,
+  newBar,
+} from '../src/domain/model';
 import {
   completeOwnership,
   createHierarchyNode,
+  moveObjectsToDetail,
 } from '../src/domain/hierarchy';
 import { createLayer } from '../src/domain/layers';
 import {
@@ -24,6 +30,7 @@ import { previewDetailTransfer } from '../src/domain/detailTransfer';
 import {
   previewMergeRepetitions,
   repetitionCandidates,
+  setDetailRepetition,
 } from '../src/domain/detailRepetition';
 import type { Point, Project } from '../src/domain/types';
 
@@ -276,5 +283,73 @@ describe('Reunir repetições', () => {
     const merged = previewMergeRepetitions(p, d1, [d1, d2]);
     expect(merged.issues.length).toBeGreaterThan(0);
     expect(merged.project).toBeUndefined();
+  });
+});
+
+describe('Mover telas entre detalhamentos', () => {
+  /**
+   * tela-1 em d1 (fator 1); b1 e tela-3 em "Triplo A" (fator 3);
+   * destinos vazios: "Igual" (fator 1) e "Triplo B" (fator 3).
+   */
+  const fixture = () => {
+    let p = emptyProject();
+    const d1 = p.hierarchy.details[0].id;
+    p = launch(p, 'tela-1', d1, rect(0, 0, 6000, 2450));
+    const e = createHierarchyNode(p, 'element', 'V2', p.hierarchy.floors[0].id);
+    const tripleA = createHierarchyNode(e.project, 'detail', 'Triplo A', e.id);
+    const tripleB = createHierarchyNode(
+      tripleA.project,
+      'detail',
+      'Triplo B',
+      e.id,
+    );
+    const same = createHierarchyNode(tripleB.project, 'detail', 'Igual', e.id);
+    p = completeOwnership(
+      {
+        ...same.project,
+        bars: [{ ...newBar('N1'), id: 'b1', diameter: 10, quantity: 4 }],
+      },
+      tripleA.id,
+    );
+    p = launch(p, 'tela-3', tripleA.id, rect(20000, 0, 6000, 2450));
+    for (const id of [tripleA.id, tripleB.id])
+      p = setDetailRepetition(p, id, { factor: 3, elements: [] });
+    return { p, d1, tripleA: tripleA.id, tripleB: tripleB.id, same: same.id };
+  };
+  const steel = (p: Project) => weldedMeshSchedule(p).total;
+
+  it('só telas, fator diferente: recusa sem alterar o projeto nem o quadro', () => {
+    const { p, tripleB } = fixture(),
+      before = JSON.stringify(p);
+    expect(() => moveObjectsToDetail(p, ['tela-1'], tripleB)).toThrow(
+      /quantidade efetiva/,
+    );
+    expect(JSON.stringify(p)).toBe(before);
+  });
+
+  it('só telas, mesmo fator: move e o quadro não muda', () => {
+    const { p, same } = fixture();
+    const q = moveObjectsToDetail(p, ['tela-1'], same);
+    expect(q.hierarchy.objectDetails['tela-1']).toBe(same);
+    expect(steel(q)).toBeCloseTo(steel(p), 9);
+    expect(decodeProject(JSON.stringify(q))).toEqual(q);
+  });
+
+  it('seleção mista: a barra passaria, mas a tela mudaria a quantidade; nada é movido', () => {
+    const { p, tripleB } = fixture(),
+      before = JSON.stringify(p);
+    expect(() => moveObjectsToDetail(p, ['b1', 'tela-1'], tripleB)).toThrow(
+      /quantidade efetiva/,
+    );
+    expect(JSON.stringify(p)).toBe(before);
+  });
+
+  it('seleção mista, mesmo fator: move barra e tela juntas sem mudar o aço', () => {
+    const { p, d1, tripleB } = fixture();
+    const q = moveObjectsToDetail(p, ['b1', 'tela-3'], tripleB);
+    expect(q.hierarchy.objectDetails['b1']).toBe(tripleB);
+    expect(q.hierarchy.objectDetails['tela-3']).toBe(tripleB);
+    expect(q.hierarchy.objectDetails['tela-1']).toBe(d1);
+    expect(steel(q)).toBeCloseTo(steel(p), 9);
   });
 });
