@@ -44,7 +44,13 @@ export type Bar = LayerBinding & {
   id: string;
   mark: string;
   element: string;
-  kind: 'free' | 'stirrup';
+  kind: 'free' | 'stirrup' | 'beam-clamp';
+  /** Physical U clamp; graphical obliquity never changes these axis dimensions. */
+  beamClamp?: import('./beamClampSchema').BeamClampProfile;
+  beamClampDisplay?: import('zod').infer<
+    typeof import('./beamClampSchema').beamClampDisplaySchema
+  >;
+  beamClampView?: import('./beamClampSchema').BeamClampView;
   stirrupMirrored?: boolean;
   stirrupProfile?: import('./stirrupSchema').StirrupProfile;
   stirrupDisplay?: import('zod').infer<
@@ -108,6 +114,8 @@ export type FabricationPosition = {
 export type BarRepresentation = LayerBinding & {
   id: string;
   barId: string;
+  /** A linked schematic view of the same physical U clamp. */
+  beamClampView?: import('./beamClampSchema').BeamClampView;
   mirrored?: boolean;
   origin: Point;
   rotation?: number;
@@ -313,10 +321,11 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/28';
+  schema: 'armadurastruct/30';
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
+  beamClampDefaults?: import('./beamClampSchema').BeamClampCriteria;
   cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;
@@ -350,6 +359,7 @@ export type Tool =
   | 'pan'
   | 'bar'
   | 'stirrup'
+  | 'beam-clamp'
   | 'move'
   | 'copy'
   | 'detail'

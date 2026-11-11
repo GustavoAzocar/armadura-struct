@@ -79,6 +79,7 @@ import {
 export type Action =
   | Tool
   | 'stirrup-criteria'
+  | 'beam-clamp-criteria'
   | 'cad-settings'
   | 'mask-control'
   | 'symbols'
@@ -553,6 +554,8 @@ export default function Ribbon({
           item('bar', 'Barra livre', PencilRuler),
           item('stirrup', 'Estribo', SquareDashed),
           item('stirrup-criteria', 'Critérios do estribo', Settings),
+          item('beam-clamp', 'Grampo de viga', Shapes),
+          item('beam-clamp-criteria', 'Critérios do grampo de viga', Settings),
           item('repeat', 'Repetir estribo', Copy, 1),
           item('detail', 'Rebater armadura', Shapes, 1),
           item('convert', 'Converter polilinha', Spline),

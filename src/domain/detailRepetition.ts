@@ -4,6 +4,7 @@ import { completeOwnership, contentObjects, detailPath } from './hierarchy';
 import { detailOrigin, sameDetailOrigin } from './detailTransfer';
 import { repetitionNames } from './detailQuantities';
 import { add, sub, geometry, world, vertices } from './geometry';
+import { fabricationSignature } from './fabrication';
 
 export function setDetailRepetition(
   p: Project,
@@ -32,6 +33,9 @@ export function setDetailRepetition(
 }
 /** Marks, descriptions, colors and graphic placement do not define the steel cut shape. */
 function barKey(b: Bar) {
+  const clampSignature =
+    b.kind === 'beam-clamp' ? fabricationSignature(b) : undefined;
+  if (b.kind === 'beam-clamp' && !clampSignature) return undefined;
   const first = b.points[0];
   return JSON.stringify({
     kind: b.kind,
@@ -47,9 +51,11 @@ function barKey(b: Bar) {
     showRibbed: b.showRibbed ?? false,
     columnLevel: b.columnLevel ?? '',
     quantityDisplay: b.quantityDisplay ?? 'factored',
-    ...(b.kind === 'free'
-      ? { points: b.points.map((p) => sub(p, first)) }
-      : { width: b.width, height: b.height, hook: b.hook }),
+    ...(b.kind === 'beam-clamp'
+      ? { beamClamp: clampSignature }
+      : b.kind === 'free'
+        ? { points: b.points.map((p) => sub(p, first)) }
+        : { width: b.width, height: b.height, hook: b.hook }),
     ...(b.distribution
       ? {
           distribution: {
@@ -64,8 +70,11 @@ const barsOf = (p: Project, id: string) =>
   p.bars.filter((b) => p.hierarchy.objectDetails[b.id] === id);
 function signature(p: Project, id: string) {
   const bars = barsOf(p, id);
-  return bars.length && bars.every((b) => !geometry(b).errors.length)
-    ? JSON.stringify(bars.map(barKey).sort())
+  const keys = bars.map(barKey);
+  return bars.length &&
+    bars.every((b) => !geometry(b).errors.length) &&
+    keys.every(Boolean)
+    ? JSON.stringify(keys.sort())
     : undefined;
 }
 export function repetitionCandidates(p: Project, representativeId: string) {
@@ -203,11 +212,16 @@ export function previewMergeRepetitions(
     const translations = new Map<string, { x: number; y: number }>();
     for (const id of removed) {
       const available = new Map<string, Bar[]>();
-      for (const b of keptBars)
-        available.set(barKey(b), [...(available.get(barKey(b)) ?? []), b]);
+      for (const b of keptBars) {
+        const key = barKey(b);
+        if (!key) throw Error('Peça sem assinatura de fabricação válida.');
+        available.set(key, [...(available.get(key) ?? []), b]);
+      }
       const deltas: { x: number; y: number }[] = [];
       for (const b of barsOf(p, id)) {
-        const target = available.get(barKey(b))!.shift()!;
+        const key = barKey(b);
+        if (!key) throw Error('Peça sem assinatura de fabricação válida.');
+        const target = available.get(key)!.shift()!;
         plan.mapping[b.id] = target.id;
         if (target.rotation !== b.rotation) deltas.push({ x: NaN, y: NaN });
         else

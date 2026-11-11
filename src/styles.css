@@ -4073,6 +4073,34 @@ button.hierarchy-drawing {
 .stirrup-launch-panel button {
   min-height: 30px;
 }
+.beam-clamp-dialog {
+  width: min(920px, 96vw);
+}
+.beam-clamp-dialog-body {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.75fr);
+}
+.beam-clamp-previews {
+  gap: 12px;
+}
+.beam-clamp-previews figure {
+  margin: 0;
+}
+.beam-clamp-previews figcaption {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.beam-clamp-previews svg {
+  height: 150px;
+}
+.beam-clamp-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.beam-clamp-launch-panel {
+  max-width: min(560px, calc(100% - 24px));
+}
 @media (max-width: 650px) {
   .stirrup-dialog-body {
     grid-template-columns: 1fr;
