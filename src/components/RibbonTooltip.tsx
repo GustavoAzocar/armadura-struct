@@ -127,8 +127,12 @@ function Bubble({ shown }: { shown: Shown }) {
         (anchor.right <= clip.left + 2 || anchor.left >= clip.right - 2));
     setGone(out);
     if (out) return;
-    const w = el.offsetWidth,
-      h = el.offsetHeight,
+    // Position is measured in viewport pixels; fixed offsets inherit CSS zoom.
+    // Resolve both in the same units so enlarged interfaces keep help on screen.
+    const rect = el.getBoundingClientRect();
+    const scale = rect.width / parseFloat(getComputedStyle(el).width) || 1;
+    const w = rect.width,
+      h = rect.height,
       vw = document.documentElement.clientWidth,
       vh = document.documentElement.clientHeight;
     let left = anchor.left + anchor.width / 2 - w / 2;
@@ -136,7 +140,7 @@ function Bubble({ shown }: { shown: Shown }) {
     let top = anchor.bottom + GAP;
     if (top + h > vh - MARGIN) top = anchor.top - GAP - h;
     top = Math.max(MARGIN, top);
-    setPos({ left, top });
+    setPos({ left: left / scale, top: top / scale });
   }, [shown]);
   return (
     <div

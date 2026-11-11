@@ -33,19 +33,19 @@ import {
   Trash2,
   Type,
   Undo2,
-  Scissors,
   Combine,
   Spline,
   ArrowUpRight,
-  LockKeyhole,
   RefreshCw,
-  ListOrdered,
   PanelRight,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Focus,
   type LucideIcon,
 } from 'lucide-react';
+import * as RebarIcons from './armatureIcons';
 import type { Tool } from '../domain/types';
 import {
   useEffect,
@@ -166,6 +166,7 @@ type Item = {
   icon: LucideIcon | IconComponent;
   selection?: number;
   disabled?: boolean;
+  prominent?: boolean;
 };
 const item = (
   action: Action,
@@ -259,7 +260,7 @@ function CompactTool({
     <span className="ribbon-item-slot" {...tip.hover}>
       <button
         type="button"
-        className={`ribbon-tool ribbon-tool-compact ${active ? 'active' : ''}`}
+        className={`ribbon-tool ribbon-tool-compact ${entry.prominent ? 'ribbon-tool-primary' : ''} ${active ? 'active' : ''}`}
         data-action={entry.action}
         aria-label={entry.label}
         aria-pressed={active}
@@ -276,7 +277,11 @@ function CompactTool({
         onBlur={tip.focus.onBlur}
         onKeyDown={onKeyDown}
       >
-        <Icon size={18} strokeWidth={1.6} />
+        <Icon
+          size={entry.prominent ? 20 : 18}
+          strokeWidth={1.6}
+          aria-hidden="true"
+        />
       </button>
       {tip.describedId && (
         <span id={tip.describedId} className="sr-only">
@@ -292,6 +297,77 @@ export type CreationSettings = {
   spacing: number;
   cover: number;
 };
+function CreationParameters({
+  settings,
+  onSettings,
+}: {
+  settings: CreationSettings;
+  onSettings: (patch: Partial<CreationSettings>) => void;
+}) {
+  const helpId = useId();
+  return (
+    <div
+      className="creation-fields"
+      role="group"
+      aria-label="Parâmetros das próximas criações"
+      aria-describedby={helpId}
+      title="Parâmetros gerais das próximas criações. Critérios de estribo já definidos têm precedência."
+      onKeyDown={(e) => {
+        if (!((e.ctrlKey || e.metaKey) && e.key === 'F1')) e.stopPropagation();
+      }}
+    >
+      <NumberField
+        label="Quantidade de criação"
+        compactLabel="Quantidade"
+        value={settings.quantity}
+        min={1}
+        max={100000}
+        step={1}
+        onChange={(quantity) => onSettings({ quantity })}
+      />
+      <label className="field">
+        <span>Bitola (mm)</span>
+        <div className="input-suffix">
+          <select
+            aria-label="Bitola de criação"
+            value={settings.diameter}
+            onChange={(e) => onSettings({ diameter: Number(e.target.value) })}
+          >
+            {![4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32, 40].includes(
+              settings.diameter,
+            ) && <option value={settings.diameter}>{settings.diameter}</option>}
+            {[4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32, 40].map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+      </label>
+      <NumberField
+        label="Espaçamento de criação"
+        compactLabel="Espaçamento"
+        value={settings.spacing}
+        min={1}
+        onChange={(spacing) => onSettings({ spacing })}
+        suffix="mm"
+      />
+      <NumberField
+        label="Cobrimento padrão de criação"
+        compactLabel="Cobrimento"
+        value={settings.cover}
+        min={0}
+        max={10000}
+        onChange={(cover) => onSettings({ cover })}
+        suffix="mm"
+      />
+      <span id={helpId} className="sr-only">
+        Parâmetros gerais das próximas criações; não editam peças existentes.
+        Critérios do estribo já definidos têm precedência.
+      </span>
+    </div>
+  );
+}
 export default function Ribbon({
   tab,
   setTab,
@@ -548,49 +624,123 @@ export default function Ribbon({
     ],
     Armaduras: [
       {
-        name: 'Armaduras',
-        creation: true,
+        name: 'Lançar',
+        compact: { columns: 2 },
         items: [
-          item('bar', 'Barra livre', PencilRuler),
-          item('stirrup', 'Estribo', SquareDashed),
-          item('stirrup-criteria', 'Critérios do estribo', Settings),
-          item('beam-clamp', 'Grampo de viga', Shapes),
-          item('beam-clamp-criteria', 'Critérios do grampo de viga', Settings),
-          item('repeat', 'Repetir estribo', Copy, 1),
-          item('detail', 'Rebater armadura', Shapes, 1),
-          item('convert', 'Converter polilinha', Spline),
-          item('follow', 'Seguir fôrma', ScanLine),
-          item('interpret-cad', 'Interpretar CAD em armadura', PencilRuler),
+          {
+            ...item('bar', 'Barra livre', RebarIcons.FreeBarIcon),
+            prominent: true,
+          },
+          {
+            ...item('stirrup', 'Estribo', RebarIcons.StirrupIcon),
+            prominent: true,
+          },
+          item(
+            'stirrup-criteria',
+            'Critérios do estribo',
+            RebarIcons.StirrupCriteriaIcon,
+          ),
+          item('repeat', 'Repetir estribo', RebarIcons.RepeatStirrupIcon, 1),
+        ],
+      },
+      { name: 'Próximas criações', creation: true, items: [] },
+      {
+        name: 'Grampos de viga',
+        compact: { columns: 1 },
+        items: [
+          item('beam-clamp', 'Grampo de viga', RebarIcons.BeamClampIcon),
+          item(
+            'beam-clamp-criteria',
+            'Critérios do grampo de viga',
+            RebarIcons.BeamClampCriteriaIcon,
+          ),
+        ],
+      },
+      {
+        name: 'Gerar / converter',
+        compact: { columns: 2 },
+        items: [
+          item('detail', 'Rebater armadura', RebarIcons.RepresentationIcon, 1),
+          item('convert', 'Converter polilinha', RebarIcons.ConvertBarIcon),
+          item('follow', 'Seguir fôrma', RebarIcons.FollowFormIcon),
+          item(
+            'interpret-cad',
+            'Interpretar CAD em armadura',
+            RebarIcons.InterpretBarIcon,
+          ),
         ],
       },
       {
         name: 'Poligonais / traspasse',
+        compact: { columns: 2 },
         items: [
-          {
-            ...item('edit-segment', 'Comprimentos e ângulos', Ruler, 1),
-            caption: 'Comprim. e ângulos',
-          },
-          item('lengthen-bar', 'Estender barra', ArrowUpRight, 1),
-          item('join', 'Emendar poligonais', Combine, 2),
-          item('split', 'Dividir barra', Scissors, 1),
+          item(
+            'edit-segment',
+            'Comprimentos e ângulos',
+            RebarIcons.LengthAngleIcon,
+            1,
+          ),
+          item('lengthen-bar', 'Estender barra', RebarIcons.LengthenBarIcon, 1),
+          item('join', 'Emendar poligonais', RebarIcons.JoinBarIcon, 2),
+          item('split', 'Dividir barra', RebarIcons.SplitBarIcon, 1),
         ],
       },
       {
         name: 'Faixas de armadura',
-        items: [item('range', 'Faixa ortogonal', Layers, 1)],
+        compact: { columns: 1 },
+        items: [item('range', 'Faixa ortogonal', RebarIcons.RangeBarIcon, 1)],
       },
       {
         name: 'Relação do aço',
+        compact: { columns: 3 },
         items: [
-          item('refresh-schedule', 'Atualizar RA', RefreshCw),
-          item('lock-schedule', 'Bloquear RA', LockKeyhole),
-          item('schedule', 'Quadro de aço', Table2),
-          item('insert-sheet-schedule', 'Inserir quadro na prancha', Table2),
-          item('renumber', 'Renumerar', ListOrdered),
+          item(
+            'refresh-schedule',
+            'Atualizar RA',
+            RebarIcons.RefreshScheduleIcon,
+          ),
+          item(
+            'lock-schedule',
+            active['lock-schedule'] ? 'Desbloquear RA' : 'Bloquear RA',
+            active['lock-schedule']
+              ? RebarIcons.UnlockScheduleIcon
+              : RebarIcons.LockScheduleIcon,
+          ),
+          item('schedule', 'Quadro de aço', RebarIcons.ScheduleIcon),
+          item(
+            'insert-sheet-schedule',
+            'Inserir quadro na prancha',
+            RebarIcons.InsertScheduleIcon,
+          ),
+          item('renumber', 'Renumerar', RebarIcons.RenumberIcon),
         ],
       },
     ],
   };
+  const armaturesTab = tab === 'Armaduras';
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scroll, setScroll] = useState({
+    overflow: false,
+    before: false,
+    after: false,
+  });
+  const updateScroll = () => {
+    const e = scrollRef.current;
+    if (!e) return;
+    setScroll({
+      overflow: e.scrollWidth > e.clientWidth + 1,
+      before: e.scrollLeft > 1,
+      after: e.scrollLeft + e.clientWidth < e.scrollWidth - 1,
+    });
+  };
+  useEffect(() => {
+    const e = scrollRef.current;
+    if (!e) return;
+    const observer = new ResizeObserver(updateScroll);
+    observer.observe(e);
+    updateScroll();
+    return () => observer.disconnect();
+  }, [tab, collapsed]);
   const masksTab = tab === 'Máscaras';
   const [peek, setPeek] = useState(false);
   const peekId = useId();
@@ -640,20 +790,33 @@ export default function Ribbon({
     const box = e.currentTarget,
       el = e.target as HTMLElement,
       refs = box.querySelector<HTMLElement>('.ribbon-group-references');
-    if (!refs || refs.contains(el) || box.scrollWidth <= box.clientWidth)
-      return;
+    if (refs?.contains(el) || box.scrollWidth <= box.clientWidth) return;
     const r = el.getBoundingClientRect(),
       b = box.getBoundingClientRect(),
+      scale = b.width / box.clientWidth || 1,
+      inset = box.parentElement?.classList.contains('ribbon-scroll-overflow')
+        ? 34
+        : 0,
       edge =
-        getComputedStyle(refs).position === 'sticky'
+        refs && getComputedStyle(refs).position === 'sticky'
           ? refs.getBoundingClientRect().left
-          : b.right;
-    if (r.right > edge) box.scrollLeft += r.right - edge + 8;
-    else if (r.left < b.left) box.scrollLeft -= b.left - r.left + 8;
+          : b.right - inset;
+    if (r.right > edge) box.scrollLeft += (r.right - edge + 8) / scale;
+    else if (r.left < b.left + inset)
+      box.scrollLeft -= (b.left + inset - r.left + 8) / scale;
   };
   const content = (variant: 'bar' | 'peek') =>
     (groups[tab] ?? groups.Armaduras).map((g) =>
-      g.references ? (
+      g.creation ? (
+        <div
+          key={g.name}
+          className="ribbon-group ribbon-group-creation"
+          data-group={g.name}
+        >
+          <CreationParameters settings={settings} onSettings={onSettings} />
+          <span className="ribbon-group-label">{g.name}</span>
+        </div>
+      ) : g.references ? (
         <div
           key={g.name}
           className="ribbon-group ribbon-group-references"
@@ -687,7 +850,7 @@ export default function Ribbon({
       ) : (
         <div key={g.name} className="ribbon-group" data-group={g.name}>
           <div className="ribbon-group-tools">
-            {g.items.map((entry, i) => {
+            {g.items.map((entry) => {
               const t =
                 entry.action === 'lock-schedule' && active['lock-schedule']
                   ? { ...entry, label: 'Desbloquear RA' }
@@ -712,64 +875,6 @@ export default function Ribbon({
                     <t.icon size={23} strokeWidth={1.5} />
                     <span>{t.caption ?? t.label}</span>
                   </button>
-                  {g.creation && i === 1 && (
-                    <div
-                      className="creation-fields"
-                      title="Parâmetros das próximas armaduras"
-                    >
-                      <NumberField
-                        label="Quantidade de criação"
-                        compactLabel="Qtd."
-                        value={settings.quantity}
-                        min={1}
-                        max={100000}
-                        step={1}
-                        onChange={(quantity) => onSettings({ quantity })}
-                      />
-                      <label className="field">
-                        <span>Bitola</span>
-                        <select
-                          aria-label="Bitola de criação"
-                          value={settings.diameter}
-                          onChange={(e) =>
-                            onSettings({ diameter: Number(e.target.value) })
-                          }
-                        >
-                          {![
-                            4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32, 40,
-                          ].includes(settings.diameter) && (
-                            <option value={settings.diameter}>
-                              {settings.diameter}
-                            </option>
-                          )}
-                          {[
-                            4.2, 5, 6.3, 8, 10, 12.5, 16, 20, 22, 25, 32, 40,
-                          ].map((d) => (
-                            <option key={d} value={d}>
-                              {d}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <NumberField
-                        label="Espaçamento de criação"
-                        compactLabel="Espaç."
-                        value={settings.spacing}
-                        min={1}
-                        onChange={(spacing) => onSettings({ spacing })}
-                        suffix="mm"
-                      />
-                      <NumberField
-                        label="Cobrimento padrão de criação"
-                        compactLabel="Cobrim."
-                        value={settings.cover}
-                        min={0}
-                        max={10000}
-                        onChange={(cover) => onSettings({ cover })}
-                        suffix="mm"
-                      />
-                    </div>
-                  )}
                 </span>
               );
             })}
@@ -846,9 +951,56 @@ export default function Ribbon({
             {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           </button>
         </div>
-        {!collapsed && (
-          <div className="ribbon-content" onFocus={keepFocusVisible}>
-            {content('bar')}
+        {(armaturesTab || !collapsed) && (
+          <div
+            className={`ribbon-scroll ${armaturesTab && scroll.overflow ? 'ribbon-scroll-overflow' : ''}`}
+            hidden={collapsed}
+          >
+            {armaturesTab && scroll.overflow && (
+              <button
+                className="ribbon-scroll-arrow ribbon-scroll-previous"
+                type="button"
+                aria-label="Comandos anteriores de armaduras"
+                title="Comandos anteriores de armaduras"
+                disabled={!scroll.before}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+                }}
+                onClick={() =>
+                  scrollRef.current?.scrollBy({
+                    left: -240,
+                    behavior: 'smooth',
+                  })
+                }
+              >
+                <ChevronLeft size={18} aria-hidden="true" />
+              </button>
+            )}
+            <div
+              ref={scrollRef}
+              className="ribbon-content"
+              onScroll={updateScroll}
+              onFocus={keepFocusVisible}
+            >
+              {content('bar')}
+            </div>
+            {armaturesTab && scroll.overflow && (
+              <button
+                className="ribbon-scroll-arrow ribbon-scroll-next"
+                type="button"
+                aria-label="Próximos comandos de armaduras"
+                title="Próximos comandos de armaduras"
+                disabled={!scroll.after}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+                }}
+                onClick={() =>
+                  scrollRef.current?.scrollBy({ left: 240, behavior: 'smooth' })
+                }
+              >
+                <ChevronRight size={18} aria-hidden="true" />
+              </button>
+            )}
           </div>
         )}
         {peekOpen && (
