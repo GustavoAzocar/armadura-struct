@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import Ajv2020 from 'ajv/dist/2020';
+import packageSchema from '../docs/openstruct-detail-v20.schema.json';
+import { beamClampBar } from '../src/domain/beamClamps';
+import { defaultBeamClampCriteria } from '../src/domain/beamClampSchema';
 import {
   defaultStirrupCriteria,
   scaleStirrupProfile,
@@ -62,6 +66,57 @@ function criteria(
 }
 const bar = (c = criteria()) => criteriaBar(c, pt(100, 200), 'N1', 'clamp');
 const project = () => completeOwnership({ ...emptyProject(), bars: [bar()] });
+
+it('grampos S/C e de viga coexistem no arquivo e no pacote v20 com schema público', () => {
+  const beam = beamClampBar(
+    defaultBeamClampCriteria(),
+    pt(800, 0),
+    'G1',
+    'beam',
+  );
+  const p = completeOwnership({
+    ...project(),
+    bars: [bar(), beam],
+    details: [
+      {
+        id: 'beam-view',
+        barId: beam.id,
+        origin: pt(900, 500),
+        beamClampView: beam.beamClampView,
+      },
+    ],
+  });
+  const locked = { ...p, scheduleLock: createScheduleLock(p) };
+  expect(decodeProject(JSON.stringify(locked)).bars).toEqual(p.bars);
+  expect(decodeProject(JSON.stringify(locked)).scheduleLock).toEqual(
+    locked.scheduleLock,
+  );
+  const validate = new Ajv2020({
+    strict: false,
+    formats: { 'date-time': true },
+  }).compile(packageSchema);
+  for (const unit of ['mm', 'cm', 'm'] as const) {
+    const pack = createDetailPackage(p, p.hierarchy.details[0].id, {
+      unit,
+      producer: { app: 'Revisão AS-65', version: '1' },
+    });
+    expect(validate(pack), JSON.stringify(validate.errors)).toBe(true);
+    const restored = readDetailPackage(pack).project;
+    expect(restored.bars.map((b) => b.kind)).toEqual(['stirrup', 'beam-clamp']);
+    expect(restored.details).toEqual(p.details);
+    restored.bars.forEach((b, i) => {
+      expect(geometry(b).length).toBeCloseTo(geometry(p.bars[i]).length, 8);
+      expect(b.stirrupProfile).toEqual(p.bars[i].stirrupProfile);
+      expect(b.beamClamp).toEqual(p.bars[i].beamClamp);
+    });
+    expect(() =>
+      readDetailPackage({ ...pack, schema: 'openstruct.detail/19' }),
+    ).toThrow(/20/);
+  }
+  expect(() =>
+    decodeProject(JSON.stringify({ ...p, schema: 'armadurastruct/30' })),
+  ).toThrow(/31/);
+});
 
 describe('AS-65 grampos por centros longitudinais', () => {
   it.each(['clamp-s', 'clamp-c'] as const)(
@@ -172,6 +227,22 @@ describe('AS-65 grampos por centros longitudinais', () => {
     const zero = criteria();
     zero.profile.start.angle = 0;
     expect(() => bar(zero)).toThrow(/gancho/);
+  });
+  it('retornos sobrepostos ou tangentes são recusados também em centros inclinados', () => {
+    for (const angle of [0, 37, 90, 143]) {
+      for (const length of [200, 1000]) {
+        const c = criteria('clamp-c');
+        c.profile.start = { ...c.profile.start, angle: 180, length };
+        c.profile.end = { ...c.profile.end, angle: 180, length };
+        c.profile.points = c.profile.points.map((p) => rotate(p, angle));
+        expect(() => bar(c)).toThrow(/cruz|sobrep/);
+      }
+      const valid = criteria('clamp-c');
+      valid.profile.start = { ...valid.profile.start, angle: 180, length: 30 };
+      valid.profile.end = { ...valid.profile.end, angle: 180, length: 30 };
+      valid.profile.points = valid.profile.points.map((p) => rotate(p, angle));
+      expect(geometry(bar(valid)).errors).toEqual([]);
+    }
   });
   it('fabricação distingue S/C e preserva equivalência sem metadados de captura', () => {
     const s = bar(),

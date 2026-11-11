@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { emptyProject } from '../../src/domain/model';
+import { factoryCadDefaults } from '../../src/domain/cadDefaults';
 import {
   confirmProjectReplacement,
   useCompatibleProjectFolders,
@@ -223,4 +225,86 @@ test('janela baixa, decimais e troca de contexto cancelam sem resíduos', async 
     .click();
   await expect(panel(page)).toHaveCount(0);
   expect(await save(page)).toEqual(before);
+});
+
+for (const captured of [2, 3, 4, 5]) {
+  test(`reabrir critérios após ${captured} pontos permite voltar ao modo manual sem faixa residual`, async ({
+    page,
+  }) => {
+    const fixture = emptyProject();
+    fixture.cadDefaults = factoryCadDefaults();
+    fixture.cadDefaults.armatures.steel = 'CA-50';
+    await page.goto('/');
+    await expect(page.locator('.busy-overlay')).toHaveCount(0);
+    await page.getByTestId('project-input').setInputFiles({
+      name: 'grampos.armstruct.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(fixture)),
+    });
+    await configure(page, 'clamp-c', true);
+    for (const p of ['0,0', '300,0', '0,1000', '1000,1000', '0,1200'].slice(
+      0,
+      captured,
+    ))
+      await command(page, p);
+    await panel(page)
+      .getByRole('button', { name: 'Editar bitolas / orientação / centros' })
+      .click();
+    const d = page.getByRole('dialog', {
+      name: 'Critérios do estribo',
+      exact: true,
+    });
+    await d.getByLabel('Aço do estribo', { exact: true }).selectOption('CA-60');
+    await d.getByRole('button', { name: 'Distribuição', exact: true }).click();
+    await d.getByLabel('Modo de lançamento do estribo').selectOption('section');
+    await d.getByLabel('Quantidade da seção').fill('7');
+    await d.getByRole('button', { name: 'Usar critérios e lançar' }).click();
+    await expect(panel(page)).toContainText('7 peça(s)');
+    await expect(panel(page)).not.toContainText('passo efetivo');
+    await panel(page)
+      .getByRole('button', { name: 'Confirmar lançamento' })
+      .click();
+    const done = await save(page);
+    expect(done.bars).toHaveLength(1);
+    expect(done.bars[0]).toMatchObject({
+      quantity: 7,
+      steel: 'CA-60',
+      quantitySource: { kind: 'manual' },
+    });
+    expect(done.bars[0].distribution).toBeUndefined();
+  });
+}
+
+test('reabrir critérios muda manual para faixa e troca de família reinicia a captura', async ({
+  page,
+}) => {
+  await fresh(page);
+  await configure(page, 'clamp-c', false);
+  await command(page, '0,0');
+  await command(page, '300,0');
+  await panel(page)
+    .getByRole('button', { name: 'Editar bitolas / orientação / centros' })
+    .click();
+  const d = page.getByRole('dialog', {
+    name: 'Critérios do estribo',
+    exact: true,
+  });
+  await d.getByRole('button', { name: 'Distribuição', exact: true }).click();
+  await d.getByLabel('Modo de lançamento do estribo').selectOption('range');
+  await d.getByLabel('Espaçamento solicitado (mm)').fill('100');
+  await d.getByRole('button', { name: 'Usar critérios e lançar' }).click();
+  await expect(panel(page)).toContainText('início da faixa');
+  for (const p of ['0,1000', '1000,1000', '0,1200']) await command(page, p);
+  await expect(panel(page)).toContainText('11 peça(s)');
+  await panel(page)
+    .getByRole('button', { name: 'Editar bitolas / orientação / centros' })
+    .click();
+  await d.getByLabel('Formato do estribo').selectOption('rectangle');
+  await d.getByRole('button', { name: 'Usar critérios e lançar' }).click();
+  await expect(panel(page)).toContainText('Posicione a seção');
+  await expect(
+    panel(page).getByRole('button', { name: 'Confirmar lançamento' }),
+  ).toBeDisabled();
+  await page.keyboard.press('Escape');
+  expect((await save(page)).bars).toHaveLength(0);
 });

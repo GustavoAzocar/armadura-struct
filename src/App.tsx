@@ -4581,7 +4581,7 @@ export default function App() {
       let b = criteriaBar(s.c, s.section!, s.mark, s.id);
       if (s.c.distribute)
         b = withStirrupRange(b, s.c, s.start!, s.end!, s.label);
-      b = barCadDefaults(current, b, true);
+      b = { ...barCadDefaults(current, b, true), steel: b.steel };
       const commands: RebarCommand[] = [
         {
           type: 'bar.create',
@@ -4639,14 +4639,29 @@ export default function App() {
       return;
     }
     if (d.resume) {
+      const s = d.resume;
+      const familyChanged =
+        isColumnClamp(s.c.profile) !== isColumnClamp(c.profile);
+      const stage =
+        familyChanged || !s.section
+          ? 'section'
+          : s.stage === 'center-2'
+            ? 'center-2'
+            : !c.distribute
+              ? 'ready'
+              : !s.c.distribute
+                ? 'range-start'
+                : s.stage;
       setStirrupDialog(null);
       setStirrupSession({
-        ...d.resume,
+        ...s,
         c,
-        stage:
-          d.resume.stage === 'ready' && c.distribute && !d.resume.start
-            ? 'range-start'
-            : d.resume.stage,
+        stage,
+        ...(familyChanged ? { section: undefined } : {}),
+        ...(!c.distribute || !s.c.distribute || familyChanged
+          ? { start: undefined, end: undefined, label: undefined }
+          : {}),
+        cursor: undefined,
         error: undefined,
       });
       return;

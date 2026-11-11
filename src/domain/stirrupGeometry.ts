@@ -492,7 +492,9 @@ function clampSelfIntersects(segments: Segment[]): boolean {
       const u = sub(a.b, a.a),
         v = sub(b.b, b.a),
         den = cross(u, v);
-      if (Math.abs(den) < 1e-10)
+      const parallelTolerance =
+        64 * Number.EPSILON * Math.hypot(u.x, u.y) * Math.hypot(v.x, v.y);
+      if (Math.abs(den) <= parallelTolerance)
         return [a.a, a.b, b.a, b.b].filter((p) => on(a, p) && on(b, p));
       const t = cross(sub(b.a, a.a), v) / den;
       const p = add(a.a, mul(u, t));
@@ -501,18 +503,19 @@ function clampSelfIntersects(segments: Segment[]): boolean {
     if (a.type === 'line' && b.type === 'arc') {
       const v = sub(a.b, a.a),
         w = sub(a.a, b.center),
-        aa = dot(v, v),
-        bb = 2 * dot(w, v),
-        cc = dot(w, w) - b.radius ** 2;
-      const disc = bb * bb - 4 * aa * cc;
-      if (disc < -1e-8 || !aa) return [];
+        aa = dot(v, v);
+      if (!aa) return [];
+      // Work in model distances instead of subtracting large squared
+      // polynomial terms, which can lose a tangency after rotation.
+      const t = -dot(w, v) / aa,
+        closest = add(a.a, mul(v, t)),
+        d = distance(closest, b.center);
+      if (d > b.radius + 1e-7) return [];
+      const offset = Math.sqrt(
+        Math.max(0, (b.radius - d) * (b.radius + d)) / aa,
+      );
       return [-1, 1]
-        .map((sign) =>
-          add(
-            a.a,
-            mul(v, (-bb + sign * Math.sqrt(Math.max(0, disc))) / (2 * aa)),
-          ),
-        )
+        .map((sign) => add(a.a, mul(v, t + sign * offset)))
         .filter((p) => on(a, p) && on(b, p));
     }
     if (a.type === 'arc' && b.type === 'line') return intersections(b, a);
