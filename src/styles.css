@@ -5153,3 +5153,210 @@ button.hierarchy-drawing {
     outline: 1px solid Highlight;
   }
 }
+
+.command-scope {
+  color: #52617e;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.command-panel form input {
+  min-width: 0;
+}
+.command-panel form input:focus-visible {
+  outline: 2px solid #5969d9;
+  outline-offset: -2px;
+}
+
+.shortcuts-dialog {
+  width: min(850px, calc(100vw - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 20px 24px;
+  color: #233350;
+}
+.shortcuts-dialog::backdrop {
+  background: #0d1c3980;
+  backdrop-filter: blur(3px);
+}
+.shortcuts-header h2 {
+  margin: 0 36px 6px 0;
+}
+.shortcuts-header p,
+.shortcuts-message,
+.shortcuts-confirmation p {
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.shortcuts-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-block: 6px;
+}
+.shortcuts-filters,
+.shortcuts-body {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 12px;
+}
+.shortcuts-filters {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  margin-bottom: 12px;
+}
+.shortcuts-dialog .field {
+  margin: 4px 0;
+  min-width: 0;
+}
+.shortcuts-dialog .field :is(input, select) {
+  width: 100%;
+  min-height: 32px;
+}
+.shortcuts-commands,
+.shortcut-bindings {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.shortcuts-commands {
+  max-height: min(44dvh, 340px);
+  overflow: auto;
+  border: 1px solid #dbe2ef;
+  border-radius: 6px;
+  padding: 4px;
+}
+.shortcuts-commands button {
+  display: flex;
+  justify-content: space-between;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 8px;
+  text-align: left;
+}
+.shortcuts-commands button[aria-pressed='true'] {
+  background: #e9edff;
+  color: #253aab;
+  font-weight: 650;
+}
+.shortcuts-commands small {
+  flex-shrink: 0;
+}
+.shortcuts-editor {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+.shortcuts-editor h3,
+.shortcuts-editor p {
+  margin: 0;
+}
+.shortcuts-editor fieldset small {
+  display: block;
+  margin-block: 3px 5px;
+}
+.shortcuts-editor fieldset {
+  border: 1px solid #dbe2ef;
+  border-radius: 6px;
+  padding: 6px 9px 9px;
+  min-width: 0;
+}
+.shortcut-bindings li {
+  display: grid;
+  gap: 3px;
+  padding-block: 3px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.shortcuts-editor button,
+.shortcuts-confirmation button {
+  border: 1px solid #d6deed;
+  border-radius: 5px;
+  padding: 5px 9px;
+  width: fit-content;
+  min-height: 28px;
+}
+.shortcut-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+.shortcuts-dialog button:focus-visible,
+.shortcuts-dialog :is(input, select):focus-visible {
+  outline: 2px solid #3448d1;
+  outline-offset: 1px;
+}
+.shortcuts-dialog :is([role='alert'], [aria-invalid='true']) {
+  color: #912b24;
+}
+.shortcuts-confirmation {
+  margin-top: 9px;
+  padding: 8px 12px;
+  border: 1px solid #e1a68d;
+  border-radius: 6px;
+  background: #fff7ef;
+}
+.shortcuts-confirmation button {
+  margin: 2px 6px 0 0;
+}
+.shortcuts-dialog .modal-actions {
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  gap: 5px;
+}
+.shortcuts-dialog .modal-actions small {
+  margin-right: auto;
+}
+.shortcuts-dialog .modal-actions button {
+  margin-top: 0;
+}
+.shortcut-guide {
+  font-size: 12px;
+}
+.shortcut-guide summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-block: 8px;
+  background: white;
+  cursor: pointer;
+  font-weight: 650;
+}
+.shortcut-guide dl > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  border-bottom: 1px solid #dbe2ef;
+  padding: 6px 0;
+}
+.shortcut-guide dd {
+  margin: 0;
+}
+@media (max-width: 560px) {
+  .shortcuts-dialog {
+    padding: 12px;
+  }
+  .shortcuts-body {
+    grid-template-columns: 1fr;
+  }
+  .shortcuts-commands {
+    max-height: 26dvh;
+  }
+}
+
+.shortcuts-dialog .modal-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  color: #52617e;
+}
+.shortcuts-dialog .modal-actions > button:not(.primary):not(:disabled) {
+  color: #465979;
+}

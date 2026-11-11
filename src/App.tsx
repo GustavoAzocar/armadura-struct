@@ -270,6 +270,8 @@ import {
   useCallback,
   useMemo,
   useEffect,
+  useEffectEvent,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -330,7 +332,28 @@ import {
   applyDetailTransfer,
   type TransferPlan,
 } from './domain/detailTransfer';
-import Ribbon, { type Action } from './components/Ribbon';
+import Ribbon from './components/Ribbon';
+import ShortcutsDialog from './components/ShortcutsDialog';
+import {
+  commandAvailability,
+  eventKey,
+  isActivationControl,
+  isEditingControl,
+  modalIsOpen,
+  normalizeAlias,
+  scopeLabels,
+  shortcutCatalog,
+  shortcutCommands,
+  textComposition,
+  type Action,
+  type WorkScope,
+} from './domain/shortcuts';
+import {
+  compileShortcuts,
+  readShortcuts,
+  saveShortcuts,
+  shortcutHelp,
+} from './lib/shortcutPreferences';
 import CadCanvas, {
   type CadHandle,
   type CadState,
@@ -471,6 +494,23 @@ const prompts: Record<Tool, string> = {
     'Selecione uma ou várias arestas da fôrma, escolha o lado por clique e confirme com Enter.',
   measure: 'Indique dois pontos para medir a distância.',
 };
+const commandsDuringOperation = new Set<Action>([
+  'select',
+  'pan',
+  'fit',
+  'grid',
+  'snap',
+  'ortho',
+  'dimensions',
+  'sidebar',
+  'focus',
+  'toggle-ribbon',
+  'save',
+  'undo',
+  'redo',
+  'shortcuts',
+  'help',
+]);
 const tools: Tool[] = [
   'select',
   'pan',
@@ -493,6 +533,20 @@ const tools: Tool[] = [
   'section',
   'section-arc',
 ];
+function readUiPreference(key: string) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function writeUiPreference(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // These interface settings can still be used for the current session.
+  }
+}
 export default function App() {
   const [history, setHistory] = useState<History>(() => ({
     past: [],
@@ -741,8 +795,27 @@ export default function App() {
     [maskId, setMaskId] = useState<string | null>(null);
   const [tool, setToolRaw] = useState<Tool>('select'),
     [draft, setDraft] = useState<Point[]>([]),
-    [tab, setTab] = useState('Armaduras'),
+    [tab, setWorkTab] = useState('Armaduras'),
     [page, setPageRaw] = useState<'drawing' | 'schedule'>('drawing');
+  const [ribbonTab, setRibbonTab] = useState('Armaduras');
+  const workScope: WorkScope = tab === 'Máscaras' ? 'masks' : 'drawing';
+  const setTab = (value: string) => {
+    setRibbonTab(value);
+    // Opening preferences keeps the current tool, tab context and mask target.
+    if (value !== 'CONFIGURAÇÕES') setWorkTab(value);
+  };
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [shortcutState, setShortcutState] = useState(readShortcuts);
+  const desktopShortcuts = isTauri();
+  const shortcutMaps = useMemo(
+    () => compileShortcuts(shortcutState.preferences),
+    [shortcutState.preferences],
+  );
+  const shortcutFor = (a: Action, scope?: WorkScope) =>
+    shortcutHelp(shortcutState.preferences, a, scope);
+  const commandTitle = (a: Action, label = shortcutCatalog[a].name) =>
+    [label, shortcutFor(a, workScope)].filter(Boolean).join(' · ');
+
   const [stirrupSession, setStirrupSession] = useState<StirrupSession | null>(
     null,
   );
@@ -781,7 +854,7 @@ export default function App() {
     [ortho, setOrtho] = useState(false),
     [dimensions, setDimensions] = useState(true);
   const [light, setLight] = useState(
-    () => localStorage.getItem('armadurastruct.canvas') === 'light',
+    () => readUiPreference('armadurastruct.canvas') === 'light',
   );
   const [command, setCommand] = useState(''),
     [message, setMessage] = useState('Pronto para detalhar.'),
@@ -890,17 +963,17 @@ export default function App() {
     'project' | 'properties' | 'sheets'
   >('project');
   const [sidebarOpen, setSidebarOpen] = useState(
-    () => localStorage.getItem('armadurastruct.sidebar') !== 'closed',
+    () => readUiPreference('armadurastruct.sidebar') !== 'closed',
   );
   const [ribbonCollapsed, setRibbonCollapsed] = useState(
-    () => localStorage.getItem('armadurastruct.ribbon') === 'collapsed',
+    () => readUiPreference('armadurastruct.ribbon') === 'collapsed',
   );
   const [focus, setFocus] = useState(false);
   const [groupName, setGroupName] = useState('Detalhamento'),
     [groupElementId, setGroupElementId] = useState('');
   useEffect(
     () =>
-      localStorage.setItem(
+      writeUiPreference(
         'armadurastruct.sidebar',
         sidebarOpen ? 'open' : 'closed',
       ),
@@ -908,7 +981,7 @@ export default function App() {
   );
   useEffect(
     () =>
-      localStorage.setItem(
+      writeUiPreference(
         'armadurastruct.ribbon',
         ribbonCollapsed ? 'collapsed' : 'open',
       ),
@@ -1169,6 +1242,9 @@ export default function App() {
     setToast(s);
     setMessage(s);
   };
+  useEffect(() => {
+    if (ready && shortcutState.warning) setToast(shortcutState.warning);
+  }, [ready, shortcutState.warning]);
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(''), 6000);
@@ -1470,13 +1546,14 @@ export default function App() {
         project: current,
         context: { ...maskDrawingContext },
         maskId: drawingMaskId,
-        barId: tab === 'Máscaras' || t === 'measure' ? undefined : chosen?.id,
+        barId:
+          workScope === 'masks' || t === 'measure' ? undefined : chosen?.id,
         references: [],
         presentation: { ...measurePresentation.current },
       });
       setMaskId(null);
       setNativeEntity(undefined);
-      if (tab === 'Máscaras' || t === 'measure') {
+      if (workScope === 'masks' || t === 'measure') {
         setSelectedRaw([]);
         setMaskId(null);
         setNativeEntity(undefined);
@@ -6644,6 +6721,14 @@ export default function App() {
     }
   };
   const action = async (a: Action) => {
+    if (a === 'shortcuts') {
+      setShortcutsOpen(true);
+      return;
+    }
+    if (a === 'toggle-ribbon') {
+      setRibbonCollapsed((v) => !v);
+      return;
+    }
     const pluginActions: Partial<Record<Action, PluginView>> = {
       'plugins-store': 'store',
       'plugins-offline': 'offline',
@@ -6913,14 +6998,103 @@ export default function App() {
       setRecentBusy(false);
     }
   };
+  const commandContext = JSON.stringify([
+    p.id,
+    documentKey,
+    activeDetailId,
+    isolatedDetailId,
+    drawingMaskId,
+    workScope,
+  ]);
+  const commandEntry = useRef<{
+    context: string;
+    scope: WorkScope;
+    stale?: boolean;
+  } | null>(null);
+  useLayoutEffect(() => {
+    const entry = commandEntry.current;
+    if (entry && entry.context !== commandContext) entry.stale = true;
+  }, [commandContext]);
+  const clearCommand = () => {
+    commandEntry.current = null;
+    setCommand('');
+  };
+  const operationActive = !!(
+    draft.length ||
+    nativeKind ||
+    maskCalibration ||
+    maskCad ||
+    maskOffset ||
+    maskManip ||
+    stirrupSession ||
+    beamClampSession ||
+    followRequest ||
+    measureSession ||
+    match ||
+    freeText ||
+    transformRequest ||
+    vertexRequest ||
+    alignmentRequest ||
+    scheduleRequest ||
+    symbolPick
+  );
+  const operationScope = useRef<WorkScope | null>(null);
+  useLayoutEffect(() => {
+    if (operationActive) operationScope.current ??= workScope;
+    else operationScope.current = null;
+  }, [operationActive, workScope]);
+  const runKeyboardCommand = (a: Action) => {
+    const reason = commandAvailability(a, {
+      selected:
+        selected.length || (maskId || selectedView || selectedSchedule ? 1 : 0),
+      isolated: !!isolatedDetailId,
+      groupSelected: groupSelection,
+      canUndo,
+      canRedo,
+      operationActive,
+      inSheet: !!activeSheet || page !== 'drawing',
+    });
+    if (reason && !(a === 'delete' && (maskManip || maskOffset)))
+      notify(reason);
+    else void action(a);
+  };
   const runCommand = (raw: string) => {
     const value = raw.trim();
-    setCommand('');
+    const entry = commandEntry.current;
+    clearCommand();
+    if (value && (entry?.context !== commandContext || entry.stale)) {
+      notify(
+        'O contexto do comando mudou. Digite o comando novamente no contexto indicado.',
+      );
+      return;
+    }
+    const alias = normalizeAlias(value);
+    const resolved = alias
+      ? shortcutMaps[workScope].aliases.get(alias)
+      : undefined;
+    if (
+      resolved &&
+      operationScope.current &&
+      operationScope.current !== workScope &&
+      !commandsDuringOperation.has(resolved)
+    ) {
+      notify(
+        'Conclua ou cancele o comando em andamento antes de usar um alias em outro contexto.',
+      );
+      return;
+    }
     if (
       maskCalibration?.points.length === 2 &&
-      !['U', 'REDO', 'F', 'ZOOM', 'MASCARAS', 'IMPORTAR', 'V', 'H'].includes(
-        value.toUpperCase(),
-      )
+      (!resolved ||
+        ![
+          'undo',
+          'redo',
+          'fit',
+          'mask-control',
+          'import',
+          'select',
+          'pan',
+        ].includes(resolved))
     ) {
       applyCalibration(value || maskCalibration.input);
       return;
@@ -6988,112 +7162,9 @@ export default function App() {
         return;
       }
     }
-    const aliases: Record<string, Action> = {
-      B: 'bar',
-      BARRA: 'bar',
-      L: 'bar',
-      MASCARAS: 'mask-control',
-      CALIBRARMASCARA: 'mask-calibrate',
-      MATCHPROP: 'match-properties',
-      COPIARPROPRIEDADES: 'match-properties',
-      OFFSET: 'mask-offset',
-      PARALELA: 'mask-offset',
-      APAGARMASCARA: 'mask-erase',
-      ERASE: 'mask-erase',
-      COPIARMASCARA: 'mask-copy',
-      MCOPY: 'mask-copy',
-      MOVERMASCARA: 'mask-move',
-      MMOVE: 'mask-move',
-      MOVER: tab === 'Máscaras' ? 'mask-move' : 'move',
-      AJUSTAR: 'mask-trim',
-      APARAR: 'mask-trim',
-      TRIM: 'mask-trim',
-      EXTEND: 'mask-extend',
-      ESTENDERMASCARA: 'mask-extend',
-      LINHA: 'mask-line',
-      TEXTO: 'mask-text',
-      TEXT: 'mask-text',
-      DTEXT: 'mask-text',
-      RETANGULO: 'mask-rectangle',
-      CIRCULO: 'mask-circle',
-      MPL: 'mask-polyline',
-      PL: 'polyline',
-      POLILINHA: 'polyline',
-      CONVERTER: 'convert',
-      REPETIR: 'repeat',
-      FAIXA: 'range',
-      COTA: 'dimension-orthogonal',
-      DIM: 'dimension-orthogonal',
-      DIMENSION: 'dimension-orthogonal',
-      ALINHADA: 'dimension-aligned',
-      CHAMADA: 'leader',
-      CORTE: 'section',
-      ARCO: 'section-arc',
-      DIVIDIR: 'split',
-      EMENDAR: 'join',
-      RA: 'refresh-schedule',
-      BLOQUEARRA: 'lock-schedule',
-      E: 'stirrup',
-      ESTRIBO: 'stirrup',
-      GV: 'beam-clamp',
-      GRAMPOVIGA: 'beam-clamp',
-      CRITERIOSGRAMPO: 'beam-clamp-criteria',
-      V: 'select',
-      H: 'pan',
-      M: 'move',
-      MOVE: 'move',
-      C: 'copy',
-      COPY: 'copy',
-      LAYERS: 'layers',
-      OCULTAR: 'hide-objects',
-      ISOLAR: 'isolate-objects',
-      EXIBIRTODOS: 'show-all-objects',
-      MOSTRAROCULTOS: 'show-hidden-objects',
-      SAIRISOLAMENTO: 'end-object-isolation',
-      PLOT: 'plot',
-      PLOTAGEM: 'plot',
-      NIVEIS: 'layers',
-      ALINHAR: 'align-selection',
-      INSERIRVERTICE: 'insert-vertex',
-      CONTINUAR: 'extend-vertex',
-      ESTENDER: 'lengthen-bar',
-      ESTENDERBARRA: 'lengthen-bar',
-      SEGMENTOS: 'edit-segment',
-      REMOVERVERTICE: 'remove-vertex',
-      ROTACIONAR: tab === 'Máscaras' ? 'mask-rotate' : 'rotate',
-      GIRAR: tab === 'Máscaras' ? 'mask-rotate' : 'rotate',
-      ROTATE: 'mask-rotate',
-      ROTACIONARMASCARA: 'mask-rotate',
-      ESPELHAR: tab === 'Máscaras' ? 'mask-mirror' : 'mirror',
-      MIRROR: 'mask-mirror',
-      ESPELHARMASCARA: 'mask-mirror',
-      DUPLICAR: 'clone-armature',
-      CLONAR: 'clone-armature',
-      DUPLICARARMADURA: 'clone-armature',
-      R: 'detail',
-      REBAT: 'detail',
-      D: 'distribute',
-      DIST: 'measure',
-      MEDIR: 'measure',
-      CONTORNO: 'measure-contour',
-      PERIMETRO: 'measure-contour',
-      AREA: 'measure-contour',
-      F: 'fit',
-      ZOOM: 'fit',
-      U: 'undo',
-      REDO: 'redo',
-      DEL: 'delete',
-      Q: 'schedule',
-      FORMA: 'follow',
-      IMPORTAR: 'import',
-      AGRUPAR: 'group',
-      DESAGRUPAR: 'ungroup',
-      EDITARDETALHE: 'edit-detail',
-      CONCLUIR: 'finish-detail',
-    };
-    if (aliases[value.toUpperCase()]) {
-      action(aliases[value.toUpperCase()]);
+    if (resolved) {
       cmdInput.current?.blur();
+      runKeyboardCommand(resolved);
       return;
     }
     const polar = value.match(/^@([+-]?\d+(?:\.\d+)?)<([+-]?\d+(?:\.\d+)?)$/);
@@ -7147,236 +7218,229 @@ export default function App() {
       return;
     }
     notify(
-      'Comando desconhecido. Use B, E, PL, COTA, CHAMADA, F, DIST ou consulte o Guia de uso.',
+      'Comando desconhecido neste contexto. Consulte Configurações → Atalhos.',
     );
   };
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (updateModal || pluginView || csvExportOpen) {
-        if (
-          csvExportOpen &&
-          !updateModal &&
-          !pluginView &&
-          e.key === 'Escape'
-        ) {
-          e.preventDefault();
-          if (!fileOperations.current) setCsvExportOpen(false);
-        }
-        if (
-          (e.ctrlKey || e.metaKey) &&
-          ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
-        )
-          e.preventDefault();
-        return;
-      }
-      if (stirrupDialog || beamClampDialog) {
-        if (
-          (e.ctrlKey || e.metaKey) &&
-          ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
-        )
-          e.preventDefault();
-        return;
-      }
-      if (recentOpen) {
-        if (
-          (e.ctrlKey || e.metaKey) &&
-          ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
-        )
-          e.preventDefault();
-        return;
-      }
-      if (modal === 'new') {
-        if (e.key === 'Escape' && !hasPendingFolderWrites()) setModal(null);
-        if (
-          (e.ctrlKey || e.metaKey) &&
-          ['s', 'o'].includes(e.key.toLowerCase())
-        )
-          e.preventDefault();
-        return;
+  const handleShortcut = useEffectEvent((e: KeyboardEvent) => {
+    if (e.defaultPrevented || textComposition(e) || shortcutsOpen) return;
+    const typing = isEditingControl(e.target);
+    if (updateModal || pluginView || csvExportOpen) {
+      if (csvExportOpen && !updateModal && !pluginView && e.key === 'Escape') {
+        e.preventDefault();
+        if (!fileOperations.current) setCsvExportOpen(false);
       }
       if (
-        detailTransfer ||
-        cadInterpretation ||
-        repetitionDetailId ||
-        fabricationOpen ||
-        numberingOpen
-      ) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          setDetailTransfer(null);
-          detailRequest.current = null;
-          setCadInterpretation(null);
-          setRepetitionDetailId(undefined);
-          setFabricationOpen(false);
-          setNumberingOpen(false);
-        } else if (
-          (e.ctrlKey || e.metaKey) &&
-          ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
-        )
-          e.preventDefault();
-        return;
-      }
-
-      const typing = (e.target as HTMLElement)?.closest(
-        'input,textarea,select',
-      );
+        (e.ctrlKey || e.metaKey) &&
+        ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+      )
+        e.preventDefault();
+      return;
+    }
+    if (stirrupDialog || beamClampDialog) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+      )
+        e.preventDefault();
+      return;
+    }
+    if (recentOpen) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+      )
+        e.preventDefault();
+      return;
+    }
+    if (modal === 'new') {
+      if (e.key === 'Escape' && !hasPendingFolderWrites()) setModal(null);
+      if ((e.ctrlKey || e.metaKey) && ['s', 'o'].includes(e.key.toLowerCase()))
+        e.preventDefault();
+      return;
+    }
+    if (
+      detailTransfer ||
+      cadInterpretation ||
+      repetitionDetailId ||
+      fabricationOpen ||
+      numberingOpen
+    ) {
       if (e.key === 'Escape') {
-        if (beamClampSession) {
-          cancelBeamClamp();
-          cmdInput.current?.blur();
-          return;
-        }
-        if (stirrupSession) {
-          cancelStirrup();
-          cmdInput.current?.blur();
-          return;
-        }
-        if (measureSession) {
-          endMeasure();
-          cmdInput.current?.blur();
-          return;
-        }
-        if (match) {
-          endMatch();
-          cmdInput.current?.blur();
-          return;
-        }
-        if (maskOffset) {
-          endMaskOffset();
-          cmdInput.current?.blur();
-          return;
-        }
-        if (freeText) {
-          backFreeText();
-          cmdInput.current?.blur();
-          return;
-        }
-        if (symbolPick) {
-          setSymbolPick(null);
-          cmdInput.current?.blur();
-          notify('Escolha de ponto cancelada; nada foi alterado.');
-          return;
-        }
-        if (maskManip) {
-          endMaskManip();
-          cmdInput.current?.blur();
-          return;
-        }
-        if (maskCad) {
-          endMaskCad();
-          cmdInput.current?.blur();
-          notify(
-            'Etapa/prévia descartada. Cortes/prolongamentos já confirmados permanecem; use Desfazer para revertê-los.',
-          );
-          return;
-        }
-        if (maskCalibration) {
-          setMaskCalibration(null);
-          setToolRaw('select');
-          cmdInput.current?.blur();
-          notify('Ajuste de escala cancelado.');
-          return;
-        }
-        if (vertexRequest || alignmentRequest || scheduleRequest) {
-          setScheduleRequest(null);
-          setVertexRequest(null);
-          setAlignmentRequest(null);
-          return;
-        }
-        if (contextMenu) {
-          setContextMenu(null);
-          return;
-        }
-        if (transformRequest) {
-          setTransformRequest(null);
-          return;
-        }
-        if (drawingProperties) {
-          setDrawingProperties(null);
-          cmdInput.current?.blur();
-          return;
-        }
+        e.preventDefault();
+        setDetailTransfer(null);
+        detailRequest.current = null;
+        setCadInterpretation(null);
+        setRepetitionDetailId(undefined);
+        setFabricationOpen(false);
+        setNumberingOpen(false);
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+      )
+        e.preventDefault();
+      return;
+    }
+
+    if (modal) {
+      if (e.key === 'Escape' && !e.repeat) {
+        e.preventDefault();
         setModal(null);
-        setTool('select');
+      }
+      return;
+    }
+    if (modalIsOpen()) return;
+    if (e.key === 'Escape') {
+      if (e.repeat) return;
+      if (
+        typing &&
+        e.target !== cmdInput.current &&
+        !(
+          (operationActive || drawingProperties) &&
+          e.target instanceof Element &&
+          e.target.closest('.main-workspace')
+        )
+      )
+        return;
+      if (e.target === cmdInput.current) clearCommand();
+      if (beamClampSession) {
+        cancelBeamClamp();
         cmdInput.current?.blur();
         return;
       }
-      if (typing) return;
-      if (e.key === 'F4') {
-        e.preventDefault();
-        setSidebarOpen((v) => !v);
-        setFocus(false);
+      if (stirrupSession) {
+        cancelStirrup();
+        cmdInput.current?.blur();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'F1') {
-        e.preventDefault();
-        setRibbonCollapsed((v) => !v);
+      if (measureSession) {
+        endMeasure();
+        cmdInput.current?.blur();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
-        e.preventDefault();
-        setFocus((v) => !v);
+      if (match) {
+        endMatch();
+        cmdInput.current?.blur();
         return;
       }
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          action('save');
-        }
-        if (e.key.toLowerCase() === 'o') {
-          e.preventDefault();
-          action('open');
-        }
-        if (e.key.toLowerCase() === 'z') {
-          e.preventDefault();
-          action(e.shiftKey ? 'redo' : 'undo');
-        }
-        if (e.key.toLowerCase() === 'y') {
-          e.preventDefault();
-          action('redo');
-        }
+      if (maskOffset) {
+        endMaskOffset();
+        cmdInput.current?.blur();
         return;
       }
-      if (modal) return;
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        finish();
+      if (freeText) {
+        backFreeText();
+        cmdInput.current?.blur();
         return;
       }
-      if (e.key === 'Delete') {
-        action('delete');
+      if (symbolPick) {
+        setSymbolPick(null);
+        cmdInput.current?.blur();
+        notify('Escolha de ponto cancelada; nada foi alterado.');
         return;
       }
-      if (e.key === 'F3') {
-        e.preventDefault();
-        setSnap((v) => !v);
+      if (maskManip) {
+        endMaskManip();
+        cmdInput.current?.blur();
+        return;
       }
-      if (e.key === 'F8') {
-        e.preventDefault();
-        setOrtho((v) => !v);
+      if (maskCad) {
+        endMaskCad();
+        cmdInput.current?.blur();
+        notify(
+          'Etapa/prévia descartada. Cortes/prolongamentos já confirmados permanecem; use Desfazer para revertê-los.',
+        );
+        return;
       }
-      const a: Record<string, Action> = {
-        b: 'bar',
-        e: 'stirrup',
-        v: 'select',
-        h: 'pan',
-        f: 'fit',
-        m: 'move',
-        c: 'copy',
-        r: 'detail',
-        d: 'distribute',
-      };
-      if (a[e.key.toLowerCase()]) action(a[e.key.toLowerCase()]);
-      if (e.key === ':') {
-        e.preventDefault();
-        cmdInput.current?.focus();
+      if (maskCalibration) {
+        setMaskCalibration(null);
+        setToolRaw('select');
+        cmdInput.current?.blur();
+        notify('Ajuste de escala cancelado.');
+        return;
       }
-    };
+      if (vertexRequest || alignmentRequest || scheduleRequest) {
+        setScheduleRequest(null);
+        setVertexRequest(null);
+        setAlignmentRequest(null);
+        return;
+      }
+      if (contextMenu) {
+        setContextMenu(null);
+        return;
+      }
+      if (transformRequest) {
+        setTransformRequest(null);
+        return;
+      }
+      if (drawingProperties) {
+        setDrawingProperties(null);
+        cmdInput.current?.blur();
+        return;
+      }
+      setModal(null);
+      setTool('select');
+      cmdInput.current?.blur();
+      return;
+    }
+    if (typing || contextMenu) return;
+    if (
+      e.key === 'Enter' &&
+      !isActivationControl(e.target) &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      !e.shiftKey &&
+      page === 'drawing'
+    ) {
+      e.preventDefault();
+      if (!e.repeat) finish();
+      return;
+    }
+    if (
+      e.key === ':' &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      cmdInput.current
+    ) {
+      e.preventDefault();
+      if (!e.repeat) cmdInput.current.focus();
+      return;
+    }
+    const key = eventKey(e);
+    const command = key ? shortcutMaps[workScope].keys.get(key) : undefined;
+    if (!command) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    if (
+      operationActive &&
+      command !== 'delete' &&
+      !commandsDuringOperation.has(command)
+    ) {
+      notify(
+        'Conclua ou cancele o comando em andamento antes de iniciar outro atalho.',
+      );
+      return;
+    }
+    runKeyboardCommand(command);
+  });
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => handleShortcut(event);
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  });
+  }, []);
   return (
-    <div className={`app-shell ${focus ? 'focus-mode' : ''}`}>
+    <div
+      className={`app-shell ${focus ? 'focus-mode' : ''}`}
+      onKeyDownCapture={(event) => {
+        if (
+          event.repeat &&
+          ['Enter', ' '].includes(event.key) &&
+          isActivationControl(event.target)
+        )
+          event.preventDefault();
+      }}
+    >
       {beamClampDialog && (
         <BeamClampCriteriaDialog
           initial={beamClampDialog.c}
@@ -7508,22 +7572,25 @@ export default function App() {
           </button>
           <button
             aria-label="Abrir projeto"
-            title="Abrir projeto"
+            title={commandTitle('open')}
             onClick={() => action('open')}
           >
             <FolderOpen size={15} />
           </button>
           <button
             aria-label="Salvar projeto"
-            title="Salvar projeto · Ctrl+S"
-            onClick={() => action('save')}
+            title={commandTitle('save')}
+            onClick={(event) => {
+              if (operationActive) event.currentTarget.blur();
+              void action('save');
+            }}
           >
             <Save size={15} />
           </button>
           <i />
           <button
             aria-label="Desfazer"
-            title="Desfazer · Ctrl+Z"
+            title={commandTitle('undo')}
             disabled={!canUndo}
             onClick={() => action('undo')}
           >
@@ -7531,7 +7598,7 @@ export default function App() {
           </button>
           <button
             aria-label="Refazer"
-            title="Refazer · Ctrl+Y"
+            title={commandTitle('redo')}
             disabled={!canRedo}
             onClick={() => action('redo')}
           >
@@ -7547,7 +7614,7 @@ export default function App() {
             title="Alternar fundo do desenho"
             onClick={() => {
               setLight(!light);
-              localStorage.setItem(
+              writeUiPreference(
                 'armadurastruct.canvas',
                 !light ? 'light' : 'dark',
               );
@@ -7565,9 +7632,10 @@ export default function App() {
         </div>
       </header>
       <Ribbon
-        tab={tab}
+        tab={ribbonTab}
         setTab={setTab}
         onAction={action}
+        shortcut={(a) => shortcutFor(a, workScope)}
         active={{
           [tool]: true,
           grid,
@@ -7586,6 +7654,7 @@ export default function App() {
           'mask-trim': maskCad?.mode === 'trim',
           'mask-extend': maskCad?.mode === 'extend',
           'mask-calibrate': !!maskCalibration,
+          'match-properties': !!match,
           // Icon-only Desenhar commands show which native shape is running.
           'mask-line': nativeKind === 'line',
           'mask-rectangle': nativeKind === 'rectangle',
@@ -7608,6 +7677,7 @@ export default function App() {
           // creates/imports/associates masks.
           <MaskDestination
             variant={variant}
+            shortcut={(a) => shortcutFor(a, workScope)}
             onBatch={(mode) => startMaskBatch(mode)}
             project={p}
             activeId={drawingMaskId}
@@ -7715,14 +7785,14 @@ export default function App() {
               )}
               <button
                 aria-label="Foco no CAD"
-                title="Foco no CAD · Ctrl+0"
+                title={commandTitle('focus')}
                 onClick={() => setFocus(!focus)}
               >
                 <Focus size={14} />
               </button>
               <button
                 aria-label="Alternar painel lateral"
-                title="Painel lateral · F4"
+                title={commandTitle('sidebar')}
                 onClick={() => {
                   setSidebarOpen(!sidebarOpen);
                   setFocus(false);
@@ -8661,20 +8731,46 @@ export default function App() {
                       : message}
                   </span>
                 </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    runCommand(command);
-                  }}
-                >
+                <form onSubmit={(e) => e.preventDefault()}>
                   <Terminal size={15} />
                   <label htmlFor="command-input">Comando</label>
+                  <span
+                    id="command-scope"
+                    className="command-scope"
+                    aria-live="polite"
+                  >
+                    {
+                      scopeLabels[
+                        (command && commandEntry.current?.scope) || workScope
+                      ]
+                    }
+                    {command &&
+                      (commandEntry.current?.context !== commandContext ||
+                        commandEntry.current.stale) &&
+                      ' · contexto mudou'}
+                  </span>
                   <input
                     ref={cmdInput}
                     id="command-input"
                     aria-label="Comando CAD"
+                    aria-describedby="command-scope"
                     value={command}
-                    onChange={(e) => setCommand(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (!value) commandEntry.current = null;
+                      else if (!command)
+                        commandEntry.current = {
+                          context: commandContext,
+                          scope: workScope,
+                        };
+                      setCommand(value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' || textComposition(e.nativeEvent))
+                        return;
+                      e.preventDefault();
+                      if (!e.repeat) runCommand(command);
+                    }}
                     placeholder="Digite um comando ou coordenadas X,Y"
                     autoComplete="off"
                   />
@@ -8738,7 +8834,7 @@ export default function App() {
               <button
                 className="dock-close"
                 aria-label="Recolher painel lateral"
-                title="Recolher painel · F4"
+                title={commandTitle('sidebar', 'Recolher painel')}
                 onClick={() => setSidebarOpen(false)}
               >
                 <X size={14} />
@@ -9542,6 +9638,20 @@ export default function App() {
           notify={notify}
         />
       )}
+      {shortcutsOpen && (
+        <ShortcutsDialog
+          preferences={shortcutState.preferences}
+          warning={shortcutState.warning}
+          desktop={desktopShortcuts}
+          onClose={() => setShortcutsOpen(false)}
+          onSave={(preferences) => {
+            if (!saveShortcuts(preferences)) return false;
+            setShortcutState({ preferences });
+            notify('Atalhos de teclado salvos neste dispositivo.');
+            return true;
+          }}
+        />
+      )}
       {cadSettingsOpen && (
         <CadSettingsDialog
           project={p}
@@ -10092,9 +10202,9 @@ export default function App() {
                     propriedades da máscara.
                   </p>
                   <p>
-                    <b>02 · Crie suas posições</b>B desenha barras por vértices;
-                    E cria estribos com dois cantos. Use diâmetro de dobra e
-                    ganchos definidos para o projeto.
+                    <b>02 · Crie suas posições</b>Desenhe barras por vértices e
+                    lance estribos pelos critérios e pontos solicitados. Use
+                    diâmetro de dobra e ganchos definidos para o projeto.
                   </p>
                   <p>
                     <b>03 · Detalhe e distribua</b>Crie rebatimentos, faixas,
@@ -10116,28 +10226,10 @@ export default function App() {
                     <kbd>Esc</kbd> Cancelar comando
                   </span>
                   <span>
-                    <kbd>F</kbd> Enquadrar
+                    <kbd>:</kbd> Focar a linha de comandos
                   </span>
                   <span>
-                    <kbd>Ctrl Z</kbd> Desfazer
-                  </span>
-                  <span>
-                    <kbd>F3</kbd> Encaixes
-                  </span>
-                  <span>
-                    <kbd>F8</kbd> Ortogonal
-                  </span>
-                  <span>
-                    <kbd>F4</kbd> Painel lateral
-                  </span>
-                  <span>
-                    <kbd>Ctrl F1</kbd> Faixa de comandos
-                  </span>
-                  <span>
-                    <kbd>Ctrl 0</kbd> Foco no CAD
-                  </span>
-                  <span>
-                    <kbd>PL</kbd> Polilinha CAD
+                    <kbd>Espaço</kbd> Navegação temporária no desenho
                   </span>
                   <span>
                     <kbd>@500,0</kbd> Relativo em mm
@@ -10146,6 +10238,33 @@ export default function App() {
                     <kbd>@500&lt;90</kbd> Polar
                   </span>
                 </div>
+                <details className="shortcut-guide">
+                  <summary>Atalhos e aliases configurados</summary>
+                  <p>
+                    Use a tecla imediata no desenho. Para executar um alias,
+                    digite-o no campo Comando e pressione Enter. O contexto é
+                    mostrado ao lado do campo.
+                  </p>
+                  {!desktopShortcuts && (
+                    <p>
+                      Se o navegador reservar Ctrl/Cmd+0 para o zoom, use o
+                      botão Foco no CAD.
+                    </p>
+                  )}
+                  <dl>
+                    {shortcutCommands.map((a) => {
+                      const hint = shortcutFor(a);
+                      return (
+                        hint && (
+                          <div key={a}>
+                            <dt>{shortcutCatalog[a].name}</dt>
+                            <dd>{hint}</dd>
+                          </div>
+                        )
+                      );
+                    })}
+                  </dl>
+                </details>
                 <p className="field-help">
                   Para seguir fôrma, selecione uma polilinha da máscara.
                   Contornos fechados são deslocados para dentro; linhas abertas,
