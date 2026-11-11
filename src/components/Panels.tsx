@@ -1,5 +1,7 @@
 import { dimensionReferenceIssue } from '../domain/maskDimensions';
 import LayerInspector from './LayerInspector';
+import { BeamClampViewFields } from './BeamClampCriteriaDialog';
+import { defaultBeamClampCriteria } from '../domain/beamClampSchema';
 import { resolveStyle } from '../domain/layers';
 import {
   quantityLabel,
@@ -192,6 +194,7 @@ export function Inspector({
   onVertexEdit,
   onDimensionEdit,
   onStirrupCriteria,
+  onBeamClampCriteria,
   onMask,
   onSelectRepresentation,
   onRemoveDetails,
@@ -203,6 +206,7 @@ export function Inspector({
   onBar: (patch: Partial<Bar>) => void | boolean;
   onVertexEdit?: (mode: 'insert' | 'extend' | 'remove') => void;
   onStirrupCriteria?: () => void;
+  onBeamClampCriteria?: () => void;
   onDimensionEdit?: (mode: 'segment' | 'lengthen') => void;
   onDistributionSpacing: (spacing: number) => void | boolean;
   onMask: (patch: Partial<Mask>) => void;
@@ -236,9 +240,11 @@ export function Inspector({
               <span style={{ background: bar.color }}>{bar.mark}</span>
               <div>
                 <b>
-                  {bar.kind === 'stirrup'
-                    ? `Estribo ${bar.stirrupProfile?.shape === 'circle' ? 'circular' : bar.stirrupProfile?.shape === 'free' ? 'livre' : 'retangular'}`
-                    : 'Barra livre'}
+                  {bar.kind === 'beam-clamp'
+                    ? 'Grampo de viga em U'
+                    : bar.kind === 'stirrup'
+                      ? `Estribo ${bar.stirrupProfile?.shape === 'circle' ? 'circular' : bar.stirrupProfile?.shape === 'free' ? 'livre' : 'retangular'}`
+                      : 'Barra livre'}
                 </b>
                 <small>{bar.element}</small>
               </div>
@@ -552,6 +558,19 @@ export function Inspector({
               </p>
             </details>
             <Section title="Geometria e dobras">
+              {bar.kind === 'beam-clamp' && (
+                <>
+                  <button onClick={onBeamClampCriteria}>
+                    Editar critérios do grampo de viga
+                  </button>
+                  <p className="field-help">
+                    L = {format(bar.beamClamp!.longitudinal, 2)} mm · T ={' '}
+                    {format(bar.beamClamp!.transverse, 2)} mm. Medidas no eixo
+                    até os vértices teóricos. Altere a peça nos critérios, com
+                    prévia das dobras e terminações.
+                  </p>
+                </>
+              )}
               {bar.kind === 'stirrup' && (
                 <button onClick={onStirrupCriteria}>
                   Editar critérios desta posição
@@ -607,6 +626,40 @@ export function Inspector({
                 onChange={(mandrel) => onBar({ mandrel })}
                 suffix="mm"
               />
+              {bar.kind === 'beam-clamp' && (
+                <details className="compact-fields">
+                  <summary>Representação gráfica do grampo</summary>
+                  <BeamClampViewFields
+                    value={bar.beamClampView ?? defaultBeamClampCriteria().view}
+                    onChange={(beamClampView) => onBar({ beamClampView })}
+                  />
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={
+                        (bar.beamClampView?.hooks ??
+                          bar.beamClampDisplay?.hooks) !== false
+                      }
+                      onChange={(e) =>
+                        onBar({
+                          beamClampView: {
+                            ...(bar.beamClampView ??
+                              defaultBeamClampCriteria().view),
+                            hooks: e.target.checked,
+                          },
+                          beamClampDisplay: {
+                            dimensions: true,
+                            identification: true,
+                            ...bar.beamClampDisplay,
+                            hooks: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                    Mostrar ganchos na representação
+                  </label>
+                </details>
+              )}
               <p className="field-help">
                 Comprimento pelo eixo, descontando os trechos retos substituídos
                 pelos arcos. Mandril definido pelo projetista.
@@ -1173,8 +1226,12 @@ export function ProjectTree({
                 </span>
                 <span>
                   <b>
-                    {b.kind === 'stirrup' ? 'Estribo' : 'Barra'} Ø
-                    {diameterLabels.get(b.diameter)}
+                    {b.kind === 'beam-clamp'
+                      ? 'Grampo de viga'
+                      : b.kind === 'stirrup'
+                        ? 'Estribo'
+                        : 'Barra'}{' '}
+                    Ø{diameterLabels.get(b.diameter)}
                   </b>
                   <small>
                     {b.element}
@@ -1706,6 +1763,9 @@ export function RepresentationInspector({
   onChange: (patch: Partial<import('../domain/types').Detail>) => void;
   onDelete: () => void;
 }) {
+  const bar = project.bars.find((b) => b.id === d.barId);
+  const clampView =
+    d.beamClampView ?? bar?.beamClampView ?? defaultBeamClampCriteria().view;
   return (
     <aside className="inspector">
       <div className="panel-heading">
@@ -1764,6 +1824,35 @@ export function RepresentationInspector({
           </select>
         </label>
         <button onClick={onEditBar}>Editar armadura física</button>
+        {bar?.kind === 'beam-clamp' && (
+          <Section title="Vista vinculada do grampo">
+            <BeamClampViewFields
+              value={clampView}
+              onChange={(beamClampView) => onChange({ beamClampView })}
+            />
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={
+                  (clampView.hooks ?? bar.beamClampDisplay?.hooks) !== false
+                }
+                onChange={(e) =>
+                  onChange({
+                    beamClampView: {
+                      ...clampView,
+                      hooks: e.target.checked,
+                    },
+                  })
+                }
+              />
+              Mostrar ganchos nesta vista
+            </label>
+            <p className="field-help">
+              Esta vista referencia a mesma peça física. As medidas L/T, o corte
+              e a quantidade são preservados.
+            </p>
+          </Section>
+        )}
         {d.label && (
           <fieldset className="compact-fields">
             <legend>Chamada posicionada</legend>

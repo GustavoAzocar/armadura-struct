@@ -1,3 +1,9 @@
+import {
+  beamClampProfileSchema,
+  beamClampDisplaySchema,
+  beamClampCriteriaSchema,
+  beamClampViewSchema,
+} from './beamClampSchema';
 import { drawingSchema, hasDrawingMetadata } from './drawingMetadata';
 import {
   stirrupProfileSchema,
@@ -206,7 +212,10 @@ const barSchema = z
     id: z.string(),
     mark: z.string().min(1).max(40),
     element: z.string().max(100),
-    kind: z.enum(['free', 'stirrup']),
+    kind: z.enum(['free', 'stirrup', 'beam-clamp']),
+    beamClamp: beamClampProfileSchema.optional(),
+    beamClampDisplay: beamClampDisplaySchema.optional(),
+    beamClampView: beamClampViewSchema.optional(),
     stirrupMirrored: z.boolean().optional(),
     stirrupProfile: stirrupProfileSchema.optional(),
     stirrupDisplay: stirrupDisplaySchema.optional(),
@@ -223,7 +232,14 @@ const barSchema = z
     distribution: z.object(distributionShape).strict().optional(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   })
-  .strict();
+  .strict()
+  .refine(
+    (b) =>
+      b.kind === 'beam-clamp'
+        ? !!b.beamClamp
+        : !b.beamClamp && !b.beamClampDisplay && !b.beamClampView,
+    'Parâmetros de grampo de viga exigem sua família própria; informe as medidas L/T.',
+  );
 export const representationLabelSchema = z
   .object({
     origin: point,
@@ -255,6 +271,7 @@ const schema = z.object({
     'armadurastruct/19',
   ]),
   stirrupDefaults: stirrupCriteriaSchema.optional(),
+  beamClampDefaults: beamClampCriteriaSchema.optional(),
   cadDefaults: cadDefaultsSchema.optional(),
   layerEnvironment: layerEnvironmentSchema.optional(),
   plotting: plotSettingsSchema.optional(),
@@ -394,6 +411,7 @@ const schema = z.object({
         scale: number.positive().max(10000).optional(),
         label: representationLabelSchema.optional(),
         showDimensions: z.boolean().optional(),
+        beamClampView: beamClampViewSchema.optional(),
         identification: z
           .enum(['legacy', 'primary', 'mark', 'none'])
           .optional(),
@@ -451,12 +469,47 @@ export function hasFreeTextData(input: unknown): boolean {
     }),
   );
 }
+/** Parametric physical/view data that older formats cannot safely interpret. */
+export function hasBeamClampData(input: unknown): boolean {
+  const value = input as {
+    beamClampDefaults?: unknown;
+    bars?: {
+      kind?: string;
+      beamClamp?: unknown;
+      beamClampDisplay?: unknown;
+      beamClampView?: unknown;
+    }[];
+    scheduleLock?: {
+      bars?: {
+        kind?: string;
+        beamClamp?: unknown;
+        beamClampDisplay?: unknown;
+        beamClampView?: unknown;
+      }[];
+    };
+    details?: { beamClampView?: unknown }[];
+  } | null;
+  return (
+    value?.beamClampDefaults !== undefined ||
+    [...(value?.bars ?? []), ...(value?.scheduleLock?.bars ?? [])].some(
+      (b) =>
+        b.kind === 'beam-clamp' ||
+        b.beamClamp !== undefined ||
+        b.beamClampDisplay !== undefined ||
+        b.beamClampView !== undefined,
+    ) ||
+    (value?.details ?? []).some((d) => d.beamClampView !== undefined)
+  );
+}
 export function decodeProject(
   raw: string,
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const textVersion = input?.schema === 'armadurastruct/28';
+  const beamClampVersion = input?.schema === 'armadurastruct/30';
+  if (!beamClampVersion && hasBeamClampData(input))
+    throw new Error('Grampos de viga exigem formato 30.');
+  const textVersion = beamClampVersion || input?.schema === 'armadurastruct/28';
   if (!textVersion && hasFreeTextData(input))
     throw new Error('Textos livres e tipografia CAD exigem formato 28.');
   const symbolVersion = textVersion || input?.schema === 'armadurastruct/27';
@@ -760,7 +813,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/28',
+    schema: 'armadurastruct/30',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -779,6 +832,20 @@ export function decodeProject(
   };
   for (const b of [...p.bars, ...(p.scheduleLock?.bars ?? [])]) {
     validateBarQuantity(b);
+    if (
+      b.kind === 'beam-clamp' ||
+      b.beamClamp ||
+      b.beamClampDisplay ||
+      b.beamClampView
+    ) {
+      if (b.kind !== 'beam-clamp' || !b.beamClamp)
+        throw new Error(
+          `Grampo de viga ${b.mark}: família ou parâmetros inválidos.`,
+        );
+      const errors = geometry(b).errors;
+      if (errors.length)
+        throw new Error(`Grampo de viga ${b.mark}: ${errors.join(' ')}`);
+    }
     if (b.stirrupProfile && (b.kind !== 'stirrup' || geometry(b).errors.length))
       throw Error(
         `Estribo ${b.mark}: ${geometry(b).errors.join(' ') || 'família inválida'}`,
@@ -994,7 +1061,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/28',
+    schema: 'armadurastruct/30',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,
