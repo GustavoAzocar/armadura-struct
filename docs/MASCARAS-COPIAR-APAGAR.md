@@ -43,7 +43,7 @@ Cada cópia recebe IDs novos, com geometria e estilos independentes. Círculos, 
 - Troca de projeto, desenho, máscara, aba ou isolamento, perda do alvo e alteração concorrente invalidam a preparação. Duplo clique no mesmo destino é filtrado por 400 ms; aplicações já confirmadas permanecem no histórico. Desfazer durante uma preparação sem operações apenas cancela essa preparação; após uma cópia, encerra o comando e desfaz a última cópia.
 - Lista pesquisável limitada a 200 resultados por consulta; refine a pesquisa para as demais entidades. Seleção acumulada por clique permanece disponível. Pré-seleção pelo Controle é de uma entidade; conjuntos múltiplos são montados no comando.
 
-Os atalhos específicos são **ERASE**, **APAGARMASCARA**, **MCOPY** e **COPIARMASCARA**. Os atalhos gerais de armaduras não são reaproveitados. O seletor Ferramentas CAD da máscara ativa mantém acesso em Foco/faixa recolhida.
+Os atalhos específicos são **ERASE**, **APAGARMASCARA**, **MCOPY** e **COPIARMASCARA**. Os atalhos gerais de armaduras não são reaproveitados. Em Foco/faixa recolhida, o botão **Referências** ao lado das abas dá acesso aos mesmos comandos de Manipular.
 
 Captura: **Acesso em Foco e janela estreita** (`mask-manip-compact.png`), no artefato de validação abaixo.
 

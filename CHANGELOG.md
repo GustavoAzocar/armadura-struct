@@ -4,6 +4,7 @@
 
 - Removido o Exemplo ArmaduraStruct: o aplicativo abre vazio quando não há projeto para recuperar, sem a opção **Carregar projeto de exemplo**, o aviso e a conferência do exemplo. Projetos salvos e a recuperação local não são afetados.
 - Arquivo → Exportar → CSV por escopo: quadro detalhado e/ou resumo do aço do projeto, de pranchas (ativa, selecionadas ou todas) ou de elementos/detalhamentos, em arquivos separados ou consolidados (ZIP quando houver mais de um). Reutiliza o motor da relação de aço e a fonte do quadro da folha; total físico opcional pela união dos IDs; acréscimo do quadro da folha ou definido só na exportação, sempre explícito. Quadro CSV global inalterado. [Uso e limites](docs/CSV-POR-ESCOPO.md).
+- Aba Máscaras mais compacta: Ferramentas, Manipular e Desenhar usam botões só com ícones (28 px, ícones próprios e distintos para medir, cotar, escala, offset, ajustar/estender e formas), com o nome completo ao apontar ou focar pelo teclado. A faixa avulsa **Desenhar em** virou o grupo **Referências**, no final da aba, com pesquisa, escolha, **Ativar** explícito, **Nova máscara**, **Importar**, **Associar** e o estado da máscara ativa. O seletor “Ferramentas CAD…” e o atalho “Escala por 2 pontos” foram consolidados nos comandos dos grupos. Com a faixa recolhida e em Foco, o estado fica ao lado das abas e **Referências** abre os grupos temporariamente. Mesmas ações, histórico e proteções; demais abas inalteradas.
 
 ## 0.6.0 · 2026-11-10
 

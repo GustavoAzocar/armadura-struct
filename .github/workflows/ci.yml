@@ -23,8 +23,10 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - name: CAD context menus after import
+        run: npx playwright test tests/e2e/alignment-vertices.spec.ts tests/e2e/transforms.spec.ts --grep "menu e cliques|menu contextual seleciona" --repeat-each=5
       - name: Startup, CAD performance and UI contracts
-        run: npx playwright test tests/e2e/plugins.spec.ts tests/e2e/scopedCsv.spec.ts tests/e2e/startup.spec.ts tests/e2e/armatureClone.spec.ts tests/e2e/cadPerformance.spec.ts
+        run: npx playwright test tests/e2e/plugins.spec.ts tests/e2e/scopedCsv.spec.ts tests/e2e/startup.spec.ts tests/e2e/armatureClone.spec.ts tests/e2e/cadPerformance.spec.ts tests/e2e/appUpdates.spec.ts tests/e2e/maskRibbonCompact.spec.ts tests/e2e/maskCad.spec.ts tests/e2e/maskManipulation.spec.ts tests/e2e/maskMove.spec.ts
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
@@ -74,6 +76,12 @@ jobs:
           name: mask-move-evidence
           if-no-files-found: ignore
           path: docs/mask-move-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mask-ribbon-evidence
+          if-no-files-found: ignore
+          path: docs/mask-ribbon-*.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

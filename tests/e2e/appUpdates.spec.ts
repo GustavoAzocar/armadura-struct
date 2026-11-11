@@ -265,6 +265,10 @@ for (const save of ['cancel', 'fail'])
         JSON.stringify({ ...emptyProject(), name: 'Projeto preservado' }),
       ),
     });
+    await expect(
+      page.getByRole('banner').getByText('Projeto preservado', { exact: true }),
+    ).toBeVisible();
+    await expect(page.locator('.busy-overlay')).toHaveCount(0);
     const input = page.getByRole('textbox', { name: 'Comando CAD' });
     await input.fill('B');
     await input.press('Enter');
@@ -275,6 +279,7 @@ for (const save of ['cancel', 'fail'])
     await input.fill('');
     await input.press('Enter');
     await page.keyboard.press('Escape');
+    await expect(page.locator('[data-bar-id]')).toHaveCount(1);
     await manual(page);
     await modal(page)
       .getByRole('button', { name: 'Baixar versão 0.10.0' })
@@ -287,7 +292,13 @@ for (const save of ['cancel', 'fail'])
     await modal(page)
       .getByRole('button', { name: 'Salvar, instalar e reiniciar' })
       .click();
-    await expect(modal(page).getByRole('alert')).toBeVisible();
+    await expect(modal(page).getByRole('alert')).toContainText(
+      save === 'fail' ? 'Sem permissão' : 'O projeto não foi salvo em disco.',
+    );
+    expect(await calls(page, 'plugin:dialog|save')).toBe(1);
+    expect(await calls(page, 'plugin:fs|write_text_file')).toBe(
+      save === 'fail' ? 1 : 0,
+    );
     expect(await calls(page, 'updates_arm')).toBe(0);
     expect(await calls(page, 'updates_finish')).toBe(0);
     await expect(page.getByRole('banner')).toContainText('Projeto preservado');

@@ -4,6 +4,7 @@ import { emptyProject, newBar, schedule } from '../../src/domain/model';
 import { completeOwnership } from '../../src/domain/hierarchy';
 import { setLayerState } from '../../src/domain/layerProfiles';
 import { transformPoint } from '../../src/domain/transforms';
+import { waitForCadViewport } from './cadViewport.helpers';
 import type { Project } from '../../src/domain/types';
 function fixture() {
   return completeOwnership({
@@ -46,6 +47,7 @@ async function load(page: Page, p: Project) {
   await expect(
     page.getByRole('banner').getByText(p.name, { exact: true }),
   ).toBeVisible();
+  await waitForCadViewport(page);
 }
 async function command(page: Page, value: string) {
   const i = page.getByRole('textbox', { name: 'Comando CAD' });

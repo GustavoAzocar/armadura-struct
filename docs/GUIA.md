@@ -302,7 +302,7 @@ Em **CONFIGURAÇÕES → Configurações CAD**, edite os padrões do projeto par
 
 ### Importar várias máscaras e organizar destinos
 
-Use **Máscaras → Importar DXF / DWG** para preparar vários arquivos e indicar o detalhamento de cada um antes de aplicar. **Associar máscaras** move as referências na hierarquia ou cria cópias explícitas sem mover aço. Veja o [fluxo completo, limites e cancelamento](MASCARAS-LOTE.md).
+Use **Máscaras → Referências → Importar** para preparar vários arquivos e indicar o detalhamento de cada um antes de aplicar. **Referências → Associar** move as referências na hierarquia ou cria cópias explícitas sem mover aço. Veja o [fluxo completo, limites e cancelamento](MASCARAS-LOTE.md).
 
 ### Calibrar uma máscara por medida conhecida
 

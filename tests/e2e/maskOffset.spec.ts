@@ -403,8 +403,14 @@ test('Offset pelo Controle e em Foco/janela estreita; Delete descarta preparaç�
   await page.keyboard.press('Control+0');
   await page.setViewportSize({ width: 900, height: 650 });
   await page
-    .getByLabel('Ferramentas CAD da máscara ativa')
-    .selectOption('offset');
+    .getByRole('button', {
+      name: 'Referências e comandos de máscara',
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('button', { name: 'Offset — Paralelas de máscara', exact: true })
+    .click();
   await panel(page).getByLabel('Distância do Offset').fill('100 mm');
   await panel(page)
     .getByRole('button', { name: 'Confirmar distância', exact: true })

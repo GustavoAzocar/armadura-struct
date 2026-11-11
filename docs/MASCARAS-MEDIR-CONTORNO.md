@@ -1,6 +1,6 @@
 # Medir contorno de máscaras
 
-**Máscaras → Ferramentas → Medir contorno** consulta o comprimento de um caminho aberto ou o perímetro e a área de um contorno fechado de uma entidade de máscara. É um modo do fluxo existente de **Medir**: o painel compartilha o seletor de operação com **Medir distância** e com as cotas, que continuam iguais. Também acessível pelo seletor compacto **Ferramentas CAD da máscara ativa** (Ribbon recolhido ou Foco) e pelos comandos `CONTORNO`, `PERIMETRO` ou `AREA`.
+**Máscaras → Ferramentas → Medir contorno** consulta o comprimento de um caminho aberto ou o perímetro e a área de um contorno fechado de uma entidade de máscara. É um modo do fluxo existente de **Medir**: o painel compartilha o seletor de operação com **Medir distância** e com as cotas, que continuam iguais. Com o Ribbon recolhido ou em Foco, abra **Referências** ao lado das abas; também acessível e pelos comandos `CONTORNO`, `PERIMETRO` ou `AREA`.
 
 ## Uso
 
