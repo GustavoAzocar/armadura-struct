@@ -32,6 +32,7 @@ Uma tela é selecionada com um clique em qualquer linha dela ou pela janela. A a
 
 - **Editar critérios…** abre a janela só para esta tela, com a tabela antes × depois (painéis-base, área aplicada, massa aplicada e fornecimento). **Aplicar nesta tela** não muda os critérios dos próximos lançamentos.
 - **Redefinir região…** reabre as etapas de região para a mesma tela, com a linha "Antes:" ao lado da prévia nova. A tela mantém o ID e os critérios.
+- Com a janela de critérios aberta, Ctrl+S, Ctrl+O, Ctrl+Z e Ctrl+Y ficam retidos, como nas janelas do estribo e do grampo.
 - Mover, girar, copiar e apagar usam os comandos de sempre. Girar soma o ângulo à orientação. Espelhar é recusado, porque inverteria a posição dos fios. Copiar cria uma tela nova, com ID próprio, que soma no quadro.
 
 ![Edição: antes × depois](welded-mesh-edit.png)
@@ -65,7 +66,7 @@ Barras e telas não se somam num número único. A perda das telas é um percent
 
 Telas exigem o formato nativo **armadurastruct/29** e o pacote **openstruct.detail/18**, reservados a esta contribuição. Arquivos /28 e pacotes /17 com telas são recusados; as versões seguintes as aceitam, e os arquivos saem no formato atual. Projetos sem telas mantêm a mesma forma de antes, inclusive nas exportações. Ao abrir o arquivo, cada lançamento é revalidado (critérios, região e plano).
 
-O lançamento guarda uma cópia dos critérios efetivos e a região estática; atualizar a partir da máscara é uma ação explícita. A camada do lançamento é a única fonte da camada da tela. Pacotes, transferência e reunião de repetições levam as telas, com a mesma identidade física (critérios, região e âncora relativos ao primeiro vértice).
+O lançamento guarda uma cópia dos critérios efetivos e a região estática; atualizar a partir da máscara é uma ação explícita. A camada do lançamento é a única fonte da camada da tela. Pacotes, transferência e reunião de repetições levam as telas, com a mesma identidade física (critérios, região e âncora relativos ao primeiro vértice). Um detalhamento só com telas também pode ser reunido, e as vistas absorvidas são reenquadradas pela tela mantida. Mover telas para outro detalhamento exige o mesmo fator de repetição, como nas barras, porque o fator multiplica o quadro.
 
 ## Limites
 
@@ -76,8 +77,8 @@ O lançamento guarda uma cópia dos critérios efetivos e a região estática; a
 
 ## Resultados desta contribuição
 
-- `npm run check`: 74 arquivos, 991 testes unitários aprovados; testes de distribuição e validação do plugin de exemplo aprovados.
+- `npm run check`: 75 arquivos, 1074 testes unitários aprovados; testes de distribuição e validação do plugin de exemplo aprovados.
 - `npm run build` e `npm run format:check`: aprovados.
-- `npx playwright test`: suíte completa, 286 fluxos aprovados no Chromium. Inclui critérios, lançamento por contorno, pontos e clique, edição e quadros das telas, e o menu Armaduras compacto em 1000, 1280, 1366 e 1920 px.
+- `npx playwright test`: suíte completa, 294 fluxos aprovados no Chromium, contra o master com a central de atalhos. Inclui critérios, lançamento por contorno, pontos e clique, edição e quadros das telas, os atalhos, e o menu Armaduras compacto em 1000, 1280, 1366 e 1920 px.
 - Cada parte do domínio e da interface passou por testes de mutação (alterações propositais no código), todas detectadas pelos testes.
 - Interação nativa desktop Linux/Windows não executada. Capturas e fluxos foram verificados no Chromium.
