@@ -139,7 +139,9 @@ test('edição por teclado, cancelar, persistência e ajuda atualizada sem alter
   await page.reload();
   await tab(page, 'Armaduras').click();
   const bar = ribbonButton(page, 'Barra livre');
+  await page.keyboard.press('Tab');
   await bar.focus();
+  await expect(bar).toBeFocused();
   await expect(page.getByRole('tooltip')).toContainText('Alt+B');
   await bar.blur();
   await page.keyboard.press('b');
