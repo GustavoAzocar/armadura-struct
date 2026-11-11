@@ -293,3 +293,84 @@ test('Mesmo comando em Desenho e acesso compacto em Foco; máscara transformada 
   await page.keyboard.press('Escape');
   expect((await save(page)).annotations).toHaveLength(seed.annotations.length);
 });
+
+test('Aplica, cancela e restaura o arredondamento de uma cota', async ({
+  page,
+}) => {
+  await open(page);
+  const csv = await exported(page, 'Quadro CSV');
+  await aligned(page);
+  const editor = panel(page);
+  await editor
+    .getByRole('checkbox', { name: 'Arredondar cota por múltiplo' })
+    .check();
+  await editor.getByLabel('Múltiplo (mm)', { exact: true }).fill('0');
+  await expect(
+    editor.getByRole('button', { name: 'Aplicar apresentação' }),
+  ).toBeDisabled();
+  await command(page, '1500,3000');
+  await expect(editor).toBeVisible();
+  await editor.getByLabel('Múltiplo (mm)', { exact: true }).fill('70');
+  await editor
+    .getByLabel('Unidade da medida', { exact: true })
+    .selectOption('cm');
+  await expect(editor.getByLabel('Múltiplo (cm)', { exact: true })).toHaveValue(
+    '7',
+  );
+  await editor
+    .getByLabel('Unidade da medida', { exact: true })
+    .selectOption('mm');
+  await expect(editor.getByLabel('Múltiplo (mm)', { exact: true })).toHaveValue(
+    '70',
+  );
+  const at = await position(page, { x: 1500, y: 3000 });
+  await page.mouse.move(at.x, at.y);
+  await expect(editor.getByRole('status')).toContainText('Exibido: ~ 4970 mm');
+  await editor.getByRole('button', { name: 'Aplicar apresentação' }).click();
+  await command(page, '1500,3000');
+  await expect(editor).toHaveCount(0);
+
+  const annotation = page.getByTestId('cad-annotation');
+  await expect(
+    annotation.getByText('~ 4970 mm', { exact: true }),
+  ).toBeVisible();
+  const after = await save(page);
+  expect(after.annotations.at(-1)?.dimensionPresentation?.rounding).toEqual({
+    multipleTicks: 70_000_000,
+    mode: 'nearest',
+  });
+  await command(page, 'U');
+  await expect(annotation.getByText('~ 4970 mm', { exact: true })).toHaveCount(
+    0,
+  );
+  await command(page, 'REDO');
+  await expect(
+    annotation.getByText('~ 4970 mm', { exact: true }),
+  ).toBeVisible();
+
+  await annotation.getByText('~ 4970 mm', { exact: true }).click();
+  const inspector = page.locator('.inspector');
+  const enabled = inspector.getByRole('checkbox', {
+    name: 'Arredondar cota por múltiplo',
+  });
+  await enabled.uncheck();
+  await inspector
+    .getByRole('button', { name: 'Cancelar edição da apresentação' })
+    .click();
+  await expect(enabled).toBeChecked();
+  await enabled.uncheck();
+  await inspector.getByRole('button', { name: 'Aplicar apresentação' }).click();
+  await expect(annotation.getByText('5000 mm', { exact: true })).toBeVisible();
+  await command(page, 'U');
+  await expect(
+    annotation.getByText('~ 4970 mm', { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.save-status')).toHaveText(
+    'Apenas recuperável localmente',
+  );
+  await page.reload();
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
+  expect((await save(page)).annotations).toEqual(after.annotations);
+  expect(await exported(page, 'Quadro CSV')).toBe(csv);
+  expect(await exported(page, 'Desenho DXF')).toContain('~ 4970 mm');
+});

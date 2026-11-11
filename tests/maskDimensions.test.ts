@@ -15,7 +15,7 @@ import {
   dimensionReferenceIssue,
   dimensionPresentationSchema,
 } from '../src/domain/maskDimensions';
-import { annotationPrimitives } from '../src/domain/drafting';
+import { annotationPrimitives, dimensionValueMm } from '../src/domain/drafting';
 import { nativePrimitive } from '../src/domain/nativeMasks';
 import { maskPoint } from '../src/cad/import';
 import { toCsv, toDxf, toPdf } from '../src/lib/exports';
@@ -115,6 +115,44 @@ describe('Medir e cotar referências de máscaras', () => {
       expect(toPdf(q).length).toBeGreaterThan(100);
     },
   );
+  it('persiste e exporta a apresentação arredondada sem mudar geometria ou CSV', () => {
+    const p = maskManipFixture();
+    const a = dimension(p, 'dimension-orthogonal', { x: 1500, y: 6000 });
+    const before = structuredClone(p);
+    a.dimensionPresentation = {
+      unit: 'mm',
+      precision: 0,
+      rounding: { multipleTicks: 70_000_000, mode: 'nearest' },
+    };
+    expect(dimensionValueMm(a)).toBe(3000);
+    expect(caption(p, a)).toBe('~ 3010 mm');
+    expect(a.points).toEqual(before.annotations.at(-1)?.points);
+    expect(p.bars).toEqual(before.bars);
+    expect(p.masks).toEqual(before.masks);
+    expect(toCsv(p)).toBe(toCsv(before));
+    expect(toDxf(p)).toContain('~ 3010 mm');
+    expect(new TextDecoder().decode(toPdf(p))).toContain('~ 3010 mm');
+    expect(decodeProject(JSON.stringify(p)).annotations.at(-1)).toEqual(a);
+    for (const unit of ['mm', 'cm', 'm'] as const) {
+      const pack = createDetailPackage(p, ctx(p).detailId, {
+        producer: { app: 'test', version: '1' },
+        unit,
+      });
+      const restored = readDetailPackage(JSON.stringify(pack)).project;
+      const restoredDimension = restored.annotations.find(
+        (item) => item.id === a.id,
+      )!;
+      expect(restoredDimension.dimensionPresentation).toEqual(
+        a.dimensionPresentation,
+      );
+      expect(caption(restored, restoredDimension)).toBe('~ 3010 mm');
+    }
+    const stale = { ...p, masks: [] };
+    expect(caption(stale, a)).toBe('[REFERÊNCIA ALTERADA] ~ 3010 mm');
+    expect(caption(stale, { ...a, label: 'Cota 1234' })).toBe(
+      '[REFERÊNCIA ALTERADA] Cota 1234',
+    );
+  });
   it('máscara girada/escalada mede no modelo; mover, escalar, aparar e apagar sinalizam valor estático', () => {
     const p = maskManipFixture();
     Object.assign(p.masks[0], {

@@ -40,3 +40,15 @@ As tarefas AS-27/28/29 permanecem separadas: não se adicionam estilos em lote, 
 `tests/maskDimensions.test.ts` cobre 3–4–5, projeções, precisão, pontos inválidos, máscara transformada, diagnóstico de escala/movimento/corte/exclusão, estilo, persistência, migração, clonagem, intercâmbio/remapeamento, vistas 1:50/1:100 e saída PDF/DXF/CSV. `tests/e2e/maskDimensions.spec.ts` cobre consulta sem histórico/estado de salvo, prévia, unidades, repetição/zoom, terceira posição, cancelamento, histórico, recuperação, referência apagada, CSV/DXF, proteções/contexto e Foco em 900×650. A suíte existente foi atualizada somente nas expectativas da versão de saída.
 
 Comandos: `npm run check`, `npm run build`, `npm run format:check`, `npm run test:e2e`. Capturas sintéticas são publicadas no artefato **mask-dimensions-evidence** da CI: consulta, posição, referência alterada e Foco. O Chromium local sofre restrição de sockets; navegador é executado no GitHub em Chromium/Linux. Builds Linux/Windows usam a CI existente; aplicativo instalado não é testado interativamente. Sem release, novas dependências, serviços, permissões amplas ou telemetria.
+
+## Arredondamento por múltiplo
+
+Em **Inserir cota** ou nas propriedades de uma cota existente, marque **Arredondar cota por múltiplo**, informe o múltiplo na unidade exibida, escolha o modo e clique em **Aplicar apresentação**. Na inserção, o terceiro ponto confirma a cota. Em uma cota existente, a aplicação é uma edição que pode ser desfeita e refeita. **Cancelar edição da apresentação** descarta as opções em edição.
+
+- **Mais próximo** escolhe o múltiplo mais próximo. Em empate, escolhe o que está mais longe de zero.
+- **Para cima** escolhe o menor múltiplo maior ou igual à medida.
+- **Para baixo** escolhe o maior múltiplo menor ou igual à medida.
+
+Com múltiplo de 5 mm, 1234 mm aparece como 1235 mm no modo mais próximo ou para cima, e como 1230 mm para baixo. O empate em 1232,5 mm resulta em 1235 mm no modo mais próximo. O mesmo múltiplo equivale a 0,5 cm ou 0,005 m. A unidade escolhida e as casas decimais devem permitir exibir o múltiplo sem outra aproximação.
+
+O prefixo **~** indica que o texto automático usa a política de arredondamento no desenho, na prancha e em PDF/DXF. O aviso de referência alterada continua visível quando aplicável. O texto manual tem precedência e a política volta a valer ao limpar esse texto. A prévia mostra o valor do modelo em mm, o texto formatado sem a política de múltiplos e o texto exibido. O múltiplo é armazenado em milionésimos de milímetro, inclusive nos pacotes de intercâmbio. O arredondamento afeta somente a apresentação da cota.
