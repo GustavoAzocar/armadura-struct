@@ -1,5 +1,6 @@
 import { scaleBeamClampProfile, scaleBeamClampView } from './beamClampSchema';
 import { scaleStirrupProfile } from './stirrupSchema';
+import { scaleHelixDisplay, scaleHelixProfile } from './helixSchema';
 import { scaleDimensionReferences } from './maskDimensions';
 import { nativePrimitive } from './nativeMasks';
 import { drawingLayerSchema } from './layerSchema';
@@ -16,6 +17,7 @@ import {
   fabricationPositionSchema,
   hasFreeTextData,
   hasBeamClampData,
+  hasHelixData,
 } from './model';
 import { contentObjects } from './hierarchy';
 import { detailOrigin, objectOrigin } from './detailTransfer';
@@ -23,7 +25,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/21' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/22' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -50,6 +52,7 @@ export const detailPackageSchema = z
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -105,6 +108,10 @@ function scaleBar(b: Bar, k: number): Bar {
       : {}),
     ...(b.beamClampView
       ? { beamClampView: scaleBeamClampView(b.beamClampView, k) }
+      : {}),
+    ...(b.helix ? { helix: scaleHelixProfile(b.helix, k) } : {}),
+    ...(b.helixDisplay
+      ? { helixDisplay: scaleHelixDisplay(b.helixDisplay, k) }
       : {}),
     diameter: b.diameter * k,
     mandrel: b.mandrel * k,
@@ -241,12 +248,17 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
 /** Validate the complete closed reference graph before opening the AS-08 comparison. */
 export function detailPackageProject(value: DetailPackage): Project {
   if (
-    value.schema !== 'openstruct.detail/21' &&
+    !['openstruct.detail/21', 'openstruct.detail/22'].includes(value.schema) &&
     value.objects.annotations.some(
       (a) => a.dimensionPresentation?.rounding !== undefined,
     )
   )
     throw new Error('Arredondamento de cotas exige pacote v21.');
+  if (
+    value.schema !== 'openstruct.detail/22' &&
+    hasHelixData({ bars: [...value.objects.bars, ...value.dependencies] })
+  )
+    throw new Error('Estribos helicoidais exigem pacote openstruct.detail/22.');
   const pack = scaleContent(
     detailPackageSchema.parse(value),
     factors[value.units.length],
@@ -256,6 +268,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     hasBeamClampData({
       bars: [...pack.objects.bars, ...pack.dependencies],
@@ -270,6 +283,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
@@ -305,6 +319,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -331,6 +346,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -355,6 +371,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -381,6 +398,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -401,6 +419,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
@@ -421,6 +440,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     (pack.layers?.some((l) => l.plot) ||
       [
@@ -443,6 +463,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     ([...pack.objects.bars, ...pack.dependencies].some(
       (b) => b.stirrupMirrored !== undefined,
@@ -463,6 +484,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) => m.format === 'NATIVE')
   )
@@ -478,6 +500,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     pack.objects.masks.some(
       (m) => m.format !== 'NATIVE' && m.primitives.some((q) => q.native),
@@ -494,6 +517,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     [
       ...pack.objects.bars,
@@ -515,6 +539,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) =>
       m.primitives.some((q) => q.native?.kind === 'arc' || q.sourceEntityId),
@@ -529,6 +554,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     pack.objects.annotations.some(
       (a) => a.maskReferences || a.dimensionPresentation,
@@ -543,12 +569,17 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     hasFreeTextData({ masks: pack.objects.masks })
   )
     throw new Error('Textos livres e tipografia CAD exigem pacote v17.');
   if (
-    !['openstruct.detail/20', 'openstruct.detail/21'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/20',
+      'openstruct.detail/21',
+      'openstruct.detail/22',
+    ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
         b.stirrupProfile?.clamp ||
@@ -647,7 +678,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/32',
+      schema: 'armadurastruct/33',
       layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
@@ -700,18 +731,27 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
     throw new Error(
       `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA}.`,
     );
+  if (
+    input?.schema !== 'openstruct.detail/22' &&
+    hasHelixData({
+      bars: [...(input?.objects?.bars ?? []), ...(input?.dependencies ?? [])],
+    })
+  )
+    throw new Error('Estribos helicoidais exigem pacote openstruct.detail/22.');
   const pack = detailPackageSchema.parse(input);
   if (
     ![
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     hasBeamClampData({
       bars: [...pack.objects.bars, ...pack.dependencies],
@@ -726,6 +766,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
@@ -754,6 +795,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
     ].includes(pack.schema) &&
     !pack.layers
   )

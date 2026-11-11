@@ -1,5 +1,6 @@
 import { nextFreeMark } from './marks';
 import { geometry, vertices } from './geometry';
+import { helixMetrics } from './helix';
 import { uid, type Bar, type FabricationPosition, type Project } from './types';
 
 /** Grid equality, not a pairwise distance: equivalence is transitive. All lengths are mm. */
@@ -21,6 +22,8 @@ const knownBarFields = new Set([
   'beamClamp',
   'beamClampDisplay',
   'beamClampView',
+  'helix',
+  'helixDisplay',
   'drafting',
   'origin',
   'rotation',
@@ -70,6 +73,36 @@ export function fabricationSignature(
     return undefined;
   const g = geometry(b);
   if (g.errors.length || !Number.isFinite(g.length)) return undefined;
+  if (b.kind === 'helix') {
+    // Identity is the physical helix: axis D (whatever reference produced it),
+    // useful H, pitch, hand, bar and terminations. Phase is a rigid rotation
+    // about the axis; placement, view and presentation never enter. A helix
+    // read from the other end keeps its hand, so reversal only swaps the ends.
+    const m = helixMetrics(b);
+    const signature = (reversed: boolean) => {
+      const ends = reversed
+        ? [b.manufacturing?.end, b.manufacturing?.start]
+        : [b.manufacturing?.start, b.manufacturing?.end];
+      return JSON.stringify({
+        family: 'helix',
+        convention: b.helix!.convention,
+        steel: b.steel,
+        diameter: q(b.diameter, FABRICATION_RULES.lengthGrid),
+        axisDiameter: q(m.D, FABRICATION_RULES.lengthGrid),
+        height: q(m.H, FABRICATION_RULES.lengthGrid),
+        pitch: q(m.pitch, FABRICATION_RULES.lengthGrid),
+        hand: b.helix!.hand,
+        terminations: b.helix!.ends,
+        ends: ends.map((t) =>
+          t?.kind && t.kind !== 'plain' ? [t.kind, t.code] : ['plain'],
+        ),
+        variant: b.manufacturing?.variant ?? '',
+      });
+    };
+    return reverse
+      ? [signature(false), signature(true)].sort()[0]
+      : signature(false);
+  }
   if (b.stirrupProfile || b.beamClamp) {
     const signature = (reversed: boolean) => {
       const segs = reversed

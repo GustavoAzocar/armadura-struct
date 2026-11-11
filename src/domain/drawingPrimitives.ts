@@ -7,6 +7,14 @@ import {
   beamClampLabelOrigin,
   beamClampViewPoints,
 } from './beamClampViews';
+import {
+  helixPrimitives,
+  helixCaption,
+  helixDimensionLabels,
+  helixDimensionPrimitives,
+  helixLabelOrigin,
+  helixViewPoints,
+} from './helixViews';
 import { styledDrafting } from './cadDefaults';
 import { stylePrimitive } from './layers';
 import {
@@ -47,6 +55,21 @@ export function physicalBarTextPrimitives(
     textAlign: align,
   });
   const out: Primitive[] = [];
+  if (b.kind === 'helix') {
+    if (
+      b.helixDisplay?.identification !== false &&
+      showsPhysicalDescription(p, b.id)
+    )
+      out.push(
+        text(helixCaption(b, p), helixLabelOrigin(b), 'IDENTIFICACAO', 'left'),
+      );
+    if (b.helixDisplay?.dimensions !== false) {
+      out.push(...helixDimensionPrimitives(b));
+      for (const dimension of helixDimensionLabels(b))
+        out.push(text(dimension.text, dimension.at, 'COTAS', dimension.align));
+    }
+    return out;
+  }
   if (
     b.stirrupDisplay?.identification !== false &&
     b.beamClampDisplay?.identification !== false &&
@@ -121,6 +144,7 @@ export function drawingPrimitives(
     const start = lines.length;
     if (b.distribution?.render === 'bars') lines.push(...repeatedGeometry(b));
     else if (b.kind === 'beam-clamp') lines.push(...beamClampPrimitives(b));
+    else if (b.kind === 'helix') lines.push(...helixPrimitives(b));
     else if (b.stirrupProfile) lines.push(...stirrupPrimitives(b));
     else
       lines.push({
@@ -153,7 +177,9 @@ export function drawingPrimitives(
       bars.flatMap((b) =>
         (b.kind === 'beam-clamp'
           ? beamClampViewPoints(b)
-          : geometry(b).vertices
+          : b.kind === 'helix'
+            ? helixViewPoints(b)
+            : geometry(b).vertices
         ).map((v) => world(v, b)),
       ),
     );

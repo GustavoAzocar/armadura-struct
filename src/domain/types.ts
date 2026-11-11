@@ -44,7 +44,10 @@ export type Bar = LayerBinding & {
   id: string;
   mark: string;
   element: string;
-  kind: 'free' | 'stirrup' | 'beam-clamp';
+  kind: 'free' | 'stirrup' | 'beam-clamp' | 'helix';
+  /** Continuous circular helix; one physical piece, never a series of rings. */
+  helix?: import('./helixSchema').HelixProfile;
+  helixDisplay?: import('./helixSchema').HelixDisplay;
   /** Physical U clamp; graphical obliquity never changes these axis dimensions. */
   beamClamp?: import('./beamClampSchema').BeamClampProfile;
   beamClampDisplay?: import('zod').infer<
@@ -321,11 +324,12 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/32';
+  schema: 'armadurastruct/33';
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
   beamClampDefaults?: import('./beamClampSchema').BeamClampCriteria;
+  helixDefaults?: import('./helixSchema').HelixCriteria;
   cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;
   layerEnvironment?: import('./layerProfiles').LayerEnvironment;
@@ -360,6 +364,7 @@ export type Tool =
   | 'bar'
   | 'stirrup'
   | 'beam-clamp'
+  | 'helix'
   | 'move'
   | 'copy'
   | 'detail'
