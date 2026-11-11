@@ -963,6 +963,9 @@ export default function Ribbon({
                 aria-label="Comandos anteriores de armaduras"
                 title="Comandos anteriores de armaduras"
                 disabled={!scroll.before}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+                }}
                 onClick={() =>
                   scrollRef.current?.scrollBy({
                     left: -240,
@@ -988,6 +991,9 @@ export default function Ribbon({
                 aria-label="Próximos comandos de armaduras"
                 title="Próximos comandos de armaduras"
                 disabled={!scroll.after}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+                }}
                 onClick={() =>
                   scrollRef.current?.scrollBy({ left: 240, behavior: 'smooth' })
                 }

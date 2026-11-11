@@ -210,6 +210,40 @@ test('janela estreita e interface ampliada: setas, foco, ajuda e acesso a todos 
   }
 });
 
+test('setas por teclado rolam sem confirmar a barra em andamento', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 640, height: 650 });
+  await load(page);
+  await ribbon(page)
+    .getByRole('button', { name: 'Barra livre', exact: true })
+    .click();
+  await command(page, '0,0');
+  await command(page, '1000,0');
+  const content = page.locator('.ribbon-content');
+  const next = page.getByRole('button', {
+    name: 'Próximos comandos de armaduras',
+  });
+  await next.focus();
+  await next.press('Enter');
+  await expect
+    .poll(() => content.evaluate((e) => e.scrollLeft))
+    .toBeGreaterThan(0);
+  const scrolled = await content.evaluate((e) => e.scrollLeft);
+  expect((await save(page)).bars).toHaveLength(0);
+  const previous = page.getByRole('button', {
+    name: 'Comandos anteriores de armaduras',
+  });
+  await previous.focus();
+  await previous.press('Enter');
+  await expect
+    .poll(() => content.evaluate((e) => e.scrollLeft))
+    .toBeLessThan(scrolled);
+  expect((await save(page)).bars).toHaveLength(0);
+  await command(page, '');
+  expect((await save(page)).bars).toHaveLength(1);
+});
+
 test('botão por teclado devolve Enter ao CAD; barra livre confirma uma vez, desfaz, refaz e reabre', async ({
   page,
 }) => {
