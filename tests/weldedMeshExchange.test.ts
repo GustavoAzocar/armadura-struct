@@ -82,13 +82,20 @@ const plan = (p: Project) => {
   return r.layout;
 };
 
-describe('Pacote de detalhamento (openstruct.detail/18)', () => {
+describe('Pacote de detalhamento (telas desde o openstruct.detail/18)', () => {
   it('em mm: leva a tela e volta idêntica, com os mesmos números', () => {
     const p = source();
     const pack = createDetailPackage(p, p.hierarchy.details[0].id, {
       producer,
     });
-    expect(pack.schema).toBe('openstruct.detail/18');
+    expect(pack.schema).toBe('openstruct.detail/20');
+    // O v18 (reservado à #128) e o v19 também levam telas.
+    for (const v of ['18', '19'])
+      expect(
+        readDetailPackage(
+          JSON.stringify({ ...pack, schema: `openstruct.detail/${v}` }),
+        ).project.weldedMeshes,
+      ).toHaveLength(1);
     expect(pack.objects.weldedMeshes).toHaveLength(1);
     const back = readDetailPackage(JSON.stringify(pack)).project;
     expect(back.weldedMeshes).toEqual(p.weldedMeshes);

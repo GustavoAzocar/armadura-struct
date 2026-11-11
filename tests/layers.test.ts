@@ -193,7 +193,7 @@ describe('AS-19 · layers nativos e estilos', () => {
           details: schema.endsWith('/13') ? legacy.details : [],
         }),
       );
-      expect(q.schema).toBe('armadurastruct/29');
+      expect(q.schema).toBe('armadurastruct/31');
       expect(q.bars[0].id).toBe('a');
       expect(q.bars[0].points).toEqual(p.bars[0].points);
       expect(resolveStyle(q, q.bars[0], 'ARMADURAS').color).toBe('#d12345');
@@ -248,7 +248,7 @@ describe('AS-19 · layers nativos e estilos', () => {
         unit,
         producer: { app: 'AS19', version: '1' },
       });
-      expect(pack.schema).toBe('openstruct.detail/18');
+      expect(pack.schema).toBe('openstruct.detail/20');
       const source = readDetailPackage(pack).project;
       expect(source.layers).toEqual(q.layers);
       expect(source.bars[1].style).toEqual(q.bars[1].style);

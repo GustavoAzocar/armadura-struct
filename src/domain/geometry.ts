@@ -1,4 +1,5 @@
 import { stirrupGeometry } from './stirrupGeometry';
+import { beamClampGeometry, beamClampVertices } from './beamClampGeometry';
 import type { Bar, Geometry, Point, Segment } from './types';
 export const add = (a: Point, b: Point): Point => ({
   x: a.x + b.x,
@@ -40,6 +41,7 @@ export const format = (n: number, digits = 1) => {
   return formatter.format(n);
 };
 export function vertices(bar: Bar): Point[] {
+  if (bar.kind === 'beam-clamp' && bar.beamClamp) return beamClampVertices(bar);
   if (bar.stirrupProfile) return stirrupGeometry(bar).vertices;
   if (bar.kind === 'free') return bar.points;
   const r = (bar.mandrel + bar.diameter) / 2;
@@ -59,6 +61,7 @@ export function vertices(bar: Bar): Point[] {
 }
 /** Physical centerline: trim straight legs by R tan(theta/2), then insert circular bends. */
 export function geometry(bar: Bar): Geometry {
+  if (bar.kind === 'beam-clamp') return beamClampGeometry(bar);
   if (bar.stirrupProfile) return stirrupGeometry(bar);
   return geometryFromPoints(vertices(bar), (bar.mandrel + bar.diameter) / 2);
 }

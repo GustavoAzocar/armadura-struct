@@ -4,8 +4,8 @@ import { performanceScene } from '../performanceScene';
 import type { Project } from '../../src/domain/types';
 
 async function save(page: Page): Promise<Project> {
-  const close = page.getByRole('button', { name: 'Fechar aviso', exact: true });
-  if (await close.isVisible()) await close.click();
+  // Toasts expire independently and do not cover the toolbar. Saving must not
+  // wait for a transient close button that can disappear before the click.
   const event = page.waitForEvent('download');
   await page
     .locator('.quick-tools')

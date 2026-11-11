@@ -105,7 +105,7 @@ test('símbolos: criar, inserir duas instâncias, transformar uma, editar, desfa
   await page.screenshot({ path: 'docs/simbolos-canvas.png' });
 
   const saved = await save(page);
-  expect(saved.schema).toBe('armadurastruct/29');
+  expect(saved.schema).toBe('armadurastruct/31');
   expect(saved.symbols).toHaveLength(1);
   expect(saved.symbolInstances).toHaveLength(2);
   expect(saved.bars).toEqual(before.bars);

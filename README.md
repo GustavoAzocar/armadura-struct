@@ -69,6 +69,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Agrupamento semântico com seleção do conjunto e edição isolada por duplo clique; navegação e conclusão mantêm os demais detalhamentos protegidos e o quadro global vinculado.
 - Faixa de comandos compacta, painel lateral único com abas Projeto/Propriedades/Pranchas, recolhimento dos painéis e modo Foco no CAD. Fundo claro/escuro, pan, zoom, enquadramento e grade.
 - Barras livres por vértices; estribos retangulares com ganchos de 135°, bitola, mandril, quantidade e dimensões editáveis.
+- Grampos de viga em U com medidas reais L/T, lançamento por um ponto, terminações independentes e perspectivas/desenvolvimentos vinculados à mesma peça física.
 - Comandos pelo mouse ou teclado, coordenadas absolutas/relativas/polares, ortogonal e encaixes em extremidades e pontos médios.
 - Seleção por clique ou janela, edição de vértices por alças, mover, copiar, girar, espelhar, excluir e desfazer/refazer.
 - [Seguir fôrma por múltiplas linhas](docs/SEGUIR-FORMA.md): seleção incremental de arestas, lado por clique, cobrimento herdado/temporário, prévia física com dobras e Enter para criar uma única barra; aceita contornos abertos/fechados de máscaras nativas/importadas.
@@ -198,3 +199,6 @@ Instale pelo [Struct Launcher](https://openstruct.com.br/launcher). Os pacotes a
 Hefesto trabalhando uma armadura, em gravura preta e marfim sobre fundo âmbar. Os formatos utilizados pelo aplicativo estão em `public/brand` e `src-tauri/icons`.
 
 [Critérios e lançamento de estribos pela seção e faixa](docs/ESTRIBOS.md).
+
+[Grampos de pilar S/C por centros longitudinais](docs/GRAMPOS-PILAR.md).
+[Critérios, lançamento e vistas vinculadas de grampos de viga em U](docs/GRAMPOS_VIGA.md).

@@ -8,6 +8,10 @@ import { assertLayerEdit } from './layerProfiles';
 import { assertVisibilityEdit } from './visibility';
 import { assertDetailEdit } from './detailEditing';
 import { scheduleChanged } from './model';
+import {
+  mirrorBeamClampView,
+  defaultBeamClampCriteria,
+} from './beamClampSchema';
 const point = z
   .object({
     x: z.number().finite().min(-1e9).max(1e9),
@@ -127,7 +131,17 @@ export function transformSelection(
             ...(flipped
               ? b.kind === 'free'
                 ? { points: b.points.map(reflect) }
-                : { stirrupMirrored: !b.stirrupMirrored }
+                : b.kind === 'beam-clamp' && b.beamClamp
+                  ? {
+                      beamClamp: {
+                        ...b.beamClamp,
+                        mirrored: !b.beamClamp.mirrored,
+                      },
+                      beamClampView: mirrorBeamClampView(
+                        b.beamClampView ?? defaultBeamClampCriteria().view,
+                      ),
+                    }
+                  : { stirrupMirrored: !b.stirrupMirrored }
               : {}),
             distribution: b.distribution
               ? {
@@ -152,6 +166,9 @@ export function transformSelection(
             rotation: angle(d.rotation ?? 0),
             ...(flipped
               ? { mirrored: chosen.has(d.barId) ? !!d.mirrored : !d.mirrored }
+              : {}),
+            ...(flipped && chosen.has(d.barId) && d.beamClampView
+              ? { beamClampView: mirrorBeamClampView(d.beamClampView) }
               : {}),
             ...(flipped && chosen.has(d.barId) && d.label
               ? {

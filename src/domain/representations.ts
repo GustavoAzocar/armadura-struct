@@ -4,6 +4,13 @@ import {
   displayedBarGeometry,
 } from './stirrupGeometry';
 import { geometry, sampled, rotate, format } from './geometry';
+import {
+  beamClampPrimitives,
+  beamClampViewPoints,
+  beamClampDimensionLabels,
+  beamClampDimensionPrimitives,
+  beamClampLabelOrigin,
+} from './beamClampViews';
 import { quantityLabel, assemblyLabel } from './detailQuantities';
 import { barCaption } from './drafting';
 import type { Bar, Detail, Point, Primitive, Project } from './types';
@@ -18,6 +25,10 @@ export function representationPoint(d: Detail, p: Point): Point {
   return { x: v.x + d.origin.x, y: v.y + d.origin.y };
 }
 export function representationPoints(b: Bar, d: Detail) {
+  if (b.kind === 'beam-clamp')
+    return beamClampViewPoints(b, d.beamClampView ?? b.beamClampView).map((p) =>
+      representationPoint(d, p),
+    );
   return sampled((displayedBarGeometry(b) ?? geometry(b)).segments).map((p) =>
     representationPoint(d, p),
   );
@@ -34,7 +45,12 @@ export function representationPrimitives(
   paperHeight?: number,
 ): Primitive[] {
   const h = paperHeight ?? d.drafting?.height ?? 40;
-  const text = (text: string, at: Point, layer: string): Primitive => ({
+  const text = (
+    text: string,
+    at: Point,
+    layer: string,
+    align = d.drafting?.align,
+  ): Primitive => ({
     layer,
     text,
     points: [representationPoint(d, at)],
@@ -42,22 +58,32 @@ export function representationPrimitives(
       (layer === 'COTAS'
         ? (paperHeight ?? d.drafting?.dimensionHeight ?? h)
         : h) * (d.scale ?? 1),
-    textAlign: d.drafting?.align,
+    textAlign: align,
     textRotation: d.rotation ?? 0,
   });
-  const out: Primitive[] = b.stirrupProfile
-    ? stirrupPrimitives(
-        b,
-        (p) => representationPoint(d, p),
-        d.scale ?? 1,
-        !!d.mirrored,
-      ).map((p) => ({ ...p, layer: 'REBATIMENTOS' }))
-    : [{ layer: 'REBATIMENTOS', points: representationPoints(b, d) }];
+  const out: Primitive[] =
+    b.kind === 'beam-clamp'
+      ? beamClampPrimitives(
+          b,
+          d.beamClampView ?? b.beamClampView,
+          (p) => representationPoint(d, p),
+          d.scale ?? 1,
+          !!d.mirrored,
+        ).map((p) => ({ ...p, layer: 'REBATIMENTOS' }))
+      : b.stirrupProfile
+        ? stirrupPrimitives(
+            b,
+            (p) => representationPoint(d, p),
+            d.scale ?? 1,
+            !!d.mirrored,
+          ).map((p) => ({ ...p, layer: 'REBATIMENTOS' }))
+        : [{ layer: 'REBATIMENTOS', points: representationPoints(b, d) }];
   const mode = d.identification ?? 'legacy';
   if (
     d.label &&
     mode !== 'none' &&
-    b.stirrupDisplay?.identification !== false
+    b.stirrupDisplay?.identification !== false &&
+    b.beamClampDisplay?.identification !== false
   ) {
     const mark =
       d.label.omitPrefix && b.mark.startsWith(d.label.omitPrefix)
@@ -85,16 +111,43 @@ export function representationPrimitives(
       textAlign: 'center',
     });
   }
-  if (mode !== 'none' && !d.label && b.stirrupDisplay?.identification !== false)
+  if (
+    mode !== 'none' &&
+    !d.label &&
+    b.stirrupDisplay?.identification !== false &&
+    b.beamClampDisplay?.identification !== false
+  )
     out.push(
       text(
         mode === 'mark'
           ? b.mark
           : `${b.mark} - ${quantityLabel(p, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
-        { x: 0, y: -110 },
+        b.kind === 'beam-clamp'
+          ? beamClampLabelOrigin(b, d.beamClampView ?? b.beamClampView)
+          : { x: 0, y: -110 },
         'IDENTIFICACAO',
       ),
     );
+  if (b.kind === 'beam-clamp') {
+    if (
+      d.showDimensions !== false &&
+      b.beamClampDisplay?.dimensions !== false
+    ) {
+      out.push(
+        ...beamClampDimensionPrimitives(
+          b,
+          d.beamClampView ?? b.beamClampView,
+          (point) => representationPoint(d, point),
+        ),
+      );
+      for (const value of beamClampDimensionLabels(
+        b,
+        d.beamClampView ?? b.beamClampView,
+      ))
+        out.push(text(value.text, value.at, 'COTAS', value.align));
+    }
+    return out;
+  }
   if (b.stirrupProfile) {
     if (d.showDimensions !== false && b.stirrupDisplay?.dimensions !== false)
       for (const v of stirrupDimensionLabels(b))

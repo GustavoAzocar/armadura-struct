@@ -85,7 +85,7 @@ describe('Lançamento de tela soldada no projeto', () => {
       criteria({ widthOverlap: 150 }),
     );
     const q = roundTrip(p);
-    expect(q.schema).toBe('armadurastruct/29');
+    expect(q.schema).toBe('armadurastruct/31');
     expect(q.weldedMeshes).toEqual(p.weldedMeshes);
     expect(q.weldedMeshDefaults).toEqual(p.weldedMeshDefaults);
     expect(q.hierarchy.objectDetails['tela-1']).toBe(
@@ -133,16 +133,25 @@ describe('Lançamento de tela soldada no projeto', () => {
   });
 });
 
-describe('Formato do arquivo (29)', () => {
-  it('projeto novo já nasce no formato 29', () => {
-    expect(emptyProject().schema).toBe('armadurastruct/29');
+describe('Formato do arquivo (telas desde o 29, reservado à #128)', () => {
+  it('projeto novo nasce no formato atual (31)', () => {
+    expect(emptyProject().schema).toBe('armadurastruct/31');
   });
 
-  it('arquivo 28 sem telas abre normalmente e é salvo como 29', () => {
+  it('arquivo 28 sem telas abre normalmente e é salvo no formato atual', () => {
     const old = { ...emptyProject(), schema: 'armadurastruct/28' };
     const q = decodeProject(JSON.stringify(old));
-    expect(q.schema).toBe('armadurastruct/29');
+    expect(q.schema).toBe('armadurastruct/31');
     expect(q.weldedMeshes ?? []).toEqual([]);
+  });
+
+  it('telas abrem nos formatos 29, 30 e 31', () => {
+    const { p } = launched();
+    for (const v of ['29', '30', '31'])
+      expect(
+        decodeProject(JSON.stringify({ ...p, schema: `armadurastruct/${v}` }))
+          .weldedMeshes,
+      ).toHaveLength(1);
   });
 
   it('arquivo 28 com telas é recusado: o recurso exige o formato 29', () => {
