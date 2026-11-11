@@ -46,7 +46,12 @@ function fixture(): Project {
     'tela-1',
   );
   p = placeDrawing(p, p.sheets[0].id, p.hierarchy.drawings[0].id).project;
-  return setSheetSchedule(p, p.sheets[0].id, defaultSheetSchedule());
+  return setSheetSchedule(
+    p,
+    p.sheets[0].id,
+    // À direita da vista, para a captura não sobrepor o desenho.
+    defaultSheetSchedule({ x: 228, y: 280 }),
+  );
 }
 async function open(p: Page) {
   await p.goto('/');
@@ -109,6 +114,7 @@ test('árvore, total à parte e página do quadro de aço com as telas', async (
   const row = section.locator('tbody tr').first();
   await expect(row).toContainText('TS1');
   await expect(row).toContainText('Q92');
+  await expect(row).toContainText('Detalhamento 1');
   await expect(row).toContainText('2 (0 recortada(s))');
   await expect(row).toContainText('28,50');
   await expect(row).toContainText('29,40');
@@ -120,6 +126,7 @@ test('árvore, total à parte e página do quadro de aço com as telas', async (
   await expect(page.locator('.schedule-notes')).toContainText(
     'Este quadro não aplica perda nas telas',
   );
+  await section.screenshot({ path: 'docs/welded-mesh-schedule.png' });
   // Clicar na linha seleciona a tela.
   await row.click();
   await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
@@ -140,6 +147,9 @@ test('perda das telas no quadro da prancha (0% não é gravado) e no CSV por esc
   await expect(page.getByTestId('sheet-steel-schedule')).toContainText(
     'QUADRO DE TELAS SOLDADAS',
   );
+  // A composição da folha não tem problemas (o PDF não fica bloqueado).
+  await expect(page.getByText(/problema\(s\) de composição/)).toHaveCount(0);
+  await page.screenshot({ path: 'docs/welded-mesh-sheet.png' });
   const loss = page.getByLabel('Perda das telas do quadro', { exact: true });
   await loss.fill('5');
   await loss.press('Enter');

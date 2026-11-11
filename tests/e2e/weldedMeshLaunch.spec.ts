@@ -154,6 +154,7 @@ test('contorno com abertura: prévia com os números do caso 2, confirmação at
     panel(page).getByRole('list', { name: 'Aberturas' }),
   ).toContainText('Abertura 1 · 1,00 m²');
   await expect(numbers(page)).toContainText('27,50 m²');
+  await page.screenshot({ path: 'docs/welded-mesh-launch.png' });
   // A mesma entidade não entra duas vezes.
   await clickModel(page, P(1500, 1000));
   await expect(panel(page).getByRole('alert')).toContainText(
@@ -330,6 +331,8 @@ test('clique: linhas que se cruzam, região maior, contorno interno como abertur
   await expect(numbers(page)).toContainText('Área útil28,50 m²');
   await island.check();
   await expect(numbers(page)).toContainText('Área útil27,50 m²');
+
+  await page.screenshot({ path: 'docs/welded-mesh-click.png' });
 
   // Conferência: ponto de partida explícito muda a grade (2 → 3 painéis).
   await panel(page)

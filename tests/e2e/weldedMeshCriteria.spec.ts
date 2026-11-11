@@ -74,6 +74,7 @@ test('catálogo só leitura, personalizada identificada, validação e critério
   await expect(cells(d)).toContainText('10 cm');
   await expect(cells(d)).toContainText('1,38 cm²/m');
   await expect(cells(d).getByRole('spinbutton')).toHaveCount(0);
+  await d.screenshot({ path: 'docs/welded-mesh-criteria.png' });
 
   // Personalizada: escolha explícita, a partir do modelo atual.
   await d

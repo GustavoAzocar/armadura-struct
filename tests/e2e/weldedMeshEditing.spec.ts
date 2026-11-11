@@ -132,6 +132,10 @@ test('selecionar, editar critérios só desta tela com antes × depois e redefin
   await expect(impact.getByRole('row', { name: /Fornecimento/ })).toHaveText(
     /43,6 kg\s*64,6 kg/,
   );
+  await expect(d).toContainText(
+    'Muda só esta tela. Os critérios dos próximos lançamentos não mudam.',
+  );
+  await d.screenshot({ path: 'docs/welded-mesh-edit.png' });
   await d
     .getByRole('button', { name: 'Aplicar nesta tela', exact: true })
     .click();
