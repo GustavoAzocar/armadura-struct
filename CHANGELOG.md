@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Menu Armaduras compacto: comandos em duas linhas com ícones técnicos e ajuda por foco/hover, parâmetros de criação em bloco próprio legível, setas de rolagem em janelas estreitas e preservação dos campos ao recolher a faixa. Mantém os critérios, comandos e regras de armaduras existentes. [Organização e comparação visual](docs/MENU-ARMADURAS.md).
+
 - Grampos de pilar S/C por dois centros longitudinais, bitolas independentes e folga física: critérios integrados ao estribo, prévia, correção, edição e distribuição opcional. Eixo analítico, validação de envelopes e retornos, corte sem acréscimo oculto, quantitativos e intercâmbio mm/cm/m. Formatos nativo /31 e pacote /20, reservando as versões dos PRs paralelos. [Fluxo e convenções](docs/GRAMPOS-PILAR.md).
 
 - Removido o Exemplo ArmaduraStruct: o aplicativo abre vazio quando não há projeto para recuperar, sem a opção **Carregar projeto de exemplo**, o aviso e a conferência do exemplo. Projetos salvos e a recuperação local não são afetados.

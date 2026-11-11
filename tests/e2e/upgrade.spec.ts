@@ -96,11 +96,11 @@ test('workspace compacto mantém CAD amplo e recupera painéis recolhidos', asyn
   await page
     .getByRole('button', { name: 'Recolher faixa de comandos', exact: true })
     .click();
-  await expect(page.locator('.ribbon-content')).toHaveCount(0);
+  await expect(page.locator('.ribbon-content')).toBeHidden();
   await page.reload();
   await expect(page.locator('.busy-overlay')).toHaveCount(0);
   await expect(page.locator('.sidebar-dock')).toHaveCount(0);
-  await expect(page.locator('.ribbon-content')).toHaveCount(0);
+  await expect(page.locator('.ribbon-content')).toBeHidden();
   const expanded = (await page.getByTestId('cad-canvas').boundingBox())!;
   expect(expanded.width).toBe(1366);
   expect(expanded.height).toBeGreaterThan(rect.height);

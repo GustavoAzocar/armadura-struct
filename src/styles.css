@@ -1719,12 +1719,6 @@ svg {
   max-width: 57px;
   white-space: normal;
 }
-@media (max-width: 1400px) {
-  /* Keep all armature commands and creation fields visible on laptop screens. */
-  .ribbon-armatures .ribbon-tool {
-    width: 54px;
-  }
-}
 .ribbon-tool.active {
   background: #e8edff;
   color: #3448d1;
@@ -1740,37 +1734,6 @@ svg {
   font-size: 8px;
   line-height: 1;
   color: #7885a0;
-}
-.creation-fields {
-  width: 119px;
-  padding: 0 4px;
-  align-self: center;
-}
-.creation-fields .field {
-  display: grid;
-  grid-template-columns: 49px 1fr;
-  gap: 2px;
-  align-items: center;
-  margin: 0 0 1px;
-}
-.creation-fields .field > span {
-  font-size: 8px;
-  color: #596a83;
-}
-.creation-fields .field input,
-.creation-fields .field select {
-  height: 18px;
-  padding: 0 3px;
-  font-size: 9px;
-  border-radius: 1px;
-}
-.creation-fields .input-suffix input {
-  padding-right: 19px;
-}
-.creation-fields .input-suffix em {
-  top: 4px;
-  right: 3px;
-  font-size: 7px;
 }
 .workspace {
   overflow: hidden;
@@ -2140,9 +2103,6 @@ svg {
   .sidebar-dock {
     width: 230px;
     flex-basis: 230px;
-  }
-  .creation-fields {
-    width: 110px;
   }
   .statusbar .save-status {
     min-width: 0;
@@ -5181,5 +5141,114 @@ button.hierarchy-drawing {
   }
   .mask-status-dot {
     forced-color-adjust: none;
+  }
+}
+
+/* Issue #120: Armaduras shares the compact command and tooltip system with Máscaras. */
+.ribbon-armatures .ribbon-content {
+  position: relative;
+}
+.ribbon-scroll {
+  position: relative;
+  min-width: 0;
+}
+.ribbon-scroll[hidden] {
+  display: none;
+}
+.ribbon-armatures .ribbon-tool-primary {
+  background: #f1f4ff;
+  border-color: #ccd6f1;
+  color: #3448d1;
+}
+.ribbon-group-creation {
+  justify-content: flex-start;
+}
+.ribbon-armatures .creation-fields {
+  width: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 182px);
+  grid-template-rows: repeat(2, 28px);
+  align-content: center;
+  gap: 2px 10px;
+  height: 60px;
+  padding: 0 4px;
+  align-self: stretch;
+}
+.ribbon-armatures .creation-fields .field {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+.ribbon-armatures .creation-fields .field > span {
+  font-size: 11px;
+  line-height: 1.2;
+  color: #45546d;
+  white-space: nowrap;
+}
+.ribbon-armatures .creation-fields input,
+.ribbon-armatures .creation-fields select {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ribbon-armatures .creation-fields .input-suffix {
+  min-width: 0;
+}
+.ribbon-armatures .creation-fields .input-suffix input {
+  padding-right: 24px;
+}
+.ribbon-armatures .creation-fields .input-suffix select {
+  padding-right: 4px;
+}
+.ribbon-armatures .creation-fields .input-suffix em {
+  top: 7px;
+  right: 5px;
+  font-size: 10px;
+}
+.ribbon-armatures .creation-fields select + em {
+  right: 18px;
+  pointer-events: none;
+}
+.ribbon-armatures .creation-fields :is(input, select):focus-visible {
+  outline: 2px solid #6d80ed;
+  outline-offset: 1px;
+}
+.ribbon-armatures .ribbon-scroll-overflow .ribbon-content {
+  padding-inline: 34px;
+  scroll-padding-inline: 34px;
+}
+.ribbon-scroll-arrow {
+  position: absolute;
+  z-index: 3;
+  top: 3px;
+  width: 28px;
+  height: 60px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dfe4eb;
+  background: #fff;
+  color: #45546d;
+}
+.ribbon-scroll-arrow:disabled {
+  opacity: 0.7;
+  background: #f6f8fc;
+}
+.ribbon-scroll-previous {
+  left: 2px;
+}
+.ribbon-scroll-next {
+  right: 2px;
+}
+@media (forced-colors: active) {
+  .ribbon-armatures .creation-fields :is(input, select):focus-visible,
+  .ribbon-armatures .ribbon-tool-primary {
+    outline: 1px solid Highlight;
   }
 }

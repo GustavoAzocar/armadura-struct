@@ -478,9 +478,11 @@ test.describe('interface ampliada em 150%', () => {
   });
 });
 
-test('outras abas mantêm botões com rótulo', async ({ page }) => {
+test('abas de desenho, elementos e arquivo mantêm botões com rótulo', async ({
+  page,
+}) => {
   await load(page, emptyProject());
-  for (const tab of ['Armaduras', 'Desenho', 'Elementos', 'Arquivo']) {
+  for (const tab of ['Desenho', 'Elementos', 'Arquivo']) {
     await page.getByRole('tab', { name: tab, exact: true }).click();
     await expect(page.locator('.ribbon-tool-compact')).toHaveCount(0);
     await expect(page.locator('.ribbon-tool > span').first()).not.toHaveText(

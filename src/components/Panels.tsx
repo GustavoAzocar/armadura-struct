@@ -1,3 +1,4 @@
+import DimensionPresentationFields from './DimensionPresentationFields';
 import { dimensionReferenceIssue } from '../domain/maskDimensions';
 import LayerInspector from './LayerInspector';
 import WeldedMeshInspector from './WeldedMeshInspector';
@@ -22,7 +23,7 @@ import {
   quantitySourceLabel,
   quantityExpression,
 } from '../domain/detailQuantities';
-import { annotationError } from '../domain/drafting';
+import { annotationError, dimensionValueMm } from '../domain/drafting';
 import HierarchyNavigator from './HierarchyNavigator';
 import { toggleDetailSelection } from '../domain/detailEditing';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -1821,48 +1822,24 @@ export function DraftInspector({
         )}
         {annotation?.kind.startsWith('dimension') && (
           <Section title="Apresentação da cota">
-            <label className="field">
-              Unidade
-              <select
-                aria-label="Unidade da cota"
-                value={annotation.dimensionPresentation?.unit ?? 'cm'}
-                onChange={(e) =>
-                  onAnnotation({
-                    dimensionPresentation: {
-                      unit: e.target.value as 'mm' | 'cm' | 'm',
-                      precision:
-                        annotation.dimensionPresentation?.precision ?? 1,
-                    },
-                  })
-                }
-              >
-                {['mm', 'cm', 'm'].map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              Casas decimais
-              <select
-                aria-label="Precisão da cota"
-                value={annotation.dimensionPresentation?.precision ?? 1}
-                onChange={(e) =>
-                  onAnnotation({
-                    dimensionPresentation: {
-                      unit: annotation.dimensionPresentation?.unit ?? 'cm',
-                      precision: Number(e.target.value),
-                    },
-                  })
-                }
-              >
-                {[0, 1, 2, 3, 4, 5, 6].map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </label>
+            <DimensionPresentationFields
+              key={
+                project.id +
+                annotation.id +
+                JSON.stringify(annotation.dimensionPresentation)
+              }
+              presentation={
+                annotation.dimensionPresentation ?? { unit: 'cm', precision: 1 }
+              }
+              onPresentation={(dimensionPresentation) =>
+                onAnnotation({ dimensionPresentation })
+              }
+              measurement={dimensionValueMm(annotation)}
+              manualLabel={annotation.label}
+              context="cota"
+            />
             <p className="field-help">
-              Arredondamento somente do texto. Texto manual substitui o valor
-              calculado; deixe vazio para valor automático.
+              Deixe o texto da anotação vazio para usar o valor automático.
             </p>
           </Section>
         )}

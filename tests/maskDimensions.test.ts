@@ -1,4 +1,10 @@
-import { decodeProject, emptyProject } from '../src/domain/model';
+import Ajv2020 from 'ajv/dist/2020';
+import packageSchema from '../docs/openstruct-detail-v21.schema.json';
+import {
+  decodeProject,
+  emptyProject,
+  scheduleChanged,
+} from '../src/domain/model';
 import {
   previewDetailTransfer,
   applyDetailTransfer,
@@ -15,7 +21,7 @@ import {
   dimensionReferenceIssue,
   dimensionPresentationSchema,
 } from '../src/domain/maskDimensions';
-import { annotationPrimitives } from '../src/domain/drafting';
+import { annotationPrimitives, dimensionValueMm } from '../src/domain/drafting';
 import { nativePrimitive } from '../src/domain/nativeMasks';
 import { maskPoint } from '../src/cad/import';
 import { toCsv, toDxf, toPdf } from '../src/lib/exports';
@@ -115,6 +121,46 @@ describe('Medir e cotar referências de máscaras', () => {
       expect(toPdf(q).length).toBeGreaterThan(100);
     },
   );
+  it('persiste e exporta a apresentação arredondada sem mudar geometria ou CSV', () => {
+    const p = maskManipFixture();
+    const a = dimension(p, 'dimension-orthogonal', { x: 1500, y: 6000 });
+    const before = structuredClone(p);
+    a.dimensionPresentation = {
+      unit: 'mm',
+      precision: 0,
+      rounding: { multipleTicks: 70_000_000, mode: 'nearest' },
+    };
+    expect(dimensionValueMm(a)).toBe(3000);
+    expect(caption(p, a)).toBe('~ 3010 mm');
+    expect(a.points).toEqual(before.annotations.at(-1)?.points);
+    expect(p.bars).toEqual(before.bars);
+    expect(p.masks).toEqual(before.masks);
+    expect(p.scheduleLock).toEqual(before.scheduleLock);
+    expect(scheduleChanged(p)).toBe(false);
+    expect(toCsv(p)).toBe(toCsv(before));
+    expect(toDxf(p)).toContain('~ 3010 mm');
+    expect(new TextDecoder().decode(toPdf(p))).toContain('~ 3010 mm');
+    expect(decodeProject(JSON.stringify(p)).annotations.at(-1)).toEqual(a);
+    for (const unit of ['mm', 'cm', 'm'] as const) {
+      const pack = createDetailPackage(p, ctx(p).detailId, {
+        producer: { app: 'test', version: '1' },
+        unit,
+      });
+      const restored = readDetailPackage(JSON.stringify(pack)).project;
+      const restoredDimension = restored.annotations.find(
+        (item) => item.id === a.id,
+      )!;
+      expect(restoredDimension.dimensionPresentation).toEqual(
+        a.dimensionPresentation,
+      );
+      expect(caption(restored, restoredDimension)).toBe('~ 3010 mm');
+    }
+    const stale = { ...p, masks: [] };
+    expect(caption(stale, a)).toBe('[REFERÊNCIA ALTERADA] ~ 3010 mm');
+    expect(caption(stale, { ...a, label: 'Cota 1234' })).toBe(
+      '[REFERÊNCIA ALTERADA] Cota 1234',
+    );
+  });
   it('máscara girada/escalada mede no modelo; mover, escalar, aparar e apagar sinalizam valor estático', () => {
     const p = maskManipFixture();
     Object.assign(p.masks[0], {
@@ -176,7 +222,7 @@ describe('Medir e cotar referências de máscaras', () => {
           unit,
         }),
         q = readDetailPackage(JSON.stringify(pack)).project;
-      expect(pack.schema).toBe('openstruct.detail/20');
+      expect(pack.schema).toBe('openstruct.detail/21');
       const r = q.annotations.find((v) => v.id === a.id)!;
       expect(dimensionReferenceIssue(q, r)).toBeUndefined();
       expect(r.maskReferences).toEqual(a.maskReferences);
@@ -212,25 +258,34 @@ describe('Medir e cotar referências de máscaras', () => {
     };
     expect(dimensionReferenceIssue(z, a)).toBeUndefined();
   });
-  it('vistas 1:50 e 1:100 conservam valor da cota em mm do modelo', () => {
-    let p = maskManipFixture();
-    const a = dimension(p);
-    for (const scale of [50, 100]) {
-      p = placeDrawing(p, p.sheets[0].id, p.hierarchy.drawings[0].id).project;
-      const view = p.hierarchy.placements.at(-1)!;
-      view.scale = scale;
-      const [x, y] = [
-        modelToPaper({ x: 0, y: 0 }, view),
-        modelToPaper({ x: 1000, y: 0 }, view),
-      ];
-      expect(Math.hypot(y.x - x.x, y.y - x.y)).toBeCloseTo(1000 / scale, 8);
-    }
-    expect(
-      composeSheet(p, p.sheets[0].id).views.every((v) =>
-        v.content.some((q) => q.text === caption(p, a)),
-      ),
-    ).toBe(true);
-  });
+  it.each([false, true])(
+    'vistas 1:50 e 1:100 conservam valor da cota (arredondamento %s)',
+    (rounded) => {
+      let p = maskManipFixture();
+      const a = dimension(p);
+      if (rounded)
+        a.dimensionPresentation!.rounding = {
+          multipleTicks: 70_000_000,
+          mode: 'nearest',
+        };
+      expect(caption(p, a)).toBe(rounded ? '~ 4970 mm' : '5000 mm');
+      for (const scale of [50, 100]) {
+        p = placeDrawing(p, p.sheets[0].id, p.hierarchy.drawings[0].id).project;
+        const view = p.hierarchy.placements.at(-1)!;
+        view.scale = scale;
+        const [x, y] = [
+          modelToPaper({ x: 0, y: 0 }, view),
+          modelToPaper({ x: 1000, y: 0 }, view),
+        ];
+        expect(Math.hypot(y.x - x.x, y.y - x.y)).toBeCloseTo(1000 / scale, 8);
+      }
+      expect(
+        composeSheet(p, p.sheets[0].id).views.every((v) =>
+          v.content.some((q) => q.text === caption(p, a)),
+        ),
+      ).toBe(true);
+    },
+  );
   it('inserção de pacote remapeia referência para a máscara importada no novo projeto', () => {
     const source = maskManipFixture(),
       a = dimension(source),
@@ -278,10 +333,59 @@ describe('Medir e cotar referências de máscaras', () => {
     ).toBeUndefined();
     const old = { ...p, schema: 'armadurastruct/23' },
       q = decodeProject(JSON.stringify(old));
-    expect(q.schema).toBe('armadurastruct/31');
+    expect(q.schema).toBe('armadurastruct/32');
     expect(q.annotations[0].maskReferences).toBeUndefined();
     expect(annotationPrimitives(q.annotations[0], q)).toEqual(
       annotationPrimitives(p.annotations[0], p),
     );
   });
+});
+
+it('versiona o arredondamento e conserva 31/20 sem o campo novo', () => {
+  const p = maskManipFixture();
+  const a = dimension(p);
+  const legacy = structuredClone(a);
+  expect(
+    decodeProject(
+      JSON.stringify({ ...p, schema: 'armadurastruct/31' }),
+    ).annotations.at(-1),
+  ).toEqual(legacy);
+  const pack = createDetailPackage(p, ctx(p).detailId, {
+    producer: { app: 'test', version: '1' },
+  });
+  expect(
+    readDetailPackage({
+      ...pack,
+      schema: 'openstruct.detail/20',
+    }).project.annotations.at(-1),
+  ).toEqual(legacy);
+  a.dimensionPresentation!.rounding = {
+    multipleTicks: 5_000_000,
+    mode: 'nearest',
+  };
+  expect(p.schema).toBe('armadurastruct/32');
+  expect(decodeProject(JSON.stringify(p)).annotations.at(-1)).toEqual(a);
+  for (const schema of ['armadurastruct/24', 'armadurastruct/31'])
+    expect(() => decodeProject(JSON.stringify({ ...p, schema }))).toThrow(
+      /formato 32/,
+    );
+  const rounded = createDetailPackage(p, ctx(p).detailId, {
+    producer: { app: 'test', version: '1' },
+  });
+  expect(rounded.schema).toBe('openstruct.detail/21');
+  const validate = new Ajv2020({
+    strict: false,
+    formats: { 'date-time': true },
+  }).compile(packageSchema);
+  expect(validate(rounded), JSON.stringify(validate.errors)).toBe(true);
+  const invalid = structuredClone(rounded);
+  invalid.objects.annotations.at(-1)!.dimensionPresentation = {
+    unit: 'm',
+    precision: 2,
+    rounding: { multipleTicks: 5_000_000, mode: 'nearest' },
+  };
+  expect(validate(invalid)).toBe(false);
+
+  for (const schema of ['openstruct.detail/15', 'openstruct.detail/20'])
+    expect(() => readDetailPackage({ ...rounded, schema })).toThrow(/v21/);
 });
