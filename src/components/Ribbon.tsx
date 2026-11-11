@@ -782,7 +782,7 @@ export default function Ribbon({
     <TooltipProvider>
       <div
         ref={ribbonRef}
-        className={`ribbon ${collapsed ? 'collapsed' : ''} ${masksTab ? 'ribbon-masks' : ''}`}
+        className={`ribbon ${collapsed ? 'collapsed' : ''} ${masksTab ? 'ribbon-masks' : ''} ${tab === 'Armaduras' ? 'ribbon-armatures' : ''}`}
       >
         <div className="ribbon-tabs" role="tablist" aria-label="Ferramentas">
           {[

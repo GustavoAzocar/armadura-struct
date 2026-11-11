@@ -29,6 +29,16 @@ export type BeamClampSession = {
   error?: string;
 };
 
+/** Optional direction/label captures must return to the next unfinished step. */
+export function beamClampPlacementStage(
+  s: Pick<BeamClampSession, 'c' | 'insertion' | 'start' | 'end'>,
+): BeamClampSession['stage'] {
+  if (!s.insertion) return 'insertion';
+  if (!s.c.distribute) return 'ready';
+  if (!s.start) return 'range-start';
+  return s.end ? 'ready' : 'range-end';
+}
+
 export default function BeamClampLaunchPanel({
   session: s,
   bar,

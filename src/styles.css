@@ -1698,6 +1698,12 @@ svg {
   max-width: 57px;
   white-space: normal;
 }
+@media (max-width: 1400px) {
+  /* Keep all armature commands and creation fields visible on laptop screens. */
+  .ribbon-armatures .ribbon-tool {
+    width: 54px;
+  }
+}
 .ribbon-tool.active {
   background: #e8edff;
   color: #3448d1;

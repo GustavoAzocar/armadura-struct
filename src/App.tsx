@@ -12,6 +12,7 @@ import {
 import StirrupCriteriaDialog from './components/StirrupCriteriaDialog';
 import BeamClampCriteriaDialog from './components/BeamClampCriteriaDialog';
 import BeamClampLaunchPanel, {
+  beamClampPlacementStage,
   type BeamClampSession,
 } from './components/BeamClampLaunchPanel';
 import {
@@ -4281,7 +4282,7 @@ export default function App() {
         c: { ...s.c, rotation: (Math.atan2(v.y, v.x) * 180) / Math.PI },
         cursor: undefined,
         error: undefined,
-        stage: s.c.distribute && (!s.start || !s.end) ? 'range-start' : 'ready',
+        stage: beamClampPlacementStage(s),
       });
     } else if (s.stage === 'range-start')
       setBeamClampSession({
@@ -4316,7 +4317,7 @@ export default function App() {
         ...s,
         label: point,
         c: { ...s.c, view: { ...s.c.view, label: at } },
-        stage: 'ready',
+        stage: beamClampPlacementStage(s),
         error: undefined,
         cursor: undefined,
       });
@@ -4406,7 +4407,7 @@ export default function App() {
     if (s.stage === 'direction' || s.stage === 'label') {
       setBeamClampSession({
         ...s,
-        stage: 'ready',
+        stage: beamClampPlacementStage(s),
         error: undefined,
         cursor: undefined,
       });

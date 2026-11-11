@@ -61,6 +61,40 @@ async function analyticCriteria(page: Page, rotation = '0') {
   return dialog;
 }
 
+test('comandos de grampo cabem na faixa Armaduras em telas de notebook', async ({
+  page,
+}) => {
+  await load(page);
+  for (const width of [1280, 1366, 1600]) {
+    await page.setViewportSize({ width, height: 768 });
+    await expect(
+      page
+        .locator('.ribbon-content')
+        .evaluate((e) => e.scrollWidth <= e.clientWidth),
+    ).resolves.toBe(true);
+    expect(
+      await page
+        .locator('.ribbon-tool>span')
+        .evaluateAll((items) =>
+          items.some((e) => e.scrollWidth > e.clientWidth + 2),
+        ),
+    ).toBe(false);
+    for (const name of [
+      'Grampo de viga',
+      'Critérios do grampo de viga',
+      'Renumerar',
+    ])
+      await expect(
+        page
+          .locator('.ribbon-content')
+          .getByRole('button', { name, exact: true }),
+      ).toBeInViewport({ ratio: 1 });
+    expect(
+      (await page.locator('.ribbon-content').boundingBox())!.height,
+    ).toBeLessThanOrEqual(79);
+  }
+});
+
 test('grampo inclinado usa um ponto, confirma uma vez e conserva corte, quantidade, histórico e recuperação', async ({
   page,
 }) => {
@@ -504,4 +538,53 @@ test('prévia da faixa compõe os fatores uma vez e o aço explícito prevalece 
   });
   expect(schedule(saved)[0].quantity).toBe(54);
   expect(schedule(saved)[0].totalLength).toBeCloseTo(79.6093801, 6);
+});
+
+test('ações opcionais retomam a captura pendente da faixa ao concluir ou voltar', async ({
+  page,
+}) => {
+  for (const scenario of [
+    { started: false, action: 'label', back: false },
+    { started: false, action: 'direction', back: true },
+    { started: true, action: 'label', back: true },
+    { started: true, action: 'direction', back: false },
+  ]) {
+    const fixture = emptyProject();
+    fixture.beamClampDefaults = {
+      ...defaultBeamClampCriteria(),
+      distribute: true,
+    };
+    await load(page, fixture);
+    await command(page, 'GV');
+    await command(page, '2000,0');
+    if (scenario.started) await command(page, '0,0');
+    await panel(page)
+      .getByRole('button', {
+        name:
+          scenario.action === 'label'
+            ? 'Reposicionar identificação'
+            : 'Definir direção por segundo ponto',
+      })
+      .click();
+    if (scenario.back)
+      await panel(page).getByRole('button', { name: 'Voltar etapa' }).click();
+    else await command(page, '2500,500');
+    await expect(panel(page).getByRole('status')).toContainText(
+      scenario.started ? 'Indique o fim da faixa' : 'Indique o início da faixa',
+    );
+    await expect(
+      panel(page).getByRole('button', { name: 'Confirmar lançamento' }),
+    ).toBeDisabled();
+    expect((await save(page)).bars).toHaveLength(0);
+    if (!scenario.started) await command(page, '0,0');
+    await command(page, '1100,0');
+    await command(page, '');
+    const saved = await save(page);
+    expect(saved.bars).toHaveLength(1);
+    expect(saved.bars[0].distribution).toMatchObject({
+      start: { x: 0, y: 0 },
+      end: { x: 1100, y: 0 },
+    });
+    expect(saved.bars[0].quantity).toBe(7);
+  }
 });
