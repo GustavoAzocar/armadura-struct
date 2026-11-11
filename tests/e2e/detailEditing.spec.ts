@@ -162,7 +162,7 @@ test('mixed group opens on CAD double-click, edits one source, updates RA, and u
     .getByRole('button', { name: /Desenho/ })
     .click();
   await command(page, 'BLOQUEARRA');
-  await expect(page.getByRole('status')).toContainText('Conclua a edição');
+  await expect(page.getByRole('status')).toContainText('edição isolada');
   expect((await save(page)).scheduleLock).toBeUndefined();
   await page
     .getByRole('button', { name: 'Concluir edição', exact: true })

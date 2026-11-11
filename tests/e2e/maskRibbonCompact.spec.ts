@@ -181,7 +181,8 @@ test('ajuda no mouse e no teclado, sem cortar nem capturar clique; Enter/Espaço
   });
   await offset.hover();
   const tip = page.getByRole('tooltip');
-  await expect(tip).toHaveText('Offset — Paralelas de máscara');
+  await expect(tip).toContainText('Offset — Paralelas de máscara');
+  await expect(tip).toContainText('O + Enter (Máscaras)');
   await expect(tip).toHaveCSS('pointer-events', 'none');
   const b = (await offset.boundingBox())!;
   expect(
@@ -201,9 +202,11 @@ test('ajuda no mouse e no teclado, sem cortar nem capturar clique; Enter/Espaço
   await group(page, 'Desenhar').getByRole('button').nth(1).focus();
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.press('Tab');
-  await expect(tip).toHaveText('Retângulo');
+  await expect(tip).toContainText('Retângulo');
+  await expect(tip).toContainText('REC + Enter (Máscaras)');
   await page.keyboard.press('Shift+Tab');
-  await expect(tip).toHaveText('Linha');
+  await expect(tip).toContainText('Linha');
+  await expect(tip).toContainText('L + Enter (Máscaras)');
   await page.keyboard.press('Enter');
   await expect(
     page.getByRole('button', { name: 'Linha', exact: true }),

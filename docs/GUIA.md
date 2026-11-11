@@ -12,7 +12,7 @@ Use **Máscaras** para desenho CAD nativo ou referências importadas, **Armadura
 
 Use a faixa **Armaduras** para criar e detalhar posições. Quantidade, bitola e espaçamento no topo valem para os próximos comandos; para alterar uma posição existente, selecione-a e use **Propriedades**. O painel lateral alterna entre a árvore em **Projeto**, a edição em **Propriedades** e o gerenciador em **Pranchas**.
 
-**F4** recolhe/abre o painel. **Ctrl+F1** recolhe/expande a faixa. **Ctrl+0** alterna o modo Foco no CAD. Os botões no canto da área de desenho também permitem recuperar os painéis. A preferência de recolhimento é preservada neste dispositivo.
+Os botões no canto da área de desenho recolhem ou recuperam os painéis. Consulte **Configurações → Atalhos** para ver as combinações ativas. A preferência de recolhimento é preservada neste dispositivo.
 
 ## Organização do projeto
 
@@ -176,35 +176,7 @@ Salvar, abrir, recuperação automática e desfazer/refazer incluem toda a hiera
 
 ## Comandos
 
-| Entrada           | Ação                                                             |
-| ----------------- | ---------------------------------------------------------------- |
-| B, BARRA, L       | Barra por vértices                                               |
-| PL, POLILINHA     | Polilinha de desenho, sem quantidade de aço                      |
-| CONVERTER         | Clique numa polilinha própria ou na máscara para criar uma barra |
-| REPETIR           | Repetir o estribo selecionado até o ponto final                  |
-| FAIXA             | Dois pontos definem uma faixa horizontal ou vertical             |
-| COTA / ALINHADA   | Cota ortogonal / alinhada por três pontos                        |
-| CHAMADA           | Seta, cotovelo e chegada do texto                                |
-| CORTE             | Dois pontos do corte e chegada da chamada                        |
-| ARCO              | Primeiro ponto, ponto intermediário e último ponto do arco       |
-| DIVIDIR / EMENDAR | Dividir barra / unir duas poligonais compatíveis                 |
-| RA / BLOQUEARRA   | Atualizar / alternar bloqueio da relação de aço                  |
-| E, ESTRIBO        | Estribo por dois cantos opostos                                  |
-| V / H             | Seleção / pan                                                    |
-| M / C             | Mover / copiar a seleção; indicar base e destino                 |
-| R, REBAT          | Criar rebatimento da posição selecionada                         |
-| D                 | Distribuir a posição até o ponto informado                       |
-| DIST, MEDIR       | Medir dois pontos                                                |
-| FORMA             | Criar barra seguindo uma linha/polilinha da máscara              |
-| F, ZOOM           | Enquadrar                                                        |
-| U / REDO / DEL    | Desfazer / refazer / excluir                                     |
-| Q                 | Quadro de aço                                                    |
-| IMPORTAR          | Abrir DXF/DWG                                                    |
-| Ctrl+S / Ctrl+O   | Salvar / abrir projeto                                           |
-| Ctrl+Z / Ctrl+Y   | Desfazer / refazer                                               |
-| :                 | Focar a linha de comando                                         |
-
-Os comandos longos são digitados no campo **Comando**. Atalhos de uma letra funcionam fora dos campos de edição.
+Use **Configurações → Atalhos** para consultar e personalizar teclas e aliases. Os [padrões e contextos de atalhos](ATALHOS.md) descrevem as diferenças entre Máscaras e as demais abas de trabalho. O **Guia de uso** dentro do aplicativo mostra as associações ativas.
 
 Coordenadas em mm: `1000,500` é absoluto; `@500,0` desloca a partir do último ponto; `@1000<30` usa distância e ângulo em graus, no sentido anti-horário. Use ponto decimal: `1250.5,300`. Uma entrada numérica atua sobre o comando que estiver ativo.
 
