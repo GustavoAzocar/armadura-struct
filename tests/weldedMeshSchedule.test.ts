@@ -185,6 +185,14 @@ describe('Pranchas, união de IDs e relação de aço', () => {
     expect(weldedMeshSchedule(p).total).toBeCloseTo(43.512, 9);
   });
 
+  it('sem repetição, a origem é o nome do detalhamento', () => {
+    const p = caso2();
+    const [c] = weldedMeshSchedule(p).rows[0].contributions;
+    expect(c.repetitions).toBe(1);
+    expect(c.detailTitle).toBe(p.hierarchy.details[0].name);
+    expect(c.detailTitle).not.toBe('');
+  });
+
   it('perda 0% no quadro da prancha não é gravada; outro valor é', () => {
     const p = caso2(),
       id = p.sheets[0].id;

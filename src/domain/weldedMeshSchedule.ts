@@ -1,4 +1,4 @@
-import { quantityContext } from './detailQuantities';
+import { detailTitle, quantityContext } from './detailQuantities';
 import { weldedMeshLabel, type WeldedMeshDefinition } from './weldedMesh';
 import { weldedMeshPlan, type WeldedMeshLaunch } from './weldedMeshLaunch';
 import type { Project } from './types';
@@ -132,7 +132,9 @@ export function weldedMeshSchedule(
     const contribution: WeldedMeshContribution = {
       launchId: l.id,
       detailId,
-      detailTitle: context.detailTitle,
+      // Sem repetição, o contexto não traz título: usa o nome do detalhamento,
+      // como as barras usam o elemento.
+      detailTitle: context.detailTitle || detailTitle(p, detailId),
       repetitions: k,
       basePanels: layout.basePanels * k,
       cutPieces: layout.cutPieces * k,

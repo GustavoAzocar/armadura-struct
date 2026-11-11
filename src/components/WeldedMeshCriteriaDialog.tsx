@@ -499,8 +499,9 @@ export default function WeldedMeshCriteriaDialog({
           </ul>
         )}
         <p className="field-help stirrup-criteria-note">
-          Critérios para os próximos lançamentos. Serão salvos com o projeto ao
-          confirmar um lançamento. Telas já lançadas não mudam.
+          {impact
+            ? 'Muda só esta tela. Os critérios dos próximos lançamentos não mudam.'
+            : 'Critérios para os próximos lançamentos. Serão salvos com o projeto ao confirmar um lançamento. Telas já lançadas não mudam.'}
         </p>
         <footer className="dialog-actions">
           <button type="button" onClick={onClose}>
