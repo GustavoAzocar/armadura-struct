@@ -22,6 +22,8 @@ const commands = {
   join: 'Emendar poligonais',
   split: 'Dividir barra',
   range: 'Faixa ortogonal',
+  'welded-mesh-criteria': 'Critérios de telas',
+  'welded-mesh': 'Lançar tela',
   'refresh-schedule': 'Atualizar RA',
   'lock-schedule': 'Bloquear RA',
   schedule: 'Quadro de aço',
@@ -70,7 +72,7 @@ test('inventário, ícones, campos e largura: 1920/1366/1000 nos dois fundos', a
   const icons = await ribbon(page)
     .locator('.ribbon-tool svg')
     .evaluateAll((es) => es.map((e) => e.innerHTML));
-  expect(new Set(icons).size).toBe(20);
+  expect(new Set(icons).size).toBe(22);
   const parameters = page.getByRole('group', {
     name: 'Parâmetros das próximas criações',
   });
