@@ -22,6 +22,7 @@ import {
 import { nextFreeMark } from './marks';
 import { fabricationPositions, groupFabrication } from './fabrication';
 import { uid, type Bar, type Point, type Project } from './types';
+import { transformWeldedMesh } from './weldedMeshLaunch';
 
 /** Split a physical centerline on a straight leg. Bends remain exact in both pieces. */
 export function splitBar(
@@ -517,6 +518,13 @@ export function cloneArmatureGraph(p: Project, options: ArmatureCloneOptions) {
       id: idMap[o.id],
       origin: add(o.origin, options.delta),
     }));
+  // Cópia física de tela: novo ID e nova contribuição no quadro.
+  const weldedMeshes = (p.weldedMeshes ?? [])
+    .filter((o) => chosen.has(o.id))
+    .map((o) => ({
+      ...transformWeldedMesh(o, { kind: 'translate', delta: options.delta }),
+      id: idMap[o.id],
+    }));
   let next = completeOwnership({
     ...p,
     bars: [...p.bars, ...bars],
@@ -524,6 +532,9 @@ export function cloneArmatureGraph(p: Project, options: ArmatureCloneOptions) {
     annotations: [...p.annotations, ...annotations],
     polylines: [...p.polylines, ...polylines],
     masks: [...p.masks, ...masks],
+    ...(p.weldedMeshes || weldedMeshes.length
+      ? { weldedMeshes: [...(p.weldedMeshes ?? []), ...weldedMeshes] }
+      : {}),
     hierarchy: {
       ...p.hierarchy,
       objectDetails: {

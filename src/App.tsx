@@ -19,7 +19,13 @@ import {
   type WeldedMeshCriteria,
 } from './domain/weldedMesh';
 import { previewWeldedMeshDraft } from './domain/weldedMeshDraft';
-import { launchWeldedMesh } from './domain/weldedMeshLaunch';
+import {
+  deleteWeldedMesh,
+  launchWeldedMesh,
+  previewWeldedMeshUpdate,
+  transformWeldedMesh,
+  weldedMeshPlan,
+} from './domain/weldedMeshLaunch';
 import {
   outlineFromMaskEntity,
   outlineFromPoints,
@@ -786,8 +792,12 @@ export default function App() {
   const [weldedMeshDialog, setWeldedMeshDialog] = useState<{
     projectId: string;
     c: WeldedMeshCriteria;
-    /** next: próximos lançamentos; launch: e já lançar; session: lançamento em curso. */
-    target: 'next' | 'launch' | 'session';
+    /**
+     * next: próximos lançamentos; launch: e já lançar; session: lançamento em
+     * curso; edit: tela lançada (editId), com antes × depois.
+     */
+    target: 'next' | 'launch' | 'session' | 'edit';
+    editId?: string;
   } | null>(null);
   const [meshSession, setMeshSession] = useState<WeldedMeshSession | null>(
     null,
@@ -1177,6 +1187,10 @@ export default function App() {
   const annotation = !groupSelection
     ? p.annotations.find((a) => a.id === selected[0] && editable(a.id))
     : undefined;
+  const selectedMesh =
+    !groupSelection && selected.length === 1
+      ? p.weldedMeshes?.find((l) => l.id === selected[0] && editable(l.id))
+      : undefined;
   const maskDrawingContext: MaskDrawingContext = {
     key: documentKey,
     detailId: activeDetailId,
@@ -2226,6 +2240,7 @@ export default function App() {
         annotations: next.annotations.filter((o) => ids.has(o.id)),
         polylines: next.polylines.filter((o) => ids.has(o.id)),
         masks: next.masks.filter((o) => ids.has(o.id)),
+        weldedMeshes: (next.weldedMeshes ?? []).filter((o) => ids.has(o.id)),
       };
       return {
         lines: drawingPrimitives(view, next),
@@ -4521,9 +4536,50 @@ export default function App() {
       target: 'next',
     });
   }
+  /** Critérios de uma tela lançada, com a camada do vínculo dela. */
+  function launchCriteria(id: string): WeldedMeshCriteria | undefined {
+    const l = historyRef.current.present.weldedMeshes?.find((m) => m.id === id);
+    return l
+      ? {
+          ...structuredClone(l.criteria),
+          ...(l.layerId ? { layerId: l.layerId } : {}),
+        }
+      : undefined;
+  }
+  function openWeldedMeshEdit(id: string) {
+    const c = launchCriteria(id);
+    if (!c) return;
+    setWeldedMeshDialog({
+      projectId: historyRef.current.present.id,
+      c,
+      target: 'edit',
+      editId: id,
+    });
+  }
+  /** Redefinir região: o painel de lançamento, para a mesma tela. */
+  function startWeldedMeshRegion(id: string) {
+    if (activeSheet) {
+      notify('Abra um desenho para redefinir a região da tela.');
+      return;
+    }
+    const c = launchCriteria(id);
+    if (c) beginWeldedMesh(c, id);
+  }
   function acceptWeldedMeshCriteria(c: WeldedMeshCriteria) {
     const d = weldedMeshDialog;
     if (!d) return;
+    if (d.target === 'edit') {
+      // Edição explícita: não muda os critérios dos próximos lançamentos.
+      const ok = commit(
+        (current) =>
+          previewWeldedMeshUpdate(current, d.editId!, { criteria: c }).project,
+      );
+      if (ok) {
+        setWeldedMeshDialog(null);
+        setMessage(`${c.mark}: critérios da tela atualizados.`);
+      }
+      return;
+    }
     weldedMeshCriteria.current = {
       projectId: d.projectId,
       c: structuredClone(c),
@@ -4567,7 +4623,7 @@ export default function App() {
     }
     beginWeldedMesh(nextWeldedMeshCriteria(base));
   }
-  function beginWeldedMesh(c: WeldedMeshCriteria) {
+  function beginWeldedMesh(c: WeldedMeshCriteria, editId?: string) {
     const base = historyRef.current.present;
     setSelectedRaw([]);
     setMaskId(null);
@@ -4583,6 +4639,7 @@ export default function App() {
       scope: isolatedDetailId,
       maskId: drawingMaskId,
       c: structuredClone(c),
+      ...(editId ? { editId } : {}),
       mode: 'contour',
       stage: 'region',
       openingInput: 'entity',
@@ -4811,6 +4868,27 @@ export default function App() {
       return;
     }
     meshConsumed.current = true;
+    if (s.editId) {
+      const editId = s.editId,
+        { region, anchor, source, exactness, adjustments } = r.input;
+      const ok = commit((current) => {
+        if (current !== s.base)
+          throw Error('O projeto mudou durante a prévia.');
+        return previewWeldedMeshUpdate(current, editId, {
+          region,
+          anchor,
+          source,
+          exactness,
+          adjustments,
+        }).project;
+      });
+      if (ok) {
+        cancelWeldedMesh();
+        select([editId]);
+        setMessage(`${s.c.mark}: região redefinida na mesma tela.`);
+      } else meshConsumed.current = false;
+      return;
+    }
     const id = uid();
     const ok = commit((current) => {
       if (current !== s.base) throw Error('O projeto mudou durante a prévia.');
@@ -5934,6 +6012,15 @@ export default function App() {
               ? { ...m, origin: add(m.origin, delta) }
               : m,
           ),
+          ...(p.weldedMeshes
+            ? {
+                weldedMeshes: p.weldedMeshes.map((l) =>
+                  selected.includes(l.id)
+                    ? transformWeldedMesh(l, { kind: 'translate', delta })
+                    : l,
+                ),
+              }
+            : {}),
         };
       }
       commit(() => next);
@@ -7063,7 +7150,7 @@ export default function App() {
                 id: b.id,
                 references: 'remove',
               }));
-            const next = commands.length
+            const batched = commands.length
               ? applyRebarBatch(
                   current,
                   executeRebarBatch(current, commands, {
@@ -7073,6 +7160,10 @@ export default function App() {
                   }),
                 )
               : current;
+            // Telas: a mesma limpeza de vínculo do domínio.
+            const next = (batched.weldedMeshes ?? [])
+              .filter((l) => selected.includes(l.id))
+              .reduce((q, l) => deleteWeldedMesh(q, l.id), batched);
             return {
               ...next,
               details: next.details.filter((d) => !selected.includes(d.id)),
@@ -7885,8 +7976,27 @@ export default function App() {
               ? 'Usar critérios e lançar'
               : weldedMeshDialog.target === 'session'
                 ? 'Aplicar ao lançamento'
-                : 'Usar critérios'
+                : weldedMeshDialog.target === 'edit'
+                  ? 'Aplicar nesta tela'
+                  : 'Usar critérios'
           }
+          {...(weldedMeshDialog.target === 'edit'
+            ? {
+                title: `Editar critérios de ${weldedMeshDialog.c.mark}`,
+                impact: (c: WeldedMeshCriteria) => {
+                  const id = weldedMeshDialog.editId;
+                  if (!id) return { error: 'Tela soldada inexistente.' };
+                  try {
+                    const r = previewWeldedMeshUpdate(p, id, {
+                      criteria: c,
+                    });
+                    return { before: r.before, after: r.after };
+                  } catch (e) {
+                    return { error: (e as Error).message };
+                  }
+                },
+              }
+            : {})}
           onAccept={acceptWeldedMeshCriteria}
           onClose={() => setWeldedMeshDialog(null)}
         />
@@ -8930,6 +9040,13 @@ export default function App() {
                 <WeldedMeshLaunchPanel
                   session={meshSession}
                   preview={meshPreview}
+                  before={(() => {
+                    const l =
+                      meshSession.editId &&
+                      p.weldedMeshes?.find((m) => m.id === meshSession.editId);
+                    const r = l ? weldedMeshPlan(l) : undefined;
+                    return r?.ok ? r.layout : undefined;
+                  })()}
                   activeMask={p.masks.find((m) => m.id === drawingMaskId)?.name}
                   onCandidate={chooseWeldedMeshCandidate}
                   onIsland={(i, use) =>
@@ -9584,6 +9701,22 @@ export default function App() {
                 project={p}
                 bar={chosen}
                 mask={mask}
+                mesh={selectedMesh}
+                onMesh={(patch) =>
+                  selectedMesh &&
+                  commit((current) => ({
+                    ...current,
+                    weldedMeshes: (current.weldedMeshes ?? []).map((l) =>
+                      l.id === selectedMesh.id ? { ...l, ...patch } : l,
+                    ),
+                  }))
+                }
+                onMeshCriteria={() =>
+                  selectedMesh && openWeldedMeshEdit(selectedMesh.id)
+                }
+                onMeshRegion={() =>
+                  selectedMesh && startWeldedMeshRegion(selectedMesh.id)
+                }
                 onBar={(patch) => chosen && editBar(chosen.id, patch)}
                 onDistributionSpacing={(spacing) =>
                   chosen?.distribution &&

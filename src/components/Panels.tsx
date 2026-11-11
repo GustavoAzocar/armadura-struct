@@ -1,5 +1,7 @@
 import { dimensionReferenceIssue } from '../domain/maskDimensions';
 import LayerInspector from './LayerInspector';
+import WeldedMeshInspector from './WeldedMeshInspector';
+import type { WeldedMeshLaunch } from '../domain/weldedMeshLaunch';
 import { BeamClampViewFields } from './BeamClampCriteriaDialog';
 import { defaultBeamClampCriteria } from '../domain/beamClampSchema';
 import { resolveStyle } from '../domain/layers';
@@ -189,6 +191,10 @@ function Section({
 export function Inspector({
   bar,
   mask,
+  mesh,
+  onMesh,
+  onMeshCriteria,
+  onMeshRegion,
   onBar,
   onDistributionSpacing,
   onVertexEdit,
@@ -203,6 +209,11 @@ export function Inspector({
 }: {
   bar?: Bar;
   mask?: Mask;
+  /** Tela soldada selecionada (quando não há barra nem máscara). */
+  mesh?: WeldedMeshLaunch;
+  onMesh?: (patch: Partial<WeldedMeshLaunch>) => void;
+  onMeshCriteria?: () => void;
+  onMeshRegion?: () => void;
   onBar: (patch: Partial<Bar>) => void | boolean;
   onVertexEdit?: (mode: 'insert' | 'extend' | 'remove') => void;
   onStirrupCriteria?: () => void;
@@ -216,6 +227,31 @@ export function Inspector({
   onProject: (patch: Partial<Project>) => void;
 }) {
   const g = bar ? geometry(bar) : null;
+  if (mesh && !bar && !mask)
+    return (
+      <aside className="inspector">
+        <div className="panel-heading">
+          <Settings2 size={15} />
+          <b>Propriedades</b>
+          <span>TELA SOLDADA</span>
+        </div>
+        <div className="panel-scroll">
+          <Section title="Layer e estilo" initial={false}>
+            <LayerInspector
+              project={project}
+              object={mesh}
+              role="ARMADURAS"
+              onChange={(patch) => onMesh?.(patch)}
+            />
+          </Section>
+          <WeldedMeshInspector
+            mesh={mesh}
+            onCriteria={() => onMeshCriteria?.()}
+            onRegion={() => onMeshRegion?.()}
+          />
+        </div>
+      </aside>
+    );
   return (
     <aside className="inspector">
       <div className="panel-heading">

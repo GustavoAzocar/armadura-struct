@@ -11,6 +11,7 @@ import {
   type WeldedMeshDefinition,
   type WeldedMeshDirection,
 } from '../domain/weldedMesh';
+import type { WeldedMeshLayout } from '../domain/weldedMeshLayout';
 
 /**
  * Critérios dos próximos lançamentos de telas soldadas.
@@ -49,12 +50,21 @@ export default function WeldedMeshCriteriaDialog({
   initial,
   layers,
   submitLabel = 'Usar critérios',
+  title = 'Critérios de telas soldadas',
+  impact,
   onAccept,
   onClose,
 }: {
   initial: WeldedMeshCriteria;
   layers: DrawingLayer[];
   submitLabel?: string;
+  title?: string;
+  /** Edição de uma tela lançada: antes × depois, ou o motivo da recusa. */
+  impact?: (
+    c: WeldedMeshCriteria,
+  ) =>
+    | { before: WeldedMeshLayout; after: WeldedMeshLayout }
+    | { error: string };
   onAccept: (c: WeldedMeshCriteria) => void;
   onClose: () => void;
 }) {
@@ -82,7 +92,9 @@ export default function WeldedMeshCriteriaDialog({
       ...v,
       mesh: { ...v.mesh, [key]: { ...v.mesh[key], ...patch } },
     }));
-  const issues = weldedMeshCriteriaIssues(c);
+  const found = weldedMeshCriteriaIssues(c);
+  const effect = impact && !found.length ? impact(c) : undefined;
+  const issues = effect && 'error' in effect ? [...found, effect.error] : found;
   const custom = c.mesh.source === 'custom';
   const pickModel = (value: string) => {
     if (value === CUSTOM) return;
@@ -178,7 +190,7 @@ export default function WeldedMeshCriteriaDialog({
         }}
       >
         <div className="panel-heading">
-          <b id="welded-mesh-title">Critérios de telas soldadas</b>
+          <b id="welded-mesh-title">{title}</b>
           <button
             type="button"
             aria-label="Fechar critérios de telas soldadas"
@@ -449,6 +461,36 @@ export default function WeldedMeshCriteriaDialog({
           </div>
           <MeshPreview c={c} />
         </div>
+        {effect && 'before' in effect && (
+          <table
+            className="welded-mesh-properties welded-mesh-impact"
+            aria-label="Impacto da edição"
+          >
+            <thead>
+              <tr>
+                <th scope="col">Nesta tela</th>
+                <th scope="col">Antes</th>
+                <th scope="col">Depois</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(
+                [
+                  ['Painéis-base', (l) => String(l.basePanels)],
+                  ['Área aplicada', (l) => `${fmt(l.appliedArea / 1e6, 2)} m²`],
+                  ['Massa aplicada', (l) => `${fmt(l.appliedMass, 2)} kg`],
+                  ['Fornecimento', (l) => `${fmt(l.supplyMass, 1)} kg`],
+                ] as [string, (l: WeldedMeshLayout) => string][]
+              ).map(([label, value]) => (
+                <tr key={label}>
+                  <th scope="row">{label}</th>
+                  <td>{value(effect.before)}</td>
+                  <td>{value(effect.after)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
         {issues.length > 0 && (
           <ul className="stirrup-error welded-mesh-issues" role="alert">
             {issues.slice(0, 4).map((i) => (

@@ -8,6 +8,7 @@ import { assertLayerEdit } from './layerProfiles';
 import { assertVisibilityEdit } from './visibility';
 import { assertDetailEdit } from './detailEditing';
 import { scheduleChanged } from './model';
+import { transformWeldedMesh } from './weldedMeshLaunch';
 import {
   mirrorBeamClampView,
   defaultBeamClampCriteria,
@@ -195,6 +196,15 @@ export function transformSelection(
     polylines: p.polylines.map((l) =>
       !chosen.has(l.id) ? l : { ...l, points: l.points.map(at) },
     ),
+    // Tela: mover e girar levam região, âncora e orientação juntas; espelhar
+    // é recusado pelo domínio (inverteria a posição dos fios).
+    ...(p.weldedMeshes
+      ? {
+          weldedMeshes: p.weldedMeshes.map((l) =>
+            chosen.has(l.id) ? transformWeldedMesh(l, t) : l,
+          ),
+        }
+      : {}),
     masks: p.masks.map((m) =>
       !chosen.has(m.id)
         ? m

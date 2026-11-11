@@ -1,6 +1,7 @@
 import type { Point, Project } from '../domain/types';
 import { weldedMeshLabel, type WeldedMeshCriteria } from '../domain/weldedMesh';
 import type { WeldedMeshDraftPreview } from '../domain/weldedMeshDraft';
+import type { WeldedMeshLayout } from '../domain/weldedMeshLayout';
 import type { RegionOutline } from '../domain/weldedMeshRegion';
 
 /** Lançamento de tela em andamento; nada entra no projeto antes de confirmar. */
@@ -11,6 +12,8 @@ export type WeldedMeshSession = {
   scope?: string;
   maskId?: string;
   c: WeldedMeshCriteria;
+  /** Redefinir a região de uma tela já lançada (mesmo ID e critérios). */
+  editId?: string;
   mode: 'contour' | 'click' | 'points';
   stage: 'region' | 'openings' | 'ready';
   /** Como as aberturas são indicadas: entidades fechadas ou pontos. */
@@ -58,6 +61,7 @@ const mm = (v: number) => {
 export default function WeldedMeshLaunchPanel({
   session: s,
   preview,
+  before,
   activeMask,
   onMode,
   onCandidate,
@@ -75,6 +79,8 @@ export default function WeldedMeshLaunchPanel({
 }: {
   session: WeldedMeshSession;
   preview?: WeldedMeshDraftPreview;
+  /** Plano atual da tela, ao redefinir a região. */
+  before?: WeldedMeshLayout;
   /** Nome da máscara ativa (modo clique), se houver. */
   activeMask?: string;
   onMode: (m: WeldedMeshSession['mode']) => void;
@@ -118,7 +124,8 @@ export default function WeldedMeshLaunchPanel({
       aria-label="Lançamento de tela soldada"
     >
       <b>
-        Tela soldada · {s.c.mark} · {weldedMeshLabel(s.c.mesh)}
+        {s.editId ? 'Redefinir região' : 'Tela soldada'} · {s.c.mark} ·{' '}
+        {weldedMeshLabel(s.c.mesh)}
       </b>
       <div className="welded-mesh-launch-modes">
         <nav aria-label="Modo da região">
@@ -140,9 +147,11 @@ export default function WeldedMeshLaunchPanel({
             </button>
           ))}
         </nav>
-        <button type="button" onClick={onCriteria}>
-          Critérios…
-        </button>
+        {!s.editId && (
+          <button type="button" onClick={onCriteria}>
+            Critérios…
+          </button>
+        )}
       </div>
       <p role="status">{prompt}</p>
       {s.stage === 'openings' && (
@@ -228,6 +237,12 @@ export default function WeldedMeshLaunchPanel({
             </li>
           ))}
         </ul>
+      )}
+      {before && layout && (
+        <p className="welded-mesh-note" aria-label="Antes da edição">
+          Antes: {before.basePanels} painel(éis)-base · {m2(before.appliedArea)}{' '}
+          aplicada · {num(before.appliedMass, 2)} kg
+        </p>
       )}
       {layout && (
         <dl
@@ -319,7 +334,7 @@ export default function WeldedMeshLaunchPanel({
           disabled={s.stage !== 'ready' || !preview?.ok || blocked}
           onClick={onConfirm}
         >
-          Confirmar lançamento
+          {s.editId ? 'Aplicar nova região' : 'Confirmar lançamento'}
         </button>
       </div>
     </section>

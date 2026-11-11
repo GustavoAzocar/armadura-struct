@@ -69,8 +69,12 @@ export type WeldedMeshLaunchInput = Omit<
 > & {
   criteria: WeldedMeshCriteria;
 };
+/** Região redefinida traz junto a sua proveniência, exatidão e ajustes. */
 export type WeldedMeshPatch = Partial<
-  Pick<WeldedMeshLaunch, 'region' | 'anchor'>
+  Pick<
+    WeldedMeshLaunch,
+    'region' | 'anchor' | 'source' | 'exactness' | 'adjustments'
+  >
 > & { criteria?: WeldedMeshCriteria };
 
 /** Plano (painéis, áreas, massas) recalculado a partir do lançamento. */

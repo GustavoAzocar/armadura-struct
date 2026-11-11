@@ -692,6 +692,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               .capture,
         )
         .map((a) => ({ id: a.annotation.id, items: a.items })),
+      // Tela: qualquer linha dela (peças, fios) ou a identificação.
+      ...meshes
+        .filter(({ launch }) =>
+          (capturable.weldedMeshes ?? []).some((l) => l.id === launch.id),
+        )
+        .map(({ launch, items }) => ({ id: launch.id, items })),
     ]) {
       for (const item of object.items) {
         if ('text' in item && item.text) {
@@ -987,6 +993,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           ...capturable.annotations
             .filter((a) => a.points.every(inside))
             .map((a) => a.id),
+          ...(capturable.weldedMeshes ?? [])
+            .filter((l) => l.region.outer.every(inside))
+            .map((l) => l.id),
         ];
         setSelected(e.shiftKey ? [...new Set([...selected, ...ids])] : ids);
       }
