@@ -7824,7 +7824,7 @@ export default function App() {
         e.preventDefault();
       return;
     }
-    if (stirrupDialog || beamClampDialog) {
+    if (stirrupDialog || beamClampDialog || weldedMeshDialog) {
       if (
         (e.ctrlKey || e.metaKey) &&
         ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())

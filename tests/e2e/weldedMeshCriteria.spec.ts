@@ -171,4 +171,29 @@ test('catálogo só leitura, personalizada identificada, validação e critério
   expect(errors).toEqual([]);
 });
 
+test('com os critérios abertos, Ctrl+S/O/Z/Y ficam retidos, como no estribo e no grampo', async ({
+  page,
+}) => {
+  await fresh(page);
+  const d = await open(page);
+  // Registrado depois do app: lê se o atalho chegou ao navegador.
+  await page.evaluate(() => {
+    const w = window as unknown as { held: string[] };
+    w.held = [];
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key !== 'Control')
+        w.held.push(`${e.key}:${e.defaultPrevented}`);
+    });
+  });
+  const downloads: unknown[] = [];
+  page.on('download', (x) => downloads.push(x));
+  for (const k of ['s', 'o', 'z', 'y'])
+    await page.keyboard.press(`Control+${k}`);
+  expect(
+    await page.evaluate(() => (window as unknown as { held: string[] }).held),
+  ).toEqual(['s:true', 'o:true', 'z:true', 'y:true']);
+  await expect(d).toBeVisible();
+  expect(downloads).toEqual([]);
+});
+
 useCompatibleProjectFolders();
