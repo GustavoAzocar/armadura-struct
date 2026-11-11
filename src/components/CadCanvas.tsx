@@ -1,3 +1,4 @@
+import { modalIsOpen, textComposition } from '../domain/shortcuts';
 import { displayedBarGeometry } from '../domain/stirrupGeometry';
 import { beamClampViewPoints } from '../domain/beamClampViews';
 import { annotationCadDefaults } from '../domain/cadDefaults';
@@ -257,7 +258,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     );
     ro.observe(host.current);
     const down = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && e.target === document.body) {
+      if (
+        e.code === 'Space' &&
+        e.target === document.body &&
+        !e.defaultPrevented &&
+        !modalIsOpen() &&
+        !textComposition(e)
+      ) {
         space.current = true;
         e.preventDefault();
       }
@@ -267,10 +274,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
+    window.addEventListener('blur', up);
     return () => {
       ro.disconnect();
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', up);
     };
   }, []);
   const drawable = (m: Mask) => {

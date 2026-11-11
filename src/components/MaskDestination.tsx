@@ -88,21 +88,24 @@ export function MaskSelector({
 function IconAction({
   label,
   hint,
+  shortcut,
   icon: Icon,
   onClick,
 }: {
   label: string;
   hint: string;
+  shortcut?: string;
   icon: IconComponent;
   onClick: () => void;
 }) {
-  const tip = useTooltip({ label: hint });
+  const tip = useTooltip({ label: hint, shortcut });
   return (
     <span className="ribbon-item-slot" {...tip.hover}>
       <button
         type="button"
         className="mask-destination-icon"
         aria-label={label}
+        aria-describedby={tip.describedId}
         onClick={onClick}
         onFocus={tip.focus.onFocus}
         onBlur={tip.focus.onBlur}
@@ -110,6 +113,11 @@ function IconAction({
       >
         <Icon size={17} strokeWidth={1.6} />
       </button>
+      {tip.describedId && (
+        <span id={tip.describedId} className="sr-only">
+          {tip.describedText}
+        </span>
+      )}
     </span>
   );
 }
@@ -162,6 +170,7 @@ export default function MaskDestination({
   onActivate,
   onCreate,
   onBatch,
+  shortcut,
   variant = 'group',
 }: {
   project: Project;
@@ -170,6 +179,7 @@ export default function MaskDestination({
   onActivate: (id: string) => boolean;
   onCreate: () => void;
   onBatch: (mode: 'import' | 'associate') => void;
+  shortcut: (action: 'import' | 'associate-masks') => string;
   variant?: MaskDestinationVariant;
 }) {
   const [candidate, setCandidate] = useState(activeId ?? '');
@@ -233,12 +243,14 @@ export default function MaskDestination({
         <IconAction
           label="Importar máscaras em lote"
           hint="Importar máscaras (DXF / DWG) em lote"
+          shortcut={shortcut('import')}
           icon={ImportMasksIcon}
           onClick={() => onBatch('import')}
         />
         <IconAction
           label="Associar máscaras do projeto"
           hint="Associar máscaras do projeto"
+          shortcut={shortcut('associate-masks')}
           icon={AssociateMasksIcon}
           onClick={() => onBatch('associate')}
         />
