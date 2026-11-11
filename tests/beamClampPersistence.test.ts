@@ -78,7 +78,7 @@ describe('AS-67: persistência, intercâmbio e quantitativos físicos', () => {
   it('salva critérios, peça e duas vistas, contando 54 grampos completos e 79,6093801 m', () => {
     const p = fixture(),
       q = decodeProject(JSON.stringify(p));
-    expect(q.schema).toBe('armadurastruct/30');
+    expect(q.schema).toBe('armadurastruct/31');
     expect(q.beamClampDefaults).toEqual(p.beamClampDefaults);
     expect(q.bars[0].beamClamp).toEqual(p.bars[0].beamClamp);
     expect(q.details).toEqual(p.details);
@@ -111,7 +111,7 @@ describe('AS-67: persistência, intercâmbio e quantitativos físicos', () => {
         ...packOptions,
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/19');
+      expect(pack.schema).toBe('openstruct.detail/20');
       const scale = unit === 'mm' ? 1 : unit === 'cm' ? 10 : 1000;
       expect(pack.objects.bars[0].beamClamp!.longitudinal).toBeCloseTo(
         600 / scale,
@@ -170,7 +170,7 @@ describe('AS-67: persistência, intercâmbio e quantitativos físicos', () => {
     ).toThrow(/19/);
     expect(() =>
       readDetailPackage({ ...pack, schema: 'openstruct.detail/18' }),
-    ).toThrow(/19/);
+    ).toThrow(/não suportada/);
     const legacy = emptyProject();
     legacy.bars = [{ ...newBar('N1'), id: 'free' }];
     const q = decodeProject(
@@ -187,6 +187,23 @@ describe('AS-67: persistência, intercâmbio e quantitativos físicos', () => {
     const missing = fixture();
     delete missing.bars[0].beamClamp;
     expect(() => decodeProject(JSON.stringify(missing))).toThrow();
+  });
+
+  it('lê o formato nativo 30 e o pacote 19 sem perder grampos de viga existentes', () => {
+    const p = fixture();
+    const q = decodeProject(
+      JSON.stringify({ ...p, schema: 'armadurastruct/30' }),
+    );
+    expect(q.bars).toEqual(p.bars);
+    expect(q.details).toEqual(p.details);
+    expect(q.beamClampDefaults).toEqual(p.beamClampDefaults);
+    const pack = createDetailPackage(p, p.hierarchy.details[0].id, packOptions);
+    const restored = readDetailPackage({
+      ...pack,
+      schema: 'openstruct.detail/19',
+    }).project;
+    expect(restored.bars).toEqual(p.bars);
+    expect(restored.details).toEqual(p.details);
   });
 
   it('API cria/edita parâmetros reais e vistas separadas com validação atômica', () => {

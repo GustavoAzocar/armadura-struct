@@ -2,7 +2,7 @@ import type { Bar } from '../domain/types';
 import { useEffect, useRef, useState } from 'react';
 import { criteriaBar } from '../domain/stirrups';
 import { path, bounds, geometry, format, world } from '../domain/geometry';
-import { stirrupEnvelope } from '../domain/stirrupGeometry';
+import { isColumnClamp, stirrupEnvelope } from '../domain/stirrupGeometry';
 import type { StirrupCriteria, StirrupProfile } from '../domain/stirrupSchema';
 
 export default function StirrupCriteriaDialog({
@@ -39,8 +39,33 @@ export default function StirrupCriteriaDialog({
     set((v) => ({ ...v, ...patch }));
     setError('');
   };
-  const profile = (patch: Partial<StirrupProfile>) =>
-    change({ profile: { ...c.profile, ...patch } });
+  const profile = (patch: Partial<StirrupProfile>) => {
+    const next = { ...c.profile, ...patch };
+    if (isColumnClamp(next)) {
+      next.closed = false;
+      next.reference = 'axis';
+      next.clamp ??= {
+        diameters: [16, 16],
+        clearance: 0,
+        orientation: 1,
+        capture: 'static',
+      };
+      if (!isColumnClamp(c.profile))
+        next.points = [
+          { x: 0, y: 0 },
+          { x: 200, y: 0 },
+        ];
+      const s = next.clamp.orientation;
+      next.start = { ...next.start, turn: s };
+      next.end = {
+        ...next.end,
+        turn: next.shape === 'clamp-c' ? (s === 1 ? -1 : 1) : s,
+      };
+    } else delete next.clamp;
+    change({ profile: next });
+  };
+  const clamp = isColumnClamp(c.profile);
+
   let preview: Bar | undefined,
     previewIssue = '';
   try {
@@ -147,11 +172,14 @@ export default function StirrupCriteriaDialog({
                       <option value="rectangle">Retangular</option>
                       <option value="circle">Circular</option>
                       <option value="free">Livre</option>
+                      <option value="clamp-s">Grampo de pilar S</option>
+                      <option value="clamp-c">Grampo de pilar C</option>
                     </select>
                   </label>
                   <label className="field">
                     Contorno
                     <select
+                      disabled={clamp}
                       aria-label="Fechamento do estribo"
                       value={c.profile.closed ? 'closed' : 'open'}
                       onChange={(e) =>
@@ -163,7 +191,95 @@ export default function StirrupCriteriaDialog({
                     </select>
                   </label>
                 </div>
-                {c.profile.shape !== 'free' ? (
+                {clamp && c.profile.clamp ? (
+                  <>
+                    <p>
+                      Centros longitudinais estáticos, sem associação
+                      automática. S: retornos opostos; C: retornos do mesmo
+                      lado. O mandril deve envolver as duas bitolas sem ajuste
+                      automático.
+                    </p>
+                    <label className="field">
+                      Orientação do grampo
+                      <select
+                        aria-label="Orientação do grampo"
+                        value={c.profile.clamp.orientation}
+                        onChange={(e) =>
+                          profile({
+                            clamp: {
+                              ...c.profile.clamp!,
+                              orientation: Number(e.target.value) as 1 | -1,
+                            },
+                          })
+                        }
+                      >
+                        <option value={1}>Normal</option>
+                        <option value={-1}>Invertida (reflexão)</option>
+                      </select>
+                    </label>
+                    {[0, 1].map((i) => (
+                      <fieldset key={i}>
+                        <legend>Centro longitudinal {i + 1}</legend>
+                        {num(
+                          `Bitola longitudinal ${i + 1} (mm)`,
+                          c.profile.clamp!.diameters[i],
+                          (v) => {
+                            const diameters = [
+                              ...c.profile.clamp!.diameters,
+                            ] as [number, number];
+                            diameters[i] = v;
+                            profile({
+                              clamp: { ...c.profile.clamp!, diameters },
+                            });
+                          },
+                          0.01,
+                        )}
+                        <div className="fields-2">
+                          {(['x', 'y'] as const).map((axis) =>
+                            num(
+                              `Centro ${i + 1} ${axis} local (mm)`,
+                              c.profile.points[i][axis],
+                              (v) => {
+                                const points = c.profile.points.map((p, j) =>
+                                  j === i ? { ...p, [axis]: v } : p,
+                                );
+                                profile({ points });
+                              },
+                              -1e8,
+                            ),
+                          )}
+                        </div>
+                      </fieldset>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        profile({
+                          clamp: {
+                            ...c.profile.clamp!,
+                            diameters: [
+                              c.profile.clamp!.diameters[0],
+                              c.profile.clamp!.diameters[0],
+                            ],
+                          },
+                        })
+                      }
+                    >
+                      Aplicar primeira bitola aos dois centros
+                    </button>
+                    {num(
+                      'Folga física de envolvimento (mm)',
+                      c.profile.clamp.clearance,
+                      (clearance) =>
+                        profile({ clamp: { ...c.profile.clamp!, clearance } }),
+                    )}
+                    <small>
+                      Centros locais relativos à inserção; os dois cliques no
+                      CAD substituem estes centros ao lançar. Folga não é
+                      cobrimento.
+                    </small>
+                  </>
+                ) : c.profile.shape !== 'free' ? (
                   <>
                     <label className="field">
                       Referência das medidas
@@ -295,6 +411,7 @@ export default function StirrupCriteriaDialog({
                         <label className="field">
                           Sentido
                           <select
+                            disabled={clamp}
                             aria-label={`Sentido do gancho ${i + 1}`}
                             value={hook.turn}
                             onChange={(e) =>
@@ -342,8 +459,8 @@ export default function StirrupCriteriaDialog({
                 <p className="field-help">
                   Fechado: pontas no canto inicial (retangular/livre), com os
                   ganchos somados, sem solda presumida. Aberto retangular: três
-                  lados (U). Ramos múltiplos, grampos e abas de laje ficam para
-                  outra entrega.
+                  lados (U). Ramos múltiplos e abas de laje ficam para outra
+                  entrega.
                 </p>
               </>
             )}
@@ -477,6 +594,25 @@ export default function StirrupCriteriaDialog({
               viewBox={`${box.x - margin} ${-box.y - box.height - margin} ${box.width + margin * 2} ${box.height + margin * 2}`}
             >
               <g transform="scale(1,-1)">
+                {preview &&
+                  clamp &&
+                  c.profile.clamp &&
+                  c.profile.points.map((p, i) => (
+                    <g key={i} transform={`rotate(${c.rotation})`}>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={c.profile.clamp!.diameters[i] / 2}
+                        fill="none"
+                        stroke="#d97706"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d={`M ${p.x - 4} ${p.y} h 8 M ${p.x} ${p.y - 4} v 8`}
+                        stroke="#d97706"
+                      />
+                    </g>
+                  ))}
                 {preview && (
                   <path
                     d={path(geometry(preview).segments)}
@@ -494,7 +630,10 @@ export default function StirrupCriteriaDialog({
             {preview && (
               <>
                 <b>Comprimento: {format(geometry(preview).length, 2)} mm</b>
-                {c.profile.shape !== 'free' && (
+                {clamp && (
+                  <small>Geométrico = corte · ajuste adicional: 0 mm</small>
+                )}
+                {c.profile.shape !== 'free' && !clamp && (
                   <span>
                     Eixo: {format(stirrupEnvelope(preview).width, 2)}
                     {c.profile.shape === 'rectangle'

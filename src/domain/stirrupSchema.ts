@@ -18,16 +18,34 @@ export const stirrupHookSchema = z
   .strict();
 export const stirrupProfileSchema = z
   .object({
-    shape: z.enum(['rectangle', 'circle', 'free']),
+    shape: z.enum(['rectangle', 'circle', 'free', 'clamp-s', 'clamp-c']),
     closed: z.boolean(),
     reference: z.enum(['axis', 'concrete']),
     cover: n.nonnegative().max(10000),
     gapAngle: n.positive().max(350),
     points: z.array(point).min(2).max(100),
+    clamp: z
+      .object({
+        diameters: z.tuple([n.positive().max(100), n.positive().max(100)]),
+        clearance: n.nonnegative().max(1000),
+        orientation: z.union([z.literal(1), z.literal(-1)]),
+        capture: z.literal('static'),
+      })
+      .strict()
+      .optional(),
     start: stirrupHookSchema,
     end: stirrupHookSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((p, context) => {
+    const clamp = p.shape === 'clamp-s' || p.shape === 'clamp-c';
+    if (clamp !== !!p.clamp)
+      context.addIssue({
+        code: 'custom',
+        path: ['clamp'],
+        message: 'Parâmetros de grampo exigem forma S/C e vice-versa.',
+      });
+  });
 export const stirrupDisplaySchema = z
   .object({
     dimensions: z.boolean(),
@@ -106,6 +124,15 @@ export function scaleStirrupProfile(
   return {
     ...s,
     cover: s.cover * k,
+    ...(s.clamp
+      ? {
+          clamp: {
+            ...s.clamp,
+            diameters: s.clamp.diameters.map((d) => d * k) as [number, number],
+            clearance: s.clamp.clearance * k,
+          },
+        }
+      : {}),
     points: s.points.map((p) => ({ x: p.x * k, y: p.y * k })),
     start: hook(s.start),
     end: hook(s.end),

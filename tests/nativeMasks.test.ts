@@ -162,7 +162,7 @@ describe('máscaras CAD nativas', () => {
       ],
     };
     const q = decodeProject(JSON.stringify(old));
-    expect(q.schema).toBe('armadurastruct/30');
+    expect(q.schema).toBe('armadurastruct/31');
     expect(q.masks[0].id).toBe(old.masks[0].id);
     expect(q.masks[0].primitives.map((p) => p.points)).toEqual(
       old.masks[0].primitives.map((p) => p.points),

@@ -69,7 +69,13 @@ export const REBAR_CAPABILITIES = Object.freeze({
   families: Object.freeze(['free', 'stirrup', 'beam-clamp'] as const),
   beamClampConvention: 'axis-vertices',
   beamClampViews: ['perspective', 'development'] as const,
-  stirrupProfiles: Object.freeze(['rectangle', 'circle', 'free'] as const),
+  stirrupProfiles: Object.freeze([
+    'rectangle',
+    'circle',
+    'free',
+    'clamp-s',
+    'clamp-c',
+  ] as const),
   stirrupHooks: Object.freeze({
     angles: [0, 90, 135, 180] as const,
     units: ['mm', 'diameters'] as const,
