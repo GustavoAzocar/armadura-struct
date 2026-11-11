@@ -5346,6 +5346,12 @@ export default function App() {
           setDraft([...draft, point]);
         return;
       }
+      if (measureSession?.editingPresentation) {
+        notify(
+          'Aplique ou cancele a edição da apresentação antes de lançar a cota.',
+        );
+        return;
+      }
       const points = [...draft, point];
       const a: Annotation = annotationCadDefaults(p, {
         id: uid(),
@@ -8131,7 +8137,10 @@ export default function App() {
                   setTool('select');
                   setMaskControl(true);
                 }}
-                dimensionPresentation={measureSession?.presentation}
+                dimensionPresentation={
+                  measureSession?.previewPresentation ??
+                  measureSession?.presentation
+                }
                 previewLines={
                   beamClampPreview.lines ??
                   (stirrupSession?.stage === 'shape'
@@ -8400,11 +8409,24 @@ export default function App() {
                   points={draft}
                   onMode={setMeasureMode}
                   onPresentation={(v) => {
-                    measurePresentation.current = v;
+                    measurePresentation.current = {
+                      unit: v.unit,
+                      precision: v.precision,
+                    };
                     setMeasureSession((s) =>
                       s ? { ...s, presentation: v } : s,
                     );
                   }}
+                  onEditingPresentation={(
+                    editingPresentation,
+                    previewPresentation,
+                  ) =>
+                    setMeasureSession((s) =>
+                      s
+                        ? { ...s, editingPresentation, previewPresentation }
+                        : s,
+                    )
+                  }
                   onEnd={endMeasure}
                 />
               )}

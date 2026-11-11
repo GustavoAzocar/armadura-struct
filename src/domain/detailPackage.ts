@@ -23,7 +23,7 @@ import { mul } from './geometry';
 import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/20' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/21' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -49,6 +49,7 @@ export const detailPackageSchema = z
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -239,12 +240,23 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
 
 /** Validate the complete closed reference graph before opening the AS-08 comparison. */
 export function detailPackageProject(value: DetailPackage): Project {
+  if (
+    value.schema !== 'openstruct.detail/21' &&
+    value.objects.annotations.some(
+      (a) => a.dimensionPresentation?.rounding !== undefined,
+    )
+  )
+    throw new Error('Arredondamento de cotas exige pacote v21.');
   const pack = scaleContent(
     detailPackageSchema.parse(value),
     factors[value.units.length],
   );
   if (
-    !['openstruct.detail/19', 'openstruct.detail/20'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/19',
+      'openstruct.detail/20',
+      'openstruct.detail/21',
+    ].includes(pack.schema) &&
     hasBeamClampData({
       bars: [...pack.objects.bars, ...pack.dependencies],
       details: pack.objects.details,
@@ -257,6 +269,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
@@ -291,6 +304,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -316,6 +330,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -339,6 +354,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -364,6 +380,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -383,6 +400,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
@@ -402,6 +420,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     (pack.layers?.some((l) => l.plot) ||
       [
@@ -423,6 +442,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     ([...pack.objects.bars, ...pack.dependencies].some(
       (b) => b.stirrupMirrored !== undefined,
@@ -442,6 +462,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) => m.format === 'NATIVE')
   )
@@ -456,6 +477,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     pack.objects.masks.some(
       (m) => m.format !== 'NATIVE' && m.primitives.some((q) => q.native),
@@ -471,6 +493,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     [
       ...pack.objects.bars,
@@ -491,6 +514,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) =>
       m.primitives.some((q) => q.native?.kind === 'arc' || q.sourceEntityId),
@@ -504,6 +528,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     pack.objects.annotations.some(
       (a) => a.maskReferences || a.dimensionPresentation,
@@ -517,12 +542,13 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     hasFreeTextData({ masks: pack.objects.masks })
   )
     throw new Error('Textos livres e tipografia CAD exigem pacote v17.');
   if (
-    pack.schema !== 'openstruct.detail/20' &&
+    !['openstruct.detail/20', 'openstruct.detail/21'].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
         b.stirrupProfile?.clamp ||
@@ -621,7 +647,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/31',
+      schema: 'armadurastruct/32',
       layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
@@ -673,6 +699,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/16',
       'openstruct.detail/17',
       'openstruct.detail/19',
+      'openstruct.detail/20',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -681,7 +708,11 @@ export function readDetailPackage(raw: unknown): {
     );
   const pack = detailPackageSchema.parse(input);
   if (
-    !['openstruct.detail/19', 'openstruct.detail/20'].includes(pack.schema) &&
+    ![
+      'openstruct.detail/19',
+      'openstruct.detail/20',
+      'openstruct.detail/21',
+    ].includes(pack.schema) &&
     hasBeamClampData({
       bars: [...pack.objects.bars, ...pack.dependencies],
       details: pack.objects.details,
@@ -694,6 +725,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
@@ -721,6 +753,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/17',
       'openstruct.detail/19',
       'openstruct.detail/20',
+      'openstruct.detail/21',
     ].includes(pack.schema) &&
     !pack.layers
   )

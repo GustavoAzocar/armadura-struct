@@ -1,3 +1,5 @@
+import DimensionPresentationFields from './DimensionPresentationFields';
+import { dimensionValueMm } from '../domain/drafting';
 import type { Point, Primitive, Project } from '../domain/types';
 import type { MaskDrawingContext } from '../domain/maskDrawing';
 import {
@@ -35,6 +37,8 @@ export type MeasureSession = {
   references: MaskDimensionReference[];
   presentation: DimensionPresentation;
   issue?: string;
+  editingPresentation?: boolean;
+  previewPresentation?: DimensionPresentation;
 };
 export default function MeasureDimensionPanel({
   session: s,
@@ -42,6 +46,7 @@ export default function MeasureDimensionPanel({
   points,
   onMode,
   onPresentation,
+  onEditingPresentation,
   onEnd,
 }: {
   session: MeasureSession;
@@ -49,6 +54,10 @@ export default function MeasureDimensionPanel({
   points: Point[];
   onMode: (mode: MeasureMode) => void;
   onPresentation: (v: DimensionPresentation) => void;
+  onEditingPresentation: (
+    editing: boolean,
+    preview?: DimensionPresentation,
+  ) => void;
   onEnd: () => void;
 }) {
   let values = s.result;
@@ -109,17 +118,36 @@ export default function MeasureDimensionPanel({
           <option value="dimension-aligned">Inserir cota alinhada</option>
         </select>
       </label>
-      <PresentationFields
-        presentation={s.presentation}
-        onPresentation={onPresentation}
-      />
-      {values && (
-        <p role="status">
-          Distância: {formatDimension(values.distance, s.presentation)}
-          <br />
-          ΔX: {formatDimension(values.dx, s.presentation)} · ΔY:{' '}
-          {formatDimension(values.dy, s.presentation)}
-        </p>
+      {tool === 'dimension-aligned' || tool === 'dimension-orthogonal' ? (
+        <DimensionPresentationFields
+          key={tool}
+          presentation={s.presentation}
+          onPresentation={onPresentation}
+          onEditing={onEditingPresentation}
+          measurement={
+            points.length === 2 && s.cursor
+              ? dimensionValueMm({ kind: tool, points: [...points, s.cursor] })
+              : tool === 'dimension-aligned'
+                ? values?.distance
+                : undefined
+          }
+          context="medida"
+        />
+      ) : (
+        <>
+          <PresentationFields
+            presentation={s.presentation}
+            onPresentation={onPresentation}
+          />
+          {values && (
+            <p role="status">
+              Distância: {formatDimension(values.distance, s.presentation)}
+              <br />
+              ΔX: {formatDimension(values.dx, s.presentation)} · ΔY:{' '}
+              {formatDimension(values.dy, s.presentation)}
+            </p>
+          )}
+        </>
       )}
       <p>
         {tool === 'measure'

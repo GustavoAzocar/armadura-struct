@@ -6,13 +6,11 @@ import { maskPoint } from '../cad/import';
 import { localMaskPoint } from './nativeMasks';
 import { maskCadEntities, hitMaskCadEntity } from './maskCadEditing';
 import type { MaskDrawingContext } from './maskDrawing';
-export const dimensionPresentationSchema = z
-  .object({
-    unit: z.enum(['mm', 'cm', 'm']),
-    precision: z.number().int().min(0).max(6),
-  })
-  .strict();
-export type DimensionPresentation = z.infer<typeof dimensionPresentationSchema>;
+export {
+  dimensionPresentationSchema,
+  formatDimension,
+  type DimensionPresentation,
+} from './dimensionPresentation';
 const coordinate = z.number().finite().min(-1e9).max(1e9);
 export const maskDimensionReferencesSchema = z
   .array(
@@ -46,10 +44,6 @@ export function measuredDistance(a: Point, b: Point) {
   const dx = b.x - a.x,
     dy = b.y - a.y;
   return { distance: Math.hypot(dx, dy), dx, dy };
-}
-export function formatDimension(mm: number, options: DimensionPresentation) {
-  const o = dimensionPresentationSchema.parse(options);
-  return `${(mm / { mm: 1, cm: 10, m: 1000 }[o.unit]).toLocaleString('pt-BR', { minimumFractionDigits: o.precision, maximumFractionDigits: o.precision, useGrouping: false })} ${o.unit}`;
 }
 /** Diagnostic tolerance only. Geometry is never rounded or rewritten by this fingerprint. */
 function geometrySignature(q: Primitive, scale: number) {

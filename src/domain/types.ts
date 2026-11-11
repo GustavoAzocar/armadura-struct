@@ -321,7 +321,7 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/31';
+  schema: 'armadurastruct/32';
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
