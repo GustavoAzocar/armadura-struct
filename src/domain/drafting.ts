@@ -1,6 +1,7 @@
 import { stirrupPrimitives } from './stirrupGeometry';
 import { beamClampPrimitives } from './beamClampViews';
-import { dimensionReferenceIssue, formatDimension } from './maskDimensions';
+import { dimensionReferenceIssue } from './maskDimensions';
+import { formatDimensionCaption } from './dimensionPresentation';
 import {
   add,
   rotate,
@@ -75,6 +76,24 @@ export function arcThrough(a: Point, m: Point, b: Point): Point[] | null {
     }),
   );
 }
+function horizontalDimension(p: Point, q: Point, r: Point) {
+  const mid = mul(add(p, q), 0.5);
+  return Math.abs(r.y - mid.y) + 1e-8 >= Math.abs(r.x - mid.x);
+}
+
+export function dimensionValueMm(
+  a: Pick<Annotation, 'kind' | 'points' | 'frameRotation'>,
+) {
+  const [p, q, r] = a.points;
+  if (a.kind !== 'dimension-orthogonal') return distance(p, q);
+  const angle = a.frameRotation ?? 0;
+  const end = rotate(sub(q, p), -angle);
+  const position = rotate(sub(r, p), -angle);
+  return Math.abs(
+    horizontalDimension({ x: 0, y: 0 }, end, position) ? end.x : end.y,
+  );
+}
+
 export function annotationError(a: Annotation): string | undefined {
   if (a.kind === 'dimension-orthogonal' && a.frameRotation)
     return annotationError({
@@ -90,12 +109,7 @@ export function annotationError(a: Annotation): string | undefined {
   if (a.kind === 'section-arc' && !arcThrough(p, q, r))
     return 'Os três pontos do arco não podem estar alinhados.';
   if (a.kind === 'dimension-orthogonal') {
-    const mid = mul(add(p, q), 0.5),
-      span =
-        Math.abs(r.y - mid.y) + 1e-8 >= Math.abs(r.x - mid.x)
-          ? Math.abs(q.x - p.x)
-          : Math.abs(q.y - p.y);
-    if (span < 0.01)
+    if (dimensionValueMm(a) < 0.01)
       return 'Posicione a cota do outro lado para medir uma projeção diferente de zero.';
   }
 }
@@ -152,8 +166,7 @@ function rawAnnotationPrimitives(a: Annotation, project: Project): Primitive[] {
       end = q,
       axis = unit(sub(q, p));
     if (a.kind === 'dimension-orthogonal') {
-      const mid = mul(add(p, q), 0.5);
-      if (Math.abs(r.y - mid.y) + 1e-8 >= Math.abs(r.x - mid.x)) {
+      if (horizontalDimension(p, q, r)) {
         axis = { x: 1, y: 0 };
         start = { x: p.x, y: r.y };
         end = { x: q.x, y: r.y };
@@ -179,7 +192,12 @@ function rawAnnotationPrimitives(a: Annotation, project: Project): Primitive[] {
         (dimensionReferenceIssue(project, a) ? '[REFERÊNCIA ALTERADA] ' : '') +
           (a.label ||
             (a.dimensionPresentation
-              ? formatDimension(distance(start, end), a.dimensionPresentation)
+              ? formatDimensionCaption(
+                  a.dimensionPresentation.rounding
+                    ? dimensionValueMm(a)
+                    : distance(start, end),
+                  a.dimensionPresentation,
+                )
               : format(distance(start, end) / 10, 1))),
         add(mul(add(start, end), 0.5), mul(n, h * 0.55)),
         h,

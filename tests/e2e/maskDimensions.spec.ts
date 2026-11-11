@@ -293,3 +293,151 @@ test('Mesmo comando em Desenho e acesso compacto em Foco; máscara transformada 
   await page.keyboard.press('Escape');
   expect((await save(page)).annotations).toHaveLength(seed.annotations.length);
 });
+
+test('Aplica, cancela e restaura o arredondamento de uma cota', async ({
+  page,
+}) => {
+  await open(page);
+  const csv = await exported(page, 'Quadro CSV');
+  await aligned(page);
+  const editor = panel(page);
+  await editor
+    .getByRole('checkbox', { name: 'Arredondar cota por múltiplo' })
+    .check();
+  await editor.getByLabel('Múltiplo (mm)', { exact: true }).fill('0');
+  await expect(
+    editor.getByRole('button', { name: 'Aplicar apresentação' }),
+  ).toBeDisabled();
+  await command(page, '1500,3000');
+  await expect(editor).toBeVisible();
+  await editor.getByLabel('Múltiplo (mm)', { exact: true }).fill('70');
+  await editor
+    .getByLabel('Unidade da medida', { exact: true })
+    .selectOption('cm');
+  await expect(editor.getByLabel('Múltiplo (cm)', { exact: true })).toHaveValue(
+    '7',
+  );
+  await editor
+    .getByLabel('Unidade da medida', { exact: true })
+    .selectOption('mm');
+  await expect(editor.getByLabel('Múltiplo (mm)', { exact: true })).toHaveValue(
+    '70',
+  );
+  const at = await position(page, { x: 1500, y: 3000 });
+  await page.mouse.move(at.x, at.y);
+  await expect(editor.getByRole('status')).toContainText('Exibido: ~ 4970 mm');
+  await editor.getByRole('button', { name: 'Aplicar apresentação' }).click();
+  await command(page, '1500,3000');
+  await expect(editor).toHaveCount(0);
+
+  const annotation = page.getByTestId('cad-annotation');
+  await expect(
+    annotation.getByText('~ 4970 mm', { exact: true }),
+  ).toBeVisible();
+  const after = await save(page);
+  expect(after.annotations.at(-1)?.dimensionPresentation?.rounding).toEqual({
+    multipleTicks: 70_000_000,
+    mode: 'nearest',
+  });
+  await command(page, 'U');
+  await expect(annotation.getByText('~ 4970 mm', { exact: true })).toHaveCount(
+    0,
+  );
+  await command(page, 'REDO');
+  await expect(
+    annotation.getByText('~ 4970 mm', { exact: true }),
+  ).toBeVisible();
+
+  await annotation.getByText('~ 4970 mm', { exact: true }).click();
+  const inspector = page.locator('.inspector');
+  const enabled = inspector.getByRole('checkbox', {
+    name: 'Arredondar cota por múltiplo',
+  });
+  await enabled.uncheck();
+  await inspector
+    .getByRole('button', { name: 'Cancelar edição da apresentação' })
+    .click();
+  await expect(enabled).toBeChecked();
+  await enabled.uncheck();
+  await inspector.getByRole('button', { name: 'Aplicar apresentação' }).click();
+  await expect(annotation.getByText('5000 mm', { exact: true })).toBeVisible();
+  await command(page, 'U');
+  await expect(
+    annotation.getByText('~ 4970 mm', { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.save-status')).toHaveText(
+    'Apenas recuperável localmente',
+  );
+  await page.reload();
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
+  expect((await save(page)).annotations).toEqual(after.annotations);
+  expect(await exported(page, 'Quadro CSV')).toBe(csv);
+  expect(await exported(page, 'Desenho DXF')).toContain('~ 4970 mm');
+});
+
+test('Valida precisão, conserva o múltiplo nas unidades e cancela edição por Esc', async ({
+  page,
+}) => {
+  const seed = fixture();
+  const a = seed.annotations[0];
+  a.label = '';
+  a.points[1] = { x: 1234, y: 0 };
+  a.dimensionPresentation = {
+    unit: 'mm',
+    precision: 0,
+    rounding: { multipleTicks: 5_000_000, mode: 'nearest' },
+  };
+  await open(page, seed);
+  const annotation = page.getByTestId('cad-annotation');
+  await annotation.getByText('~ 1235 mm', { exact: true }).click();
+  const inspector = page.locator('.inspector');
+  const unit = inspector.getByLabel('Unidade da cota', { exact: true });
+  await unit.selectOption('m');
+  await expect(
+    inspector.getByLabel('Múltiplo (m)', { exact: true }),
+  ).toHaveValue('0,005');
+  await expect(inspector.getByRole('alert')).toContainText('ao menos 3');
+  await expect(
+    inspector.getByRole('button', {
+      name: 'Aplicar apresentação',
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await inspector
+    .getByLabel('Precisão da cota', { exact: true })
+    .selectOption('3');
+  await expect(inspector.getByRole('status')).toContainText('Modelo: 1234 mm');
+  await expect(inspector.getByRole('status')).toContainText(
+    'Exibido: ~ 1,235 m',
+  );
+  await unit.selectOption('cm');
+  await expect(
+    inspector.getByLabel('Múltiplo (cm)', { exact: true }),
+  ).toHaveValue('0,5');
+  await unit.selectOption('mm');
+  const multiple = inspector.getByLabel('Múltiplo (mm)', { exact: true });
+  await expect(multiple).toHaveValue('5');
+  await multiple.fill('70');
+  await multiple.press('Escape');
+  await expect(
+    inspector.getByRole('button', {
+      name: 'Aplicar apresentação',
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  expect((await save(page)).annotations[0]).toEqual(a);
+  const label = inspector.getByLabel('Texto da anotação', { exact: true });
+  await label.fill('Cota 1234');
+  await label.press('Enter');
+  await expect(inspector.getByRole('status')).toContainText(
+    'Cota 1234 (texto manual)',
+  );
+  await expect(
+    annotation.getByText('Cota 1234', { exact: true }),
+  ).toBeVisible();
+  await label.fill('');
+  await label.press('Enter');
+  await expect(
+    annotation.getByText('~ 1235 mm', { exact: true }),
+  ).toBeVisible();
+});

@@ -506,7 +506,16 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const clampVersion = input?.schema === 'armadurastruct/31';
+  const roundingVersion = input?.schema === 'armadurastruct/32';
+  if (
+    !roundingVersion &&
+    input?.annotations?.some(
+      (a: { dimensionPresentation?: { rounding?: unknown } }) =>
+        a.dimensionPresentation?.rounding !== undefined,
+    )
+  )
+    throw new Error('Arredondamento de cotas exige formato 32.');
+  const clampVersion = roundingVersion || input?.schema === 'armadurastruct/31';
   const clampData = [
     input?.stirrupDefaults?.profile,
     ...[...(input?.bars ?? []), ...(input?.scheduleLock?.bars ?? [])].map(
@@ -828,7 +837,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/31',
+    schema: 'armadurastruct/32',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -1076,7 +1085,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/31',
+    schema: 'armadurastruct/32',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,
