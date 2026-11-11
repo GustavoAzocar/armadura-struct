@@ -3,7 +3,7 @@
 ## Uso
 
 1. Na aba **Máscaras**, escolha e **ative** a referência desejada. Abra seu desenho/detalhamento quando estiver em outra vista ou na prancha.
-2. Use **Ferramentas → Ajustar escala**. O atalho **Escala por 2 pontos**, junto ao destino da máscara, continua acessível em modo Foco e com a faixa recolhida. O comando CAD é `CALIBRARMASCARA`.
+2. Use **Ferramentas → Ajustar escala**. Com a faixa recolhida ou em Foco, abra **Referências** ao lado das abas e use o mesmo comando **Ajustar escala**. O comando CAD é `CALIBRARMASCARA`.
 3. Confira nome, origem, caminho e ID do alvo no painel. Clique em **P1**, que ficará fixo. Aceita os encaixes existentes e coordenadas do modelo pelo campo Comando CAD.
 4. Escolha **P2**, com encaixes e Ortogonal quando ligados. Coordenadas absolutas, relativas e polares usam o mesmo fluxo do CAD. Exemplo: P1 `100,100`, P2 `600,100`, ou P2 relativo `@500,0`.
 5. Confira a distância atual em **mm do modelo**. Informe a distância real, por exemplo `2000`, `2000 mm`, `200 cm` ou `2 m`. Decimal pt-BR é aceito: `2,5 m` = 2500 mm. Não use separador de milhar; `1.000,0` é rejeitado para evitar ambiguidade.

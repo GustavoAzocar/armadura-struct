@@ -275,8 +275,14 @@ test('Mesmo comando em Desenho e acesso compacto em Foco; máscara transformada 
   await expect(page.locator('.app-shell')).toHaveClass(/focus-mode/);
   await page.setViewportSize({ width: 900, height: 650 });
   await page
-    .getByLabel('Ferramentas CAD da máscara ativa', { exact: true })
-    .selectOption('measure');
+    .getByRole('button', {
+      name: 'Referências e comandos de máscara',
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('button', { name: 'Medir distância', exact: true })
+    .click();
   await command(page, '100,200');
   const x = 100 + 6000 * Math.cos(Math.PI / 6) - 8000 * Math.sin(Math.PI / 6),
     y = 200 + 6000 * Math.sin(Math.PI / 6) + 8000 * Math.cos(Math.PI / 6);

@@ -1,6 +1,6 @@
 # Escolher a máscara para desenhar
 
-Na aba **Máscaras**, a faixa **Desenhar em** lista todas as máscaras do projeto. Pesquise por nome, origem (Nativa/DXF/DWG/DEMO), pavimento, grupo, detalhamento ou ID. Escolha uma e clique em **Ativar**. O destino ativo, seu caminho, ID e condição de edição permanecem visíveis, inclusive com a faixa recolhida e em Foco.
+Na aba **Máscaras**, o grupo **Referências**, no final da faixa de comandos, reúne **Desenhar em**: a lista de todas as máscaras do projeto, **Ativar**, **Nova máscara**, **Importar** e **Associar**. Pesquise por nome, origem (Nativa/DXF/DWG/DEMO), pavimento, grupo, detalhamento ou ID. Escolher na lista apenas marca a candidata; clique em **Ativar** para trocar o destino. O destino ativo, seu caminho, ID e condição de edição ficam visíveis no grupo. Com a faixa recolhida e em Foco, a máscara ativa e sua condição aparecem ao lado das abas, e o botão **Referências** abre temporariamente os grupos da aba (Esc ou um clique fora fecham, sem cancelar o comando em andamento).
 
 ![Máscaras de todos os contextos](mask-target-global.png)
 
