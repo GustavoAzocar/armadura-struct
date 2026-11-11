@@ -58,6 +58,10 @@ async function load(page: Page, p: Project) {
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(p)),
   });
+  await expect(
+    page.getByRole('banner').getByText(p.name, { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
   await page.getByRole('tab', { name: 'Máscaras', exact: true }).click();
 }
 async function save(page: Page): Promise<Project> {
@@ -72,6 +76,7 @@ async function save(page: Page): Promise<Project> {
 }
 function fixture(long = false) {
   let p = emptyProject();
+  p.name = 'Interface de máscaras';
   p.hierarchy.floors[0].name = 'Térreo';
   p.hierarchy.elements[0].name = 'Vigas';
   p.hierarchy.details[0].name = 'V1';
@@ -234,8 +239,20 @@ test('ajuda no mouse e no teclado, sem cortar nem capturar clique; Enter/Espaço
   await search.pressSequentially('befm');
   await search.press('Enter');
   await expect(
-    page.getByRole('button', { name: 'Selecionar', exact: true }),
+    group(page, 'Navegar').getByRole('button', {
+      name: 'Selecionar',
+      exact: true,
+    }),
   ).toHaveAttribute('aria-pressed', 'true');
+  for (const name of ['Pan', 'Selecionar']) {
+    const button = group(page, 'Navegar').getByRole('button', {
+      name,
+      exact: true,
+    });
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+  }
   expect(await save(page)).toEqual(before);
 });
 
@@ -313,7 +330,10 @@ for (const [width, height] of [
       ),
     ).toBe(true);
     for (const name of ['Pan', 'Ortogonal', 'Desfazer']) {
-      const b = page.getByRole('button', { name, exact: true });
+      const b = group(page, 'Navegar').getByRole('button', {
+        name,
+        exact: true,
+      });
       await b.focus();
       const r = (await b.boundingBox())!;
       const refNow = (await group(page, 'Referências').boundingBox())!;
@@ -407,6 +427,51 @@ test('faixa recolhida e Foco: estado visível, painel temporário, Esc fecha sem
     await expect(active(page)).toContainText('[homonym-0001]');
   }
   expect(await save(page)).toEqual(before);
+});
+
+test.describe('interface ampliada em 150%', () => {
+  // 910 × 512 CSS pixels at DPR 1.5 represent a 1365 × 768 physical window.
+  test.use({
+    viewport: { width: 910, height: 512 },
+    deviceScaleFactor: 1.5,
+  });
+  test('destino e acesso em Foco continuam alcançáveis', async ({ page }) => {
+    await load(page, fixture(true));
+    const choose = destination(page).getByLabel('Escolher máscara', {
+      exact: true,
+    });
+    await choose.focus();
+    const box = (await choose.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(910);
+    await choose.selectOption('homonym-0001');
+    await destination(page)
+      .getByRole('button', {
+        name: 'Ativar máscara para desenhar',
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole('button', { name: 'Foco no CAD', exact: true })
+      .click();
+    await expect(active(page)).toContainText('[homonym-0001]');
+    await toggle(page).click();
+    await expect(destination(page)).toBeVisible();
+    await destination(page)
+      .getByLabel('Pesquisar máscaras do projeto', { exact: true })
+      .focus();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.ribbon-peek')).toHaveCount(0);
+    await expect(active(page)).toContainText('[homonym-0001]');
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({ path: 'docs/mask-ribbon-scale-150.png' });
+  });
 });
 
 test('outras abas mantêm botões com rótulo', async ({ page }) => {

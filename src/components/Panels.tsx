@@ -13,7 +13,7 @@ import {
 import { annotationError } from '../domain/drafting';
 import HierarchyNavigator from './HierarchyNavigator';
 import { toggleDetailSelection } from '../domain/detailEditing';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ChevronDown,
@@ -971,7 +971,6 @@ export function ProjectTree({
   onToggleMask,
   onRemoveMask,
   onImport,
-  onDemo,
   activeDetailId,
   onActiveDetail,
   onHierarchy,
@@ -990,7 +989,6 @@ export function ProjectTree({
   onToggleMask: (id: string) => void;
   onRemoveMask: (id: string) => void;
   onImport: () => void;
-  onDemo: () => void;
   activeDetailId: string;
   onActiveDetail: (id: string) => void;
   onHierarchy: (project: Project, expected: Project) => boolean;
@@ -1057,6 +1055,17 @@ export function ProjectTree({
   const polylines = project.polylines.filter((l) => owns(l.id));
   const rows = schedule(project),
     valid = rows.filter((r) => !r.errors.length);
+  // Pan/zoom não deve reformatar as bitolas de todas as linhas da árvore.
+  const diameterLabels = useMemo(
+    () =>
+      new Map(
+        [...new Set(project.bars.map((b) => b.diameter))].map((diameter) => [
+          diameter,
+          format(diameter, diameter % 1 ? 1 : 0),
+        ]),
+      ),
+    [project.bars],
+  );
   return (
     <aside className="project-tree">
       <div className="panel-heading">
@@ -1165,7 +1174,7 @@ export function ProjectTree({
                 <span>
                   <b>
                     {b.kind === 'stirrup' ? 'Estribo' : 'Barra'} Ø
-                    {format(b.diameter, b.diameter % 1 ? 1 : 0)}
+                    {diameterLabels.get(b.diameter)}
                   </b>
                   <small>
                     {b.element}
@@ -1266,13 +1275,6 @@ export function ProjectTree({
           </small>
         )}
       </div>
-      <button
-        className="example-button"
-        disabled={!!isolatedDetailId}
-        onClick={onDemo}
-      >
-        Carregar projeto de exemplo
-      </button>
     </aside>
   );
 }

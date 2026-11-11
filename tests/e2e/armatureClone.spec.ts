@@ -70,6 +70,12 @@ test('Copiar includes every owned dependency, one undo removes the graph, and sa
   expect(await save(page)).toEqual(q);
   await select(page, 'N2');
   await page.getByLabel('Bitola (mm)', { exact: true }).selectOption('12.5');
+  await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
+  await expect(
+    page
+      .locator('.bar-row')
+      .filter({ has: page.getByText('N2', { exact: true }) }),
+  ).toContainText(/Ø\s*12,5/);
   const edited = await save(page);
   expect(edited.bars[0]).toEqual(p.bars[0]);
   expect(edited.bars[1].diameter).toBe(12.5);
@@ -137,7 +143,9 @@ test('auxiliary links can be assigned in the inspector and equivalent copy conso
   const p = createCloneSource();
   delete p.polylines[0].barIds;
   await load(page, p);
-  await expect(page.getByText(p.name, { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('banner').getByText(p.name, { exact: true }),
+  ).toBeVisible();
   await command(page, 'F');
   const at = await page.getByTestId('cad-canvas').evaluate(async (svg) => {
     await new Promise<void>((r) =>

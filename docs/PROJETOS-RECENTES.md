@@ -6,14 +6,14 @@
 
 ## O que é registrado
 
-| Evento concluído com sucesso                                                        | Registro                                              |
-| ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Abrir projeto (`.armstruct.json`)                                                   | Arquivo de projeto, com caminho no desktop            |
-| Salvar projeto no desktop (diálogo nativo)                                          | Arquivo de projeto, com caminho                       |
-| Salvar no navegador (download)                                                      | **Não registra**: o navegador não confirma a gravação |
-| Criar, abrir ou salvar projeto em pasta (`save-v1/projeto.armstruct.json`)          | Projeto em pasta, com a pasta                         |
-| Cancelar, falha, arquivo inválido ou inacessível                                    | Nada é registrado                                     |
-| Exemplo inicial, recuperação automática, máscaras DXF/DWG e pacotes de detalhamento | Nada é registrado                                     |
+| Evento concluído com sucesso                                               | Registro                                              |
+| -------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Abrir projeto (`.armstruct.json`)                                          | Arquivo de projeto, com caminho no desktop            |
+| Salvar projeto no desktop (diálogo nativo)                                 | Arquivo de projeto, com caminho                       |
+| Salvar no navegador (download)                                             | **Não registra**: o navegador não confirma a gravação |
+| Criar, abrir ou salvar projeto em pasta (`save-v1/projeto.armstruct.json`) | Projeto em pasta, com a pasta                         |
+| Cancelar, falha, arquivo inválido ou inacessível                           | Nada é registrado                                     |
+| Recuperação automática, máscaras DXF/DWG e pacotes de detalhamento         | Nada é registrado                                     |
 
 ## Reabrir
 

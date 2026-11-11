@@ -285,19 +285,12 @@ const CadInterpretDialog = lazy(
 );
 const VisibilityDialog = lazy(() => import('./components/VisibilityDialog'));
 const PlotDialog = lazy(() => import('./components/PlotDialog'));
+const CsvExportDialog = lazy(() => import('./components/CsvExportDialog'));
 const LayerManager = lazy(() => import('./components/LayerManager'));
 const ArmatureCloneDialog = lazy(
   () => import('./components/ArmatureCloneDialog'),
 );
 import type { CloneRequest } from './components/ArmatureCloneDialog';
-const ExampleReviewDialog = lazy(
-  () => import('./components/ExampleReviewDialog'),
-);
-import {
-  initialExampleProject,
-  INITIAL_EXAMPLE_ID,
-  INITIAL_EXAMPLE_SHEETS,
-} from './examples/initial';
 const NumberingDialog = lazy(() => import('./components/NumberingDialog'));
 const FabricationDialog = lazy(() => import('./components/FabricationDialog'));
 const DetailRepetitionDialog = lazy(
@@ -496,6 +489,7 @@ export default function App() {
     projectId: string;
   } | null>(null);
   const [plotOpen, setPlotOpen] = useState(false);
+  const [csvExportOpen, setCsvExportOpen] = useState(false);
   const [alignmentRequest, setAlignmentRequest] =
     useState<AlignmentSession | null>(null);
   const [vertexRequest, setVertexRequest] = useState<VertexSession | null>(
@@ -573,7 +567,6 @@ export default function App() {
   const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
-  const [exampleReviewOpen, setExampleReviewOpen] = useState(false);
   const [numberingOpen, setNumberingOpen] = useState(false);
   const [fabricationOpen, setFabricationOpen] = useState(false);
   const [repetitionDetailId, setRepetitionDetailId] = useState<string>();
@@ -1049,20 +1042,11 @@ export default function App() {
         sidebar: key.startsWith('sheet:') ? 'sheets' : 'project',
       });
     }
-    if (p.id === INITIAL_EXAMPLE_ID) setSidebarTab('sheets');
     // File reopen starts outside isolated editing; cached cameras remain available.
     setDocuments({
       projectId: p.id,
-      active:
-        p.id === INITIAL_EXAMPLE_ID
-          ? `sheet:${INITIAL_EXAMPLE_SHEETS[0]}`
-          : 'model',
-      opened: (
-        saved?.opened ??
-        (p.id === INITIAL_EXAMPLE_ID
-          ? INITIAL_EXAMPLE_SHEETS.map((id) => `sheet:${id}`)
-          : [])
-      ).filter((key) => validDocument(key)),
+      active: 'model',
+      opened: (saved?.opened ?? []).filter((key) => validDocument(key)),
     });
     isolationRef.current = undefined;
     setIsolation(null);
@@ -1157,12 +1141,9 @@ export default function App() {
         if (raw && alive) {
           const project = decodeProject(raw);
           setHistory({ past: [], present: project, future: [] });
-        } else if (!raw) {
-          const project = await initialExampleProject();
-          if (alive) {
-            savedBaseline.current = project;
-            setHistory({ past: [], present: project, future: [] });
-          }
+        } else if (!raw && alive) {
+          // Sem projeto recuperável: começa vazio, sem conteúdo de demonstração.
+          savedBaseline.current = historyRef.current.present;
         }
       })
       .catch(() => {
@@ -5684,6 +5665,10 @@ export default function App() {
       setPlotOpen(true);
       return;
     }
+    if (a === 'csv-scoped') {
+      setCsvExportOpen(true);
+      return;
+    }
     if (a === 'layers') {
       setLayersOpen(true);
       return;
@@ -6593,7 +6578,16 @@ export default function App() {
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (updateModal || pluginView) {
+      if (updateModal || pluginView || csvExportOpen) {
+        if (
+          csvExportOpen &&
+          !updateModal &&
+          !pluginView &&
+          e.key === 'Escape'
+        ) {
+          e.preventDefault();
+          if (!fileOperations.current) setCsvExportOpen(false);
+        }
         if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -7054,17 +7048,6 @@ export default function App() {
           if (patch.cover !== undefined) setCover(patch.cover);
         }}
       />
-      {p.id === INITIAL_EXAMPLE_ID && (
-        <div className="example-notice">
-          <span>
-            <strong>Exemplo ArmaduraStruct</strong> · Vigas e pilares · RA
-            original de referência; comprimentos das dobras em conferência.
-          </span>
-          <button onClick={() => setExampleReviewOpen(true)}>
-            Conferir exemplo
-          </button>
-        </div>
-      )}
       <div className="workspace">
         <main className="main-workspace">
           <div className="document-tabs">
@@ -8149,25 +8132,6 @@ export default function App() {
                   if (id === maskId) setMaskId(null);
                 }}
                 onImport={() => action('import')}
-                onDemo={() => {
-                  setBusy('Carregando Exemplo ArmaduraStruct…');
-                  void initialExampleProject()
-                    .then((project) => {
-                      commit(() => project);
-                      select([]);
-                      setTool('select');
-                      setDocuments({
-                        projectId: project.id,
-                        active: `sheet:${INITIAL_EXAMPLE_SHEETS[0]}`,
-                        opened: INITIAL_EXAMPLE_SHEETS.map(
-                          (id) => `sheet:${id}`,
-                        ),
-                      });
-                      setSidebarTab('sheets');
-                    })
-                    .catch((e) => notify(String(e)))
-                    .finally(() => setBusy(''));
-                }}
               />
             ) : selected.length === 1 &&
               p.details.some((d) => d.id === selected[0]) ? (
@@ -8553,16 +8517,6 @@ export default function App() {
           <span>Processamento local</span>
         </div>
       )}
-      {exampleReviewOpen && p.id === INITIAL_EXAMPLE_ID && (
-        <Suspense
-          fallback={<div className="busy-overlay">Preparando conferência…</div>}
-        >
-          <ExampleReviewDialog
-            project={p}
-            onClose={() => setExampleReviewOpen(false)}
-          />
-        </Suspense>
-      )}
       {detailTransfer && (
         <Suspense
           fallback={<div className="busy-overlay">Preparando comparação…</div>}
@@ -8764,6 +8718,58 @@ export default function App() {
             detailId={!activeSheet ? isolatedDetailId : undefined}
             onChange={(next) => commit(() => next)}
             onClose={() => setVisibilityOpen(false)}
+          />
+        </Suspense>
+      )}
+      {csvExportOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Abrindo exportação CSV…</div>}
+        >
+          <CsvExportDialog
+            key={p.id}
+            project={p}
+            activeSheetId={activeSheet?.id}
+            onClose={() => setCsvExportOpen(false)}
+            onExport={async (selection, options) => {
+              fileOperations.current++;
+              try {
+                const { planScopedCsv, packageCsvFiles } = await import(
+                  './lib/scopedCsv'
+                );
+                if (historyRef.current.present !== p)
+                  throw new Error(
+                    'O projeto mudou durante a preparação do CSV. Confira os escopos e exporte novamente.',
+                  );
+                // Leitura pura do projeto atual; nada é confirmado no histórico.
+                const plan = planScopedCsv(
+                  p,
+                  selection,
+                  options,
+                  activeSheet?.id,
+                );
+                if (plan.issues.length) {
+                  return plan.issues.join(' ');
+                }
+                const pack = packageCsvFiles(plan.files, p.name, selection);
+                const saved = await saveFile(
+                  pack.name,
+                  pack.data,
+                  pack.mime,
+                  pack.ext,
+                );
+                if (saved)
+                  notify(
+                    `Exportação CSV concluída: ${plan.files.length} arquivo(s)${pack.ext === 'zip' ? ' em ZIP' : ''}.`,
+                  );
+                return saved;
+              } catch (e) {
+                return e instanceof Error
+                  ? e.message
+                  : 'Não foi possível exportar o CSV.';
+              } finally {
+                fileOperations.current--;
+              }
+            }}
           />
         </Suspense>
       )}
@@ -9189,12 +9195,12 @@ export default function App() {
               setCadInterpretation(null);
               setCloneRequest(null);
               setPlotOpen(false);
+              setCsvExportOpen(false);
               setLayersOpen(false);
               setVisibilityOpen(false);
               setFabricationOpen(false);
               setNumberingOpen(false);
               setRepetitionDetailId(undefined);
-              setExampleReviewOpen(false);
               sessions.current.clear();
               setDocuments({
                 projectId: result.project.id,
