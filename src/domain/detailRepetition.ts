@@ -5,7 +5,7 @@ import { detailOrigin, sameDetailOrigin } from './detailTransfer';
 import { repetitionNames } from './detailQuantities';
 import { add, sub, geometry, world, vertices } from './geometry';
 import { weldedMeshSchedule } from './weldedMeshSchedule';
-import type { WeldedMeshLaunch } from './weldedMeshLaunch';
+import { weldedMeshPlan, type WeldedMeshLaunch } from './weldedMeshLaunch';
 import { fabricationSignature } from './fabrication';
 
 export function setDetailRepetition(
@@ -86,17 +86,19 @@ function meshKey(l: WeldedMeshLaunch) {
     anchor: l.anchor ? rel(l.anchor) : null,
   });
 }
-/** Detalhamentos só são repetição quando barras e telas coincidem. */
+/**
+ * Detalhamentos só são repetição quando barras e telas coincidem. Basta um dos
+ * dois tipos de posição física; um detalhamento vazio não tem identidade.
+ */
 function signature(p: Project, id: string) {
-  const bars = barsOf(p, id);
+  const bars = barsOf(p, id),
+    meshes = meshesOf(p, id);
   const keys = bars.map(barKey);
-  return bars.length &&
+  return (bars.length || meshes.length) &&
     bars.every((b) => !geometry(b).errors.length) &&
-    keys.every(Boolean)
-    ? JSON.stringify({
-        bars: keys.sort(),
-        meshes: meshesOf(p, id).map(meshKey).sort(),
-      })
+    keys.every(Boolean) &&
+    meshes.every((l) => weldedMeshPlan(l).ok)
+    ? JSON.stringify({ bars: keys.sort(), meshes: meshes.map(meshKey).sort() })
     : undefined;
 }
 export function repetitionCandidates(p: Project, representativeId: string) {
@@ -110,6 +112,7 @@ export function repetitionCandidates(p: Project, representativeId: string) {
       path: detailPath(p, d.id),
       factor: d.repetition?.factor ?? 1,
       positions: barsOf(p, d.id).length,
+      meshes: meshesOf(p, d.id).length,
     }));
 }
 export function mergeElements(
@@ -233,7 +236,8 @@ export function previewMergeRepetitions(
     });
     const removed = new Set(ids.filter((id) => id !== representativeId));
     plan.removedDetailIds = [...removed];
-    const keptBars = barsOf(p, representativeId);
+    const keptBars = barsOf(p, representativeId),
+      keptMeshes = meshesOf(p, representativeId);
     const translations = new Map<string, { x: number; y: number }>();
     for (const id of removed) {
       const available = new Map<string, Bar[]>();
@@ -253,6 +257,14 @@ export function previewMergeRepetitions(
           deltas.push(
             sub(world(vertices(target)[0], target), world(vertices(b)[0], b)),
           );
+      }
+      // Telas iguais diferem só por translação: o 1º vértice dá o deslocamento.
+      const meshPool = new Map<string, WeldedMeshLaunch[]>();
+      for (const l of keptMeshes)
+        meshPool.set(meshKey(l), [...(meshPool.get(meshKey(l)) ?? []), l]);
+      for (const l of meshesOf(p, id)) {
+        const target = meshPool.get(meshKey(l))!.shift()!;
+        deltas.push(sub(target.region.outer[0], l.region.outer[0]));
       }
       if (
         deltas.every(

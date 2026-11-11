@@ -26,7 +26,11 @@ import {
   createDetailPackage,
   readDetailPackage,
 } from '../src/domain/detailPackage';
-import { previewDetailTransfer } from '../src/domain/detailTransfer';
+import {
+  matchingDetails,
+  previewDetailTransfer,
+} from '../src/domain/detailTransfer';
+import { placeDrawing } from '../src/domain/sheets';
 import {
   previewMergeRepetitions,
   repetitionCandidates,
@@ -283,6 +287,121 @@ describe('Reunir repetições', () => {
     const merged = previewMergeRepetitions(p, d1, [d1, d2]);
     expect(merged.issues.length).toBeGreaterThan(0);
     expect(merged.project).toBeUndefined();
+  });
+});
+
+describe('Reunir repetições só com telas', () => {
+  /** d1 e d2 sem barras, cada um com uma Q92 igual (a de d2 deslocada), ambos com vista na prancha. */
+  const meshOnly = (secondAt = 20000) => {
+    let p = emptyProject();
+    const d1 = p.hierarchy.details[0].id;
+    const e = createHierarchyNode(p, 'element', 'V2', p.hierarchy.floors[0].id);
+    const d = createHierarchyNode(e.project, 'detail', 'Armação V2', e.id);
+    p = launch(d.project, 'tela-1', d1, rect(0, 0, 6000, 2450));
+    p = launch(p, 'tela-2', d.id, rect(secondAt, 0, 6000, 2450));
+    for (const id of [d1, d.id])
+      p = placeDrawing(
+        p,
+        p.sheets[0].id,
+        p.hierarchy.drawings.find((g) => g.detailId === id)!.id,
+      ).project;
+    return { p, d1, d2: d.id };
+  };
+  const viewOf = (p: Project, detailId: string) =>
+    p.hierarchy.placements.find(
+      (v) =>
+        p.hierarchy.drawings.find((g) => g.id === v.drawingId)?.detailId ===
+        detailId,
+    )!;
+
+  it('reúne: mantém a tela do representante, aplica a repetição uma vez e preserva vistas e origem', () => {
+    const { p, d1, d2 } = meshOnly(),
+      before = JSON.stringify(p);
+    expect(repetitionCandidates(p, d1)).toEqual([
+      expect.objectContaining({ id: d2, positions: 0, meshes: 1, factor: 1 }),
+    ]);
+    const total = weldedMeshSchedule(p).total;
+    const plan = previewMergeRepetitions(p, d1, [d2]);
+    expect(plan.issues).toEqual([]);
+    expect(plan.factor).toBe(2);
+    const q = plan.project!;
+    expect(q.weldedMeshes!.map((l) => l.id)).toEqual(['tela-1']);
+    const contributions = weldedMeshSchedule(q).rows.flatMap(
+      (r) => r.contributions,
+    );
+    expect(contributions).toHaveLength(1);
+    expect(contributions[0].repetitions).toBe(2);
+    expect(weldedMeshSchedule(q).total).toBeCloseTo(total, 9);
+    // A vista do absorvido passa ao representante, reenquadrada na tela mantida.
+    const view = viewOf(p, d2),
+      moved = q.hierarchy.placements.find((v) => v.id === view.id)!;
+    expect(
+      q.hierarchy.drawings.find((g) => g.id === view.drawingId)!.detailId,
+    ).toBe(d1);
+    expect(moved.origin).toEqual(view.origin);
+    expect(moved.modelOrigin.x).toBeCloseTo(view.modelOrigin.x - 20000, 9);
+    expect(moved.modelOrigin.y).toBeCloseTo(view.modelOrigin.y, 9);
+    expect(plan.warnings.join()).not.toContain('layout diferente');
+    // Pacote: a origem absorvida passa a corresponder ao representante.
+    expect(matchingDetails(q, p, d2).map((d) => d.id)).toEqual([d1]);
+    expect(JSON.stringify(p)).toBe(before);
+    expect(decodeProject(JSON.stringify(q))).toEqual(q);
+  });
+
+  it('tela com deslocamento diferente do das barras: avisa para conferir o enquadramento', () => {
+    let { p, d1, d2 } = meshOnly(30000);
+    p = completeOwnership(
+      {
+        ...p,
+        bars: [{ ...newBar('N1'), id: 'b1', diameter: 10, quantity: 4 }],
+      },
+      d1,
+    );
+    p = completeOwnership(
+      {
+        ...p,
+        bars: [
+          ...p.bars,
+          {
+            ...newBar('N2'),
+            id: 'b2',
+            diameter: 10,
+            quantity: 4,
+            origin: P(20000, 0),
+          },
+        ],
+      },
+      d2,
+    );
+    const plan = previewMergeRepetitions(p, d1, [d2]);
+    expect(plan.issues).toEqual([]);
+    expect(plan.warnings.join()).toContain('layout diferente');
+  });
+
+  it('detalhamentos vazios ou com tela inválida continuam sem identidade', () => {
+    const empty = emptyProject();
+    const e = createHierarchyNode(
+      empty,
+      'element',
+      'V2',
+      empty.hierarchy.floors[0].id,
+    );
+    const d = createHierarchyNode(e.project, 'detail', 'Vazio', e.id);
+    const d0 = empty.hierarchy.details[0].id;
+    expect(repetitionCandidates(d.project, d0)).toEqual([]);
+    expect(
+      previewMergeRepetitions(d.project, d0, [d.id]).issues.length,
+    ).toBeGreaterThan(0);
+    const { p, d1 } = meshOnly();
+    const broken: Project = {
+      ...p,
+      weldedMeshes: p.weldedMeshes!.map((l) => ({
+        ...l,
+        criteria: { ...l.criteria, widthOverlap: 1e6, lengthOverlap: 1e6 },
+      })),
+    };
+    expect(weldedMeshPlan(broken.weldedMeshes![0]).ok).toBe(false);
+    expect(repetitionCandidates(broken, d1)).toEqual([]);
   });
 });
 
