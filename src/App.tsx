@@ -10,6 +10,22 @@ import {
   type DrawingMetadataInput,
 } from './domain/drawingMetadata';
 import StirrupCriteriaDialog from './components/StirrupCriteriaDialog';
+import BeamClampCriteriaDialog from './components/BeamClampCriteriaDialog';
+import BeamClampLaunchPanel, {
+  beamClampPlacementStage,
+  type BeamClampSession,
+} from './components/BeamClampLaunchPanel';
+import {
+  beamClampBar,
+  beamClampCriteriaFromBar,
+  withBeamClampRange,
+} from './domain/beamClamps';
+import {
+  defaultBeamClampCriteria,
+  type BeamClampCriteria,
+} from './domain/beamClampSchema';
+import { beamClampPrimitives } from './domain/beamClampViews';
+import { physicalBarTextPrimitives } from './domain/drawingPrimitives';
 import StirrupLaunchPanel, {
   type StirrupSession,
 } from './components/StirrupLaunchPanel';
@@ -343,6 +359,7 @@ import {
   vertices,
   geometry,
   world,
+  local,
 } from './domain/geometry';
 import {
   uid,
@@ -439,6 +456,8 @@ const prompts: Record<Tool, string> = {
   pan: 'Arraste para navegar. A roda do mouse aproxima e afasta.',
   bar: 'Indique os vértices da barra. Enter ou botão direito conclui.',
   stirrup: 'Indique dois cantos opostos do estribo. Dimensões medidas no eixo.',
+  'beam-clamp':
+    'Posicione o meio do lado fechado do grampo de viga. Enter confirma a prévia.',
   move: 'Indique o ponto base e o destino da seleção.',
   copy: 'Indique o ponto base e o destino da cópia.',
   detail: 'Indique onde posicionar o rebatimento da armadura.',
@@ -453,6 +472,7 @@ const tools: Tool[] = [
   'pan',
   'bar',
   'stirrup',
+  'beam-clamp',
   'move',
   'copy',
   'detail',
@@ -735,6 +755,22 @@ export default function App() {
     { projectId: string; c: StirrupCriteria } | undefined
   >(undefined);
   const stirrupConsumed = useRef(false);
+  const [beamClampSession, setBeamClampSession] =
+    useState<BeamClampSession | null>(null);
+  const [beamClampDialog, setBeamClampDialog] = useState<{
+    base: Project;
+    key: string;
+    detailId: string;
+    scope?: string;
+    maskId?: string;
+    c: BeamClampCriteria;
+    editId?: string;
+    resume?: BeamClampSession;
+  } | null>(null);
+  const beamClampCriteria = useRef<
+    { projectId: string; c: BeamClampCriteria } | undefined
+  >(undefined);
+  const beamClampConsumed = useRef(false);
   const [grid, setGrid] = useState(true),
     [snap, setSnap] = useState(true),
     [ortho, setOrtho] = useState(false),
@@ -1384,6 +1420,8 @@ export default function App() {
     setFreeText(null);
     setStirrupSession(null);
     setStirrupDialog(null);
+    setBeamClampSession(null);
+    setBeamClampDialog(null);
     setMeasureSession(null);
     setMatch(null);
     if (maskOffset) {
@@ -1414,6 +1452,10 @@ export default function App() {
     }
     if (t === 'stirrup') {
       startStirrup(false);
+      return;
+    }
+    if (t === 'beam-clamp') {
+      startBeamClamp(false);
       return;
     }
     if (dimensionTool(t)) {
@@ -3992,6 +4034,414 @@ export default function App() {
       setToolRaw('select');
     }
   }, [nativeKind, nativeTarget]);
+  function cancelBeamClamp() {
+    beamClampConsumed.current = true;
+    setBeamClampSession(null);
+    setBeamClampDialog(null);
+    setToolRaw('select');
+    setDraft([]);
+  }
+  function startBeamClamp(forceCriteria: boolean, editId?: string) {
+    if (activeSheet) {
+      notify('Abra um desenho para lançar grampos de viga.');
+      return;
+    }
+    const base = historyRef.current.present;
+    const bar = editId ? base.bars.find((b) => b.id === editId) : undefined;
+    if (
+      editId &&
+      (!bar ||
+        bar.kind !== 'beam-clamp' ||
+        !canCaptureObject(base, documentKey, editId))
+    ) {
+      notify('Grampo de viga indisponível neste contexto.');
+      return;
+    }
+    const c = bar
+      ? beamClampCriteriaFromBar(bar)
+      : beamClampCriteria.current?.projectId === base.id
+        ? beamClampCriteria.current.c
+        : (base.beamClampDefaults ?? defaultBeamClampCriteria());
+    const context = {
+      base,
+      key: documentKey,
+      detailId: activeDetailId,
+      scope: isolatedDetailId,
+      maskId: drawingMaskId,
+      c: structuredClone(c),
+      editId,
+    };
+    setSelectedRaw([]);
+    setMaskId(null);
+    setNativeEntity(undefined);
+    setDraft([]);
+    setPage('drawing');
+    setToolRaw('beam-clamp');
+    if (
+      forceCriteria ||
+      editId ||
+      (!base.beamClampDefaults &&
+        beamClampCriteria.current?.projectId !== base.id)
+    ) {
+      setBeamClampSession(null);
+      setBeamClampDialog(context);
+    } else {
+      beamClampConsumed.current = false;
+      setBeamClampSession({
+        ...context,
+        id: uid(),
+        mark: nextMark(base),
+        stage: 'insertion',
+      });
+    }
+  }
+  function reopenBeamClampCriteria() {
+    const s = beamClampSession;
+    if (!s) return;
+    setBeamClampDialog({ ...s, resume: s });
+    setBeamClampSession(null);
+  }
+  function beamClampFromSession(s: BeamClampSession, preview = false) {
+    const origin = s.insertion ?? (preview ? s.cursor : undefined);
+    if (!origin) return undefined;
+    const old = s.editId
+      ? s.base.bars.find((b) => b.id === s.editId)
+      : undefined;
+    let b = beamClampBar(s.c, origin, s.mark, s.id);
+    if (old)
+      b = {
+        ...old,
+        origin: b.origin,
+        rotation: b.rotation,
+        diameter: b.diameter,
+        mandrel: b.mandrel,
+        steel: b.steel,
+        quantity: b.quantity,
+        multiplier: b.multiplier,
+        quantitySource: b.quantitySource,
+        beamClamp: b.beamClamp,
+        beamClampDisplay: b.beamClampDisplay,
+        beamClampView: b.beamClampView,
+        distribution: undefined,
+      };
+    const end =
+      s.end ?? (preview && s.stage === 'range-end' ? s.cursor : undefined);
+    if (s.c.distribute && s.start && end)
+      b = withBeamClampRange(b, s.c, s.start, end, s.label);
+    return b;
+  }
+  const beamClampPreview = useMemo(() => {
+    const s = beamClampSession;
+    if (!s) return {};
+    try {
+      const bar = beamClampFromSession(s, true);
+      if (!bar) return {};
+      const previewProject = {
+        ...s.base,
+        hierarchy: {
+          ...s.base.hierarchy,
+          objectDetails: {
+            ...s.base.hierarchy.objectDetails,
+            [bar.id]: s.detailId,
+          },
+        },
+      };
+      const m = 12;
+      return {
+        bar,
+        lines: [
+          ...beamClampPrimitives(bar),
+          ...physicalBarTextPrimitives(bar, previewProject),
+          ...distributionPrimitives(bar, undefined, previewProject),
+          {
+            layer: 'COTAS',
+            points: [
+              { x: bar.origin.x - m, y: bar.origin.y },
+              { x: bar.origin.x + m, y: bar.origin.y },
+            ],
+          },
+          {
+            layer: 'COTAS',
+            points: [
+              { x: bar.origin.x, y: bar.origin.y - m },
+              { x: bar.origin.x, y: bar.origin.y + m },
+            ],
+          },
+        ],
+      };
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  }, [beamClampSession]);
+  useEffect(() => {
+    const s = beamClampSession ?? beamClampDialog;
+    if (s && !stirrupContextValid(s)) {
+      cancelBeamClamp();
+      notify(
+        'Lançamento de grampo cancelado: o projeto ou contexto mudou. Reinicie no destino correto.',
+      );
+    }
+  }, [p, documentKey, activeDetailId, isolatedDetailId, drawingMaskId]);
+  function acceptBeamClampCriteria(c: BeamClampCriteria) {
+    const d = beamClampDialog;
+    if (!d) return;
+    if (!stirrupContextValid(d)) {
+      cancelBeamClamp();
+      return;
+    }
+    try {
+      beamClampBar(c, { x: 0, y: 0 }, 'prévia', 'preview');
+      const old = d.editId
+        ? d.base.bars.find((b) => b.id === d.editId)
+        : undefined;
+      const s: BeamClampSession = d.resume
+        ? { ...d.resume, c, error: undefined }
+        : {
+            ...d,
+            c,
+            id: old?.id ?? uid(),
+            mark: old?.mark ?? nextMark(d.base),
+            insertion: old?.origin,
+            stage: old ? 'ready' : 'insertion',
+          };
+      if (old?.distribution && !d.resume) {
+        const range = old.distribution;
+        const a = range.start ?? old.origin,
+          v = sub(range.end, a),
+          length = distance(a, range.end);
+        if (length > 0) {
+          const u = { x: v.x / length, y: v.y / length };
+          s.start = sub(a, {
+            x: u.x * (range.insets?.start ?? 0),
+            y: u.y * (range.insets?.start ?? 0),
+          });
+          s.end = add(range.end, {
+            x: u.x * (range.insets?.end ?? 0),
+            y: u.y * (range.insets?.end ?? 0),
+          });
+          const mid = {
+            x: (a.x + range.end.x) / 2,
+            y: (a.y + range.end.y) / 2,
+          };
+          s.label = add(mid, {
+            x: -u.y * (range.annotationOffset ?? 0),
+            y: u.x * (range.annotationOffset ?? 0),
+          });
+        }
+      }
+      if (s.insertion && c.distribute && (!s.start || !s.end))
+        s.stage = 'range-start';
+      if (
+        s.insertion &&
+        !c.distribute &&
+        ['range-start', 'range-end'].includes(s.stage)
+      )
+        s.stage = 'ready';
+      beamClampConsumed.current = false;
+      setBeamClampDialog(null);
+      setBeamClampSession(s);
+    } catch (e) {
+      notify((e as Error).message);
+    }
+  }
+  function beamClampPoint(point: Point) {
+    const s = beamClampSession;
+    if (!s || beamClampConsumed.current) return;
+    if (!stirrupContextValid(s)) {
+      cancelBeamClamp();
+      return;
+    }
+    if (
+      ![point.x, point.y].every((v) => Number.isFinite(v) && Math.abs(v) <= 1e8)
+    ) {
+      setBeamClampSession({
+        ...s,
+        error: 'Informe coordenadas finitas dentro dos limites do modelo.',
+      });
+      return;
+    }
+    if (s.stage === 'insertion')
+      setBeamClampSession({
+        ...s,
+        insertion: point,
+        cursor: undefined,
+        error: undefined,
+        stage: s.c.distribute ? 'range-start' : 'ready',
+      });
+    else if (s.stage === 'direction') {
+      if (!s.insertion || distance(s.insertion, point) < 0.001) {
+        setBeamClampSession({
+          ...s,
+          error: 'A direção exige um segundo ponto diferente da inserção.',
+        });
+        return;
+      }
+      const v = sub(point, s.insertion);
+      setBeamClampSession({
+        ...s,
+        c: { ...s.c, rotation: (Math.atan2(v.y, v.x) * 180) / Math.PI },
+        cursor: undefined,
+        error: undefined,
+        stage: beamClampPlacementStage(s),
+      });
+    } else if (s.stage === 'range-start')
+      setBeamClampSession({
+        ...s,
+        start: point,
+        end: undefined,
+        cursor: undefined,
+        error: undefined,
+        stage: 'range-end',
+      });
+    else if (s.stage === 'range-end') {
+      try {
+        withBeamClampRange(
+          beamClampBar(s.c, s.insertion!, s.mark, s.id),
+          s.c,
+          s.start!,
+          point,
+        );
+        setBeamClampSession({
+          ...s,
+          end: point,
+          cursor: undefined,
+          error: undefined,
+          stage: 'ready',
+        });
+      } catch (e) {
+        setBeamClampSession({ ...s, error: (e as Error).message });
+      }
+    } else if (s.stage === 'label') {
+      const at = local(point, { origin: s.insertion!, rotation: s.c.rotation });
+      setBeamClampSession({
+        ...s,
+        label: point,
+        c: { ...s.c, view: { ...s.c.view, label: at } },
+        stage: beamClampPlacementStage(s),
+        error: undefined,
+        cursor: undefined,
+      });
+    }
+  }
+  function confirmBeamClamp() {
+    const s = beamClampSession;
+    if (!s || s.stage !== 'ready' || beamClampConsumed.current || s.error)
+      return;
+    if (!stirrupContextValid(s)) {
+      cancelBeamClamp();
+      return;
+    }
+    beamClampConsumed.current = true;
+    const ok = commit((current) => {
+      if (current !== s.base) throw Error('O projeto mudou durante a prévia.');
+      const raw = beamClampFromSession(s);
+      if (!raw) throw Error('Escolha o ponto de inserção.');
+      if (s.c.distribute && !raw.distribution)
+        throw Error('Defina separadamente o início e o fim da faixa.');
+      const b = s.editId
+        ? raw
+        : { ...barCadDefaults(current, raw, true), steel: raw.steel };
+      const definition = {
+        ...rebarDefinition(b),
+        quantitySource: { kind: 'manual' as const },
+      };
+      const commands: RebarCommand[] = s.editId
+        ? [
+            ...(current.bars.find((v) => v.id === s.editId)?.distribution
+              ? [{ type: 'distribution.remove' as const, barId: s.id }]
+              : []),
+            { type: 'bar.update', id: s.id, patch: definition },
+          ]
+        : [{ type: 'bar.create', id: s.id, detailId: s.detailId, definition }];
+      if (b.distribution)
+        commands.push({
+          type: 'distribution.set',
+          barId: b.id,
+          distribution: b.distribution,
+          count:
+            b.quantitySource.kind === 'distribution' &&
+            b.quantitySource.mode === 'spacing'
+              ? {
+                  mode: 'spacing',
+                  spacing: b.quantitySource.spacing,
+                  fit: b.quantitySource.fit,
+                }
+              : {
+                  mode:
+                    b.quantitySource.kind === 'manual' ? 'manual' : 'quantity',
+                  quantity: b.quantity,
+                },
+        });
+      const next = applyRebarBatch(
+        current,
+        executeRebarBatch(current, commands, {
+          units: 'mm',
+          scopeDetailId: s.scope,
+          layerContext: s.key,
+        }),
+      );
+      return s.editId
+        ? next
+        : { ...next, beamClampDefaults: structuredClone(s.c) };
+    });
+    if (ok) {
+      if (!s.editId)
+        beamClampCriteria.current = {
+          projectId: s.base.id,
+          c: structuredClone(s.c),
+        };
+      cancelBeamClamp();
+      select([s.id]);
+      setMessage(
+        `${s.mark}: grampo completo confirmado. GV lança novamente; R cria somente uma vista gráfica vinculada.`,
+      );
+    } else beamClampConsumed.current = false;
+  }
+  function backBeamClamp() {
+    const s = beamClampSession;
+    if (!s) return;
+    if (s.stage === 'insertion') {
+      reopenBeamClampCriteria();
+      return;
+    }
+    if (s.stage === 'direction' || s.stage === 'label') {
+      setBeamClampSession({
+        ...s,
+        stage: beamClampPlacementStage(s),
+        error: undefined,
+        cursor: undefined,
+      });
+      return;
+    }
+    if (s.stage === 'range-end') {
+      setBeamClampSession({
+        ...s,
+        stage: 'range-start',
+        start: undefined,
+        end: undefined,
+        error: undefined,
+      });
+      return;
+    }
+    if (s.stage === 'ready' && s.c.distribute) {
+      setBeamClampSession({
+        ...s,
+        stage: 'range-end',
+        end: undefined,
+        error: undefined,
+      });
+      return;
+    }
+    setBeamClampSession({
+      ...s,
+      stage: 'insertion',
+      insertion: undefined,
+      start: undefined,
+      end: undefined,
+      error: undefined,
+      cursor: undefined,
+    });
+  }
   function cancelStirrup() {
     setStirrupSession(null);
     setStirrupDialog(null);
@@ -4371,6 +4821,10 @@ export default function App() {
     }
   }
   const finish = () => {
+    if (beamClampSession) {
+      if (beamClampSession.stage === 'ready') confirmBeamClamp();
+      return;
+    }
     if (freeText) {
       if (freeText.stage === 'content') confirmFreeText();
       else notify('Escolha o ponto de inserção do texto. Esc cancela.');
@@ -4455,6 +4909,10 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (beamClampSession) {
+      beamClampPoint(point);
+      return;
+    }
     if (stirrupSession) {
       stirrupPoint(point);
       return;
@@ -5163,6 +5621,30 @@ export default function App() {
     return true;
   };
   const runAction = async (a: Action) => {
+    if (a === 'beam-clamp-criteria') {
+      if (beamClampSession) reopenBeamClampCriteria();
+      else {
+        setTool('select');
+        startBeamClamp(true);
+      }
+      return;
+    }
+    if (
+      beamClampSession &&
+      ![
+        'fit',
+        'grid',
+        'snap',
+        'ortho',
+        'dimensions',
+        'sidebar',
+        'focus',
+        'save',
+      ].includes(a)
+    ) {
+      cancelBeamClamp();
+      if (['undo', 'redo'].includes(a)) return;
+    }
     if (a === 'stirrup-criteria') {
       setTool('select');
       startStirrup(true);
@@ -6470,6 +6952,9 @@ export default function App() {
       BLOQUEARRA: 'lock-schedule',
       E: 'stirrup',
       ESTRIBO: 'stirrup',
+      GV: 'beam-clamp',
+      GRAMPOVIGA: 'beam-clamp',
+      CRITERIOSGRAMPO: 'beam-clamp-criteria',
       V: 'select',
       H: 'pan',
       M: 'move',
@@ -6534,6 +7019,9 @@ export default function App() {
         vertexRequest
           ? (vertexPreview.anchor ?? { x: 0, y: 0 })
           : (maskOffset?.points.at(-1) ??
+              beamClampSession?.end ??
+              beamClampSession?.start ??
+              beamClampSession?.insertion ??
               stirrupSession?.points.at(-1) ??
               stirrupSession?.end ??
               stirrupSession?.start ??
@@ -6554,6 +7042,9 @@ export default function App() {
         ? ((vertexRequest
             ? vertexPreview.anchor
             : (maskOffset?.points.at(-1) ??
+              beamClampSession?.end ??
+              beamClampSession?.start ??
+              beamClampSession?.insertion ??
               stirrupSession?.points.at(-1) ??
               stirrupSession?.end ??
               stirrupSession?.start ??
@@ -6595,7 +7086,7 @@ export default function App() {
           e.preventDefault();
         return;
       }
-      if (stirrupDialog) {
+      if (stirrupDialog || beamClampDialog) {
         if (
           (e.ctrlKey || e.metaKey) &&
           ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -6647,6 +7138,11 @@ export default function App() {
         'input,textarea,select',
       );
       if (e.key === 'Escape') {
+        if (beamClampSession) {
+          cancelBeamClamp();
+          cmdInput.current?.blur();
+          return;
+        }
         if (stirrupSession) {
           cancelStirrup();
           cmdInput.current?.blur();
@@ -6798,6 +7294,18 @@ export default function App() {
   });
   return (
     <div className={`app-shell ${focus ? 'focus-mode' : ''}`}>
+      {beamClampDialog && (
+        <BeamClampCriteriaDialog
+          initial={beamClampDialog.c}
+          editMark={
+            beamClampDialog.editId
+              ? p.bars.find((b) => b.id === beamClampDialog.editId)?.mark
+              : undefined
+          }
+          onAccept={acceptBeamClampCriteria}
+          onClose={cancelBeamClamp}
+        />
+      )}
       {stirrupDialog && (
         <StirrupCriteriaDialog
           initial={stirrupDialog.c}
@@ -7548,6 +8056,7 @@ export default function App() {
                 }}
                 dimensionPresentation={measureSession?.presentation}
                 previewLines={
+                  beamClampPreview.lines ??
                   (stirrupSession?.stage === 'shape'
                     ? [
                         {
@@ -7607,6 +8116,7 @@ export default function App() {
                       transformRequest?.base)
                 }
                 commandActive={
+                  !!beamClampSession ||
                   !!freeText ||
                   !!symbolPick ||
                   !!stirrupSession ||
@@ -7633,6 +8143,7 @@ export default function App() {
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 tool={
+                  beamClampSession ||
                   freeText ||
                   symbolPick ||
                   stirrupSession ||
@@ -7654,26 +8165,34 @@ export default function App() {
                 onFinish={finish}
                 onBarChange={editBar}
                 draft={
-                  stirrupSession
-                    ? stirrupSession.stage === 'shape'
-                      ? stirrupSession.points
-                      : stirrupSession.stage === 'range-end' &&
-                          stirrupSession.start
-                        ? [stirrupSession.start]
+                  beamClampSession
+                    ? beamClampSession.stage === 'direction' &&
+                      beamClampSession.insertion
+                      ? [beamClampSession.insertion]
+                      : beamClampSession.stage === 'range-end' &&
+                          beamClampSession.start
+                        ? [beamClampSession.start]
                         : []
-                    : maskOffset?.stage === 'measure'
-                      ? maskOffset.points
-                      : maskManip
-                        ? manipAnchor
-                          ? [manipAnchor]
+                    : stirrupSession
+                      ? stirrupSession.stage === 'shape'
+                        ? stirrupSession.points
+                        : stirrupSession.stage === 'range-end' &&
+                            stirrupSession.start
+                          ? [stirrupSession.start]
                           : []
-                        : maskCalibration
-                          ? maskCalibration.points.length === 1
-                            ? maskCalibration.points
+                      : maskOffset?.stage === 'measure'
+                        ? maskOffset.points
+                        : maskManip
+                          ? manipAnchor
+                            ? [manipAnchor]
                             : []
-                          : vertexRequest && vertexPreview.anchor
-                            ? [vertexPreview.anchor]
-                            : draft
+                          : maskCalibration
+                            ? maskCalibration.points.length === 1
+                              ? maskCalibration.points
+                              : []
+                            : vertexRequest && vertexPreview.anchor
+                              ? [vertexPreview.anchor]
+                              : draft
                 }
                 grid={grid}
                 snap={snap}
@@ -7682,6 +8201,10 @@ export default function App() {
                 setTool={setTool}
                 onCursor={(point) => {
                   onCursor(point);
+                  if (beamClampSession && beamClampSession.stage !== 'ready')
+                    setBeamClampSession((s) =>
+                      s ? { ...s, cursor: point } : s,
+                    );
                   if (stirrupSession && stirrupSession.stage !== 'ready')
                     setStirrupSession((s) =>
                       s ? { ...s, cursor: point, error: undefined } : s,
@@ -7720,6 +8243,62 @@ export default function App() {
                 }}
                 showDimensions={dimensions}
               />
+              {beamClampSession && (
+                <BeamClampLaunchPanel
+                  session={beamClampSession}
+                  bar={beamClampPreview.bar}
+                  error={beamClampPreview.error}
+                  onConfirm={confirmBeamClamp}
+                  onBack={backBeamClamp}
+                  onCancel={cancelBeamClamp}
+                  onCriteria={reopenBeamClampCriteria}
+                  onDirection={() => {
+                    const s = beamClampSession;
+                    if (!s.insertion) {
+                      notify('Posicione primeiro o meio do lado fechado do U.');
+                      return;
+                    }
+                    setBeamClampSession({
+                      ...s,
+                      stage: 'direction',
+                      error: undefined,
+                      cursor: undefined,
+                    });
+                  }}
+                  onFlip={() =>
+                    setBeamClampSession((s) =>
+                      s
+                        ? {
+                            ...s,
+                            c: {
+                              ...s.c,
+                              view: {
+                                ...s.c.view,
+                                closedSide:
+                                  s.c.view.closedSide === 'left'
+                                    ? 'right'
+                                    : 'left',
+                              },
+                            },
+                          }
+                        : s,
+                    )
+                  }
+                  onLabel={() => {
+                    const s = beamClampSession;
+                    if (!s.insertion) {
+                      notify('Posicione primeiro o grampo.');
+                      return;
+                    }
+                    setBeamClampSession({
+                      ...s,
+                      stage: 'label',
+                      error: undefined,
+                      cursor: undefined,
+                    });
+                  }}
+                />
+              )}
               {stirrupSession && (
                 <StirrupLaunchPanel
                   session={stirrupSession}
@@ -8286,6 +8865,12 @@ export default function App() {
               </div>
             ) : (
               <Inspector
+                onBeamClampCriteria={() => {
+                  if (chosen) {
+                    setTool('select');
+                    startBeamClamp(true, chosen.id);
+                  }
+                }}
                 onStirrupCriteria={() => {
                   if (chosen) {
                     setTool('select');
@@ -9027,6 +9612,8 @@ export default function App() {
               (tool !== 'select' && tool !== 'pan') ||
               stirrupSession ||
               stirrupDialog ||
+              beamClampSession ||
+              beamClampDialog ||
               followRequest ||
               measureSession ||
               freeText ||

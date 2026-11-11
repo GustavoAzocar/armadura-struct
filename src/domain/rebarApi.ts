@@ -1,4 +1,9 @@
 import {
+  beamClampProfileSchema,
+  beamClampDisplaySchema,
+  beamClampViewSchema,
+} from './beamClampSchema';
+import {
   stirrupProfileSchema,
   stirrupDisplaySchema,
   distributionShape,
@@ -61,7 +66,9 @@ export const REBAR_CAPABILITIES = Object.freeze({
     paperUnit: 'mm',
     presets: ['color', 'monochrome', 'grayscale'] as const,
   }),
-  families: Object.freeze(['free', 'stirrup'] as const),
+  families: Object.freeze(['free', 'stirrup', 'beam-clamp'] as const),
+  beamClampConvention: 'axis-vertices',
+  beamClampViews: ['perspective', 'development'] as const,
   stirrupProfiles: Object.freeze(['rectangle', 'circle', 'free'] as const),
   stirrupHooks: Object.freeze({
     angles: [0, 90, 135, 180] as const,
@@ -163,6 +170,15 @@ const definition = z.discriminatedUnion('kind', [
       hook: number.nonnegative(),
     })
     .strict(),
+  z
+    .object({
+      ...common,
+      kind: z.literal('beam-clamp'),
+      beamClamp: beamClampProfileSchema,
+      beamClampDisplay: beamClampDisplaySchema.optional(),
+      beamClampView: beamClampViewSchema.optional(),
+    })
+    .strict(),
 ]);
 const optionalCommon = z.object(common).partial().shape;
 const patch = z.discriminatedUnion('kind', [
@@ -183,6 +199,15 @@ const patch = z.discriminatedUnion('kind', [
       width: number.positive().optional(),
       height: number.positive().optional(),
       hook: number.nonnegative().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      ...optionalCommon,
+      kind: z.literal('beam-clamp'),
+      beamClamp: beamClampProfileSchema.optional(),
+      beamClampDisplay: beamClampDisplaySchema.optional(),
+      beamClampView: beamClampViewSchema.optional(),
     })
     .strict(),
 ]);
@@ -330,6 +355,7 @@ const commandSchema = z.discriminatedUnion('type', [
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
       showDimensions: z.boolean().optional(),
+      beamClampView: beamClampViewSchema.optional(),
       identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id: id.optional(),
       barId: id,
@@ -346,6 +372,7 @@ const commandSchema = z.discriminatedUnion('type', [
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
       showDimensions: z.boolean().optional(),
+      beamClampView: beamClampViewSchema.optional(),
       identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id,
       origin: point.optional(),
@@ -1029,6 +1056,7 @@ function perform(
               identification: c.identification,
               label: c.label,
               showDimensions: c.showDimensions,
+              beamClampView: c.beamClampView,
             }),
           },
         ],
@@ -1062,6 +1090,7 @@ function perform(
                   identification: c.identification,
                   label: c.label,
                   showDimensions: c.showDimensions,
+                  beamClampView: c.beamClampView,
                 }),
                 ...(c.origin ? { origin: c.origin } : {}),
                 ...(c.barId ? { barId: c.barId } : {}),
@@ -1350,14 +1379,22 @@ export function rebarDefinition(bar: Bar): RebarDefinition {
   };
   return bar.kind === 'free'
     ? { ...common, kind: 'free', points: bar.points }
-    : {
-        ...common,
-        kind: 'stirrup',
-        stirrupMirrored: bar.stirrupMirrored,
-        stirrupProfile: bar.stirrupProfile,
-        stirrupDisplay: bar.stirrupDisplay,
-        width: bar.width,
-        height: bar.height,
-        hook: bar.hook,
-      };
+    : bar.kind === 'beam-clamp'
+      ? {
+          ...common,
+          kind: 'beam-clamp',
+          beamClamp: bar.beamClamp!,
+          beamClampDisplay: bar.beamClampDisplay,
+          beamClampView: bar.beamClampView,
+        }
+      : {
+          ...common,
+          kind: 'stirrup',
+          stirrupMirrored: bar.stirrupMirrored,
+          stirrupProfile: bar.stirrupProfile,
+          stirrupDisplay: bar.stirrupDisplay,
+          width: bar.width,
+          height: bar.height,
+          hook: bar.hook,
+        };
 }

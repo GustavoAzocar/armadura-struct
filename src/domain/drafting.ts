@@ -1,4 +1,5 @@
 import { stirrupPrimitives } from './stirrupGeometry';
+import { beamClampPrimitives } from './beamClampViews';
 import { dimensionReferenceIssue, formatDimension } from './maskDimensions';
 import {
   add,
@@ -293,7 +294,7 @@ export function distributionPrimitives(
   ];
   result.push(
     text(
-      `${quantityLabel(project, b)} ${b.mark}${b.stirrupProfile ? ` Ø${format(b.diameter, 1)}` : ''} c/${format(distributionStep(b) / 10, 1)}${b.stirrupProfile ? ' cm' : ''}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
+      `${quantityLabel(project, b)} ${b.mark}${b.stirrupProfile || b.beamClamp ? ` Ø${format(b.diameter, 1)}` : ''} c/${format(distributionStep(b) / 10, 1)}${b.stirrupProfile || b.beamClamp ? ' cm' : ''}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
       add(mul(add(graphicStart, graphicEnd), 0.5), mul(n, h * 1.3)),
       h,
       angleOf(u),
@@ -305,7 +306,11 @@ export function distributionPrimitives(
 export function repeatedGeometry(b: Bar, limit = 2000): Primitive[] {
   if (b.quantity > limit)
     throw new Error(
-      `${b.mark}: exportação de estribos repetidos limitada a ${limit} peças por faixa. Use a representação por traços.`,
+      `${b.mark}: exportação de armaduras repetidas limitada a ${limit} peças por faixa. Use a representação por traços.`,
+    );
+  if (b.kind === 'beam-clamp')
+    return distributionOrigins(b, limit).flatMap((origin) =>
+      beamClampPrimitives({ ...b, origin }),
     );
   if (b.stirrupProfile)
     return distributionOrigins(b, limit).flatMap((origin) =>

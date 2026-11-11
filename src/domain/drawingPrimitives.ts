@@ -1,5 +1,12 @@
 import { symbolInstances, symbolRenderMasks } from './symbolRender';
 import { stirrupPrimitives, stirrupDimensionLabels } from './stirrupGeometry';
+import {
+  beamClampPrimitives,
+  beamClampDimensionLabels,
+  beamClampDimensionPrimitives,
+  beamClampLabelOrigin,
+  beamClampViewPoints,
+} from './beamClampViews';
 import { styledDrafting } from './cadDefaults';
 import { stylePrimitive } from './layers';
 import {
@@ -42,18 +49,26 @@ export function physicalBarTextPrimitives(
   const out: Primitive[] = [];
   if (
     b.stirrupDisplay?.identification !== false &&
+    b.beamClampDisplay?.identification !== false &&
     showsPhysicalDescription(p, b.id)
   )
     out.push(
       text(
         `${b.mark} - ${quantityLabel(p, b)} x %%c${b.diameter} - C=${format(geometry(b).length / 10)} cm${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`,
-        { x: 0, y: -offset(100, 1.8) },
+        b.kind === 'beam-clamp'
+          ? beamClampLabelOrigin(b)
+          : { x: 0, y: -offset(100, 1.8) },
         'IDENTIFICACAO',
       ),
     );
   if (b.stirrupProfile && b.stirrupDisplay?.dimensions !== false) {
     for (const d of stirrupDimensionLabels(b))
       out.push(text(d.text, d.at, 'COTAS', 'center'));
+  }
+  if (b.kind === 'beam-clamp' && b.beamClampDisplay?.dimensions !== false) {
+    out.push(...beamClampDimensionPrimitives(b));
+    for (const dimension of beamClampDimensionLabels(b))
+      out.push(text(dimension.text, dimension.at, 'COTAS', dimension.align));
   }
   if (b.kind === 'stirrup' && !b.stirrupProfile)
     out.push(
@@ -105,6 +120,7 @@ export function drawingPrimitives(
   for (const b of p.bars) {
     const start = lines.length;
     if (b.distribution?.render === 'bars') lines.push(...repeatedGeometry(b));
+    else if (b.kind === 'beam-clamp') lines.push(...beamClampPrimitives(b));
     else if (b.stirrupProfile) lines.push(...stirrupPrimitives(b));
     else
       lines.push({
@@ -134,7 +150,12 @@ export function drawingPrimitives(
     const bars = p.bars.filter((b) => p.hierarchy.objectDetails[b.id] === d.id);
     if (!bars.length) continue;
     const box = bounds(
-      bars.flatMap((b) => geometry(b).vertices.map((v) => world(v, b))),
+      bars.flatMap((b) =>
+        (b.kind === 'beam-clamp'
+          ? beamClampViewPoints(b)
+          : geometry(b).vertices
+        ).map((v) => world(v, b)),
+      ),
     );
     lines.push(
       label(

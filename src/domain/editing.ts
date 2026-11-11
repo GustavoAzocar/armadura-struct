@@ -15,6 +15,10 @@ import {
 import { nextMark } from './model';
 import { completeOwnership, contentObjects } from './hierarchy';
 import { armatureReferences } from './armatureReferences';
+import {
+  mirrorBeamClampView,
+  defaultBeamClampCriteria,
+} from './beamClampSchema';
 import { nextFreeMark } from './marks';
 import { fabricationPositions, groupFabrication } from './fabrication';
 import { uid, type Bar, type Point, type Project } from './types';
@@ -247,15 +251,23 @@ export function transformBar(bar: Bar, operation: 'rotate' | 'mirror'): Bar {
     ...bar,
     ...(operation === 'rotate'
       ? { rotation: (bar.rotation + 90) % 360 }
-      : bar.stirrupProfile
+      : bar.kind === 'beam-clamp' && bar.beamClamp
         ? {
             rotation: (bar.rotation + 180) % 360,
-            stirrupMirrored: !bar.stirrupMirrored,
+            beamClamp: { ...bar.beamClamp, mirrored: !bar.beamClamp.mirrored },
+            beamClampView: mirrorBeamClampView(
+              bar.beamClampView ?? defaultBeamClampCriteria().view,
+            ),
           }
-        : {
-            kind: 'free' as const,
-            points: vertices(bar).map((p) => ({ x: -p.x, y: p.y })),
-          }),
+        : bar.stirrupProfile
+          ? {
+              rotation: (bar.rotation + 180) % 360,
+              stirrupMirrored: !bar.stirrupMirrored,
+            }
+          : {
+              kind: 'free' as const,
+              points: vertices(bar).map((p) => ({ x: -p.x, y: p.y })),
+            }),
     distribution: bar.distribution
       ? {
           ...bar.distribution,

@@ -18,6 +18,9 @@ const knownBarFields = new Set([
   'stirrupMirrored',
   'stirrupProfile',
   'stirrupDisplay',
+  'beamClamp',
+  'beamClampDisplay',
+  'beamClampView',
   'drafting',
   'origin',
   'rotation',
@@ -67,7 +70,7 @@ export function fabricationSignature(
     return undefined;
   const g = geometry(b);
   if (g.errors.length || !Number.isFinite(g.length)) return undefined;
-  if (b.stirrupProfile) {
+  if (b.stirrupProfile || b.beamClamp) {
     const signature = (reversed: boolean) => {
       const segs = reversed
         ? [...g.segments].reverse().map((s) =>
@@ -99,7 +102,14 @@ export function fabricationSignature(
         ? [b.manufacturing?.end, b.manufacturing?.start]
         : [b.manufacturing?.start, b.manufacturing?.end];
       return JSON.stringify({
-        family: 'parametric-stirrup',
+        family: b.beamClamp ? 'beam-clamp' : 'parametric-stirrup',
+        ...(b.beamClamp
+          ? {
+              convention: b.beamClamp.convention,
+              longitudinal: q(b.beamClamp.longitudinal, 0.001),
+              transverse: q(b.beamClamp.transverse, 0.001),
+            }
+          : {}),
         steel: b.steel,
         diameter: q(b.diameter, 0.001),
         mandrel: q(b.mandrel, 0.001),
