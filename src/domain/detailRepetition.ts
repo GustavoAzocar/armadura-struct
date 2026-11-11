@@ -34,8 +34,11 @@ export function setDetailRepetition(
 /** Marks, descriptions, colors and graphic placement do not define the steel cut shape. */
 function barKey(b: Bar) {
   const clampSignature =
-    b.kind === 'beam-clamp' ? fabricationSignature(b) : undefined;
-  if (b.kind === 'beam-clamp' && !clampSignature) return undefined;
+    b.kind === 'beam-clamp' || b.kind === 'helix'
+      ? fabricationSignature(b)
+      : undefined;
+  if ((b.kind === 'beam-clamp' || b.kind === 'helix') && !clampSignature)
+    return undefined;
   const first = b.points[0];
   return JSON.stringify({
     kind: b.kind,
@@ -51,11 +54,13 @@ function barKey(b: Bar) {
     showRibbed: b.showRibbed ?? false,
     columnLevel: b.columnLevel ?? '',
     quantityDisplay: b.quantityDisplay ?? 'factored',
-    ...(b.kind === 'beam-clamp'
-      ? { beamClamp: clampSignature }
-      : b.kind === 'free'
-        ? { points: b.points.map((p) => sub(p, first)) }
-        : { width: b.width, height: b.height, hook: b.hook }),
+    ...(b.kind === 'helix'
+      ? { helix: clampSignature }
+      : b.kind === 'beam-clamp'
+        ? { beamClamp: clampSignature }
+        : b.kind === 'free'
+          ? { points: b.points.map((p) => sub(p, first)) }
+          : { width: b.width, height: b.height, hook: b.hook }),
     ...(b.distribution
       ? {
           distribution: {

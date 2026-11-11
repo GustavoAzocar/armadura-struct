@@ -6,6 +6,11 @@ import {
 } from './beamClampSchema';
 import { drawingSchema, hasDrawingMetadata } from './drawingMetadata';
 import {
+  helixProfileSchema,
+  helixDisplaySchema,
+  helixCriteriaSchema,
+} from './helixSchema';
+import {
   stirrupProfileSchema,
   stirrupDisplaySchema,
   stirrupCriteriaSchema,
@@ -42,6 +47,7 @@ import {
   hasArmatureData,
 } from './detailQuantities';
 import { geometry, vertices, world } from './geometry';
+import { nominalWeight } from './steel';
 import { uid, type Bar, type Project, type ScheduleRow } from './types';
 import {
   completeOwnership,
@@ -212,7 +218,9 @@ const barSchema = z
     id: z.string(),
     mark: z.string().min(1).max(40),
     element: z.string().max(100),
-    kind: z.enum(['free', 'stirrup', 'beam-clamp']),
+    kind: z.enum(['free', 'stirrup', 'beam-clamp', 'helix']),
+    helix: helixProfileSchema.optional(),
+    helixDisplay: helixDisplaySchema.optional(),
     beamClamp: beamClampProfileSchema.optional(),
     beamClampDisplay: beamClampDisplaySchema.optional(),
     beamClampView: beamClampViewSchema.optional(),
@@ -239,6 +247,18 @@ const barSchema = z
         ? !!b.beamClamp
         : !b.beamClamp && !b.beamClampDisplay && !b.beamClampView,
     'Parâmetros de grampo de viga exigem sua família própria; informe as medidas L/T.',
+  )
+  .refine(
+    (b) =>
+      b.kind === 'helix'
+        ? !!b.helix &&
+          !b.stirrupProfile &&
+          !b.stirrupDisplay &&
+          b.stirrupMirrored === undefined &&
+          !b.distribution &&
+          b.quantitySource.kind === 'manual'
+        : !b.helix && !b.helixDisplay,
+    'Parâmetros helicoidais exigem a família própria Estribo helicoidal, uma peça contínua sem faixa de distribuição.',
   );
 export const representationLabelSchema = z
   .object({
@@ -272,6 +292,7 @@ const schema = z.object({
   ]),
   stirrupDefaults: stirrupCriteriaSchema.optional(),
   beamClampDefaults: beamClampCriteriaSchema.optional(),
+  helixDefaults: helixCriteriaSchema.optional(),
   cadDefaults: cadDefaultsSchema.optional(),
   layerEnvironment: layerEnvironmentSchema.optional(),
   plotting: plotSettingsSchema.optional(),
@@ -469,6 +490,25 @@ export function hasFreeTextData(input: unknown): boolean {
     }),
   );
 }
+/** Helical family data that formats before 33 cannot represent. */
+export function hasHelixData(input: unknown): boolean {
+  const value = input as {
+    helixDefaults?: unknown;
+    bars?: { kind?: string; helix?: unknown; helixDisplay?: unknown }[];
+    scheduleLock?: {
+      bars?: { kind?: string; helix?: unknown; helixDisplay?: unknown }[];
+    };
+  } | null;
+  return (
+    value?.helixDefaults !== undefined ||
+    [...(value?.bars ?? []), ...(value?.scheduleLock?.bars ?? [])].some(
+      (b) =>
+        b?.kind === 'helix' ||
+        b?.helix !== undefined ||
+        b?.helixDisplay !== undefined,
+    )
+  );
+}
 /** Parametric physical/view data that older formats cannot safely interpret. */
 export function hasBeamClampData(input: unknown): boolean {
   const value = input as {
@@ -506,7 +546,12 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const roundingVersion = input?.schema === 'armadurastruct/32';
+  const helixVersion = input?.schema === 'armadurastruct/33';
+  if (!helixVersion && hasHelixData(input))
+    throw new Error(
+      'Estribos helicoidais exigem formato 33. Atualize o aplicativo para abrir este arquivo.',
+    );
+  const roundingVersion = helixVersion || input?.schema === 'armadurastruct/32';
   if (
     !roundingVersion &&
     input?.annotations?.some(
@@ -837,7 +882,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/32',
+    schema: 'armadurastruct/33',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -869,6 +914,15 @@ export function decodeProject(
       const errors = geometry(b).errors;
       if (errors.length)
         throw new Error(`Grampo de viga ${b.mark}: ${errors.join(' ')}`);
+    }
+    if (b.kind === 'helix' || b.helix || b.helixDisplay) {
+      if (b.kind !== 'helix' || !b.helix)
+        throw Error(
+          `Estribo helicoidal ${b.mark}: família ou parâmetros inválidos.`,
+        );
+      const errors = geometry(b).errors;
+      if (errors.length)
+        throw Error(`Estribo helicoidal ${b.mark}: ${errors.join(' ')}`);
     }
     if (b.stirrupProfile && (b.kind !== 'stirrup' || geometry(b).errors.length))
       throw Error(
@@ -1085,7 +1139,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/32',
+    schema: 'armadurastruct/33',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,
@@ -1168,8 +1222,7 @@ export function schedule(p: Project): ScheduleRow[] {
           quantity,
           unitLength: g.length / 1000,
           totalLength,
-          weight:
-            ((totalLength * Math.PI * (b.diameter / 1000) ** 2) / 4) * 7850,
+          weight: nominalWeight(totalLength, b.diameter),
         };
       });
       const quantity = contributions.reduce((n, c) => n + c.quantity, 0),
@@ -1258,6 +1311,7 @@ export function scheduleChanged(p: Project) {
         manufacturing: b.manufacturing,
         stirrupProfile: b.stirrupProfile,
         stirrupMirrored: b.stirrupMirrored,
+        helix: b.helix,
         repetitions: quantities?.[b.id]?.repetitions ?? 1,
         detailTitle: quantities?.[b.id]?.detailTitle ?? '',
       })),

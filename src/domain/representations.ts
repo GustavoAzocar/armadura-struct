@@ -11,6 +11,14 @@ import {
   beamClampDimensionPrimitives,
   beamClampLabelOrigin,
 } from './beamClampViews';
+import {
+  helixPrimitives,
+  helixViewPoints,
+  helixCaption,
+  helixDimensionLabels,
+  helixDimensionPrimitives,
+  helixLabelOrigin,
+} from './helixViews';
 import { quantityLabel, assemblyLabel } from './detailQuantities';
 import { barCaption } from './drafting';
 import type { Bar, Detail, Point, Primitive, Project } from './types';
@@ -29,6 +37,8 @@ export function representationPoints(b: Bar, d: Detail) {
     return beamClampViewPoints(b, d.beamClampView ?? b.beamClampView).map((p) =>
       representationPoint(d, p),
     );
+  if (b.kind === 'helix')
+    return helixViewPoints(b).map((p) => representationPoint(d, p));
   return sampled((displayedBarGeometry(b) ?? geometry(b)).segments).map((p) =>
     representationPoint(d, p),
   );
@@ -61,6 +71,46 @@ export function representationPrimitives(
     textAlign: align,
     textRotation: d.rotation ?? 0,
   });
+  if (b.kind === 'helix') {
+    const out = helixPrimitives(
+      b,
+      (q) => representationPoint(d, q),
+      d.scale ?? 1,
+    ).map((q) => ({
+      ...q,
+      layer: q.layer === 'ARMADURAS' ? 'REBATIMENTOS' : q.layer,
+    }));
+    const mode = d.identification ?? 'legacy';
+    const shown = mode !== 'none' && b.helixDisplay?.identification !== false;
+    if (shown) {
+      const mark =
+        d.label?.omitPrefix && b.mark.startsWith(d.label.omitPrefix)
+          ? b.mark.slice(d.label.omitPrefix.length)
+          : b.mark;
+      const caption = mode === 'mark' ? mark : helixCaption(b, p, mark);
+      out.push(
+        d.label
+          ? {
+              layer: 'IDENTIFICACAO',
+              points: [representationPoint(d, d.label.origin)],
+              text: caption,
+              textHeight: d.label.height * (d.scale ?? 1),
+              textRotation:
+                d.label.rotation * (d.mirrored ? -1 : 1) + (d.rotation ?? 0),
+              textAlign: 'center',
+            }
+          : text(caption, helixLabelOrigin(b), 'IDENTIFICACAO'),
+      );
+    }
+    if (d.showDimensions !== false && b.helixDisplay?.dimensions !== false) {
+      out.push(
+        ...helixDimensionPrimitives(b, (q) => representationPoint(d, q)),
+      );
+      for (const value of helixDimensionLabels(b))
+        out.push(text(value.text, value.at, 'COTAS', value.align));
+    }
+    return out;
+  }
   const out: Primitive[] =
     b.kind === 'beam-clamp'
       ? beamClampPrimitives(

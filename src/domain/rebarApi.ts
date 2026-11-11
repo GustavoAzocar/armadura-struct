@@ -8,6 +8,11 @@ import {
   stirrupDisplaySchema,
   distributionShape,
 } from './stirrupSchema';
+import {
+  HELIX_LIMITS,
+  helixDisplaySchema,
+  helixProfileSchema,
+} from './helixSchema';
 import { barCadDefaults, representationCadDefaults } from './cadDefaults';
 import { alignSelection, alignmentSchema } from './alignment';
 import { editVertices, vertexEditSchema } from './vertices';
@@ -66,7 +71,21 @@ export const REBAR_CAPABILITIES = Object.freeze({
     paperUnit: 'mm',
     presets: ['color', 'monochrome', 'grayscale'] as const,
   }),
-  families: Object.freeze(['free', 'stirrup', 'beam-clamp'] as const),
+  families: Object.freeze(['free', 'stirrup', 'beam-clamp', 'helix'] as const),
+  helix: Object.freeze({
+    convention: 'axis-centerline',
+    diameterReferences: Object.freeze([
+      'axis',
+      'external',
+      'concrete',
+    ] as const),
+    spanSources: Object.freeze(['gross', 'useful'] as const),
+    hands: Object.freeze(['right', 'left'] as const),
+    ends: Object.freeze(['none'] as const),
+    variablePitch: false,
+    distribution: false,
+    limits: HELIX_LIMITS,
+  }),
   beamClampConvention: 'axis-vertices',
   beamClampViews: ['perspective', 'development'] as const,
   stirrupProfiles: Object.freeze([
@@ -185,6 +204,16 @@ const definition = z.discriminatedUnion('kind', [
       beamClampView: beamClampViewSchema.optional(),
     })
     .strict(),
+  z
+    .object({
+      ...common,
+      kind: z.literal('helix'),
+      /** No bend is modeled on the helix body; mandrel is not a helix input. */
+      mandrel: common.mandrel.optional(),
+      helix: helixProfileSchema,
+      helixDisplay: helixDisplaySchema.optional(),
+    })
+    .strict(),
 ]);
 const optionalCommon = z.object(common).partial().shape;
 const patch = z.discriminatedUnion('kind', [
@@ -214,6 +243,14 @@ const patch = z.discriminatedUnion('kind', [
       beamClamp: beamClampProfileSchema.optional(),
       beamClampDisplay: beamClampDisplaySchema.optional(),
       beamClampView: beamClampViewSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      ...optionalCommon,
+      kind: z.literal('helix'),
+      helix: helixProfileSchema.optional(),
+      helixDisplay: helixDisplaySchema.optional(),
     })
     .strict(),
 ]);
@@ -1383,6 +1420,13 @@ export function rebarDefinition(bar: Bar): RebarDefinition {
     columnLevel: bar.columnLevel,
     color: bar.color,
   };
+  if (bar.kind === 'helix')
+    return {
+      ...common,
+      kind: 'helix',
+      helix: bar.helix!,
+      helixDisplay: bar.helixDisplay,
+    };
   return bar.kind === 'free'
     ? { ...common, kind: 'free', points: bar.points }
     : bar.kind === 'beam-clamp'
