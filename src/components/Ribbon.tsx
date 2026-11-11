@@ -264,7 +264,13 @@ function CompactTool({
         aria-pressed={active}
         aria-describedby={tip.describedId}
         disabled={!!reason}
-        onClick={onRun}
+        onClick={(e) => {
+          // Starting a CAD command hands Enter back to the drawing. Keeping
+          // this button focused would activate it again and restart the step.
+          // Blur before running so a dialog can still choose its own focus.
+          e.currentTarget.blur();
+          onRun();
+        }}
         onFocus={tip.focus.onFocus}
         onBlur={tip.focus.onBlur}
         onKeyDown={onKeyDown}
@@ -687,7 +693,10 @@ export default function Ribbon({
                 <span className="ribbon-item-slot" key={t.action}>
                   <button
                     className={`ribbon-tool ${active[t.action] ? 'active' : ''}`}
-                    onClick={() => onAction(t.action)}
+                    onClick={(e) => {
+                      if (masksTab) e.currentTarget.blur();
+                      onAction(t.action);
+                    }}
                     onKeyDown={(e) => {
                       if (masksTab && (e.key === 'Enter' || e.key === ' '))
                         e.stopPropagation();
