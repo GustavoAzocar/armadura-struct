@@ -12,7 +12,14 @@ export type StirrupSession = {
   editId?: string;
   id: string;
   mark: string;
-  stage: 'shape' | 'section' | 'range-start' | 'range-end' | 'label' | 'ready';
+  stage:
+    | 'shape'
+    | 'section'
+    | 'center-2'
+    | 'range-start'
+    | 'range-end'
+    | 'label'
+    | 'ready';
   points: Point[];
   section?: Point;
   start?: Point;
@@ -28,6 +35,7 @@ export default function StirrupLaunchPanel({
   onConfirm,
   onBack,
   onCancel,
+  onCriteria,
 }: {
   session: StirrupSession;
   bar?: Bar;
@@ -35,9 +43,11 @@ export default function StirrupLaunchPanel({
   onConfirm: () => void;
   onBack: () => void;
   onCancel: () => void;
+  onCriteria: () => void;
 }) {
   const prompts = {
     shape: 'Clique os vértices da forma livre. Enter conclui; Esc cancela.',
+    'center-2': 'Capture o segundo centro longitudinal (não é o fim da faixa).',
     section: `Posicione a seção: ${s.c.profile.shape === 'circle' ? 'centro' : s.c.profile.shape === 'free' ? 'primeiro vértice' : 'canto inferior esquerdo da referência escolhida'}.`,
     'range-start': 'Indique a primeira face / início da faixa.',
     'range-end': 'Indique a segunda face / fim da faixa.',
@@ -51,7 +61,22 @@ export default function StirrupLaunchPanel({
       aria-label="Lançamento de estribo"
     >
       <b>Estribo · {s.mark}</b>
-      <p role="status">{prompts[s.stage]}</p>
+      <p role="status">
+        {s.stage === 'section' && s.c.profile.clamp
+          ? 'Capture o primeiro centro longitudinal.'
+          : prompts[s.stage]}
+      </p>
+      {s.c.profile.clamp && (
+        <>
+          <p>
+            Captura estática · bitolas longitudinais{' '}
+            {s.c.profile.clamp.diameters.join(' / ')} mm · ajuste de corte 0 mm.
+          </p>
+          <button onClick={onCriteria}>
+            Editar bitolas / orientação / centros
+          </button>
+        </>
+      )}
       {bar && (
         <p>
           Comprimento unitário: {format(geometry(bar).length, 2)} mm ·{' '}
