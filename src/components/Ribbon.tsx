@@ -4,6 +4,7 @@ import {
   PackagePlus,
   Code2,
   Settings,
+  Keyboard as KeyboardIcon,
   Eye,
   EyeOff,
   Copy,
@@ -46,7 +47,12 @@ import {
   Focus,
   type LucideIcon,
 } from 'lucide-react';
-import type { Tool } from '../domain/types';
+import {
+  commandAvailability,
+  shortcutCatalog,
+  type Action,
+} from '../domain/shortcuts';
+export type { Action } from '../domain/shortcuts';
 import {
   useEffect,
   useId,
@@ -76,103 +82,18 @@ import {
   TrimIcon,
   type IconComponent,
 } from './maskIcons';
-export type Action =
-  | Tool
-  | 'stirrup-criteria'
-  | 'beam-clamp-criteria'
-  | 'cad-settings'
-  | 'mask-control'
-  | 'symbols'
-  | 'mask-calibrate'
-  | 'match-properties'
-  | 'mask-offset'
-  | 'mask-trim'
-  | 'mask-extend'
-  | 'mask-copy'
-  | 'mask-erase'
-  | 'mask-move'
-  | 'mask-mirror'
-  | 'mask-rotate'
-  | 'associate-masks'
-  | 'measure-contour'
-  | 'mask-line'
-  | 'mask-rectangle'
-  | 'mask-circle'
-  | 'mask-polyline'
-  | 'mask-text'
-  | 'new'
-  | 'open'
-  | 'recent'
-  | 'check-updates'
-  | 'plugins-store'
-  | 'plugins-offline'
-  | 'plugins-installed'
-  | 'plugins-develop'
-  | 'save'
-  | 'import'
-  | 'undo'
-  | 'redo'
-  | 'delete'
-  | 'rotate'
-  | 'mirror'
-  | 'fit'
-  | 'grid'
-  | 'snap'
-  | 'ortho'
-  | 'dimensions'
-  | 'pdf'
-  | 'dxf'
-  | 'csv'
-  | 'csv-scoped'
-  | 'insert-sheet-schedule'
-  | 'schedule'
-  | 'help'
-  | 'join'
-  | 'split'
-  | 'refresh-schedule'
-  | 'lock-schedule'
-  | 'renumber'
-  | 'sidebar'
-  | 'focus'
-  | 'group'
-  | 'ungroup'
-  | 'edit-detail'
-  | 'finish-detail'
-  | 'insert-detail'
-  | 'update-detail'
-  | 'export-detail'
-  | 'interpret-cad'
-  | 'detail-repetition'
-  | 'fabrication'
-  | 'clone-armature'
-  | 'layers'
-  | 'align-selection'
-  | 'insert-vertex'
-  | 'extend-vertex'
-  | 'remove-vertex'
-  | 'edit-segment'
-  | 'lengthen-bar'
-  | 'plot'
-  | 'hide-objects'
-  | 'isolate-objects'
-  | 'show-all-objects'
-  | 'show-hidden-objects'
-  | 'end-object-isolation';
 // Detail editing uses the hierarchy identity instead of another group model.
 type Item = {
   action: Action;
   label: string;
   caption?: string;
   icon: LucideIcon | IconComponent;
-  selection?: number;
-  disabled?: boolean;
 };
 const item = (
   action: Action,
   label: string,
   icon: LucideIcon | IconComponent,
-  selection = 0,
-): Item => ({ action, label, icon, selection });
+): Item => ({ action, label, icon });
 type Group = {
   name: string;
   items: Item[];
@@ -182,72 +103,21 @@ type Group = {
   /** Mask destination controls rendered as the last group of the tab. */
   references?: boolean;
 };
-const ISOLATION_BLOCKED: Action[] = [
-  'detail-repetition',
-  'fabrication',
-  'insert-detail',
-  'update-detail',
-  'new',
-  'open',
-  'renumber',
-  'group',
-  'ungroup',
-  'edit-detail',
-  'lock-schedule',
-  'refresh-schedule',
-  'insert-sheet-schedule',
-];
-const GROUP_BLOCKED: string[] = [
-  'copy',
-  'rotate',
-  'mirror',
-  'split',
-  'join',
-  'detail',
-  'range',
-  'repeat',
-  'distribute',
-  'edit-segment',
-  'lengthen-bar',
-];
-/** Why a ribbon command cannot run now; undefined when it can. */
-export function unavailableReason(
-  t: Item,
-  ctx: {
-    selected: number;
-    isolated: boolean;
-    groupSelected: boolean;
-    canUndo: boolean;
-    canRedo: boolean;
-  },
-): string | undefined {
-  if (t.disabled) return 'Indisponível no momento.';
-  if (t.selection && ctx.selected < t.selection)
-    return t.selection > 1
-      ? `Selecione ao menos ${t.selection} objetos.`
-      : 'Selecione um objeto antes.';
-  if (ctx.isolated && ISOLATION_BLOCKED.includes(t.action))
-    return 'Indisponível durante a edição isolada de um detalhamento.';
-  if (ctx.groupSelected && GROUP_BLOCKED.includes(t.action))
-    return 'Indisponível com um detalhamento agrupado na seleção.';
-  if (t.action === 'undo' && !ctx.canUndo) return 'Nada para desfazer.';
-  if (t.action === 'redo' && !ctx.canRedo) return 'Nada para refazer.';
-  return undefined;
-}
-
 /** Icon-only command: name in the help bubble and in the accessible name. */
 function CompactTool({
   entry,
   active,
   reason,
+  shortcut,
   onRun,
 }: {
   entry: Item;
   active: boolean;
   reason?: string;
+  shortcut?: string;
   onRun: () => void;
 }) {
-  const tip = useTooltip({ label: entry.label, detail: reason });
+  const tip = useTooltip({ label: entry.label, detail: reason, shortcut });
   const Icon = entry.icon;
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     tip.focus.onKeyDown(e);
@@ -296,6 +166,7 @@ export default function Ribbon({
   tab,
   setTab,
   onAction,
+  shortcut,
   active,
   selected,
   canUndo,
@@ -311,6 +182,7 @@ export default function Ribbon({
   tab: string;
   setTab: (s: string) => void;
   onAction: (a: Action) => void;
+  shortcut: (a: Action) => string;
   active: Partial<Record<Action, boolean>>;
   selected: number;
   canUndo: boolean;
@@ -340,6 +212,10 @@ export default function Ribbon({
       {
         name: 'Padrões do projeto',
         items: [item('cad-settings', 'Configurações CAD', Settings)],
+      },
+      {
+        name: 'Preferências',
+        items: [item('shortcuts', 'Atalhos', KeyboardIcon)],
       },
     ],
     Arquivo: [
@@ -498,9 +374,9 @@ export default function Ribbon({
           item('update-detail', 'Atualizar detalhamento', RefreshCw),
           item('fabrication', 'Posições de fabricação', Combine),
           item('detail-repetition', 'Repetições do detalhamento', Copy),
-          item('group', 'Agrupar em detalhamento', Combine, 1),
+          item('group', 'Agrupar em detalhamento', Combine),
           item('edit-detail', 'Editar detalhamento', Shapes),
-          item('ungroup', 'Desagrupar seleção', Shapes, 1),
+          item('ungroup', 'Desagrupar seleção', Shapes),
         ],
       },
       {
@@ -513,21 +389,21 @@ export default function Ribbon({
       {
         name: 'Editar',
         items: [
-          item('move', 'Mover', Move, 1),
-          item('copy', 'Copiar', Copy, 1),
-          item('clone-armature', 'Duplicar completa', Copy, 1),
+          item('move', 'Mover', Move),
+          item('copy', 'Copiar', Copy),
+          item('clone-armature', 'Duplicar completa', Copy),
           item('align-selection', 'Alinhar / distribuir…', Move),
-          item('rotate', 'Rotacionar…', RotateCw, 1),
-          item('mirror', 'Espelhar por eixo…', FlipHorizontal2, 1),
-          item('delete', 'Excluir', Trash2, 1),
+          item('rotate', 'Rotacionar…', RotateCw),
+          item('mirror', 'Espelhar por eixo…', FlipHorizontal2),
+          item('delete', 'Excluir', Trash2),
         ],
       },
       {
         name: 'Vértices',
         items: [
-          item('insert-vertex', 'Inserir vértices', PencilRuler, 1),
-          item('extend-vertex', 'Continuar pela ponta', Spline, 1),
-          item('remove-vertex', 'Remover vértices', Trash2, 1),
+          item('insert-vertex', 'Inserir vértices', PencilRuler),
+          item('extend-vertex', 'Continuar pela ponta', Spline),
+          item('remove-vertex', 'Remover vértices', Trash2),
         ],
       },
       {
@@ -556,8 +432,8 @@ export default function Ribbon({
           item('stirrup-criteria', 'Critérios do estribo', Settings),
           item('beam-clamp', 'Grampo de viga', Shapes),
           item('beam-clamp-criteria', 'Critérios do grampo de viga', Settings),
-          item('repeat', 'Repetir estribo', Copy, 1),
-          item('detail', 'Rebater armadura', Shapes, 1),
+          item('repeat', 'Repetir estribo', Copy),
+          item('detail', 'Rebater armadura', Shapes),
           item('convert', 'Converter polilinha', Spline),
           item('follow', 'Seguir fôrma', ScanLine),
           item('interpret-cad', 'Interpretar CAD em armadura', PencilRuler),
@@ -567,17 +443,17 @@ export default function Ribbon({
         name: 'Poligonais / traspasse',
         items: [
           {
-            ...item('edit-segment', 'Comprimentos e ângulos', Ruler, 1),
+            ...item('edit-segment', 'Comprimentos e ângulos', Ruler),
             caption: 'Comprim. e ângulos',
           },
-          item('lengthen-bar', 'Estender barra', ArrowUpRight, 1),
-          item('join', 'Emendar poligonais', Combine, 2),
-          item('split', 'Dividir barra', Scissors, 1),
+          item('lengthen-bar', 'Estender barra', ArrowUpRight),
+          item('join', 'Emendar poligonais', Combine),
+          item('split', 'Dividir barra', Scissors),
         ],
       },
       {
         name: 'Faixas de armadura',
-        items: [item('range', 'Faixa ortogonal', Layers, 1)],
+        items: [item('range', 'Faixa ortogonal', Layers)],
       },
       {
         name: 'Relação do aço',
@@ -677,7 +553,8 @@ export default function Ribbon({
                 key={entry.action}
                 entry={entry}
                 active={!!active[entry.action]}
-                reason={unavailableReason(entry, ctx)}
+                reason={commandAvailability(entry.action, ctx)}
+                shortcut={shortcut(entry.action)}
                 onRun={() => onAction(entry.action)}
               />
             ))}
@@ -697,17 +574,20 @@ export default function Ribbon({
                   <button
                     className={`ribbon-tool ${active[t.action] ? 'active' : ''}`}
                     onClick={(e) => {
-                      if (masksTab) e.currentTarget.blur();
+                      if (masksTab || shortcutCatalog[t.action].needsDrawing)
+                        e.currentTarget.blur();
                       onAction(t.action);
                     }}
                     onKeyDown={(e) => {
                       if (masksTab && (e.key === 'Enter' || e.key === ' '))
                         e.stopPropagation();
                     }}
-                    title={t.label}
+                    title={[t.label, shortcut(t.action)]
+                      .filter(Boolean)
+                      .join(' · ')}
                     aria-label={t.label}
                     aria-pressed={!!active[t.action]}
-                    disabled={!!unavailableReason(entry, ctx)}
+                    disabled={!!commandAvailability(entry.action, ctx)}
                   >
                     <t.icon size={23} strokeWidth={1.5} />
                     <span>{t.caption ?? t.label}</span>
@@ -835,7 +715,9 @@ export default function Ribbon({
           )}
           <button
             className="collapse-ribbon"
-            title="Recolher / expandir comandos · Ctrl+F1"
+            title={['Recolher / expandir comandos', shortcut('toggle-ribbon')]
+              .filter(Boolean)
+              .join(' · ')}
             aria-label={
               collapsed
                 ? 'Expandir faixa de comandos'
