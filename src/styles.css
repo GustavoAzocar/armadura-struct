@@ -4046,6 +4046,36 @@ button.hierarchy-drawing {
 .stirrup-error {
   color: var(--danger, #c8334b);
 }
+/* Critérios de telas soldadas: mesmo layout da janela de estribos. */
+.welded-mesh-properties {
+  width: 100%;
+  margin: 10px 0;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.welded-mesh-properties th,
+.welded-mesh-properties td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-weight: normal;
+}
+.welded-mesh-properties thead th {
+  color: var(--muted);
+}
+.welded-mesh-properties input {
+  width: 100%;
+}
+.welded-mesh-panel {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.welded-mesh-issues {
+  padding-left: 32px;
+}
+.welded-mesh-preview svg text {
+  font-family: inherit;
+}
 .stirrup-launch-panel {
   position: absolute;
   z-index: 8;

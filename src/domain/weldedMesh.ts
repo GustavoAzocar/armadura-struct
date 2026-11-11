@@ -213,15 +213,17 @@ function zodIssues(result: z.ZodSafeParseResult<unknown>, prefix = '') {
     const path = i.path.join('.').replace(/^mesh\./, '');
     const label = LABELS[path] ?? (path || 'Valor');
     const rule =
-      i.code === 'too_small'
-        ? i.inclusive
-          ? 'deve ser maior ou igual a zero'
-          : 'deve ser maior que zero'
-        : i.code === 'too_big'
-          ? 'excede o limite permitido'
-          : i.code === 'invalid_type'
-            ? 'deve ser um número finito'
-            : 'é inválido';
+      i.code === 'too_small' && i.origin === 'string'
+        ? 'não pode ficar em branco'
+        : i.code === 'too_small'
+          ? i.inclusive
+            ? 'deve ser maior ou igual a zero'
+            : 'deve ser maior que zero'
+          : i.code === 'too_big'
+            ? 'excede o limite permitido'
+            : i.code === 'invalid_type'
+              ? 'deve ser um número finito'
+              : 'é inválido';
     return `${prefix}${label} ${rule}.`;
   });
 }

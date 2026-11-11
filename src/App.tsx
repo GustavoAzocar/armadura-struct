@@ -10,6 +10,11 @@ import {
   type DrawingMetadataInput,
 } from './domain/drawingMetadata';
 import StirrupCriteriaDialog from './components/StirrupCriteriaDialog';
+import WeldedMeshCriteriaDialog from './components/WeldedMeshCriteriaDialog';
+import {
+  defaultWeldedMeshCriteria,
+  type WeldedMeshCriteria,
+} from './domain/weldedMesh';
 import StirrupLaunchPanel, {
   type StirrupSession,
 } from './components/StirrupLaunchPanel';
@@ -735,6 +740,15 @@ export default function App() {
     { projectId: string; c: StirrupCriteria } | undefined
   >(undefined);
   const stirrupConsumed = useRef(false);
+  // Critérios dos próximos lançamentos de telas, nesta sessão e neste projeto;
+  // vão para o arquivo (weldedMeshDefaults) ao confirmar um lançamento.
+  const weldedMeshCriteria = useRef<
+    { projectId: string; c: WeldedMeshCriteria } | undefined
+  >(undefined);
+  const [weldedMeshDialog, setWeldedMeshDialog] = useState<{
+    projectId: string;
+    c: WeldedMeshCriteria;
+  } | null>(null);
   const [grid, setGrid] = useState(true),
     [snap, setSnap] = useState(true),
     [ortho, setOrtho] = useState(false),
@@ -3998,6 +4012,34 @@ export default function App() {
     setToolRaw('select');
     setDraft([]);
   }
+  /** Critérios da sessão, os padrão do projeto ou os iniciais (Q92). */
+  function nextWeldedMeshCriteria(base: Project): WeldedMeshCriteria {
+    const c = structuredClone(
+      weldedMeshCriteria.current?.projectId === base.id
+        ? weldedMeshCriteria.current.c
+        : (base.weldedMeshDefaults ?? defaultWeldedMeshCriteria()),
+    );
+    // Uma layer apagada depois da escolha volta ao papel (ARMADURAS).
+    if (c.layerId && !base.layers.some((l) => l.id === c.layerId))
+      delete c.layerId;
+    return c;
+  }
+  function openWeldedMeshCriteria() {
+    const base = historyRef.current.present;
+    setWeldedMeshDialog({
+      projectId: base.id,
+      c: nextWeldedMeshCriteria(base),
+    });
+  }
+  function acceptWeldedMeshCriteria(c: WeldedMeshCriteria) {
+    if (!weldedMeshDialog) return;
+    weldedMeshCriteria.current = {
+      projectId: weldedMeshDialog.projectId,
+      c: structuredClone(c),
+    };
+    setWeldedMeshDialog(null);
+    notify('Critérios de telas definidos para os próximos lançamentos.');
+  }
   function startStirrup(forceCriteria: boolean, editId?: string) {
     if (activeSheet) {
       notify('Abra um desenho para lançar estribos.');
@@ -5207,6 +5249,10 @@ export default function App() {
       ].includes(a)
     )
       endMeasure();
+    if (a === 'welded-mesh-criteria') {
+      openWeldedMeshCriteria();
+      return;
+    }
     if (a === 'measure-contour') {
       startContourMeasure();
       return;
@@ -6112,6 +6158,7 @@ export default function App() {
   const afterProjectReplaced = () => {
     savedBaseline.current = historyRef.current.present;
     stirrupCriteria.current = undefined;
+    weldedMeshCriteria.current = undefined;
     select([]);
     setTool('select');
     setTimeout(() => canvas()?.fit(), 50);
@@ -6798,6 +6845,14 @@ export default function App() {
   });
   return (
     <div className={`app-shell ${focus ? 'focus-mode' : ''}`}>
+      {weldedMeshDialog && (
+        <WeldedMeshCriteriaDialog
+          initial={weldedMeshDialog.c}
+          layers={p.layers}
+          onAccept={acceptWeldedMeshCriteria}
+          onClose={() => setWeldedMeshDialog(null)}
+        />
+      )}
       {stirrupDialog && (
         <StirrupCriteriaDialog
           initial={stirrupDialog.c}

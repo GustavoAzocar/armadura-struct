@@ -14,6 +14,7 @@ import {
   FolderOpen,
   History,
   Grid2X2,
+  Grid3x3,
   Hand,
   HelpCircle,
   Layers,
@@ -79,6 +80,7 @@ import {
 export type Action =
   | Tool
   | 'stirrup-criteria'
+  | 'welded-mesh-criteria'
   | 'cad-settings'
   | 'mask-control'
   | 'symbols'
@@ -575,6 +577,12 @@ export default function Ribbon({
       {
         name: 'Faixas de armadura',
         items: [item('range', 'Faixa ortogonal', Layers, 1)],
+      },
+      {
+        // Grupo pequeno e próprio, para não conflitar com a reorganização do
+        // menu Armaduras (#120).
+        name: 'Telas soldadas',
+        items: [item('welded-mesh-criteria', 'Critérios de telas', Grid3x3)],
       },
       {
         name: 'Relação do aço',
