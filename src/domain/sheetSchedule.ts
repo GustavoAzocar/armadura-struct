@@ -324,12 +324,104 @@ export function sheetScheduleGeometry(
     y,
   );
   y -= h;
+  // Telas soldadas: quadro à parte, só quando a prancha tem telas.
+  const meshes = weldedMeshSchedule(p, {
+    ids: new Set(data.meshIds),
+    lossPercent: options.meshLossPercent ?? 0,
+  });
+  let meshWidth = 0;
+  if (meshes.rows.length) {
+    const trim = (n: number) =>
+      n.toLocaleString('pt-BR', {
+        maximumFractionDigits: 1,
+        useGrouping: false,
+      });
+    const meshRows = meshes.rows.map((r) => [
+      r.mark,
+      r.label,
+      r.mesh.steel,
+      `${number(r.mesh.longitudinal.diameter)} c/${trim(r.mesh.longitudinal.spacing / 10)}`,
+      `${number(r.mesh.transverse.diameter)} c/${trim(r.mesh.transverse.spacing / 10)}`,
+      `${number(r.mesh.width / 1000, 2)}×${number(r.mesh.length / 1000, 2)}`,
+      String(r.basePanels),
+      String(r.cutPieces),
+      number(r.usefulArea / 1e6, 2),
+      number(r.appliedArea / 1e6, 2),
+      number(r.weight),
+      number(r.supplyMass),
+    ]);
+    const meshHeadings = [
+        'POS',
+        'TELA',
+        'AÇO',
+        'LONG.',
+        'TRANSV.',
+        'PAINEL',
+        'PAINÉIS',
+        'RECORTES',
+        'Á.ÚTIL',
+        'Á.APLIC.',
+        'PESO',
+        'FORNEC.',
+      ],
+      meshUnits = [
+        '',
+        '',
+        '',
+        '(Ø mm c/cm)',
+        '(Ø mm c/cm)',
+        '(m)',
+        '',
+        '',
+        '(m²)',
+        '(m²)',
+        '(kg)',
+        '(kg)',
+      ];
+    const meshWidths = meshHeadings.map((title, i) =>
+      Math.max(
+        12 * k,
+        ...meshRows.map((r) => paperTextWidth(r[i], h) + 3 * k),
+        paperTextWidth(title, h) + 3 * k,
+        paperTextWidth(meshUnits[i], h) + 3 * k,
+      ),
+    );
+    meshWidth = meshWidths.reduce((a, b) => a + b, 0);
+    y -= h * 3.5;
+    text('QUADRO DE TELAS SOLDADAS', meshWidth / 2, y, 'center');
+    y -= h * 2;
+    grid(meshWidths, meshHeadings, meshUnits, meshRows, false);
+    y -= h * 3.5;
+    text('RESUMO DAS TELAS', meshWidth / 2, y, 'center');
+    y -= h * 2;
+    const resumeRows = [
+      ...meshes.summary.map((s) => [s.label, number(s.weight)]),
+      ['TOTAL', number(meshes.total)],
+    ];
+    const resumeWidths = [25, 25].map((n, i) =>
+      Math.max(
+        n * k,
+        ...resumeRows.map((r) => paperTextWidth(r[i], h) + 3 * k),
+      ),
+    );
+    grid(resumeWidths, ['TELA', 'PESO'], ['', '(kg)'], resumeRows, false);
+    y -= h * 1.5;
+    text(
+      `Peso das telas: massa nominal aplicada com perda de ${trim(meshes.lossPercent)}%.`,
+      0,
+      y,
+    );
+    y -= h * 1.5;
+    text('Fornecimento: painéis inteiros × kg/painel, sem perda.', 0, y);
+    y -= h;
+  }
   const height = -y,
     origin = options.origin,
     totalWidth = Math.max(
       width,
       summaryWidths.reduce((a, b) => a + b, 0),
       totalWidths.reduce((a, b) => a + b, 0),
+      meshWidth,
     );
   return {
     data,

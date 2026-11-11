@@ -124,6 +124,10 @@ export function launchWeldedMesh(
   if (!p.hierarchy.details.some((d) => d.id === detailId))
     throw new Error('Detalhamento de destino inexistente.');
   const launch: WeldedMeshLaunch = { id, ...structuredClone(input) };
+  // A camada escolhida nos critérios vira o vínculo do próprio lançamento,
+  // visível ao sistema de camadas (uso, reassociação, exclusão).
+  if (!launch.layerId && launch.criteria.layerId)
+    launch.layerId = launch.criteria.layerId;
   assertValid(launch);
   if (usedIds(p).has(id)) throw new Error('Identificador já usado no projeto.');
   return {

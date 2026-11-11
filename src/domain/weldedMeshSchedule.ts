@@ -54,6 +54,8 @@ export type WeldedMeshSummaryRow = {
   label: string;
   mesh: WeldedMeshDefinition;
   marks: string[];
+  /** kg: massa nominal aplicada, sem perda. */
+  appliedMass: number;
   /** kg: massa aplicada + perda. */
   weight: number;
 };
@@ -164,8 +166,10 @@ export function weldedMeshSchedule(
       label: r.label,
       mesh: structuredClone(r.mesh),
       marks: [],
+      appliedMass: 0,
       weight: 0,
     };
+    s.appliedMass += r.appliedMass;
     s.weight += r.weight;
     if (!s.marks.includes(r.mark)) s.marks.push(r.mark);
     summary.set(key, s);

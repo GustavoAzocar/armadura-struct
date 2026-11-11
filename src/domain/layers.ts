@@ -52,6 +52,7 @@ export const layerObjects = (
     | 'polylines'
     | 'masks'
     | 'symbolInstances'
+    | 'weldedMeshes'
   >,
 ) => [
   ...p.bars,
@@ -60,12 +61,17 @@ export const layerObjects = (
   ...p.polylines,
   ...p.masks,
   ...(p.symbolInstances ?? []),
+  ...(p.weldedMeshes ?? []),
 ];
 export function objectRole(
   p: Project,
   o: LayerBinding & { id: string },
 ): string {
-  if (p.bars.some((b) => b.id === o.id)) return 'ARMADURAS';
+  if (
+    p.bars.some((b) => b.id === o.id) ||
+    (p.weldedMeshes ?? []).some((l) => l.id === o.id)
+  )
+    return 'ARMADURAS';
   if (p.details.some((b) => b.id === o.id)) return 'REBATIMENTOS';
   const a = p.annotations.find((a) => a.id === o.id);
   if (a)
@@ -360,6 +366,7 @@ export function assignLayer(
     annotations: p.annotations.map(change),
     polylines: p.polylines.map(change),
     masks: p.masks.map(change),
+    ...(p.weldedMeshes ? { weldedMeshes: p.weldedMeshes.map(change) } : {}),
   };
   validateLayers(next);
   return next;
