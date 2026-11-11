@@ -64,7 +64,11 @@ import {
   CircleIcon,
   DimensionAlignedIcon,
   DimensionOrthogonalIcon,
+  BeamClampCriteriaIcon,
   ExtendIcon,
+  HelixCriteriaIcon,
+  StirrupCriteriaIcon,
+  HelixIcon,
   LineIcon,
   MatchPropertiesIcon,
   MeasureContourIcon,
@@ -80,6 +84,7 @@ export type Action =
   | Tool
   | 'stirrup-criteria'
   | 'beam-clamp-criteria'
+  | 'helix-criteria'
   | 'cad-settings'
   | 'mask-control'
   | 'symbols'
@@ -163,6 +168,11 @@ type Item = {
   action: Action;
   label: string;
   caption?: string;
+  /**
+   * Consecutive items with the same stack key share one icon-only 2 × 2 slot
+   * (full name in the tooltip and accessible name), saving ribbon width.
+   */
+  stack?: string;
   icon: LucideIcon | IconComponent;
   selection?: number;
   disabled?: boolean;
@@ -553,9 +563,32 @@ export default function Ribbon({
         items: [
           item('bar', 'Barra livre', PencilRuler),
           item('stirrup', 'Estribo', SquareDashed),
-          item('stirrup-criteria', 'Critérios do estribo', Settings),
           item('beam-clamp', 'Grampo de viga', Shapes),
-          item('beam-clamp-criteria', 'Critérios do grampo de viga', Settings),
+          item('helix', 'Estribo helicoidal', HelixIcon),
+          {
+            ...item(
+              'stirrup-criteria',
+              'Critérios do estribo',
+              StirrupCriteriaIcon,
+            ),
+            stack: 'criteria',
+          },
+          {
+            ...item(
+              'beam-clamp-criteria',
+              'Critérios do grampo de viga',
+              BeamClampCriteriaIcon,
+            ),
+            stack: 'criteria',
+          },
+          {
+            ...item(
+              'helix-criteria',
+              'Critérios do helicoidal',
+              HelixCriteriaIcon,
+            ),
+            stack: 'criteria',
+          },
           item('repeat', 'Repetir estribo', Copy, 1),
           item('detail', 'Rebater armadura', Shapes, 1),
           item('convert', 'Converter polilinha', Spline),
@@ -688,6 +721,38 @@ export default function Ribbon({
         <div key={g.name} className="ribbon-group" data-group={g.name}>
           <div className="ribbon-group-tools">
             {g.items.map((entry, i) => {
+              if (entry.stack) {
+                if (g.items[i - 1]?.stack === entry.stack) return null;
+                const members = g.items.filter(
+                  (other) => other.stack === entry.stack,
+                );
+                return (
+                  <span
+                    className="ribbon-item-slot ribbon-stack"
+                    key={`stack:${entry.stack}`}
+                    data-stack={entry.stack}
+                  >
+                    <div
+                      className="ribbon-compact-grid"
+                      style={
+                        {
+                          '--ribbon-columns': Math.ceil(members.length / 2),
+                        } as CSSProperties
+                      }
+                    >
+                      {members.map((member) => (
+                        <CompactTool
+                          key={member.action}
+                          entry={member}
+                          active={!!active[member.action]}
+                          reason={unavailableReason(member, ctx)}
+                          onRun={() => onAction(member.action)}
+                        />
+                      ))}
+                    </div>
+                  </span>
+                );
+              }
               const t =
                 entry.action === 'lock-schedule' && active['lock-schedule']
                   ? { ...entry, label: 'Desbloquear RA' }

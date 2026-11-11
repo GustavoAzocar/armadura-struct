@@ -17,6 +17,7 @@ import {
   scheduleQuantityLabel,
 } from '../domain/model';
 import { annotationError, primitiveBounds } from '../domain/drafting';
+import { formatTurns, helixMetrics } from '../domain/helix';
 import { version as appVersion } from '../../package.json';
 import { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
 export { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
@@ -66,6 +67,7 @@ export function toDxf(p: Project): string {
       (r) =>
         `${r.mark}   ${r.steel}   ${r.diameter}   ${scheduleQuantityLabel(r).replace(/×/g, 'x')}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
     ),
+    ...helixScheduleNotes(p),
   ]) {
     raw.push(
       stylePrimitive(
@@ -643,7 +645,43 @@ export function toPdf(p: Project): Uint8Array {
     18,
     y + 26,
   );
+  const helices = helixScheduleNotes(p);
+  if (helices.length) {
+    y += 40;
+    if (y > 250) {
+      doc.addPage();
+      title('Memória dos estribos helicoidais');
+      y = 40;
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('Estribos helicoidais · memória por posição', 18, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    for (const line of helices) {
+      y += 7;
+      if (y > 270) {
+        doc.addPage();
+        title('Memória dos estribos helicoidais · continuação');
+        y = 40;
+      }
+      doc.text(line, 18, y);
+    }
+  }
   return new Uint8Array(doc.output('arraybuffer'));
+}
+
+/**
+ * One line per helical position, from the same metrics as the schedule:
+ * D, H, p and N are shown without new CSV columns. A helix is one piece.
+ */
+export function helixScheduleNotes(p: Project): string[] {
+  return schedule(p)
+    .filter((r) => r.bar.kind === 'helix')
+    .map((r) => {
+      const m = helixMetrics(r.bar);
+      return `${r.mark}: hélice contínua · D = ${format(m.D, 1)} mm (eixo) · H = ${format(m.H, 1)} mm · p = ${format(m.pitch, 1)} mm · N = ${formatTurns(m.turns)} voltas · C = ${format(m.cutLength / 1000, 3)} m por hélice · ${r.quantity} hélice(s) · ${format(r.totalLength, 3)} m · ${format(r.weight, 2)} kg · sem ganchos/emendas`;
+    });
 }
 
 /** Vector paper-space PDF: one page per sheet, using exactly the preview primitives. */

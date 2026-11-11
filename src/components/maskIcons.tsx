@@ -42,6 +42,50 @@ function icon(name: string, body: ReactNode): IconComponent {
 
 const dash = { strokeDasharray: '2.5 2.5' } as const;
 
+/** Estribo helicoidal: a continuous spiral along an axis, never plane rings. */
+export const HelixIcon = icon(
+  'helix',
+  <>
+    <path d="M2 12h20" strokeDasharray="3 1.5 0.5 1.5" strokeWidth="1" />
+    <path d="M3 6c2 0 2 12 4 12s2-12 4-12 2 12 4 12 2-12 4-12 2 6 2 6" />
+  </>,
+);
+
+const gear = (
+  <>
+    <circle cx="18.5" cy="6" r="2.5" />
+    <path d="M18.5 1.5v1.5M18.5 9v1.5M14 6h1.5M21.5 6H23" />
+  </>
+);
+
+/** Critérios do estribo: a closed rectangular stirrup with a settings dot. */
+export const StirrupCriteriaIcon = icon(
+  'stirrup-criteria',
+  <>
+    <rect x="2.5" y="9" width="11" height="12" rx="1" />
+    <path d="M2.5 13l3.5-4" />
+    {gear}
+  </>,
+);
+
+/** Critérios do grampo de viga: an open U with a settings dot. */
+export const BeamClampCriteriaIcon = icon(
+  'beam-clamp-criteria',
+  <>
+    <path d="M13 10H4v10h9" />
+    {gear}
+  </>,
+);
+
+/** Critérios do helicoidal: the spiral with a settings dot. */
+export const HelixCriteriaIcon = icon(
+  'helix-criteria',
+  <>
+    <path d="M2 10c1.6 0 1.6 8 3.2 8s1.6-8 3.2-8 1.6 8 3.2 8 1.6-8 3.2-8" />
+    {gear}
+  </>,
+);
+
 /** Copiar propriedades: attributes travel from a source to a target. */
 export const MatchPropertiesIcon = icon(
   'match-properties',

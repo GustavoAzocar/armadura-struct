@@ -202,3 +202,4 @@ Hefesto trabalhando uma armadura, em gravura preta e marfim sobre fundo âmbar. 
 
 [Grampos de pilar S/C por centros longitudinais](docs/GRAMPOS-PILAR.md).
 [Critérios, lançamento e vistas vinculadas de grampos de viga em U](docs/GRAMPOS_VIGA.md).
+[Estribo helicoidal: passo, extremos e comprimento desenvolvido](docs/ESTRIBO-HELICOIDAL.md).

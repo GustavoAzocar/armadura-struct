@@ -1,5 +1,10 @@
 import { displayedBarGeometry } from '../domain/stirrupGeometry';
 import { beamClampViewPoints } from '../domain/beamClampViews';
+import {
+  helixOutline,
+  helixPrimitives,
+  helixViewPoints,
+} from '../domain/helixViews';
 import { annotationCadDefaults } from '../domain/cadDefaults';
 import {
   hitMaskCadEntity,
@@ -338,30 +343,51 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const barPresentations = useMemo(
     () =>
       new Map(
-        project.bars.map((b) => [
-          b.id,
-          {
-            path: b.beamClamp
-              ? beamClampViewPoints(b)
-                  .map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`)
-                  .join(' ')
-              : path(
-                  (displayedBarGeometry(b) ?? barGeometries.get(b.id)!)
-                    .segments,
-                ),
-            texts: physicalBarTextPrimitives(
-              { ...b, origin: { x: 0, y: 0 }, rotation: 0 },
-              source,
-            ).map((item) =>
-              b.drafting ? styledDrafting(source, b, item) : item,
-            ),
-            style: resolveStyle(source, b, 'ARMADURAS'),
-            origins:
-              b.distribution?.render === 'bars'
-                ? distributionOrigins(b)
-                : [b.origin],
-          },
-        ]),
+        project.bars.map((b) => {
+          // The helix body is drawn from its own projection; the back half,
+          // axis and limits keep their own line styles.
+          const helix =
+            b.kind === 'helix' ? helixPrimitives(b, (q) => q) : undefined;
+          const body = (item: Primitive) =>
+            item.layer === 'ARMADURAS' && !item.style;
+          return [
+            b.id,
+            {
+              path: helix
+                ? helix
+                    .filter(body)
+                    .map(
+                      (item) =>
+                        item.points
+                          .map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`)
+                          .join(' ') + (item.closed ? ' Z' : ''),
+                    )
+                    .join(' ')
+                : b.beamClamp
+                  ? beamClampViewPoints(b)
+                      .map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`)
+                      .join(' ')
+                  : path(
+                      (displayedBarGeometry(b) ?? barGeometries.get(b.id)!)
+                        .segments,
+                    ),
+              lines: (helix ?? [])
+                .filter((item) => !body(item))
+                .map((item) => styledDrafting(source, b, item, 'ARMADURAS')),
+              texts: physicalBarTextPrimitives(
+                { ...b, origin: { x: 0, y: 0 }, rotation: 0 },
+                source,
+              ).map((item) =>
+                b.drafting ? styledDrafting(source, b, item) : item,
+              ),
+              style: resolveStyle(source, b, 'ARMADURAS'),
+              origins:
+                b.distribution?.render === 'bars'
+                  ? distributionOrigins(b)
+                  : [b.origin],
+            },
+          ] as const;
+        }),
       ),
     [project.bars, barGeometries, source],
   );
@@ -467,9 +493,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       }
     };
     for (const bar of project.bars) {
-      const pts = bar.beamClamp
-        ? beamClampViewPoints(bar)
-        : sampled(barGeometries.get(bar.id)!.segments);
+      const pts =
+        bar.kind === 'helix'
+          ? helixViewPoints(bar)
+          : bar.beamClamp
+            ? beamClampViewPoints(bar)
+            : sampled(barGeometries.get(bar.id)!.segments);
       const origins = bar.distribution
         ? distributionOrigins(bar)
         : [bar.origin];
@@ -590,9 +619,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         )
         .flatMap((a) => a.items.filter((p) => !p.text)),
       ...capturable.bars.map((b) => ({
-        points: (b.beamClamp
-          ? beamClampViewPoints(b)
-          : sampled(geometry(b).segments)
+        points: (b.kind === 'helix'
+          ? helixViewPoints(b)
+          : b.beamClamp
+            ? beamClampViewPoints(b)
+            : sampled(geometry(b).segments)
         ).map((v) => world(v, b)),
       })),
     ],
@@ -648,16 +679,22 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       const origins =
         b.distribution?.render === 'bars' ? distributionOrigins(b) : [b.origin];
       for (const origin of origins) {
-        const ps = (
-          b.beamClamp
-            ? beamClampViewPoints(b)
-            : sampled(barGeometries.get(b.id)!.segments)
-        ).map((v) => world(v, { ...b, origin }));
-        for (let i = 1; i < ps.length; i++) {
-          const d = distance(p, nearest(p, ps[i - 1], ps[i]));
-          if (d < best) {
-            best = d;
-            hit = b.id;
+        const chains =
+          b.kind === 'helix'
+            ? helixOutline(b)
+            : [
+                b.beamClamp
+                  ? beamClampViewPoints(b)
+                  : sampled(barGeometries.get(b.id)!.segments),
+              ];
+        for (const chain of chains) {
+          const ps = chain.map((v) => world(v, { ...b, origin }));
+          for (let i = 1; i < ps.length; i++) {
+            const d = distance(p, nearest(p, ps[i - 1], ps[i]));
+            if (d < best) {
+              best = d;
+              hit = b.id;
+            }
           }
         }
       }
@@ -964,7 +1001,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             .map((d) => d.id),
           ...capturable.bars
             .filter((b) =>
-              (b.beamClamp ? beamClampViewPoints(b) : vertices(b))
+              (b.kind === 'helix'
+                ? helixViewPoints(b)
+                : b.beamClamp
+                  ? beamClampViewPoints(b)
+                  : vertices(b)
+              )
                 .map((p) => world(p, b))
                 .every(inside),
             )
@@ -1035,6 +1077,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           strokeLinejoin="round"
           strokeLinecap="round"
         />
+        {!isDetail &&
+          renderPrimitives(barPresentations.get(b.id)!.lines, color)}
         {renderPrimitives(
           (grip?.id === b.id
             ? physicalBarTextPrimitives(

@@ -1,5 +1,6 @@
 import { stirrupPrimitives } from './stirrupGeometry';
 import { beamClampPrimitives } from './beamClampViews';
+import { formatTurns, helixMetrics } from './helix';
 import { dimensionReferenceIssue, formatDimension } from './maskDimensions';
 import {
   add,
@@ -42,6 +43,10 @@ const angleOf = (u: Point) => {
   return angle;
 };
 export function barCaption(b: Bar, project?: Project) {
+  if (b.kind === 'helix') {
+    const m = helixMetrics(b);
+    return `${quantityLabel(project, b)} ${b.mark} Ø${format(b.diameter, b.diameter % 1 ? 1 : 0)} HÉLICE ${formatTurns(m.turns)} voltas p=${format(m.pitch / 10, 1)} C=${format(m.cutLength / 10, 0)}${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`;
+  }
   return `${quantityLabel(project, b)} ${b.mark} Ø${format(b.diameter, b.diameter % 1 ? 1 : 0)} C=${format(geometry(b).length / 10, 0)}${assemblyLabel(b) ? ` · ${assemblyLabel(b)}` : ''}`;
 }
 function tick(at: Point, u: Point, height: number, layer = 'COTAS') {

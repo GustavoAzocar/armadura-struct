@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import Ajv2020 from 'ajv/dist/2020';
-import packageSchema from '../docs/openstruct-detail-v20.schema.json';
+import packageSchema from '../docs/openstruct-detail-v21.schema.json';
 import { beamClampBar } from '../src/domain/beamClamps';
 import { defaultBeamClampCriteria } from '../src/domain/beamClampSchema';
 import {

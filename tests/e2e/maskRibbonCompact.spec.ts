@@ -482,7 +482,23 @@ test('outras abas mantêm botões com rótulo', async ({ page }) => {
   await load(page, emptyProject());
   for (const tab of ['Armaduras', 'Desenho', 'Elementos', 'Arquivo']) {
     await page.getByRole('tab', { name: tab, exact: true }).click();
-    await expect(page.locator('.ribbon-tool-compact')).toHaveCount(0);
+    // Only the Armaduras criteria share one compact 2 × 2 block (issue #155,
+    // to fit 1280 px); launch commands keep their captions.
+    const compact = page.locator('.ribbon-tool-compact');
+    if (tab === 'Armaduras') {
+      await expect(compact).toHaveCount(3);
+      await expect(
+        page.locator('[data-stack="criteria"] .ribbon-tool-compact'),
+      ).toHaveCount(3);
+      for (const name of [
+        'Critérios do estribo',
+        'Critérios do grampo de viga',
+        'Critérios do helicoidal',
+      ])
+        await expect(
+          page.getByRole('button', { name, exact: true }),
+        ).toBeVisible();
+    } else await expect(compact).toHaveCount(0);
     await expect(page.locator('.ribbon-tool > span').first()).not.toHaveText(
       '',
     );

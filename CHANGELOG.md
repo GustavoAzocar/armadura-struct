@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Estribo helicoidal: hélice circular contínua (uma peça física), com diâmetro e passo constantes, lançada por dois pontos do eixo ou por início, direção e comprimento declarado, com afastamentos, sentido de enrolamento e fase documentados. Critérios próprios, com diâmetro no eixo, externo ou de concreto + cobrimento, prévia, memória de cálculo e confirmação atômica. Comprimento desenvolvido analítico `√((πDN)² + H²)` com volta final fracionária, sem ganchos ou emendas implícitos. Quantidade = hélices × multiplicador × repetição, sem multiplicar pelas voltas. Projeção longitudinal com frente e fundo, seção vinculada, cotas reais, assinatura de fabricação própria, espelho físico que inverte o sentido, RA, CSV/PDF/DXF e API. Formato nativo /32 e pacote /21 ([JSON Schema v21](docs/openstruct-detail-v21.schema.json)). [Convenções e limites](docs/ESTRIBO-HELICOIDAL.md).
+
 - Grampos de pilar S/C por dois centros longitudinais, bitolas independentes e folga física: critérios integrados ao estribo, prévia, correção, edição e distribuição opcional. Eixo analítico, validação de envelopes e retornos, corte sem acréscimo oculto, quantitativos e intercâmbio mm/cm/m. Formatos nativo /31 e pacote /20, reservando as versões dos PRs paralelos. [Fluxo e convenções](docs/GRAMPOS-PILAR.md).
 
 - Removido o Exemplo ArmaduraStruct: o aplicativo abre vazio quando não há projeto para recuperar, sem a opção **Carregar projeto de exemplo**, o aviso e a conferência do exemplo. Projetos salvos e a recuperação local não são afetados.
