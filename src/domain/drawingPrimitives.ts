@@ -24,6 +24,7 @@ import {
 import { quantityLabel, detailTitle, assemblyLabel } from './detailQuantities';
 import { format, geometry, sampled, world, bounds } from './geometry';
 import { maskPrimitives } from '../cad/import';
+import { weldedMeshPrimitives } from './weldedMeshDrawing';
 import {
   annotationPrimitives,
   distributionPrimitives,
@@ -170,6 +171,12 @@ export function drawingPrimitives(
         ).map((item) => styledDrafting(references, d, item, 'REBATIMENTOS')),
       );
   }
+  for (const l of p.weldedMeshes ?? [])
+    lines.push(
+      ...weldedMeshPrimitives(l, h).map((item) =>
+        styledDrafting(references, l, item),
+      ),
+    );
   for (const d of p.hierarchy.details.filter((d) => d.repetition)) {
     const bars = p.bars.filter((b) => p.hierarchy.objectDetails[b.id] === d.id);
     if (!bars.length) continue;
@@ -205,6 +212,7 @@ export function objectPrimitives(p: Project, ids: string[]): Primitive[] {
       polylines: p.polylines.filter((o) => set.has(o.id)),
       masks: p.masks.filter((o) => set.has(o.id)),
       symbolInstances: symbolInstances(p).filter((o) => set.has(o.id)),
+      weldedMeshes: (p.weldedMeshes ?? []).filter((o) => set.has(o.id)),
     },
     p,
   );

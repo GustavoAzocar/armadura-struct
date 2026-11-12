@@ -154,6 +154,7 @@ const fields = [
   'masks',
   'polylines',
   'symbolInstances',
+  'weldedMeshes',
 ] as const;
 function counts(p: Project, id?: string) {
   return Object.fromEntries(
@@ -181,6 +182,20 @@ function physicalSignature(bars: Bar[]) {
         steel: b.steel,
         quantity: b.quantity,
         multiplier: b.multiplier ?? 1,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  );
+}
+
+/** Telas soldadas também são aço físico: entrar, sair ou mudar altera o levantamento. */
+function meshSignature(p: Project) {
+  return JSON.stringify(
+    (p.weldedMeshes ?? [])
+      .map((l) => ({
+        id: l.id,
+        criteria: l.criteria,
+        region: l.region,
+        anchor: l.anchor ?? null,
       }))
       .sort((a, b) => a.id.localeCompare(b.id)),
   );
@@ -273,6 +288,13 @@ export function previewDetailTransfer(
       ...(source.symbolInstances
         ? {
             symbolInstances: source.symbolInstances.map((o) =>
+              remapLayer(o, importedLayers.map),
+            ),
+          }
+        : {}),
+      ...(source.weldedMeshes
+        ? {
+            weldedMeshes: source.weldedMeshes.map((o) =>
               remapLayer(o, importedLayers.map),
             ),
           }
@@ -733,7 +755,8 @@ export function previewDetailTransfer(
         | 'annotations'
         | 'masks'
         | 'polylines'
-        | 'symbolInstances',
+        | 'symbolInstances'
+        | 'weldedMeshes',
     >(
       kind: K,
     ) => {
@@ -768,6 +791,10 @@ export function previewDetailTransfer(
     const masks = copyGraphics('masks') as Project['masks'],
       polylines = copyGraphics('polylines') as Project['polylines'];
     const copiedSymbols = copyGraphics('symbolInstances') as SymbolInstance[];
+    // Telas: aço físico sem vínculos a resolver; o ID se mantém pela linhagem.
+    const weldedMeshes = copyGraphics('weldedMeshes') as NonNullable<
+      Project['weldedMeshes']
+    >;
     const importedSymbolIds = new Set(
       sourceSymbols.map((s) => graphicIds[s.id]),
     );
@@ -794,6 +821,7 @@ export function previewDetailTransfer(
       ...masks,
       ...polylines,
       ...symbolInstances,
+      ...weldedMeshes,
     ])
       if (!Object.hasOwn(objectDetails, object.id))
         objectDetails[object.id] = detailId;
@@ -807,6 +835,7 @@ export function previewDetailTransfer(
       ...(target.symbolInstances || symbolInstances.length
         ? { symbolInstances }
         : {}),
+      ...(target.weldedMeshes || weldedMeshes.length ? { weldedMeshes } : {}),
       hierarchy: {
         ...next.hierarchy,
         objectDetails,
@@ -889,7 +918,8 @@ export function previewDetailTransfer(
     if (options.recenterViews)
       for (const id of plan.affectedViews) next = alignPlacement(next, id);
     plan.physicalChanged =
-      physicalSignature(target.bars) !== physicalSignature(next.bars);
+      physicalSignature(target.bars) !== physicalSignature(next.bars) ||
+      meshSignature(target) !== meshSignature(next);
     const raDataChanged =
       plan.physicalChanged ||
       scheduleChanged({

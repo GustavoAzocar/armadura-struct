@@ -59,6 +59,23 @@ export const BeamClampCriteriaIcon = icon(
     <circle cx="18" cy="16" r="2" />
   </>,
 );
+// Malha de fios soldados, com as pontas sobrando além dos cruzamentos.
+const mesh = <path d="M2 4h13M2 9h13M2 14h13M4 2v14M9 2v14M14 2v14" />;
+export const WeldedMeshIcon = icon(
+  'welded-mesh',
+  <>
+    {mesh}
+    <path d="M19 14v8m-4-4h8" />
+  </>,
+);
+export const WeldedMeshCriteriaIcon = icon(
+  'welded-mesh-criteria',
+  <>
+    {mesh}
+    <path d="M19 12v10m-5-5h10" />
+    <circle cx="19" cy="17" r="2" fill="var(--ribbon-icon-background,white)" />
+  </>,
+);
 export const RepresentationIcon = icon(
   'representation',
   <>

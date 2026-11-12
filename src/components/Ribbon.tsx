@@ -577,9 +577,19 @@ export default function Ribbon({
         ],
       },
       {
-        name: 'Faixas de armadura',
-        compact: { columns: 1 },
-        items: [item('range', 'Faixa ortogonal', RebarIcons.RangeBarIcon)],
+        // Faixa e telas armam por área. Num grupo único, a faixa Armaduras cabe
+        // em 1000 px junto com o helicoidal. As telas ficam na coluna da esquerda.
+        name: 'Faixas e telas',
+        compact: { columns: 2 },
+        items: [
+          item(
+            'welded-mesh-criteria',
+            'Critérios de telas',
+            RebarIcons.WeldedMeshCriteriaIcon,
+          ),
+          item('range', 'Faixa ortogonal', RebarIcons.RangeBarIcon),
+          item('welded-mesh', 'Lançar tela', RebarIcons.WeldedMeshIcon),
+        ],
       },
       {
         name: 'Relação do aço',

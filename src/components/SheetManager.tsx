@@ -315,6 +315,23 @@ export default function SheetManager({
                     )
                   }
                 />
+                {(p.weldedMeshes?.length ?? 0) > 0 && (
+                  <NumberField
+                    label="Perda das telas do quadro"
+                    value={sheet.steelSchedule.meshLossPercent ?? 0}
+                    min={0}
+                    max={100}
+                    suffix="%"
+                    onChange={(meshLossPercent) =>
+                      onChange((q) =>
+                        setSheetSchedule(q, sheet.id, {
+                          ...sheet.steelSchedule!,
+                          meshLossPercent,
+                        }),
+                      )
+                    }
+                  />
+                )}
                 <button
                   onClick={() =>
                     onChange((p) => setSheetSchedule(p, sheet.id, undefined))

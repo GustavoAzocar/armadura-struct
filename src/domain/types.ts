@@ -188,6 +188,8 @@ export type SheetSteelSchedule = {
   origin: Point;
   textHeight: number;
   allowancePercent: number;
+  /** Perda das telas soldadas (%) sobre a massa aplicada; ausente = 0 (formato 29). */
+  meshLossPercent?: number;
 };
 export type Sheet = {
   /** One live schedule per sheet, independent of drawing scales and physical steel. */
@@ -329,6 +331,10 @@ export type Project = {
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
   beamClampDefaults?: import('./beamClampSchema').BeamClampCriteria;
+  /** Telas soldadas lançadas (desde o formato 29): critérios e região estáticos. */
+  weldedMeshes?: import('./weldedMeshLaunch').WeldedMeshLaunch[];
+  /** Últimos critérios de tela confirmados num lançamento. */
+  weldedMeshDefaults?: import('./weldedMesh').WeldedMeshCriteria;
   helixDefaults?: import('./helixSchema').HelixCriteria;
   cadDefaults?: import('./cadDefaults').CadDefaults;
   plotting?: PlotSettings;
@@ -356,6 +362,8 @@ export type Project = {
     origins?: Record<string, string>;
     detailIds?: Record<string, string>;
     quantities?: Record<string, { repetitions: number; detailTitle: string }>;
+    /** Fotografia das telas soldadas; ausente quando o projeto não tem telas. */
+    weldedMeshes?: import('./weldedMeshLaunch').WeldedMeshLaunch[];
   };
 };
 export type Tool =
@@ -375,6 +383,7 @@ export type Tool =
   | 'convert'
   | 'repeat'
   | 'range'
+  | 'welded-mesh'
   | AnnotationKind;
 export type Segment =
   | { type: 'line'; a: Point; b: Point }

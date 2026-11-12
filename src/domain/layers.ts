@@ -52,6 +52,7 @@ export const layerObjects = (
     | 'polylines'
     | 'masks'
     | 'symbolInstances'
+    | 'weldedMeshes'
   >,
 ) => [
   ...p.bars,
@@ -60,12 +61,17 @@ export const layerObjects = (
   ...p.polylines,
   ...p.masks,
   ...(p.symbolInstances ?? []),
+  ...(p.weldedMeshes ?? []),
 ];
 export function objectRole(
   p: Project,
   o: LayerBinding & { id: string },
 ): string {
-  if (p.bars.some((b) => b.id === o.id)) return 'ARMADURAS';
+  if (
+    p.bars.some((b) => b.id === o.id) ||
+    (p.weldedMeshes ?? []).some((l) => l.id === o.id)
+  )
+    return 'ARMADURAS';
   if (p.details.some((b) => b.id === o.id)) return 'REBATIMENTOS';
   const a = p.annotations.find((a) => a.id === o.id);
   if (a)
@@ -162,6 +168,8 @@ export function validateLayers(p: Project) {
         throw new Error(
           'Layer ainda usado nos padrões CAD. Reassocie-o em Configurações CAD antes de remover.',
         );
+  if (p.weldedMeshDefaults?.layerId && !ids.has(p.weldedMeshDefaults.layerId))
+    throw new Error('Layer inexistente nos critérios de telas soldadas.');
   for (const o of [
     ...layerObjects(p),
     ...p.masks.flatMap((m) => m.primitives),
@@ -360,6 +368,7 @@ export function assignLayer(
     annotations: p.annotations.map(change),
     polylines: p.polylines.map(change),
     masks: p.masks.map(change),
+    ...(p.weldedMeshes ? { weldedMeshes: p.weldedMeshes.map(change) } : {}),
   };
   validateLayers(next);
   return next;
@@ -382,6 +391,16 @@ export function removeLayer(p: Project, id: string, reassign?: string) {
     )
     .map((o) => o.id);
   if (ids.length && reassign) next = assignLayer(next, ids, reassign);
+  // Os critérios de telas dos próximos lançamentos seguem a reassociação; sem
+  // destino, voltam à camada pelo papel (ARMADURAS).
+  const meshDefaults = next.weldedMeshDefaults;
+  if (meshDefaults?.layerId === id) {
+    const { layerId: _removed, ...rest } = meshDefaults;
+    next = {
+      ...next,
+      weldedMeshDefaults: reassign ? { ...rest, layerId: reassign } : rest,
+    };
+  }
   next = {
     ...next,
     layers: next.layers.filter((l) => l.id !== id),

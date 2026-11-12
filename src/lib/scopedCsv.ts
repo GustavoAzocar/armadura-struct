@@ -30,6 +30,8 @@ export type CsvExportOptions = {
   precision: 'sheet' | 'extended';
   decimal: ',' | '.';
   allowance: AllowancePolicy;
+  /** Perda das telas soldadas (mesmos modos do acréscimo); padrão 0%. */
+  meshLoss?: AllowancePolicy;
 };
 export const defaultCsvExportOptions = (): CsvExportOptions => ({
   detailed: true,
@@ -41,6 +43,7 @@ export const defaultCsvExportOptions = (): CsvExportOptions => ({
   precision: 'sheet',
   decimal: ',',
   allowance: { mode: 'scope', percent: 0 },
+  meshLoss: { mode: 'scope', percent: 0 },
 });
 export type CsvFile = { name: string; content: string };
 export type ScopePreview = {
@@ -50,6 +53,8 @@ export type ScopePreview = {
   pieces: number;
   weight: number;
   allowance: string;
+  /** kg: peso das telas soldadas do escopo (aplicada + perda). */
+  meshWeight: number;
 };
 export type CsvExportPlan = {
   /** Problemas que impedem a exportação; nenhum arquivo é produzido. */
@@ -107,9 +112,9 @@ export function planScopedCsv(
   const resolved = resolveScopes(p, selection, activeSheetId);
   issues.push(...resolved.issues);
   for (const s of resolved.scopes)
-    if (!s.barIds.length)
+    if (!s.barIds.length && !s.meshIds.length)
       issues.push(
-        `${KIND_LABEL[s.kind]} “${s.name}” não possui armaduras. Retire-o da seleção.`,
+        `${KIND_LABEL[s.kind]} “${s.name}” não possui armaduras nem telas soldadas. Retire-o da seleção.`,
       );
   if (issues.length || !resolved.scopes.length) {
     if (!issues.length) issues.push('Nenhum escopo válido selecionado.');
@@ -119,6 +124,7 @@ export function planScopedCsv(
   try {
     data = buildScopedSchedule(p, resolved.scopes, options.allowance, {
       physicalTotal: options.physicalTotal,
+      meshLoss: options.meshLoss,
     });
   } catch (e) {
     issues.push(e instanceof Error ? e.message : String(e));
@@ -136,8 +142,14 @@ export function planScopedCsv(
     warnings.push(
       'Detalhamentos repetidos são exportados como conjunto (quantidade × repetições), sem rateio por elemento representado.',
     );
+  if (data.sharedMeshIds.length)
+    warnings.push(
+      `${data.sharedMeshIds.length} tela(s) soldada(s) aparecem em mais de um escopo. A soma dos arquivos não é o total físico${data.physicalTotal ? '. Use o total físico pela união dos IDs' : ''}.`,
+    );
   if (data.physicalTotal?.allowanceNote)
     warnings.push(data.physicalTotal.allowanceNote);
+  if (data.physicalTotal?.meshLossNote)
+    warnings.push(data.physicalTotal.meshLossNote);
   const all = [
     ...data.scopes,
     ...(data.physicalTotal ? [data.physicalTotal] : []),
@@ -155,8 +167,12 @@ export function planScopedCsv(
       ? [{ slug: selectionSlug(selection), data: all }]
       : all.map((d) => ({ slug: scopeSlug(d, all), data: [d] }));
   for (const g of groups) {
-    if (options.detailed)
+    const hasMeshes = g.data.some((d) => d.meshes.rows.length);
+    // Quadro de barras como antes; um grupo só com telas não ganha arquivo vazio.
+    if (options.detailed && (!hasMeshes || g.data.some((d) => d.rows.length)))
       add(`${project}_${g.slug}_quadro.csv`, detailedCsv(p, g.data, options));
+    if (options.detailed && hasMeshes)
+      add(`${project}_${g.slug}_telas.csv`, meshCsv(g.data, options));
     if (options.summary)
       add(`${project}_${g.slug}_resumo.csv`, summaryCsv(g.data, options));
   }
@@ -173,6 +189,7 @@ export function planScopedCsv(
       allowance: d.allowance
         ? `${percentLabel(d.allowance.percent)}% · ${d.allowance.source}`
         : 'Reserva não consolidada',
+      meshWeight: d.meshes.total,
     })),
   };
 }
@@ -367,7 +384,112 @@ export function summaryCsv(data: ScopeData[], o: CsvExportOptions) {
         ...reserve(weight),
       ]);
     }
+    // Telas soldadas: à parte das bitolas; "acréscimo" aqui é a perda das telas.
+    const loss = (applied: number, weight: number) =>
+      d.meshLoss
+        ? [
+            percentLabel(d.meshLoss.percent, o.decimal),
+            `Perda das telas: ${d.meshLoss.source}`,
+            n(weight, wd),
+          ]
+        : ['', d.meshLossNote ?? 'Perda não consolidada', n(applied, wd)];
+    for (const s of d.meshes.summary)
+      rows.push([
+        ...scopeCells(d),
+        `Tela soldada · ${s.label}`,
+        s.mesh.steel,
+        '',
+        '',
+        n(s.appliedMass, wd),
+        ...loss(s.appliedMass, s.weight),
+      ]);
+    if (d.meshes.summary.length) {
+      const applied = d.meshes.summary.reduce((a, s) => a + s.appliedMass, 0);
+      rows.push([
+        ...scopeCells(d),
+        'Total das telas soldadas',
+        '',
+        '',
+        '',
+        n(applied, wd),
+        ...loss(applied, d.meshes.total),
+      ]);
+    }
   }
+  return serializeCsv(rows);
+}
+
+/**
+ * Quadro de telas soldadas por escopo (arquivo próprio): propriedades por
+ * direção, plano de painéis, áreas e massas nominais, sem misturar com barras.
+ */
+export function meshCsv(data: ScopeData[], o: CsvExportOptions) {
+  const wd = weightDigits(o.precision),
+    ad = o.precision === 'sheet' ? 2 : 4,
+    n = (v: number, d: number) => numberText(v, d, o.decimal);
+  const header = [
+    ...SCOPE_HEADERS,
+    'Posição',
+    'Tela',
+    'Origem da tela',
+    'Aço',
+    'Longitudinal Ø (mm)',
+    'Longitudinal espaçamento (cm)',
+    'Longitudinal As (cm²/m)',
+    'Transversal Ø (mm)',
+    'Transversal espaçamento (cm)',
+    'Transversal As (cm²/m)',
+    'Painel comprimento (m)',
+    'Painel largura (m)',
+    'Painéis-base',
+    'Peças recortadas',
+    'Área útil (m²)',
+    'Área aplicada (m²)',
+    'Sobreposição (m²)',
+    'Massa aplicada (kg)',
+    'Perda (%)',
+    'Perda (kg)',
+    'Peso (kg)',
+    'Massa de fornecimento (kg)',
+    'Repetições do detalhamento',
+    'Detalhamentos de origem',
+    'IDs das telas',
+    'Avisos',
+  ];
+  const rows: unknown[][] = [header];
+  for (const d of data)
+    for (const r of d.meshes.rows) {
+      const m = r.mesh;
+      rows.push([
+        ...scopeCells(d),
+        r.mark,
+        r.label,
+        m.source === 'catalog' ? 'Catálogo' : 'Personalizada',
+        m.steel,
+        n(m.longitudinal.diameter, 1),
+        n(m.longitudinal.spacing / 10, 1),
+        n(m.longitudinal.steelArea / 100, 2),
+        n(m.transverse.diameter, 1),
+        n(m.transverse.spacing / 10, 1),
+        n(m.transverse.steelArea / 100, 2),
+        n(m.length / 1000, 2),
+        n(m.width / 1000, 2),
+        r.basePanels,
+        r.cutPieces,
+        n(r.usefulArea / 1e6, ad),
+        n(r.appliedArea / 1e6, ad),
+        n(r.overlapArea / 1e6, ad),
+        n(r.appliedMass, wd),
+        d.meshLoss ? percentLabel(d.meshLoss.percent, o.decimal) : '',
+        n(r.lossMass, wd),
+        n(r.weight, wd),
+        n(r.supplyMass, wd),
+        r.contributions.map((c) => c.repetitions).join('/'),
+        r.contributions.map((c) => c.detailTitle || c.detailId).join(' | '),
+        r.contributions.map((c) => c.launchId).join(' | '),
+        [...r.warnings, ...r.errors].join(' | '),
+      ]);
+    }
   return serializeCsv(rows);
 }
 
