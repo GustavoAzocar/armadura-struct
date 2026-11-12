@@ -13,6 +13,9 @@ async function load(page: Page, project: Project) {
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(project)),
   });
+  await expect(
+    page.locator('.toast').getByText('Projeto aberto.', { exact: true }),
+  ).toBeVisible();
   await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
   await page.locator('.bar-row').click();
 }
@@ -167,6 +170,76 @@ test('forma fora da convenção externa mantém cotas pelo eixo e informa o moti
       exact: true,
     }),
   ).toBeVisible();
+  await expect(
+    page
+      .locator('svg text')
+      .and(page.getByText('100,0 cm (eixo)', { exact: true })),
+  ).toHaveCount(1);
+});
+
+test('salvar, reabrir e recuperar conserva a cotagem escolhida em cada objeto', async ({
+  page,
+}) => {
+  const project = completeOwnership({
+    ...emptyProject(),
+    bars: [{ ...newBar('N1'), id: 'b', diameter: 10, mandrel: 50 }],
+    details: [{ id: 'r1', barId: 'b', origin: { x: 0, y: 500 } }],
+  });
+  await load(page, project);
+  const inspector = page.locator('.inspector');
+  const convention = inspector.getByLabel('Convenção de cotagem');
+  await convention.selectOption('external');
+  await inspector
+    .getByRole('button', { name: 'Editar inserção 1', exact: true })
+    .click();
+  await convention.selectOption('axis');
+  const saved = await snapshot(page);
+  expect(saved.bars[0].dimensionConvention).toBe('external');
+  expect(saved.details[0].dimensionConvention).toBe('axis');
+  expect(saved.details[0].barId).toBe(saved.bars[0].id);
+
+  await page.getByTestId('project-input').setInputFiles({
+    name: 'cotagem-salva.armstruct.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(saved)),
+  });
+  await expect(
+    page.locator('.toast').getByText('Projeto aberto.', { exact: true }),
+  ).toBeVisible();
+  expect(await snapshot(page)).toEqual(saved);
+
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const open = indexedDB.open('armadurastruct', 1);
+          open.onsuccess = () => resolve(open.result);
+          open.onerror = () => reject(open.error);
+        });
+        try {
+          return await new Promise<unknown>((resolve, reject) => {
+            const read = db
+              .transaction('projects')
+              .objectStore('projects')
+              .get('current');
+            read.onsuccess = () =>
+              resolve(read.result ? JSON.parse(read.result) : null);
+            read.onerror = () => reject(read.error);
+          });
+        } finally {
+          db.close();
+        }
+      }),
+    )
+    .toEqual(saved);
+  await page.reload();
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
+  expect(await snapshot(page)).toEqual(saved);
+  await expect(
+    page
+      .locator('svg text')
+      .and(page.getByText('100,0 cm (ext.)', { exact: true })),
+  ).toHaveCount(1);
   await expect(
     page
       .locator('svg text')

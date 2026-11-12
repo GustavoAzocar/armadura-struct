@@ -1,5 +1,5 @@
 import { barDimensions } from './barDimensions';
-import { format } from './geometry';
+import { formatDimension } from './dimensionPresentation';
 import type { Bar, BarDimensionConvention, Point } from './types';
 
 /**
@@ -45,6 +45,9 @@ export function barConventionLabels(
     } else {
       at.y += 40;
     }
-    return { text: `${format(length / 10)} cm (${suffix})`, at };
+    return {
+      text: `${formatDimension(length, { unit: 'cm', precision: 1 })} (${suffix})`,
+      at,
+    };
   });
 }

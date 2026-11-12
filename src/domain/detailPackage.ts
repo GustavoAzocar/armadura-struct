@@ -18,6 +18,7 @@ import {
   hasFreeTextData,
   hasBeamClampData,
   hasHelixData,
+  hasBarDimensionConvention,
 } from './model';
 import { contentObjects } from './hierarchy';
 import { detailOrigin, objectOrigin } from './detailTransfer';
@@ -26,7 +27,7 @@ import { repetitionNames } from './detailQuantities';
 import type { Bar, Point, Project } from './types';
 import type { WeldedMeshLaunch } from './weldedMeshLaunch';
 
-export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/22' as const;
+export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/23' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -55,6 +56,7 @@ export const detailPackageSchema = z
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -282,14 +284,26 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
 /** Validate the complete closed reference graph before opening the AS-08 comparison. */
 export function detailPackageProject(value: DetailPackage): Project {
   if (
-    !['openstruct.detail/21', 'openstruct.detail/22'].includes(value.schema) &&
+    value.schema !== DETAIL_PACKAGE_SCHEMA &&
+    hasBarDimensionConvention({
+      bars: [...value.objects.bars, ...value.dependencies],
+      details: value.objects.details,
+    })
+  )
+    throw new Error('Convenção de cotagem exige pacote openstruct.detail/23.');
+  if (
+    ![
+      'openstruct.detail/21',
+      'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
+    ].includes(value.schema) &&
     value.objects.annotations.some(
       (a) => a.dimensionPresentation?.rounding !== undefined,
     )
   )
     throw new Error('Arredondamento de cotas exige pacote v21.');
   if (
-    value.schema !== 'openstruct.detail/22' &&
+    !['openstruct.detail/22', DETAIL_PACKAGE_SCHEMA].includes(value.schema) &&
     hasHelixData({ bars: [...value.objects.bars, ...value.dependencies] })
   )
     throw new Error('Estribos helicoidais exigem pacote openstruct.detail/22.');
@@ -303,6 +317,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     hasBeamClampData({
       bars: [...pack.objects.bars, ...pack.dependencies],
@@ -319,6 +334,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
@@ -356,6 +372,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     (pack.fabricationPositions ||
       [...pack.objects.bars, ...pack.dependencies].some((b) => b.manufacturing))
@@ -384,6 +401,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(hasArmatureData)
   )
@@ -410,6 +428,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     pack.objects.details.some(
       (d) =>
@@ -438,6 +457,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     pack.objects.details.some((d) => d.label || d.showDimensions !== undefined)
   )
@@ -460,6 +480,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     [...pack.objects.annotations, ...pack.objects.polylines].some(
       (o) => o.barIds !== undefined,
@@ -482,6 +503,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     (pack.layers?.some((l) => l.plot) ||
       [
@@ -506,6 +528,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     ([...pack.objects.bars, ...pack.dependencies].some(
       (b) => b.stirrupMirrored !== undefined,
@@ -528,6 +551,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) => m.format === 'NATIVE')
   )
@@ -545,6 +569,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     pack.objects.masks.some(
       (m) => m.format !== 'NATIVE' && m.primitives.some((q) => q.native),
@@ -563,6 +588,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     [
       ...pack.objects.bars,
@@ -586,6 +612,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     pack.objects.masks.some((m) =>
       m.primitives.some((q) => q.native?.kind === 'arc' || q.sourceEntityId),
@@ -602,6 +629,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     pack.objects.annotations.some(
       (a) => a.maskReferences || a.dimensionPresentation,
@@ -618,6 +646,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     hasFreeTextData({ masks: pack.objects.masks })
   )
@@ -629,6 +658,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     pack.objects.weldedMeshes !== undefined
   )
@@ -638,6 +668,7 @@ export function detailPackageProject(value: DetailPackage): Project {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
@@ -737,7 +768,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/33',
+      schema: 'armadurastruct/34',
       layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
@@ -792,6 +823,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
+      'openstruct.detail/22',
       DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
@@ -799,7 +831,7 @@ export function readDetailPackage(raw: unknown): {
       `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA}.`,
     );
   if (
-    input?.schema !== 'openstruct.detail/22' &&
+    !['openstruct.detail/22', DETAIL_PACKAGE_SCHEMA].includes(input?.schema) &&
     hasHelixData({
       bars: [...(input?.objects?.bars ?? []), ...(input?.dependencies ?? [])],
     })
@@ -812,6 +844,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     hasBeamClampData({
       bars: [...pack.objects.bars, ...pack.dependencies],
@@ -828,6 +861,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
@@ -858,6 +892,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
     ].includes(pack.schema) &&
     !pack.layers
   )

@@ -523,6 +523,20 @@ export function hasHelixData(input: unknown): boolean {
     )
   );
 }
+/** Automatic cotation convention requires native format 34 or exchange 23. */
+export function hasBarDimensionConvention(input: unknown): boolean {
+  type Cotated = { dimensionConvention?: unknown } | null;
+  const value = input as {
+    bars?: Cotated[];
+    details?: Cotated[];
+    scheduleLock?: { bars?: Cotated[] };
+  } | null;
+  return [value?.bars, value?.details, value?.scheduleLock?.bars].some(
+    (items) =>
+      Array.isArray(items) &&
+      items.some((item) => item?.dimensionConvention !== undefined),
+  );
+}
 /** Parametric physical/view data that older formats cannot safely interpret. */
 export function hasBeamClampData(input: unknown): boolean {
   const value = input as {
@@ -560,7 +574,10 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const helixVersion = input?.schema === 'armadurastruct/33';
+  const cotationVersion = input?.schema === 'armadurastruct/34';
+  if (!cotationVersion && hasBarDimensionConvention(input))
+    throw new Error('Convenção de cotagem exige formato 34.');
+  const helixVersion = cotationVersion || input?.schema === 'armadurastruct/33';
   if (!helixVersion && hasHelixData(input))
     throw new Error(
       'Estribos helicoidais exigem formato 33. Atualize o aplicativo para abrir este arquivo.',
@@ -909,7 +926,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/33',
+    schema: 'armadurastruct/34',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -1178,7 +1195,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/33',
+    schema: 'armadurastruct/34',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

@@ -1,5 +1,5 @@
 import Ajv2020 from 'ajv/dist/2020';
-import packageSchema from '../docs/openstruct-detail-v22.schema.json';
+import packageSchema from '../docs/openstruct-detail-v23.schema.json';
 import {
   decodeProject,
   emptyProject,
@@ -222,7 +222,7 @@ describe('Medir e cotar referências de máscaras', () => {
           unit,
         }),
         q = readDetailPackage(JSON.stringify(pack)).project;
-      expect(pack.schema).toBe('openstruct.detail/22');
+      expect(pack.schema).toBe('openstruct.detail/23');
       const r = q.annotations.find((v) => v.id === a.id)!;
       expect(dimensionReferenceIssue(q, r)).toBeUndefined();
       expect(r.maskReferences).toEqual(a.maskReferences);
@@ -333,7 +333,7 @@ describe('Medir e cotar referências de máscaras', () => {
     ).toBeUndefined();
     const old = { ...p, schema: 'armadurastruct/23' },
       q = decodeProject(JSON.stringify(old));
-    expect(q.schema).toBe('armadurastruct/33');
+    expect(q.schema).toBe('armadurastruct/34');
     expect(q.annotations[0].maskReferences).toBeUndefined();
     expect(annotationPrimitives(q.annotations[0], q)).toEqual(
       annotationPrimitives(p.annotations[0], p),
@@ -363,7 +363,7 @@ it('versiona o arredondamento e conserva 31/20 sem o campo novo', () => {
     multipleTicks: 5_000_000,
     mode: 'nearest',
   };
-  expect(p.schema).toBe('armadurastruct/33');
+  expect(p.schema).toBe('armadurastruct/34');
   expect(decodeProject(JSON.stringify(p)).annotations.at(-1)).toEqual(a);
   for (const schema of ['armadurastruct/24', 'armadurastruct/31'])
     expect(() => decodeProject(JSON.stringify({ ...p, schema }))).toThrow(
@@ -372,7 +372,7 @@ it('versiona o arredondamento e conserva 31/20 sem o campo novo', () => {
   const rounded = createDetailPackage(p, ctx(p).detailId, {
     producer: { app: 'test', version: '1' },
   });
-  expect(rounded.schema).toBe('openstruct.detail/22');
+  expect(rounded.schema).toBe('openstruct.detail/23');
   const validate = new Ajv2020({
     strict: false,
     formats: { 'date-time': true },
@@ -390,7 +390,7 @@ it('versiona o arredondamento e conserva 31/20 sem o campo novo', () => {
     expect(() => readDetailPackage({ ...rounded, schema })).toThrow(/v21/);
 });
 
-it('preserva arredondamento de 32/21 e combina com hélice em 33/22', async () => {
+it('preserva arredondamento de 32/21 e lê hélice com arredondamento a partir de 33/22', async () => {
   const { helixBar } = await import('../src/domain/helixBars');
   const { defaultHelixCriteria } = await import('../src/domain/helixSchema');
   const p = maskManipFixture();
@@ -422,7 +422,9 @@ it('preserva arredondamento de 32/21 e combina com hélice em 33/22', async () =
   );
   p.bars.push(b);
   p.hierarchy.objectDetails[b.id] = ctx(p).detailId;
-  const reopened = decodeProject(JSON.stringify(p));
+  const reopened = decodeProject(
+    JSON.stringify({ ...p, schema: 'armadurastruct/33' }),
+  );
   expect(reopened.annotations.at(-1)).toEqual(a);
   expect(reopened.bars.at(-1)?.helix).toEqual(b.helix);
   const pack = createDetailPackage(p, ctx(p).detailId, options);
@@ -431,7 +433,10 @@ it('preserva arredondamento de 32/21 e combina com hélice em 33/22', async () =
     formats: { 'date-time': true },
   }).compile(packageSchema);
   expect(validate(pack), JSON.stringify(validate.errors)).toBe(true);
-  const roundtrip = readDetailPackage(pack).project;
+  const roundtrip = readDetailPackage({
+    ...pack,
+    schema: 'openstruct.detail/22',
+  }).project;
   expect(roundtrip.annotations.at(-1)?.dimensionPresentation).toEqual(
     a.dimensionPresentation,
   );

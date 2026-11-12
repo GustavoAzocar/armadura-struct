@@ -99,7 +99,7 @@ describe('Pacote de detalhamento (telas desde o openstruct.detail/18)', () => {
     const pack = createDetailPackage(p, p.hierarchy.details[0].id, {
       producer,
     });
-    expect(pack.schema).toBe('openstruct.detail/22');
+    expect(pack.schema).toBe('openstruct.detail/23');
     // O v18 (reservado à #128), o v19 e o v20 também levam telas.
     for (const v of ['18', '19', '20'])
       expect(

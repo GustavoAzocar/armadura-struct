@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import Ajv2020 from 'ajv/dist/2020';
-import packageSchema from '../docs/openstruct-detail-v22.schema.json';
+import packageSchema from '../docs/openstruct-detail-v23.schema.json';
 import { beamClampBar } from '../src/domain/beamClamps';
 import { defaultBeamClampCriteria } from '../src/domain/beamClampSchema';
 import {
@@ -67,7 +67,7 @@ function criteria(
 const bar = (c = criteria()) => criteriaBar(c, pt(100, 200), 'N1', 'clamp');
 const project = () => completeOwnership({ ...emptyProject(), bars: [bar()] });
 
-it('grampos S/C e de viga coexistem no arquivo e no pacote v21 com schema público', () => {
+it('grampos S/C e de viga coexistem no arquivo e no pacote atual com schema público', () => {
   const beam = beamClampBar(
     defaultBeamClampCriteria(),
     pt(800, 0),

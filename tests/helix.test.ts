@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import Ajv2020 from 'ajv/dist/2020';
-import packageSchema from '../docs/openstruct-detail-v22.schema.json';
+import packageSchema from '../docs/openstruct-detail-v23.schema.json';
 import {
   helixMetrics,
   helixPoint,
@@ -509,7 +509,7 @@ describe('Estribo helicoidal · persistência, RA, intercâmbio e API', () => {
     );
     const p = { ...project([b]), helixDefaults: helixCriteriaFromBar(b) };
     const q = decodeProject(JSON.stringify(p));
-    expect(q.schema).toBe('armadurastruct/33');
+    expect(q.schema).toBe('armadurastruct/34');
     expect(q.bars[0]).toEqual(b);
     expect(q.helixDefaults).toEqual(p.helixDefaults);
     close(geometry(q.bars[0]).length, geometry(b).length, 0);
@@ -573,7 +573,7 @@ describe('Estribo helicoidal · persistência, RA, intercâmbio e API', () => {
   });
 
   it.each(['mm', 'cm', 'm'] as const)(
-    'pacote v22 em %s converte comprimentos uma vez e não escala ângulos ou voltas',
+    'pacote atual em %s converte comprimentos uma vez e não escala ângulos ou voltas',
     (unit) => {
       const b = helix(
         {
@@ -590,7 +590,7 @@ describe('Estribo helicoidal · persistência, RA, intercâmbio e API', () => {
         ...packOptions,
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/22');
+      expect(pack.schema).toBe('openstruct.detail/23');
       const k = unit === 'mm' ? 1 : unit === 'cm' ? 10 : 1000;
       const out = pack.objects.bars[0].helix!;
       expect(out.phase).toBe(30);

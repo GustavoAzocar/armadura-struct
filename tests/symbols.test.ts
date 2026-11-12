@@ -458,7 +458,7 @@ describe('Persistência e compatibilidade', () => {
       ),
     };
     const back = decodeProject(JSON.stringify(styled));
-    expect(back.schema).toBe('armadurastruct/33');
+    expect(back.schema).toBe('armadurastruct/34');
     expect(back.symbols).toEqual(styled.symbols);
     expect(back.symbolInstances).toEqual(styled.symbolInstances);
     expect(back.hierarchy.objectDetails).toEqual(

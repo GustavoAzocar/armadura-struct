@@ -106,3 +106,18 @@ conferir as parcelas. As cotas externas são marcadas no esquema quando
 há referências de superfície definidas. Se a forma não tiver uma
 convenção externa, o inspetor informa o motivo e o desenho conserva a
 referência disponível.
+
+## Arquivo e exportação
+
+O projeto nativo `armadurastruct/34` e o pacote
+[`openstruct.detail/23`](openstruct-detail-v23.schema.json) guardam a
+convenção por armadura ou rebatimento. A ausência do campo conserva a
+apresentação original em arquivos legados. No intercâmbio em mm, cm ou
+m, a conversão se aplica às medidas do modelo. A convenção é uma escolha
+de apresentação e viaja junto com o objeto.
+
+Canvas, prancha, PDF e DXF usam os mesmos rótulos automáticos de cotagem.
+As cotas automáticas explícitas usam cm com uma casa decimal. A unidade,
+a precisão e o arredondamento da cota manual continuam definidos em
+cada anotação. A relação do aço e o CSV usam o comprimento físico de
+corte, incluindo quando uma anotação exibe texto manual.
