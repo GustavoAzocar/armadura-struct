@@ -18,6 +18,8 @@ import {
   placeDrawing,
   updatePlacement,
 } from '../src/domain/sheets';
+import { defaultStirrupCriteria } from '../src/domain/stirrupSchema';
+import { criteriaBar } from '../src/domain/stirrups';
 import type { Annotation, Primitive, Project } from '../src/domain/types';
 import { toCsv, toDxf, toPdf, toSheetPdf } from '../src/lib/exports';
 import { defaultCsvExportOptions, planScopedCsv } from '../src/lib/scopedCsv';
@@ -127,6 +129,54 @@ it('mantém as cotas do CAD na prancha, no PDF e no DXF em escalas distintas', (
     expect(entity.startPoint.y).toBeCloseTo(item.points[0].y, 8);
   }
 });
+
+it.each([
+  { shape: 'circle', expected: ['Ø50 cm (eixo)'] },
+  { shape: 'free', expected: ['37 cm reto', '27 cm reto'] },
+] as const)(
+  'preserva as referências do estribo $shape no CAD e nas exportações',
+  ({ shape, expected }) => {
+    const criteria = defaultStirrupCriteria();
+    criteria.width = 500;
+    criteria.diameter = 10;
+    criteria.mandrel = 50;
+    criteria.profile.shape = shape;
+    criteria.profile.closed = shape === 'circle';
+    criteria.profile.points = [
+      { x: 0, y: 0 },
+      { x: 400, y: 0 },
+      { x: 400, y: 300 },
+    ];
+    criteria.profile.start.angle = 0;
+    criteria.profile.end.angle = 0;
+    const base = projectWithViews();
+    const bar = criteriaBar(criteria, base.bars[0].origin, 'N1', 'bar');
+    const p: Project = {
+      ...base,
+      bars: [{ ...bar, dimensionConvention: 'external' }],
+      details: base.details.map((d) => ({
+        ...d,
+        dimensionConvention: 'external',
+      })),
+    };
+    const labels = [...expected, ...expected];
+    expect(captions(drawingPrimitives(p))).toEqual(labels);
+    for (const view of composeSheet(p, p.sheets[0].id).views)
+      expect(captions(view.lines)).toEqual(labels);
+    const pdf = toPdf(p);
+    const sheetPdf = toSheetPdf(p);
+    for (const label of expected) {
+      expect(pdfCaptionCount(pdf, label)).toBe(2);
+      expect(pdfCaptionCount(sheetPdf, label)).toBe(4);
+    }
+    const dxf = new DxfParser().parseSync(toDxf(p))!;
+    const dxfLabels = dxf.entities
+      .filter((entity): entity is ITextEntity => entity.type === 'TEXT')
+      .map((entity) => entity.text.replace(/%%c/g, 'Ø'))
+      .filter((text) => /(?:\((?:eixo|ext\.)\)| cm reto)$/.test(text));
+    expect(dxfLabels).toEqual(labels);
+  },
+);
 
 it('preserva RA bloqueada e CSV nos escopos de projeto, prancha e detalhamento', () => {
   const project = projectWithViews();

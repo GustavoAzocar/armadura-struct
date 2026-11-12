@@ -127,6 +127,25 @@ test('cotagem e memória operam sobre uma armadura e suas inserções', async ({
   await convention.selectOption('axis');
   await expect(svgText('100,0 cm (eixo)')).toHaveCount(1);
   await expect(svgText('100,5 cm (ext.)')).toHaveCount(1);
+  const zoomIn = page.getByRole('button', { name: 'Aproximar', exact: true });
+  const zoomOut = page.getByRole('button', { name: 'Afastar', exact: true });
+  const camera = page
+    .getByTestId('cad-canvas')
+    .locator(':scope > g[transform]');
+  const beforeZoom = await camera.getAttribute('transform');
+  const labelTransform = await svgText('100,5 cm (ext.)')
+    .locator('..')
+    .getAttribute('transform');
+  await zoomIn.click();
+  await zoomIn.click();
+  await expect(camera).not.toHaveAttribute('transform', beforeZoom!);
+  await expect(svgText('100,5 cm (ext.)').locator('..')).toHaveAttribute(
+    'transform',
+    labelTransform!,
+  );
+  await expect(svgText('100,0 cm (eixo)')).toHaveCount(1);
+  await zoomOut.click();
+  await zoomOut.click();
 
   const afterCotating = await snapshot(page);
   expect(afterCotating.details.map((d) => d.dimensionConvention)).toEqual([
