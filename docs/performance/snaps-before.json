@@ -1,0 +1,859 @@
+{
+  "label": "snaps-antes-master-978786b",
+  "commit": "978786b66dbdde3978d28b9e55b92416b821796c",
+  "environment": {
+    "system": "linux 6.18.57",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "browser": "153.0.8010.0",
+    "graphics": {
+      "devices": [
+        {
+          "vendorId": 65535,
+          "deviceId": 65535,
+          "vendorString": "Google Inc. (Google)",
+          "deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+          "driverVendor": "SwANGLE",
+          "driverVersion": "5.0.0"
+        }
+      ],
+      "features": {
+        "2d_canvas": "enabled",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "enabled",
+        "multiple_raster_threads": "enabled_on",
+        "opengl": "enabled_on",
+        "rasterization": "enabled",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "disabled_software",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "enabled",
+        "webgpu": "unavailable_software",
+        "webgpu_on_vk_via_gl_interop": "disabled_off",
+        "webnn": "disabled_off"
+      }
+    },
+    "node": "v24.22.1",
+    "url": "http://127.0.0.1:1420",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "samples": 60,
+    "repeats": 3
+  },
+  "scenes": {
+    "large": {
+      "bytes": 2554283,
+      "bars": 400,
+      "representations": 400,
+      "masks": 1,
+      "maskPrimitives": 20000,
+      "maskPoints": 40000,
+      "svgElements": 5127,
+      "actions": {
+        "cursor-snap": [
+          {
+            "elapsedMs": 1310.496306,
+            "dispatchMs": {
+              "count": 60,
+              "median": 19.971551999999974,
+              "p95": 34.679879999999685,
+              "max": 37.32424100000026
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 33.400000000000546,
+              "max": 100.09999999999991
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 43.299999999813735,
+              "p95": 64.1000000005588,
+              "max": 69.70000000018626
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 198.426,
+              "TaskDuration": 1334.635,
+              "LayoutDuration": 17.715999999999998,
+              "RecalcStyleDuration": 6.102
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1134.589
+              },
+              {
+                "frame": "Fe index-DqzHNq7-.js:66",
+                "selfMs": 114.463
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 67.389
+              },
+              {
+                "frame": "_t index-DqzHNq7-.js:71",
+                "selfMs": 27.543
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 10.348
+              },
+              {
+                "frame": "ft index-DqzHNq7-.js:71",
+                "selfMs": 6.493
+              },
+              {
+                "frame": "yt index-DqzHNq7-.js:66",
+                "selfMs": 5.435
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 4.423
+              },
+              {
+                "frame": "We index-DqzHNq7-.js:66",
+                "selfMs": 2.201
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:71",
+                "selfMs": 2.18
+              },
+              {
+                "frame": "queueMicrotask :0",
+                "selfMs": 1.21
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.168
+              },
+              {
+                "frame": "a index-DqzHNq7-.js:9",
+                "selfMs": 1.149
+              },
+              {
+                "frame": "yf index-DqzHNq7-.js:9",
+                "selfMs": 1.121
+              },
+              {
+                "frame": "p0 index-DqzHNq7-.js:10",
+                "selfMs": 1.118
+              },
+              {
+                "frame": "fO index-DqzHNq7-.js:10",
+                "selfMs": 1.105
+              },
+              {
+                "frame": "fd index-DqzHNq7-.js:9",
+                "selfMs": 1.101
+              },
+              {
+                "frame": "et index-DqzHNq7-.js:66",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "u0 index-DqzHNq7-.js:9",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "xC index-DqzHNq7-.js:9",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "kl index-DqzHNq7-.js:9",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "Yf index-DqzHNq7-.js:9",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.077
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1194.4107110000004,
+            "dispatchMs": {
+              "count": 60,
+              "median": 18.672652000001108,
+              "p95": 27.314800000000105,
+              "max": 52.49542399999882
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 33.30000000000018,
+              "max": 100
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 39.799999999813735,
+              "p95": 51.299999999813735,
+              "max": 78.69999999925494
+            },
+            "longTasks": {
+              "count": 1,
+              "median": 51,
+              "p95": 51,
+              "max": 51
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 179.89899999999997,
+              "TaskDuration": 1317.522,
+              "LayoutDuration": 17.203000000000003,
+              "RecalcStyleDuration": 5.848000000000001
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1132.339
+              },
+              {
+                "frame": "Fe index-DqzHNq7-.js:66",
+                "selfMs": 102.805
+              },
+              {
+                "frame": "_t index-DqzHNq7-.js:71",
+                "selfMs": 30.363
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:71",
+                "selfMs": 8.751
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 4.573
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 4.353
+              },
+              {
+                "frame": "queueMicrotask :0",
+                "selfMs": 3.409
+              },
+              {
+                "frame": "et index-DqzHNq7-.js:66",
+                "selfMs": 3.283
+              },
+              {
+                "frame": "a index-DqzHNq7-.js:9",
+                "selfMs": 2.256
+              },
+              {
+                "frame": "fO index-DqzHNq7-.js:10",
+                "selfMs": 2.177
+              },
+              {
+                "frame": "ft index-DqzHNq7-.js:71",
+                "selfMs": 2.144
+              },
+              {
+                "frame": "JC index-DqzHNq7-.js:9",
+                "selfMs": 1.149
+              },
+              {
+                "frame": "FC index-DqzHNq7-.js:9",
+                "selfMs": 1.12
+              },
+              {
+                "frame": "Co index-DqzHNq7-.js:9",
+                "selfMs": 1.115
+              },
+              {
+                "frame": "rn.createElement index-DqzHNq7-.js:2",
+                "selfMs": 1.096
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "GC index-DqzHNq7-.js:9",
+                "selfMs": 1.088
+              },
+              {
+                "frame": "t0 index-DqzHNq7-.js:9",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "movementY index-DqzHNq7-.js:9",
+                "selfMs": 1.085
+              },
+              {
+                "frame": "kl index-DqzHNq7-.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:10",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "e.unstable_now index-DqzHNq7-.js:2",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:9",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "$N index-DqzHNq7-.js:9",
+                "selfMs": 1.082
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1296.3171650000004,
+            "dispatchMs": {
+              "count": 60,
+              "median": 20.538743999999497,
+              "p95": 30.488015000000814,
+              "max": 51.93246900000122
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 33.399999999999636,
+              "max": 50
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 44.10000000055879,
+              "p95": 64.90000000037253,
+              "max": 71.20000000018626
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 194.355,
+              "TaskDuration": 1360.7549999999997,
+              "LayoutDuration": 13.219000000000001,
+              "RecalcStyleDuration": 4.7860000000000005
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1139.135
+              },
+              {
+                "frame": "Fe index-DqzHNq7-.js:66",
+                "selfMs": 121.553
+              },
+              {
+                "frame": "_t index-DqzHNq7-.js:71",
+                "selfMs": 30.363
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 11.015
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 10.273
+              },
+              {
+                "frame": "_x index-DqzHNq7-.js:9",
+                "selfMs": 6.613
+              },
+              {
+                "frame": "et index-DqzHNq7-.js:66",
+                "selfMs": 4.373
+              },
+              {
+                "frame": "YS index-DqzHNq7-.js:10",
+                "selfMs": 4.211
+              },
+              {
+                "frame": "a index-DqzHNq7-.js:9",
+                "selfMs": 3.269
+              },
+              {
+                "frame": "yt index-DqzHNq7-.js:66",
+                "selfMs": 3.224
+              },
+              {
+                "frame": "ft index-DqzHNq7-.js:71",
+                "selfMs": 2.176
+              },
+              {
+                "frame": "O0 index-DqzHNq7-.js:10",
+                "selfMs": 2.156
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:71",
+                "selfMs": 2.1550000000000002
+              },
+              {
+                "frame": "pd index-DqzHNq7-.js:9",
+                "selfMs": 1.164
+              },
+              {
+                "frame": "Pe index-DqzHNq7-.js:9",
+                "selfMs": 1.125
+              },
+              {
+                "frame": "_I index-DqzHNq7-.js:10",
+                "selfMs": 1.108
+              },
+              {
+                "frame": "qp index-DqzHNq7-.js:9",
+                "selfMs": 1.101
+              },
+              {
+                "frame": "Pr index-DqzHNq7-.js:9",
+                "selfMs": 1.099
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "FC index-DqzHNq7-.js:9",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "$s index-DqzHNq7-.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "qN index-DqzHNq7-.js:9",
+                "selfMs": 1.085
+              },
+              {
+                "frame": "n0 index-DqzHNq7-.js:9",
+                "selfMs": 1.085
+              },
+              {
+                "frame": "We index-DqzHNq7-.js:66",
+                "selfMs": 1.084
+              }
+            ]
+          }
+        ],
+        "cursor-no-snap": [
+          {
+            "elapsedMs": 1012.6797160000006,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.63311900000008,
+              "p95": 19.066498000000138,
+              "max": 19.721816999999646
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.69999999999891,
+              "p95": 16.799999999999272,
+              "max": 66.60000000000036
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.299999999813735,
+              "p95": 39,
+              "max": 40.59999999962747
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 29.078999999999965,
+              "TaskDuration": 772.469,
+              "LayoutDuration": 7.5710000000000015,
+              "RecalcStyleDuration": 1.6310000000000004
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 741.337
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 321.472
+              },
+              {
+                "frame": "a index-DqzHNq7-.js:9",
+                "selfMs": 4.57
+              },
+              {
+                "frame": "nl index-DqzHNq7-.js:9",
+                "selfMs": 2.2350000000000003
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:10",
+                "selfMs": 2.214
+              },
+              {
+                "frame": "KC index-DqzHNq7-.js:9",
+                "selfMs": 1.245
+              },
+              {
+                "frame": "Ew index-DqzHNq7-.js:9",
+                "selfMs": 1.212
+              },
+              {
+                "frame": "Yf index-DqzHNq7-.js:9",
+                "selfMs": 1.145
+              },
+              {
+                "frame": "bD index-DqzHNq7-.js:10",
+                "selfMs": 1.14
+              },
+              {
+                "frame": "gt index-DqzHNq7-.js:9",
+                "selfMs": 1.137
+              },
+              {
+                "frame": "mn index-DqzHNq7-.js:2",
+                "selfMs": 1.125
+              },
+              {
+                "frame": "FC index-DqzHNq7-.js:9",
+                "selfMs": 1.122
+              },
+              {
+                "frame": "YC index-DqzHNq7-.js:9",
+                "selfMs": 1.122
+              },
+              {
+                "frame": "(anonymous) :1",
+                "selfMs": 1.121
+              },
+              {
+                "frame": "queueMicrotask :0",
+                "selfMs": 1.106
+              },
+              {
+                "frame": "Vn index-DqzHNq7-.js:10",
+                "selfMs": 1.105
+              },
+              {
+                "frame": "Co index-DqzHNq7-.js:9",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "pd index-DqzHNq7-.js:9",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "RC index-DqzHNq7-.js:9",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:71",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "u0 index-DqzHNq7-.js:9",
+                "selfMs": 1.077
+              },
+              {
+                "frame": "qN index-DqzHNq7-.js:9",
+                "selfMs": 1.076
+              },
+              {
+                "frame": "rn.createElement index-DqzHNq7-.js:2",
+                "selfMs": 1.043
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1029.2979720000003,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.647510999999213,
+              "p95": 18.815742000000682,
+              "max": 19.06651299999976
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.69999999999891,
+              "p95": 16.700000000000728,
+              "max": 66.70000000000073
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.19999999925494,
+              "p95": 38.40000000037253,
+              "max": 39
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 28.487999999999957,
+              "TaskDuration": 719.0569999999993,
+              "LayoutDuration": 7.203000000000001,
+              "RecalcStyleDuration": 1.517000000000001
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 686.178
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 398.668
+              },
+              {
+                "frame": "pd index-DqzHNq7-.js:9",
+                "selfMs": 3.352
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:71",
+                "selfMs": 3.2350000000000003
+              },
+              {
+                "frame": "Yf index-DqzHNq7-.js:9",
+                "selfMs": 2.186
+              },
+              {
+                "frame": "a index-DqzHNq7-.js:9",
+                "selfMs": 2.159
+              },
+              {
+                "frame": "Qx index-DqzHNq7-.js:9",
+                "selfMs": 1.308
+              },
+              {
+                "frame": "mn index-DqzHNq7-.js:2",
+                "selfMs": 1.112
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "hn index-DqzHNq7-.js:9",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "_I index-DqzHNq7-.js:10",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "getRootNode :0",
+                "selfMs": 1.085
+              },
+              {
+                "frame": "aC index-DqzHNq7-.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "We index-DqzHNq7-.js:66",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "t0 index-DqzHNq7-.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "gt index-DqzHNq7-.js:9",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "Ew index-DqzHNq7-.js:9",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "De index-DqzHNq7-.js:2",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:9",
+                "selfMs": 1.075
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "tD index-DqzHNq7-.js:10",
+                "selfMs": 0
+              },
+              {
+                "frame": "N0 index-DqzHNq7-.js:10",
+                "selfMs": 0
+              },
+              {
+                "frame": "u0 index-DqzHNq7-.js:9",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1028.1413899999989,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.600979999999254,
+              "p95": 19.002838000000338,
+              "max": 20.105333999999857
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.69999999999891,
+              "p95": 16.700000000000728,
+              "max": 66.60000000000036
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.10000000055879,
+              "p95": 38.80000000074506,
+              "max": 39.59999999962747
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 32.3429999999999,
+              "TaskDuration": 751.1299999999999,
+              "LayoutDuration": 8.274000000000004,
+              "RecalcStyleDuration": 1.5880000000000025
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 717.367
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 366.225
+              },
+              {
+                "frame": "a index-DqzHNq7-.js:9",
+                "selfMs": 5.319
+              },
+              {
+                "frame": "FC index-DqzHNq7-.js:9",
+                "selfMs": 2.201
+              },
+              {
+                "frame": "Yf index-DqzHNq7-.js:9",
+                "selfMs": 2.185
+              },
+              {
+                "frame": "(anonymous) :24",
+                "selfMs": 2.175
+              },
+              {
+                "frame": "wo index-DqzHNq7-.js:9",
+                "selfMs": 1.115
+              },
+              {
+                "frame": "_x index-DqzHNq7-.js:9",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "p0 index-DqzHNq7-.js:10",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "KC index-DqzHNq7-.js:9",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "eS index-DqzHNq7-.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "fO index-DqzHNq7-.js:10",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "aC index-DqzHNq7-.js:9",
+                "selfMs": 1.085
+              },
+              {
+                "frame": "Lt index-DqzHNq7-.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "Hf index-DqzHNq7-.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "(anonymous) index-DqzHNq7-.js:9",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "Dw index-DqzHNq7-.js:9",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "c index-DqzHNq7-.js:2",
+                "selfMs": 1.078
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.028
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 0.095
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "ie index-DqzHNq7-.js:2",
+                "selfMs": 0
+              },
+              {
+                "frame": "RC index-DqzHNq7-.js:9",
+                "selfMs": 0
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    }
+  }
+}

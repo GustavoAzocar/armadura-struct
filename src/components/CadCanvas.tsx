@@ -105,6 +105,12 @@ import {
   type SnapCandidate,
 } from '../domain/objectSnaps';
 import { pathCurve, roundCurve } from '../domain/maskCadGeometry';
+import {
+  acquireSnapGuides,
+  snapGuideCandidates,
+  snapGuidePath,
+  type SnapAcquisition,
+} from '../domain/objectSnapGuides';
 export type Camera = { x: number; y: number; s: number };
 export type CadState = {
   view: Camera;
@@ -158,6 +164,7 @@ type Props = {
   /** Explicit command base; null disables relations for projected/vertex edits. */
   snapBase?: Point | null;
   snapContext?: string;
+  snapLinear?: boolean;
   mirrorAxis?: { base: Point; end: Point };
   onContextRequest: (ids: string[], point: Point, screen: Point) => void;
   commandActive?: boolean;
@@ -750,6 +757,27 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const snapModes = props.snapModes ?? defaultSnapModes;
   const snapBase =
     props.snapBase === null ? undefined : (props.snapBase ?? draft.at(-1));
+  const guideActive =
+    !props.maskSidePick &&
+    !props.maskEditing &&
+    !['select', 'pan', 'follow', 'convert'].includes(tool) &&
+    (!!props.nativeDrawing || ['bar', 'polyline'].includes(tool) || !!snapBase);
+  const acquiredRef = useRef<SnapAcquisition>({});
+  const [acquired, setAcquired] = useState<SnapAcquisition>({});
+  useEffect(() => {
+    acquiredRef.current = {};
+    setAcquired({});
+  }, [
+    snap,
+    snapModes,
+    snapIndex,
+    tool,
+    snapBase?.x,
+    snapBase?.y,
+    props.snapContext,
+    props.snapLinear,
+    guideActive,
+  ]);
   useEffect(() => {
     setSnapPoint(null);
     setSnapLimited(false);
@@ -765,12 +793,35 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     props.snapContext,
   ]);
   const snapAt = (raw: Point) => {
+    const guideOptions = {
+      enabled: snap,
+      active: guideActive,
+      modes: snapModes,
+      tolerance: 10 / view.s,
+      base: snapBase,
+      linear: !!props.snapLinear,
+    };
+    const next = acquireSnapGuides(
+      snapIndex,
+      raw,
+      acquiredRef.current,
+      guideOptions,
+    );
+    if (
+      next.extension?.id !== acquiredRef.current.extension?.id ||
+      next.extension?.end !== acquiredRef.current.extension?.end ||
+      next.parallel?.id !== acquiredRef.current.parallel?.id
+    ) {
+      acquiredRef.current = next;
+      setAcquired(next);
+    }
     const result = resolveObjectSnap(snapIndex, raw, {
       enabled: snap,
       modes: snapModes,
       tolerance: 10 / view.s,
       extra: props.extraSnapPoints,
       base: snapBase,
+      guides: snapGuideCandidates(snapIndex, next, raw, guideOptions),
     });
     let target = result.candidate;
     let p = target?.point ?? raw;
@@ -1812,7 +1863,37 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               )}
             </g>
           )}
-          {snapPoint && (
+          {snap &&
+            guideActive &&
+            Object.entries(acquired).map(([kind, ref]) => {
+              const entry = ref && snapIndex.entries.get(ref.id);
+              return entry ? (
+                <path
+                  key={kind}
+                  data-testid="snap-reference"
+                  data-kind={kind}
+                  d={snapGuidePath(entry.curve)}
+                  fill="none"
+                  stroke={light ? '#087b66' : '#44dec0'}
+                  strokeWidth={2 * stroke}
+                  opacity="0.65"
+                  pointerEvents="none"
+                />
+              ) : null;
+            })}
+          {snap && snapPoint?.guide && (
+            <path
+              data-testid="snap-guide"
+              data-snap-mode={snapPoint.mode}
+              d={snapGuidePath(snapPoint.guide)}
+              fill="none"
+              stroke={light ? '#087b66' : '#44dec0'}
+              strokeWidth={1.5 * stroke}
+              strokeDasharray={`${6 * stroke} ${4 * stroke}`}
+              pointerEvents="none"
+            />
+          )}
+          {snap && snapPoint && (
             <g
               data-testid="snap-marker"
               data-snap-mode={snapPoint.mode}

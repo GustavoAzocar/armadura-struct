@@ -438,3 +438,211 @@ test('Esc e troca de comando removem a base contextual de perpendicular/tangente
   await hover(page, { x: 1700, y: 0 });
   await expect(page.getByTestId('snap-marker')).toHaveCount(0);
 });
+
+async function exactHover(page: Page, point: Point) {
+  const at = await screen(page, point);
+  await page.mouse.move(at.x, at.y);
+  return at;
+}
+async function guidedPoint(page: Page, mode: SnapMode) {
+  const mark = page.getByTestId('snap-marker');
+  await expect(mark).toHaveAttribute('data-snap-mode', mode);
+  await expect(page.getByTestId('snap-guide')).toHaveAttribute(
+    'data-snap-mode',
+    mode,
+  );
+  const point = {
+    x: Number(await mark.getAttribute('data-x')),
+    y: Number(await mark.getAttribute('data-y')),
+  };
+  const end = await page
+    .getByTestId('transform-preview')
+    .locator('path')
+    .first()
+    .evaluate((el) => {
+      const p = (el as SVGPathElement).getPointAtLength(
+        (el as SVGPathElement).getTotalLength(),
+      );
+      return { x: p.x, y: p.y };
+    });
+  expect(end.x).toBeCloseTo(point.x, 3);
+  expect(end.y).toBeCloseTo(point.y, 3);
+  return point;
+}
+
+test('Extensão e Paralelo: referência, guia, prévia e clique em dois zooms e máscara transformada', async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  const project = fixture();
+  await load(page, project);
+  const cases: {
+    mode: SnapMode;
+    base: Point;
+    acquire: Point;
+    raw: Point;
+    target: Point;
+  }[] = [
+    {
+      mode: 'extension',
+      base: { x: 0, y: 300 },
+      acquire: { x: 1000, y: 0 },
+      raw: { x: 1300, y: 10 },
+      target: { x: 1300, y: 0 },
+    },
+    {
+      mode: 'parallel',
+      base: { x: 200, y: 300 },
+      acquire: { x: 400, y: 0 },
+      raw: { x: 800, y: 310 },
+      target: { x: 800, y: 300 },
+    },
+    {
+      mode: 'parallel',
+      base: maskPoint({ x: 200, y: 300 }, project.masks[1]),
+      acquire: maskPoint({ x: 400, y: 0 }, project.masks[1]),
+      raw: maskPoint({ x: 800, y: 305 }, project.masks[1]),
+      target: maskPoint({ x: 800, y: 300 }, project.masks[1]),
+    },
+  ];
+  for (const zoom of [1, 2]) {
+    if (zoom === 2)
+      await page
+        .getByRole('button', { name: 'Aproximar', exact: true })
+        .click();
+    for (const c of cases) {
+      await modes(page, [c.mode]);
+      await command(page, 'L');
+      await command(page, `${c.base.x},${c.base.y}`);
+      await exactHover(page, c.raw);
+      await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+      await exactHover(page, c.acquire);
+      await expect(page.getByTestId('snap-reference')).toHaveCount(1);
+      const at = await exactHover(page, c.raw);
+      const point = await guidedPoint(page, c.mode);
+      // Native horizontal references constrain y exactly. Subpixel pointer
+      // quantisation can shift the unconstrained coordinate slightly.
+      expect(
+        Math.hypot(point.x - c.target.x, point.y - c.target.y),
+      ).toBeLessThan(8);
+      if (c.mode === 'extension' || c.base.x === 200)
+        expect(point.y).toBeCloseTo(c.target.y, 6);
+      else {
+        const a = maskPoint({ x: 0, y: 0 }, project.masks[1]),
+          b = maskPoint({ x: 1000, y: 0 }, project.masks[1]);
+        expect(
+          (point.x - c.base.x) * (b.y - a.y) -
+            (point.y - c.base.y) * (b.x - a.x),
+        ).toBeCloseTo(0, 5);
+      }
+      if (zoom === 1)
+        await page.screenshot({ path: `docs/object-snaps-${c.mode}.png` });
+      await page.mouse.click(at.x, at.y);
+      await page.keyboard.press('Escape');
+      const saved = await save(page),
+        mask = saved.masks.find((m) => m.id === 'snaps-native')!;
+      const applied = maskPoint(mask.primitives.at(-1)!.points.at(-1)!, mask);
+      expect(applied.x).toBeCloseTo(point.x, 5);
+      expect(applied.y).toBeCloseTo(point.y, 5);
+      expect(saved.masks[1]).toEqual(project.masks[1]);
+      expect(mask.primitives.slice(0, -1)).toEqual(project.masks[0].primitives);
+      await command(page, 'U');
+    }
+  }
+});
+
+test('Extensão de arco analítico continua a varredura no extremo adquirido', async ({
+  page,
+}) => {
+  const project = fixture();
+  project.masks[0].primitives[2] = nativePrimitive(
+    {
+      kind: 'arc',
+      center: { x: 1500, y: 0 },
+      radius: 200,
+      startAngle: 0,
+      sweepAngle: 90,
+    },
+    'arc',
+  );
+  await load(page, project);
+  await modes(page, ['extension']);
+  await command(page, 'L');
+  await command(page, '1100,400');
+  await exactHover(page, { x: 1500, y: 200 });
+  await expect(page.getByTestId('snap-reference')).toHaveCount(1);
+  const at = await exactHover(page, { x: 1395, y: Math.sqrt(30000) * 1.05 });
+  const point = await guidedPoint(page, 'extension');
+  expect(Math.hypot(point.x - 1500, point.y)).toBeCloseTo(200, 6);
+  expect(point.x).toBeLessThan(1500);
+  expect(point.y).toBeGreaterThan(0);
+  await expect(page.getByTestId('snap-guide')).toHaveAttribute(
+    'd',
+    / A200,200 /,
+  );
+  await page.screenshot({ path: 'docs/object-snaps-arc-extension.png' });
+  await page.mouse.click(at.x, at.y);
+  await page.keyboard.press('Escape');
+  const saved = await save(page),
+    mask = saved.masks[0];
+  const applied = maskPoint(mask.primitives.at(-1)!.points.at(-1)!, mask);
+  expect(applied.x).toBeCloseTo(point.x, 5);
+  expect(applied.y).toBeCloseTo(point.y, 5);
+  expect(mask.primitives[2]).toEqual(project.masks[0].primitives[2]);
+});
+
+test('guias descartadas por Esc, F3, troca de comando ou referência ocultada, nativa e importada', async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  const project = fixture();
+  await load(page, project);
+  await modes(page, ['parallel']);
+  for (const reference of [project.masks[0], project.masks[1]]) {
+    const base = maskPoint({ x: 200, y: 300 }, reference),
+      acquire = maskPoint({ x: 400, y: 0 }, reference),
+      raw = maskPoint({ x: 800, y: 305 }, reference);
+    const start = async () => {
+      await command(page, 'L');
+      await command(page, `${base.x},${base.y}`);
+      await exactHover(page, raw);
+      await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+      await exactHover(page, acquire);
+      await exactHover(page, raw);
+      await guidedPoint(page, 'parallel');
+    };
+    await start();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+    await expect(page.getByTestId('snap-reference')).toHaveCount(0);
+    await start();
+    await page.getByRole('textbox', { name: 'Comando CAD' }).blur();
+    await page.keyboard.press('F3');
+    await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+    await expect(page.getByTestId('snap-reference')).toHaveCount(0);
+    await page.keyboard.press('F3');
+    await exactHover(page, raw);
+    await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+    await exactHover(page, acquire);
+    await exactHover(page, raw);
+    await guidedPoint(page, 'parallel');
+    await command(page, 'C');
+    await exactHover(page, raw);
+    await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+    await expect(page.getByTestId('snap-reference')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await start();
+    await page
+      .getByRole('button', { name: `Ocultar ${reference.name}`, exact: true })
+      .click();
+    await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+    await expect(page.getByTestId('snap-reference')).toHaveCount(0);
+    await page
+      .getByRole('button', { name: `Mostrar ${reference.name}`, exact: true })
+      .click();
+    await exactHover(page, raw);
+    await expect(page.getByTestId('snap-guide')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+  }
+  expect((await save(page)).masks).toEqual(project.masks);
+});

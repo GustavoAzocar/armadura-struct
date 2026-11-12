@@ -1,0 +1,874 @@
+{
+  "label": "snaps-depois-todos",
+  "commit": "f078dedf9f0f3186261dd518f995d88c11d4fa2e",
+  "environment": {
+    "system": "linux 6.18.57",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "browser": "153.0.8010.0",
+    "graphics": {
+      "devices": [
+        {
+          "vendorId": 65535,
+          "deviceId": 65535,
+          "vendorString": "Google Inc. (Google)",
+          "deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+          "driverVendor": "SwANGLE",
+          "driverVersion": "5.0.0"
+        }
+      ],
+      "features": {
+        "2d_canvas": "enabled",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "enabled",
+        "multiple_raster_threads": "enabled_on",
+        "opengl": "enabled_on",
+        "rasterization": "enabled",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "disabled_software",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "enabled",
+        "webgpu": "unavailable_software",
+        "webgpu_on_vk_via_gl_interop": "disabled_off",
+        "webnn": "disabled_off"
+      }
+    },
+    "node": "v24.22.1",
+    "url": "http://127.0.0.1:1420",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "samples": 60,
+    "repeats": 3,
+    "snapModes": [
+      "endpoint",
+      "midpoint",
+      "center",
+      "geometricCenter",
+      "quadrant",
+      "intersection",
+      "nearest",
+      "insertion",
+      "node",
+      "perpendicular",
+      "tangent",
+      "extension",
+      "parallel"
+    ]
+  },
+  "scenes": {
+    "large": {
+      "bytes": 2554283,
+      "bars": 400,
+      "representations": 400,
+      "masks": 1,
+      "maskPrimitives": 20000,
+      "maskPoints": 40000,
+      "svgElements": 5127,
+      "actions": {
+        "cursor-snap": [
+          {
+            "elapsedMs": 1244.3077890000004,
+            "dispatchMs": {
+              "count": 60,
+              "median": 18.76867400000083,
+              "p95": 29.15864099999999,
+              "max": 72.84746899999936
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.699999999999818,
+              "p95": 33.400000000000546,
+              "max": 233.29999999999927
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 39.90000000037253,
+              "p95": 60.100000001490116,
+              "max": 102
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 56.538,
+              "TaskDuration": 1401.232,
+              "LayoutDuration": 18.172,
+              "RecalcStyleDuration": 8.678999999999998
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1339.885
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 80.439
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 5.328
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:9",
+                "selfMs": 4.371
+              },
+              {
+                "frame": "tC index-DdgQc3GD.js:9",
+                "selfMs": 3.213
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 2.189
+              },
+              {
+                "frame": "Pd index-DdgQc3GD.js:9",
+                "selfMs": 2.186
+              },
+              {
+                "frame": "ee index-DdgQc3GD.js:9",
+                "selfMs": 2.186
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 2.182
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 2.09
+              },
+              {
+                "frame": "OD index-DdgQc3GD.js:10",
+                "selfMs": 1.182
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.152
+              },
+              {
+                "frame": "hC index-DdgQc3GD.js:9",
+                "selfMs": 1.117
+              },
+              {
+                "frame": "(anonymous) :24",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "ci index-DdgQc3GD.js:9",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "sn.createElement index-DdgQc3GD.js:2",
+                "selfMs": 1.095
+              },
+              {
+                "frame": "gd index-DdgQc3GD.js:9",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 1.091
+              },
+              {
+                "frame": "Ck index-DdgQc3GD.js:66",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "up index-DdgQc3GD.js:66",
+                "selfMs": 1.088
+              },
+              {
+                "frame": "f index-DdgQc3GD.js:9",
+                "selfMs": 1.088
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:10",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "So index-DdgQc3GD.js:9",
+                "selfMs": 1.086
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1212.5009739999996,
+            "dispatchMs": {
+              "count": 60,
+              "median": 19.166631000000052,
+              "p95": 27.838918999999805,
+              "max": 32.65117800000007
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 33.399999999999636,
+              "max": 233.30000000000018
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 41.20000000111759,
+              "p95": 55.40000000037253,
+              "max": 57.29999999888241
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 69.35600000000001,
+              "TaskDuration": 1439.4389999999999,
+              "LayoutDuration": 15.665,
+              "RecalcStyleDuration": 7.138999999999998
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1360.168
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 24.474
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 5.376
+              },
+              {
+                "frame": "r5 index-DdgQc3GD.js:66",
+                "selfMs": 5.322
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 4.411
+              },
+              {
+                "frame": "QC index-DdgQc3GD.js:9",
+                "selfMs": 3.814
+              },
+              {
+                "frame": "lp index-DdgQc3GD.js:66",
+                "selfMs": 3.22
+              },
+              {
+                "frame": "re index-DdgQc3GD.js:2",
+                "selfMs": 2.416
+              },
+              {
+                "frame": "Ck index-DdgQc3GD.js:66",
+                "selfMs": 2.165
+              },
+              {
+                "frame": "Uv index-DdgQc3GD.js:66",
+                "selfMs": 2.16
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 2.159
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 2.145
+              },
+              {
+                "frame": "d0 index-DdgQc3GD.js:9",
+                "selfMs": 2.128
+              },
+              {
+                "frame": "pn index-DdgQc3GD.js:9",
+                "selfMs": 1.808
+              },
+              {
+                "frame": "Lh index-DdgQc3GD.js:66",
+                "selfMs": 1.541
+              },
+              {
+                "frame": "rS index-DdgQc3GD.js:9",
+                "selfMs": 1.367
+              },
+              {
+                "frame": "JC index-DdgQc3GD.js:9",
+                "selfMs": 1.214
+              },
+              {
+                "frame": "Ar index-DdgQc3GD.js:71",
+                "selfMs": 1.195
+              },
+              {
+                "frame": "tC index-DdgQc3GD.js:9",
+                "selfMs": 1.181
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 1.165
+              },
+              {
+                "frame": "pt index-DdgQc3GD.js:9",
+                "selfMs": 1.131
+              },
+              {
+                "frame": "oS index-DdgQc3GD.js:9",
+                "selfMs": 1.124
+              },
+              {
+                "frame": "nh index-DdgQc3GD.js:9",
+                "selfMs": 1.109
+              },
+              {
+                "frame": "If index-DdgQc3GD.js:9",
+                "selfMs": 1.104
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1184.557949,
+            "dispatchMs": {
+              "count": 60,
+              "median": 18.595423000000665,
+              "p95": 25.365843999999925,
+              "max": 38.20661199999995
+            },
+            "frameMs": {
+              "count": 65,
+              "median": 16.69999999999891,
+              "p95": 33.30000000000109,
+              "max": 250
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 40.19999999925494,
+              "p95": 46.29999999888241,
+              "max": 49.19999999925494
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 40.857000000000006,
+              "TaskDuration": 1453.2509999999997,
+              "LayoutDuration": 13.374999999999998,
+              "RecalcStyleDuration": 6.4799999999999995
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1401.176
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 8.9
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 7.566
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 2.334
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 2.259
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 2.248
+              },
+              {
+                "frame": "He index-DdgQc3GD.js:66",
+                "selfMs": 2.19
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 2.188
+              },
+              {
+                "frame": "Ls index-DdgQc3GD.js:9",
+                "selfMs": 2.172
+              },
+              {
+                "frame": "ym index-DdgQc3GD.js:9",
+                "selfMs": 1.136
+              },
+              {
+                "frame": "up index-DdgQc3GD.js:66",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "tC index-DdgQc3GD.js:9",
+                "selfMs": 1.096
+              },
+              {
+                "frame": "OD index-DdgQc3GD.js:10",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "lp index-DdgQc3GD.js:66",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "TC index-DdgQc3GD.js:9",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "gd index-DdgQc3GD.js:9",
+                "selfMs": 1.091
+              },
+              {
+                "frame": "XI index-DdgQc3GD.js:10",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "rh index-DdgQc3GD.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "ei index-DdgQc3GD.js:10",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "f index-DdgQc3GD.js:9",
+                "selfMs": 1.085
+              },
+              {
+                "frame": "pn index-DdgQc3GD.js:9",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "Ae index-DdgQc3GD.js:9",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 1.082
+              }
+            ]
+          }
+        ],
+        "cursor-no-snap": [
+          {
+            "elapsedMs": 1026.2401769999997,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.61339599999883,
+              "p95": 18.96909400000004,
+              "max": 19.09630500000094
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.69999999999891,
+              "p95": 16.80000000000109,
+              "max": 250
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36,
+              "p95": 37.90000000037253,
+              "max": 38.59999999962747
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 23.04299999999998,
+              "TaskDuration": 845.7790000000002,
+              "LayoutDuration": 5.533999999999997,
+              "RecalcStyleDuration": 1.1229999999999989
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 808.391
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 436.579
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 5.5009999999999994
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 3.27
+              },
+              {
+                "frame": "tC index-DdgQc3GD.js:9",
+                "selfMs": 2.206
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:10",
+                "selfMs": 2.184
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.181
+              },
+              {
+                "frame": "od index-DdgQc3GD.js:9",
+                "selfMs": 2.16
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 2.157
+              },
+              {
+                "frame": "XI index-DdgQc3GD.js:10",
+                "selfMs": 1.117
+              },
+              {
+                "frame": "gd index-DdgQc3GD.js:9",
+                "selfMs": 1.099
+              },
+              {
+                "frame": "rS index-DdgQc3GD.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "mD index-DdgQc3GD.js:10",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "oO index-DdgQc3GD.js:9",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "Pd index-DdgQc3GD.js:9",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "ei index-DdgQc3GD.js:10",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "U0 index-DdgQc3GD.js:10",
+                "selfMs": 1.076
+              },
+              {
+                "frame": "OD index-DdgQc3GD.js:10",
+                "selfMs": 1.026
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "S0 index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "If index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "dS index-DdgQc3GD.js:9",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1023.2700999999997,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.6176030000006,
+              "p95": 19.213220999999976,
+              "max": 25.670050999999148
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.69999999999891,
+              "p95": 16.700000000000728,
+              "max": 216.59999999999854
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 35.90000000037253,
+              "p95": 38.70000000111759,
+              "max": 50.19999999925494
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 30.779,
+              "TaskDuration": 873.1789999999995,
+              "LayoutDuration": 6.725000000000001,
+              "RecalcStyleDuration": 1.2460000000000007
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 838.654
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 394.976
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 2.213
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:9",
+                "selfMs": 2.179
+              },
+              {
+                "frame": "Pd index-DdgQc3GD.js:9",
+                "selfMs": 2.173
+              },
+              {
+                "frame": "re index-DdgQc3GD.js:2",
+                "selfMs": 2.117
+              },
+              {
+                "frame": "od index-DdgQc3GD.js:9",
+                "selfMs": 1.119
+              },
+              {
+                "frame": "rh index-DdgQc3GD.js:9",
+                "selfMs": 1.109
+              },
+              {
+                "frame": "sn.useMemo index-DdgQc3GD.js:2",
+                "selfMs": 1.103
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:10",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "ei index-DdgQc3GD.js:10",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "Hx index-DdgQc3GD.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "SO index-DdgQc3GD.js:10",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "QC index-DdgQc3GD.js:9",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "aa index-DdgQc3GD.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "jl index-DdgQc3GD.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "dm index-DdgQc3GD.js:9",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.079
+              },
+              {
+                "frame": "dS index-DdgQc3GD.js:9",
+                "selfMs": 1.077
+              },
+              {
+                "frame": "mD index-DdgQc3GD.js:10",
+                "selfMs": 1.075
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 1.073
+              },
+              {
+                "frame": "WN index-DdgQc3GD.js:9",
+                "selfMs": 1.068
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1027.927830999999,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.638594000000012,
+              "p95": 18.96265499999936,
+              "max": 19.29617700000017
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.69999999999891,
+              "p95": 16.700000000000728,
+              "max": 233.29999999999927
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36,
+              "p95": 38.09999999962747,
+              "max": 38.5
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 24.891999999999996,
+              "TaskDuration": 855.0549999999993,
+              "LayoutDuration": 6.200000000000004,
+              "RecalcStyleDuration": 1.2080000000000006
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 817.187
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 435.681
+              },
+              {
+                "frame": "Ls index-DdgQc3GD.js:9",
+                "selfMs": 3.481
+              },
+              {
+                "frame": "od index-DdgQc3GD.js:9",
+                "selfMs": 3.338
+              },
+              {
+                "frame": "hC index-DdgQc3GD.js:9",
+                "selfMs": 2.4539999999999997
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 2.167
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:9",
+                "selfMs": 2.16
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 1.278
+              },
+              {
+                "frame": "HC index-DdgQc3GD.js:9",
+                "selfMs": 1.167
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "pt index-DdgQc3GD.js:9",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "SO index-DdgQc3GD.js:10",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "sn.createElement index-DdgQc3GD.js:2",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "Xa index-DdgQc3GD.js:9",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "document.querySelector.addEventListener.capture :20",
+                "selfMs": 1.073
+              },
+              {
+                "frame": "e.unstable_scheduleCallback index-DdgQc3GD.js:2",
+                "selfMs": 1.069
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "re index-DdgQc3GD.js:2",
+                "selfMs": 0
+              },
+              {
+                "frame": "oS index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "u0 index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "aO index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "QC index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "JN index-DdgQc3GD.js:9",
+                "selfMs": 0
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    }
+  }
+}

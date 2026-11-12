@@ -4,6 +4,8 @@
 
 Use **CONFIGURAÇÕES → Preferências → Modos de encaixe** ou **⋮** junto de **ENCAIXES** para escolher os modos de captura. Extremidade e Ponto médio mantêm os padrões anteriores; os novos modos começam desligados. `OSNAP` abre a mesma janela e o comando Encaixes mantém F3 configurável. [Modos, prioridade e geometrias elegíveis](ENCAIXES-CAD.md).
 
+Para **Extensão**, passe o cursor junto do extremo de uma referência capturável e acompanhe seu prolongamento antes de confirmar. Para **Paralelo**, escolha primeiro a base de um novo trecho linear, passe sobre um segmento para adquirir a direção e aproxime o cursor da paralela pela base. A referência fica realçada; a guia tracejada e o marcador indicam o ponto que será aplicado. Esc, F3 desligado, troca de comando ou referência indisponível descartam a aquisição sem modificar a referência. [Sequência e limites das guias](ENCAIXES-CAD.md#extensão-e-paralelo--165).
+
 Em **Máscaras → Ferramentas**, **Ajustar** (Aparar / Trim) e **Estender** (Extend) usam limites selecionados → Enter → cliques nos trechos. Confira a prévia vermelha/verde; Enter encerra e Esc abandona a etapa pendente, preservando operações já confirmadas no histórico. [Guia completo de corte e prolongamento](MASCARAS-AJUSTAR-ESTENDER.md).
 
 Use **Propriedades → Geometria e dobras → Comprimentos e ângulos** (`SEGMENTOS`) para editar medidas locais de uma barra livre. **Estender barra** (`ESTENDER`) alonga apenas o trecho terminal: informe `+300 mm`, `FINAL 1300 mm` ou clique para projetar a nova ponta. Confira a prévia e confirme; **CONTINUAR** permanece o comando que acrescenta vértices/pernas. Veja [as convenções e estratégias da AS-26](AS-26.md).

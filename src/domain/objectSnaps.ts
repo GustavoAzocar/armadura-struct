@@ -24,6 +24,8 @@ export const snapModeLabels = {
   node: 'Nó',
   perpendicular: 'Perpendicular',
   tangent: 'Tangente',
+  extension: 'Extensão',
+  parallel: 'Paralelo',
 } as const;
 export type SnapMode = keyof typeof snapModeLabels;
 export type SnapModes = Record<SnapMode, boolean>;
@@ -39,6 +41,8 @@ export const defaultSnapModes: Readonly<SnapModes> = Object.freeze({
   node: false,
   perpendicular: false,
   tangent: false,
+  extension: false,
+  parallel: false,
 });
 export type SnapSource = {
   id: string;
@@ -52,6 +56,7 @@ export type SnapCandidate = {
   mode: SnapMode | 'extra';
   sourceId: string;
   order: number;
+  guide?: CadCurve;
 };
 type Box = { minX: number; minY: number; maxX: number; maxY: number };
 type Bounded<T> = { box: Box; value: T };
@@ -61,10 +66,11 @@ type Tree<T> = {
   left?: Tree<T>;
   right?: Tree<T>;
 };
-type CurveEntry = { id: string; curve: CadCurve; order: number };
+export type CurveEntry = { id: string; curve: CadCurve; order: number };
 export type SnapIndex = {
   points?: Tree<SnapCandidate>;
   curves?: Tree<CurveEntry>;
+  entries: Map<string, CurveEntry>;
 };
 export type SnapQueryStats = { points: number; curves: number; pairs: number };
 const finite = (p: Point) =>
@@ -237,7 +243,31 @@ export function createSnapIndex(
         }
       }
   }
-  return { points: tree(points), curves: tree(curves) };
+  return {
+    points: tree(points),
+    curves: tree(curves),
+    entries: new Map(curves.map(({ value }) => [value.id, value])),
+  };
+}
+/** Spatially bounded reference acquisition; no full-scene scan on mousemove. */
+export function nearbySnapCurves(
+  index: SnapIndex,
+  raw: Point,
+  tolerance: number,
+): CurveEntry[] {
+  if (!finite(raw) || !Number.isFinite(tolerance) || tolerance <= 0) return [];
+  const found: CurveEntry[] = [];
+  query(
+    index.curves,
+    {
+      minX: raw.x - tolerance,
+      minY: raw.y - tolerance,
+      maxX: raw.x + tolerance,
+      maxY: raw.y + tolerance,
+    },
+    found,
+  );
+  return found.sort((a, b) => a.order - b.order);
 }
 export function perpendicularPoints(c: CadCurve, base: Point): Point[] {
   if (!finite(base)) return [];
@@ -289,6 +319,7 @@ export function resolveObjectSnap(
     tolerance: number;
     extra?: Point[];
     base?: Point;
+    guides?: SnapCandidate[];
     stats?: SnapQueryStats;
   },
 ): { candidate?: SnapCandidate; limited: boolean } {
@@ -333,6 +364,8 @@ export function resolveObjectSnap(
     if (stats) stats.points++;
     if (p.mode !== 'extra' && modes[p.mode]) accept(p);
   }
+  for (const candidate of options.guides ?? [])
+    if (candidate.mode !== 'extra' && modes[candidate.mode]) accept(candidate);
   const near: CurveEntry[] = [];
   const base = options.base && finite(options.base) ? options.base : undefined;
   if (
