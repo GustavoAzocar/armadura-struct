@@ -6,6 +6,7 @@ export function installDirectoryMock() {
     B: { dirs: new Set<string>(), files: new Map<string, string>() },
   };
   let release: (() => void) | undefined;
+  let releaseFile: (() => void) | undefined;
   const state = {
     roots,
     selected: 'A' as 'A' | 'B',
@@ -14,12 +15,19 @@ export function installDirectoryMock() {
     denied: false,
     pause: false,
     writes: [] as { folder: string; data: string }[],
+    selectedFile: null as { folder: 'A' | 'B'; path: string } | null,
+    pauseFile: false,
+    resumeFile: () => {
+      state.pauseFile = false;
+      releaseFile?.();
+    },
     resume: () => {
       state.pause = false;
       release?.();
     },
   };
   type TestFile = {
+    relative?: { folder: 'A' | 'B'; path: string };
     getFile(): Promise<File>;
     createWritable(): Promise<{
       write(s: string): Promise<void>;
@@ -30,6 +38,7 @@ export function installDirectoryMock() {
   type TestDirectory = {
     name: string;
     queryPermission(): Promise<'denied' | 'granted'>;
+    resolve(file: TestFile): Promise<string[] | null>;
     entries(): AsyncIterableIterator<[string, unknown]>;
     getDirectoryHandle(
       n: string,
@@ -42,6 +51,8 @@ export function installDirectoryMock() {
       name: key,
       queryPermission: async () =>
         state.denied ? ('denied' as const) : ('granted' as const),
+      resolve: async ({ relative }) =>
+        relative?.folder === key ? relative.path.split('/') : null,
       entries: async function* (): AsyncIterableIterator<[string, unknown]> {
         const prefix = path ? path + '/' : '';
         for (const name of [...roots[key].dirs, ...roots[key].files.keys()]) {
@@ -103,6 +114,35 @@ export function installDirectoryMock() {
     value: async () => {
       if (state.cancel) throw new DOMException('Cancelado', 'AbortError');
       return directory(state.selected);
+    },
+  });
+  Object.defineProperty(window, 'showOpenFilePicker', {
+    configurable: true,
+    value: async (): Promise<TestFile[]> => {
+      const relative = state.selectedFile;
+      if (state.pauseFile)
+        await new Promise<void>((resolve) => (releaseFile = resolve));
+      if (!relative) throw new DOMException('Cancelado', 'AbortError');
+      return [
+        {
+          relative,
+          getFile: async () => {
+            const raw = roots[relative.folder].files.get(relative.path);
+            if (raw === undefined)
+              throw new DOMException(
+                'Arquivo vinculado ausente.',
+                'NotFoundError',
+              );
+            return new File(
+              [raw],
+              relative.path.slice(relative.path.lastIndexOf('/') + 1),
+            );
+          },
+          createWritable: async () => {
+            throw Error('Apenas leitura.');
+          },
+        },
+      ];
     },
   });
   (window as unknown as { folderMock: typeof state }).folderMock = state;

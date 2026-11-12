@@ -86,6 +86,171 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.busy-overlay')).toHaveCount(0);
 });
+test('arquivos vinculados persistem, não abrem conteúdo externo e são separados por projeto', async ({
+  page,
+}) => {
+  const path = 'Referências/Detalhe.armstruct.json';
+  const folder = page.locator('.folder-menu');
+  const list = page.getByRole('region', { name: 'Arquivos vinculados' });
+  const select = async (selectedFile: DirectoryMock['selectedFile']) =>
+    page.evaluate((entry) => {
+      (
+        window as unknown as { folderMock: DirectoryMock }
+      ).folderMock.selectedFile = entry;
+    }, selectedFile);
+  const link = list.getByRole('button', { name: 'Vincular arquivo' });
+  const openLink = list.getByRole('button', {
+    name: 'Abrir Detalhe.armstruct.json',
+  });
+
+  await create(page, 'Obra A', 'A');
+  await files(page);
+  const before = await raw(page);
+  await link.click();
+  await expect(link).toBeEnabled();
+  expect(await raw(page)).toBe(before);
+  await select({ folder: 'B', path });
+  await link.click();
+  await expect(
+    list.getByText('Selecione um arquivo dentro da pasta autorizada.'),
+  ).toBeVisible();
+  expect(await raw(page)).toBe(before);
+
+  await page.evaluate(
+    ({ path, data }) => {
+      const f = (window as unknown as { folderMock: DirectoryMock }).folderMock;
+      f.roots.A.files.set(path, data);
+      f.roots.A.files.set('Referências/Notas.txt', 'somente referência');
+    },
+    {
+      path,
+      data: JSON.stringify({ ...emptyProject(), name: 'Projeto vinculado' }),
+    },
+  );
+  await select({ folder: 'A', path });
+  await link.click();
+  await expect(openLink).toBeEnabled();
+  await expect
+    .poll(async () => decodeProject((await raw(page))!).linkedFiles)
+    .toEqual([path]);
+  const writes = (await mock(page)).writes.length;
+  await link.click();
+  await expect(
+    page
+      .getByRole('status')
+      .getByText('Arquivo já vinculado.', { exact: true }),
+  ).toBeVisible();
+  expect((await mock(page)).writes).toHaveLength(writes);
+
+  const undo = page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Desfazer', exact: true });
+  const redo = page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Refazer', exact: true });
+  await undo.click();
+  await expect(openLink).toHaveCount(0);
+  await redo.click();
+  await expect(openLink).toBeEnabled();
+  await select({ folder: 'A', path: 'Referências/Notas.txt' });
+  await link.click();
+  await expect(list.getByText('Notas.txt', { exact: true })).toBeVisible();
+  await expect(
+    list.getByRole('button', { name: 'Abrir Notas.txt' }),
+  ).toHaveCount(0);
+  await expect(list.getByRole('button', { name: /Localizar/ })).toHaveCount(0);
+  await expect(page.locator('.save-status')).toHaveText(
+    'Salvo na pasta do projeto',
+  );
+  if (process.env.ARMSTRUCT_LINKED_FILES_CAPTURE) {
+    await folder
+      .locator('.folder-actions')
+      .screenshot({ path: process.env.ARMSTRUCT_LINKED_FILES_CAPTURE });
+  }
+  const saved = (await raw(page))!;
+  await page.evaluate(() => {
+    (window as unknown as { folderMock: DirectoryMock }).folderMock.denied =
+      true;
+    window.dispatchEvent(new Event('focus'));
+  });
+  await expect(
+    list.getByText('Acesso perdido. Use Localizar/associar pasta.'),
+  ).toBeVisible();
+  await expect(openLink).toBeDisabled();
+  expect(await raw(page)).toBe(saved);
+  await page.evaluate(() => {
+    (window as unknown as { folderMock: DirectoryMock }).folderMock.denied =
+      false;
+    window.dispatchEvent(new Event('focus'));
+  });
+  await expect(openLink).toBeEnabled();
+  await page.evaluate((path) => {
+    (
+      window as unknown as { folderMock: DirectoryMock }
+    ).folderMock.roots.A.files.delete(path);
+  }, path);
+  await select({ folder: 'A', path });
+  await openLink.click();
+  await expect(list.getByText('Arquivo vinculado ausente.')).toBeVisible();
+  expect(await raw(page)).toBe(saved);
+
+  await create(page, 'Obra B', 'B');
+  await files(page);
+  await expect(list.getByText('Nenhum arquivo vinculado.')).toBeVisible();
+  await page.getByTestId('project-input').setInputFiles({
+    name: 'copia.armstruct.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(saved),
+  });
+  await expect(
+    list.getByText('Detalhe.armstruct.json', { exact: true }),
+  ).toBeVisible();
+  await expect(openLink).toHaveCount(0);
+  await expect(link).toHaveCount(0);
+});
+
+test('descarta seletor atrasado após fechar e abre somente o arquivo vinculado confirmado', async ({
+  page,
+}) => {
+  const path = 'Detalhe.armstruct.json';
+  await create(page, 'Obra A', 'A');
+  await files(page);
+  const panel = page.getByRole('region', { name: 'Arquivos vinculados' });
+  const link = panel.getByRole('button', { name: 'Vincular arquivo' });
+  await page.evaluate(
+    ({ path, data }) => {
+      const f = (window as unknown as { folderMock: DirectoryMock }).folderMock;
+      f.roots.A.files.set(path, data);
+      f.selectedFile = { folder: 'A', path };
+      f.pauseFile = true;
+    },
+    {
+      path,
+      data: JSON.stringify({ ...emptyProject(), name: 'Detalhe vinculado' }),
+    },
+  );
+  const before = await raw(page);
+  await link.click();
+  await expect(link).toBeDisabled();
+  await page.locator('.folder-menu > summary').press('Escape');
+  await expect(panel).toHaveCount(0);
+  await page.evaluate(() => {
+    (
+      window as unknown as { folderMock: DirectoryMock }
+    ).folderMock.resumeFile();
+  });
+  await files(page);
+  await expect(panel.getByText('Nenhum arquivo vinculado.')).toBeVisible();
+  expect(await raw(page)).toBe(before);
+  await link.click();
+  await expect(page.locator('.save-status')).toHaveText(
+    'Salvo na pasta do projeto',
+  );
+  await panel.getByRole('button', { name: `Abrir ${path}` }).click();
+  await expect(page.getByRole('banner').locator('.window-project')).toHaveText(
+    'Detalhe vinculado',
+  );
+});
 test('escolha é rascunho, cancelar mantém arquivos/projeto e criar salva no local mostrado', async ({
   page,
 }) => {
