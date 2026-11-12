@@ -149,10 +149,36 @@ async function command(page: Page, text: string) {
   await input.press('Enter');
 }
 async function screen(page: Page, point: Point) {
-  return page.getByTestId('cad-canvas').evaluate(async (svg, point) => {
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    );
+  const canvas = page.getByTestId('cad-canvas');
+  let previous = '',
+    stable = 0;
+  // A native drawing toolbar resizes the canvas. Two animation frames alone
+  // do not guarantee that ResizeObserver's React update has committed in CI.
+  // Observe both layout and camera before converting the model coordinate.
+  await expect
+    .poll(
+      async () => {
+        const current = await canvas.evaluate((svg) => {
+          const rect = svg.getBoundingClientRect();
+          return JSON.stringify([
+            rect.x,
+            rect.y,
+            rect.width,
+            rect.height,
+            svg.querySelector('g[transform]')?.getAttribute('transform'),
+          ]);
+        });
+        stable = current === previous ? stable + 1 : 0;
+        previous = current;
+        return stable;
+      },
+      {
+        intervals: [50],
+        message: 'layout e câmera estáveis antes de converter coordenadas',
+      },
+    )
+    .toBeGreaterThanOrEqual(2);
+  return canvas.evaluate((svg, point) => {
     const p = new DOMPoint(point.x, point.y).matrixTransform(
       (svg.querySelector('g[transform]') as SVGGElement).getScreenCTM()!,
     );
