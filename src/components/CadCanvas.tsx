@@ -93,6 +93,17 @@ import type {
   Tool,
 } from '../domain/types';
 import { symbolRenderMasks } from '../domain/symbolRender';
+import {
+  createSnapIndex,
+  defaultSnapModes,
+  maskSnapSource,
+  resolveObjectSnap,
+  snapModeLabels,
+  type SnapModes,
+  type SnapSource,
+  type SnapCandidate,
+} from '../domain/objectSnaps';
+import { pathCurve, roundCurve } from '../domain/maskCadGeometry';
 export type Camera = { x: number; y: number; s: number };
 export type CadState = {
   view: Camera;
@@ -159,6 +170,7 @@ type Props = {
   draft: Point[];
   grid: boolean;
   snap: boolean;
+  snapModes?: Readonly<SnapModes>;
   ortho: boolean;
   light: boolean;
   setTool: (t: Tool) => void;
@@ -243,7 +255,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     props.initialState?.view ?? { x: 2800, y: -300, s: 0.12 },
   );
   const [cursor, setCursor] = useState<Point | null>(null);
-  const [snapPoint, setSnapPoint] = useState<Point | null>(null);
+  const [snapPoint, setSnapPoint] = useState<SnapCandidate | null>(null);
+  const [snapLimited, setSnapLimited] = useState(false);
   const [drag, setDrag] = useState<{ screen: Point; view: typeof view } | null>(
     null,
   );
@@ -638,47 +651,111 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     ],
     [masks, capturable, annotations],
   );
-  const snapAt = (raw: Point) => {
-    let target: Point | undefined,
-      best = 10 / view.s;
-    if (snap) {
-      for (const p of props.extraSnapPoints ?? []) {
-        const d = distance(p, raw);
-        if (d < best) {
-          best = d;
-          target = p;
-        }
+  const snapSources = useMemo(() => {
+    const sources: SnapSource[] = [];
+    const addPath = (id: string, points: Point[], closed = false) => {
+      try {
+        sources.push({ id, curve: pathCurve(points, closed) });
+      } catch {
+        /* No usable finite curve. */
       }
-      for (const chain of linework) {
-        for (let i = 0; i < chain.points.length; i++) {
-          const a = chain.points[i];
-          const d = distance(a, raw);
-          if (d < best) {
-            best = d;
-            target = a;
-          }
-          if (i > 0) {
-            const prev = chain.points[i - 1],
-              mid = mul(add(prev, a), 0.5),
-              dm = distance(mid, raw);
-            if (dm < best) {
-              best = dm;
-              target = mid;
-            }
-          }
-        }
-      }
+    };
+    for (const m of masks) {
+      if (!m.capture || !m.mask.visible) continue;
+      let visibleIndex = 0;
+      m.mask.primitives.forEach((p, i) => {
+        if (m.mask.layers[p.layer] === false) return;
+        const rendered = m.items[visibleIndex++];
+        if (
+          !rendered ||
+          (rendered.layerId &&
+            !layerState(source, props.layerContext ?? 'model', rendered.layerId)
+              .capture)
+        )
+          return;
+        sources.push(maskSnapSource(m.mask, p, i));
+      });
     }
-    let p = target ?? raw;
+    for (const p of capturable.polylines)
+      addPath(`polyline:${p.id}`, p.points, !!p.closed);
+    for (const a of annotations) {
+      if (
+        !objectState(source, props.layerContext ?? 'model', a.annotation)
+          .capture
+      )
+        continue;
+      a.items.forEach((p, i) => {
+        if (!p.text)
+          addPath(`annotation:${a.annotation.id}:${i}`, p.points, !!p.closed);
+      });
+    }
+    for (const b of capturable.bars) {
+      if (b.kind === 'helix' || b.beamClamp) {
+        addPath(
+          `bar:${b.id}`,
+          (b.kind === 'helix'
+            ? helixViewPoints(b)
+            : beamClampViewPoints(b)
+          ).map((v) => world(v, b)),
+        );
+        continue;
+      }
+      barGeometries.get(b.id)!.segments.forEach((s, i) => {
+        const id = `bar:${b.id}:${i}`;
+        if (s.type === 'line') addPath(id, [world(s.a, b), world(s.b, b)]);
+        else
+          try {
+            sources.push({
+              id,
+              curve: roundCurve(
+                world(s.center, b),
+                s.radius,
+                s.startAngle + (b.rotation * Math.PI) / 180,
+                s.angle,
+              ),
+            });
+          } catch {
+            /* Invalid bend. */
+          }
+      });
+    }
+    return sources;
+  }, [
+    masks,
+    capturable,
+    annotations,
+    barGeometries,
+    source,
+    props.layerContext,
+  ]);
+  const snapIndex = useMemo(
+    () => createSnapIndex(snapSources, linework),
+    [snapSources, linework],
+  );
+  const snapModes = props.snapModes ?? defaultSnapModes;
+  useEffect(() => {
+    setSnapPoint(null);
+    setSnapLimited(false);
+  }, [snap, snapModes, snapIndex, tool, view, size]);
+  const snapAt = (raw: Point) => {
+    const result = resolveObjectSnap(snapIndex, raw, {
+      enabled: snap,
+      modes: snapModes,
+      tolerance: 10 / view.s,
+      extra: props.extraSnapPoints,
+    });
+    let target = result.candidate;
+    let p = target?.point ?? raw;
     if (ortho && draft.length) {
       const a = draft.at(-1)!;
       p =
         Math.abs(p.x - a.x) >= Math.abs(p.y - a.y)
           ? { x: p.x, y: a.y }
           : { x: a.x, y: p.y };
-      if (target && distance(p, target) > 0.001) target = undefined;
+      if (target && distance(p, target.point) > 0.001) target = undefined;
     }
     setSnapPoint(target ?? null);
+    setSnapLimited(result.limited);
     return p;
   };
   const hitAt = (p: Point) => {
@@ -1383,6 +1460,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const origin = scr({ x: 0, y: 0 });
   return (
     <div className={`cad-host ${light ? 'cad-light' : ''}`} ref={host}>
+      {snapLimited && (
+        <div className="visibility-warning" role="status">
+          Busca de interseções limitada nesta abertura. Aproxime o zoom para
+          reduzir as referências próximas.
+        </div>
+      )}
       {review.issue && (
         <div className="visibility-warning" role="status">
           {review.issue}
@@ -1679,15 +1762,43 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             </g>
           )}
           {snapPoint && (
-            <rect
-              x={snapPoint.x - 5 * stroke}
-              y={snapPoint.y - 5 * stroke}
-              width={10 * stroke}
-              height={10 * stroke}
-              fill="none"
-              stroke="#44dec0"
-              strokeWidth={stroke}
-            />
+            <g
+              data-testid="snap-marker"
+              data-snap-mode={snapPoint.mode}
+              data-x={snapPoint.point.x}
+              data-y={snapPoint.point.y}
+              transform={`translate(${snapPoint.point.x} ${snapPoint.point.y}) scale(${stroke})`}
+              pointerEvents="none"
+            >
+              <path
+                d={
+                  snapPoint.mode === 'midpoint'
+                    ? 'M0 6L-6 -5H6Z'
+                    : snapPoint.mode === 'quadrant'
+                      ? 'M0 7L7 0L0 -7L-7 0Z'
+                      : snapPoint.mode === 'intersection'
+                        ? 'M-6 -6L6 6M-6 6L6 -6'
+                        : snapPoint.mode === 'center' ||
+                            snapPoint.mode === 'geometricCenter'
+                          ? 'M-6 0a6 6 0 1 0 12 0a6 6 0 1 0 -12 0M-8 0H8M0 -8V8'
+                          : 'M-5 -5H5V5H-5Z'
+                }
+                fill="none"
+                stroke={light ? '#087b66' : '#44dec0'}
+                strokeWidth="1.2"
+              />
+              <text
+                transform="scale(1 -1)"
+                x="12"
+                y="-10"
+                fontSize="11"
+                fill={light ? '#087b66' : '#44dec0'}
+              >
+                {snapPoint.mode === 'extra'
+                  ? 'Prévia'
+                  : snapModeLabels[snapPoint.mode]}
+              </text>
+            </g>
           )}
           {marquee && (
             <rect

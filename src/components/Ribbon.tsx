@@ -296,7 +296,10 @@ export default function Ribbon({
       },
       {
         name: 'Preferências',
-        items: [item('shortcuts', 'Atalhos', KeyboardIcon)],
+        items: [
+          item('shortcuts', 'Atalhos', KeyboardIcon),
+          item('snap-modes', 'Modos de encaixe', ScanLine),
+        ],
       },
     ],
     Arquivo: [

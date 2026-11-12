@@ -5417,3 +5417,76 @@ button.hierarchy-drawing {
 .shortcuts-dialog .modal-actions > button:not(.primary):not(:disabled) {
   color: #465979;
 }
+
+.snap-modes-dialog {
+  width: min(650px, 94vw);
+  max-height: 88dvh;
+  overflow: auto;
+  font: inherit;
+  color: #29354c;
+}
+.snap-modes-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.snap-modes-dialog > header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.snap-modes-dialog > header button {
+  width: 28px;
+  height: 28px;
+  font-size: 20px;
+  color: #52617e;
+  border: 1px solid #cbd2df;
+  border-radius: 4px;
+}
+.snap-modes-dialog > p {
+  color: #52617e;
+  line-height: 1.5;
+}
+.snap-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #cbd2df;
+  margin: 16px 0;
+}
+.snap-mode-grid label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+}
+.snap-mode-grid input {
+  margin-top: 3px;
+}
+.snap-mode-grid strong {
+  display: block;
+}
+.snap-mode-grid small {
+  display: block;
+  color: #58677e;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+.snap-modes-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.snap-modes-dialog footer button {
+  border: 1px solid #bfc9da;
+  border-radius: 5px;
+  padding: 7px 12px;
+}
+@media (max-width: 520px) {
+  .snap-mode-grid {
+    grid-template-columns: 1fr;
+  }
+}

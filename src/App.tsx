@@ -1,4 +1,6 @@
 import AppUpdates from './components/AppUpdates';
+import ObjectSnapDialog from './components/ObjectSnapDialog';
+import { defaultSnapModes, type SnapModes } from './domain/objectSnaps';
 import type { PluginView } from './lib/plugins';
 import DrawingPropertiesPanel, {
   type DrawingPropertiesSession,
@@ -514,6 +516,7 @@ const commandsDuringOperation = new Set<Action>([
   'fit',
   'grid',
   'snap',
+  'snap-modes',
   'ortho',
   'dimensions',
   'sidebar',
@@ -883,6 +886,10 @@ export default function App() {
     [snap, setSnap] = useState(true),
     [ortho, setOrtho] = useState(false),
     [dimensions, setDimensions] = useState(true);
+  const [snapModes, setSnapModes] = useState<SnapModes>(() => ({
+    ...defaultSnapModes,
+  }));
+  const [snapModesOpen, setSnapModesOpen] = useState(false);
   const [light, setLight] = useState(
     () => readUiPreference('armadurastruct.canvas') === 'light',
   );
@@ -6156,6 +6163,10 @@ export default function App() {
     return true;
   };
   const runAction = async (a: Action) => {
+    if (a === 'snap-modes') {
+      setSnapModesOpen(true);
+      return;
+    }
     if (a === 'beam-clamp-criteria') {
       if (beamClampSession) reopenBeamClampCriteria();
       else {
@@ -7627,6 +7638,14 @@ export default function App() {
   };
   const handleShortcut = useEffectEvent((e: KeyboardEvent) => {
     if (e.defaultPrevented || textComposition(e) || shortcutsOpen) return;
+    if (snapModesOpen) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
+      )
+        e.preventDefault();
+      return;
+    }
     const typing = isEditingControl(e.target);
     if (updateModal || pluginView || csvExportOpen) {
       if (csvExportOpen && !updateModal && !pluginView && e.key === 'Escape') {
@@ -8780,6 +8799,7 @@ export default function App() {
                 }
                 grid={grid}
                 snap={snap}
+                snapModes={snapModes}
                 ortho={ortho && vertexRequest?.mode !== 'lengthen'}
                 light={light}
                 setTool={setTool}
@@ -9767,6 +9787,13 @@ export default function App() {
             ENCAIXES <kbd>F3</kbd>
           </button>
           <button
+            aria-label="Modos de encaixe"
+            title="Modos de encaixe"
+            onClick={() => setSnapModesOpen(true)}
+          >
+            ⋮
+          </button>
+          <button
             className={ortho ? 'active' : ''}
             onClick={() => setOrtho(!ortho)}
           >
@@ -10128,6 +10155,13 @@ export default function App() {
             saveFile(name, text, 'application/json', 'json')
           }
           notify={notify}
+        />
+      )}
+      {snapModesOpen && (
+        <ObjectSnapDialog
+          modes={snapModes}
+          onApply={setSnapModes}
+          onClose={() => setSnapModesOpen(false)}
         />
       )}
       {shortcutsOpen && (
