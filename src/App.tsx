@@ -10,6 +10,27 @@ import {
   type DrawingMetadataInput,
 } from './domain/drawingMetadata';
 import StirrupCriteriaDialog from './components/StirrupCriteriaDialog';
+import WeldedMeshCriteriaDialog from './components/WeldedMeshCriteriaDialog';
+import WeldedMeshLaunchPanel, {
+  type WeldedMeshSession,
+} from './components/WeldedMeshLaunchPanel';
+import {
+  defaultWeldedMeshCriteria,
+  type WeldedMeshCriteria,
+} from './domain/weldedMesh';
+import { previewWeldedMeshDraft } from './domain/weldedMeshDraft';
+import {
+  deleteWeldedMesh,
+  launchWeldedMesh,
+  previewWeldedMeshUpdate,
+  transformWeldedMesh,
+  weldedMeshPlan,
+} from './domain/weldedMeshLaunch';
+import {
+  outlineFromMaskEntity,
+  outlineFromPoints,
+  outlinesAtPoint,
+} from './domain/weldedMeshRegion';
 import BeamClampCriteriaDialog from './components/BeamClampCriteriaDialog';
 import BeamClampLaunchPanel, {
   beamClampPlacementStage,
@@ -475,6 +496,8 @@ type FollowRequest = {
 };
 type History = { past: Project[]; present: Project; future: Project[] };
 const prompts: Record<Tool, string> = {
+  'welded-mesh':
+    'Lance a tela: escolha o modo no painel (contorno ou pontos). Esc cancela.',
   polyline:
     'Indique os vértices da polilinha. Enter conclui; depois use Converter polilinha.',
   convert:
@@ -542,6 +565,7 @@ const tools: Tool[] = [
   'convert',
   'repeat',
   'range',
+  'welded-mesh',
   'dimension-aligned',
   'dimension-orthogonal',
   'leader',
@@ -848,6 +872,25 @@ export default function App() {
     { projectId: string; c: StirrupCriteria } | undefined
   >(undefined);
   const stirrupConsumed = useRef(false);
+  // Critérios dos próximos lançamentos de telas, nesta sessão e neste projeto;
+  // vão para o arquivo (weldedMeshDefaults) ao confirmar um lançamento.
+  const weldedMeshCriteria = useRef<
+    { projectId: string; c: WeldedMeshCriteria } | undefined
+  >(undefined);
+  const [weldedMeshDialog, setWeldedMeshDialog] = useState<{
+    projectId: string;
+    c: WeldedMeshCriteria;
+    /**
+     * next: próximos lançamentos; launch: e já lançar; session: lançamento em
+     * curso; edit: tela lançada (editId), com antes × depois.
+     */
+    target: 'next' | 'launch' | 'session' | 'edit';
+    editId?: string;
+  } | null>(null);
+  const [meshSession, setMeshSession] = useState<WeldedMeshSession | null>(
+    null,
+  );
+  const meshConsumed = useRef(false);
   const [beamClampSession, setBeamClampSession] =
     useState<BeamClampSession | null>(null);
   const [beamClampDialog, setBeamClampDialog] = useState<{
@@ -1247,6 +1290,10 @@ export default function App() {
   const annotation = !groupSelection
     ? p.annotations.find((a) => a.id === selected[0] && editable(a.id))
     : undefined;
+  const selectedMesh =
+    !groupSelection && selected.length === 1
+      ? p.weldedMeshes?.find((l) => l.id === selected[0] && editable(l.id))
+      : undefined;
   const maskDrawingContext: MaskDrawingContext = {
     key: documentKey,
     detailId: activeDetailId,
@@ -1531,6 +1578,8 @@ export default function App() {
     setFreeText(null);
     setStirrupSession(null);
     setStirrupDialog(null);
+    setMeshSession(null);
+    setWeldedMeshDialog(null);
     setBeamClampSession(null);
     setBeamClampDialog(null);
     setHelixSession(null);
@@ -1565,6 +1614,10 @@ export default function App() {
     }
     if (t === 'stirrup') {
       startStirrup(false);
+      return;
+    }
+    if (t === 'welded-mesh') {
+      startWeldedMesh(false);
       return;
     }
     if (t === 'beam-clamp') {
@@ -2300,6 +2353,7 @@ export default function App() {
         annotations: next.annotations.filter((o) => ids.has(o.id)),
         polylines: next.polylines.filter((o) => ids.has(o.id)),
         masks: next.masks.filter((o) => ids.has(o.id)),
+        weldedMeshes: (next.weldedMeshes ?? []).filter((o) => ids.has(o.id)),
       };
       return {
         lines: drawingPrimitives(view, next),
@@ -4897,6 +4951,411 @@ export default function App() {
     setToolRaw('select');
     setDraft([]);
   }
+  /** Critérios da sessão, os padrão do projeto ou os iniciais (Q92). */
+  function nextWeldedMeshCriteria(base: Project): WeldedMeshCriteria {
+    const c = structuredClone(
+      weldedMeshCriteria.current?.projectId === base.id
+        ? weldedMeshCriteria.current.c
+        : (base.weldedMeshDefaults ?? defaultWeldedMeshCriteria()),
+    );
+    // Uma layer apagada depois da escolha volta ao papel (ARMADURAS).
+    if (c.layerId && !base.layers.some((l) => l.id === c.layerId))
+      delete c.layerId;
+    return c;
+  }
+  function openWeldedMeshCriteria() {
+    const base = historyRef.current.present;
+    if (meshSession?.editId) {
+      notify(
+        'Conclua ou cancele a redefinição da região antes de editar os critérios da tela.',
+      );
+      return;
+    }
+    // Durante um lançamento, os critérios abertos são os dele.
+    if (meshSession) {
+      setWeldedMeshDialog({
+        projectId: base.id,
+        c: structuredClone(meshSession.c),
+        target: 'session',
+      });
+      return;
+    }
+    setWeldedMeshDialog({
+      projectId: base.id,
+      c: nextWeldedMeshCriteria(base),
+      target: 'next',
+    });
+  }
+  /** Critérios de uma tela lançada, com a camada do vínculo dela. */
+  function launchCriteria(id: string): WeldedMeshCriteria | undefined {
+    const l = historyRef.current.present.weldedMeshes?.find((m) => m.id === id);
+    return l
+      ? {
+          ...structuredClone(l.criteria),
+          ...(l.layerId ? { layerId: l.layerId } : {}),
+        }
+      : undefined;
+  }
+  function openWeldedMeshEdit(id: string) {
+    const c = launchCriteria(id);
+    if (!c) return;
+    setWeldedMeshDialog({
+      projectId: historyRef.current.present.id,
+      c,
+      target: 'edit',
+      editId: id,
+    });
+  }
+  /** Redefinir região: o painel de lançamento, para a mesma tela. */
+  function startWeldedMeshRegion(id: string) {
+    if (activeSheet) {
+      notify('Abra um desenho para redefinir a região da tela.');
+      return;
+    }
+    const c = launchCriteria(id);
+    if (c) beginWeldedMesh(c, id);
+  }
+  function acceptWeldedMeshCriteria(c: WeldedMeshCriteria) {
+    const d = weldedMeshDialog;
+    if (!d) return;
+    if (d.target === 'edit') {
+      // Edição explícita: não muda os critérios dos próximos lançamentos.
+      const ok = commit(
+        (current) =>
+          previewWeldedMeshUpdate(current, d.editId!, { criteria: c }).project,
+      );
+      if (ok) {
+        setWeldedMeshDialog(null);
+        setMessage(`${c.mark}: critérios da tela atualizados.`);
+      }
+      return;
+    }
+    weldedMeshCriteria.current = {
+      projectId: d.projectId,
+      c: structuredClone(c),
+    };
+    setWeldedMeshDialog(null);
+    if (d.target === 'session') {
+      setMeshSession((s) =>
+        s
+          ? { ...s, c: structuredClone(c), confirmed: false, issue: undefined }
+          : s,
+      );
+      return;
+    }
+    if (d.target === 'launch') {
+      beginWeldedMesh(c);
+      return;
+    }
+    notify('Critérios de telas definidos para os próximos lançamentos.');
+  }
+  /**
+   * Lançar tela: na primeira vez da sessão (sem critérios no projeto), abre os
+   * critérios antes, como o estribo; depois vai direto ao painel.
+   */
+  function startWeldedMesh(forceCriteria: boolean) {
+    if (activeSheet) {
+      notify('Abra um desenho para lançar telas soldadas.');
+      return;
+    }
+    const base = historyRef.current.present;
+    if (
+      forceCriteria ||
+      (weldedMeshCriteria.current?.projectId !== base.id &&
+        !base.weldedMeshDefaults)
+    ) {
+      setWeldedMeshDialog({
+        projectId: base.id,
+        c: nextWeldedMeshCriteria(base),
+        target: 'launch',
+      });
+      return;
+    }
+    beginWeldedMesh(nextWeldedMeshCriteria(base));
+  }
+  function beginWeldedMesh(c: WeldedMeshCriteria, editId?: string) {
+    const base = historyRef.current.present;
+    setSelectedRaw([]);
+    setMaskId(null);
+    setNativeEntity(undefined);
+    setDraft([]);
+    setPage('drawing');
+    setToolRaw('welded-mesh');
+    meshConsumed.current = false;
+    setMeshSession({
+      base,
+      key: documentKey,
+      detailId: activeDetailId,
+      scope: isolatedDetailId,
+      maskId: drawingMaskId,
+      c: structuredClone(c),
+      ...(editId ? { editId } : {}),
+      mode: 'contour',
+      stage: 'region',
+      openingInput: 'entity',
+      openings: [],
+      points: [],
+      confirmed: false,
+    });
+  }
+  function cancelWeldedMesh() {
+    setMeshSession(null);
+    setToolRaw('select');
+    setDraft([]);
+  }
+  function pickWeldedMeshEntity(ref?: MaskEntityRef) {
+    const s = meshSession;
+    if (!s) return;
+    const e = ref && meshEntities.find((x) => x.ref.key === ref.key);
+    if (!e) {
+      setMeshSession({
+        ...s,
+        issue:
+          'Nenhuma entidade de máscara visível e capturável do detalhamento ativo neste ponto.',
+      });
+      return;
+    }
+    if (
+      s.outerRef?.key === e.ref.key ||
+      s.openings.some((o) => o.ref === e.ref.key)
+    ) {
+      setMeshSession({ ...s, issue: 'Esta entidade já faz parte da região.' });
+      return;
+    }
+    const o = outlineFromMaskEntity(e.mask, e.ref.primitive);
+    if (!o.ok) {
+      setMeshSession({ ...s, issue: o.reason });
+      return;
+    }
+    setMeshSession(
+      s.stage === 'region'
+        ? {
+            ...s,
+            outer: o.outline,
+            outerRef: { key: e.ref.key, maskId: e.mask.id },
+            stage: 'openings',
+            confirmed: false,
+            issue: undefined,
+          }
+        : {
+            ...s,
+            openings: [...s.openings, { outline: o.outline, ref: e.ref.key }],
+            confirmed: false,
+            issue: undefined,
+          },
+    );
+  }
+  const meshByPoints = (s: WeldedMeshSession) =>
+    (s.stage === 'region' && s.mode === 'points') ||
+    (s.stage === 'openings' && s.openingInput === 'points');
+  /**
+   * Modo clique: só a máscara ativa (escolhida em Referências), com as
+   * entidades visíveis e capturáveis dela; o ponto é o do clique, sem snap.
+   */
+  function pickWeldedMeshClick(at: Point) {
+    const s = meshSession;
+    if (!s || s.stage !== 'region' || s.mode !== 'click') return;
+    const mask = s.base.masks.find((m) => m.id === drawingMaskId);
+    if (!mask) {
+      setMeshSession({
+        ...s,
+        issue:
+          'Escolha a máscara ativa em Máscaras → Referências para usar o modo Clique.',
+      });
+      return;
+    }
+    const primitives = maskCadEntities(s.base, maskDrawingContext)
+      .filter((e) => e.mask.id === mask.id && !e.ref.primitive.text)
+      .map((e) => e.ref.primitive);
+    const r = outlinesAtPoint(mask, primitives, at);
+    if (!r.ok) {
+      setMeshSession({ ...s, issue: r.reason });
+      return;
+    }
+    setMeshSession({
+      ...s,
+      outer: r.candidates[0],
+      outerRef: undefined,
+      click: {
+        maskId: mask.id,
+        candidates: r.candidates,
+        islands: r.islands,
+        index: 0,
+        chosen: r.islands[0].map(() => false),
+        notes: r.notes,
+      },
+      stage: 'openings',
+      openingInput: 'entity',
+      confirmed: false,
+      issue: undefined,
+    });
+  }
+  function chooseWeldedMeshCandidate(index: number) {
+    setMeshSession((s) =>
+      s?.click && index >= 0 && index < s.click.candidates.length
+        ? {
+            ...s,
+            outer: s.click.candidates[index],
+            click: {
+              ...s.click,
+              index,
+              chosen: s.click.islands[index].map(() => false),
+            },
+            confirmed: false,
+            issue: undefined,
+          }
+        : s,
+    );
+  }
+  function weldedMeshPoint(point: Point) {
+    const s = meshSession;
+    if (s?.stage === 'ready' && s.anchorPick) {
+      setMeshSession({ ...s, anchor: point, anchorPick: false });
+      return;
+    }
+    if (!s || !meshByPoints(s)) return;
+    if (s.points.length && distance(s.points.at(-1)!, point) <= 0.01) return;
+    setMeshSession({ ...s, points: [...s.points, point], issue: undefined });
+  }
+  /** Enter: fecha o polígono em curso, segue para a conferência ou confirma. */
+  function finishWeldedMesh() {
+    const s = meshSession;
+    if (!s) return;
+    if (s.stage === 'ready') {
+      confirmWeldedMesh();
+      return;
+    }
+    if (meshByPoints(s) && s.points.length) {
+      if (s.points.length < 3) {
+        setMeshSession({ ...s, issue: 'Indique ao menos 3 pontos.' });
+        return;
+      }
+      const o = outlineFromPoints(s.points);
+      if (!o.ok) {
+        setMeshSession({ ...s, issue: o.reason });
+        return;
+      }
+      setMeshSession(
+        s.stage === 'region'
+          ? {
+              ...s,
+              outer: o.outline,
+              outerRef: undefined,
+              points: [],
+              stage: 'openings',
+              openingInput: 'points',
+              confirmed: false,
+              issue: undefined,
+            }
+          : {
+              ...s,
+              openings: [...s.openings, { outline: o.outline }],
+              points: [],
+              confirmed: false,
+              issue: undefined,
+            },
+      );
+      return;
+    }
+    if (s.stage === 'openings') nextWeldedMesh();
+    else
+      setMeshSession({
+        ...s,
+        issue:
+          s.mode === 'contour'
+            ? 'Clique numa entidade fechada da máscara.'
+            : s.mode === 'click'
+              ? 'Clique dentro da região.'
+              : 'Indique ao menos 3 pontos.',
+      });
+  }
+  function nextWeldedMesh() {
+    const r = meshPreview;
+    setMeshSession((s) =>
+      !s
+        ? s
+        : r?.ok
+          ? { ...s, stage: 'ready', points: [], issue: undefined }
+          : { ...s, issue: r ? r.reason : 'Defina a região da tela.' },
+    );
+  }
+  function backWeldedMesh() {
+    const s = meshSession;
+    if (!s) return;
+    if (s.points.length)
+      setMeshSession({ ...s, points: s.points.slice(0, -1), issue: undefined });
+    else if (s.stage === 'ready' && s.anchorPick)
+      setMeshSession({ ...s, anchorPick: false, issue: undefined });
+    else if (s.stage === 'ready')
+      setMeshSession({ ...s, stage: 'openings', issue: undefined });
+    else if (s.stage === 'openings')
+      setMeshSession({
+        ...s,
+        stage: 'region',
+        outer: undefined,
+        outerRef: undefined,
+        click: undefined,
+        anchor: undefined,
+        openings: [],
+        confirmed: false,
+        issue: undefined,
+      });
+  }
+  function confirmWeldedMesh() {
+    const s = meshSession,
+      r = meshPreview;
+    if (!s || s.stage !== 'ready' || !r?.ok || meshConsumed.current) return;
+    if (r.needsConfirmation && !s.confirmed) {
+      setMeshSession({
+        ...s,
+        issue: 'Confirme o fechamento das lacunas antes de lançar.',
+      });
+      return;
+    }
+    if (!stirrupContextValid(s)) {
+      cancelWeldedMesh();
+      notify('O destino mudou. Reinicie o lançamento.');
+      return;
+    }
+    meshConsumed.current = true;
+    if (s.editId) {
+      const editId = s.editId,
+        { region, anchor, source, exactness, adjustments } = r.input;
+      const ok = commit((current) => {
+        if (current !== s.base)
+          throw Error('O projeto mudou durante a prévia.');
+        return previewWeldedMeshUpdate(current, editId, {
+          region,
+          anchor,
+          source,
+          exactness,
+          adjustments,
+        }).project;
+      });
+      if (ok) {
+        cancelWeldedMesh();
+        select([editId]);
+        setMessage(`${s.c.mark}: região redefinida na mesma tela.`);
+      } else meshConsumed.current = false;
+      return;
+    }
+    const id = uid();
+    const ok = commit((current) => {
+      if (current !== s.base) throw Error('O projeto mudou durante a prévia.');
+      return launchWeldedMesh(current, r.input, s.detailId, id);
+    });
+    if (ok) {
+      weldedMeshCriteria.current = {
+        projectId: s.base.id,
+        c: structuredClone(s.c),
+      };
+      cancelWeldedMesh();
+      const n = r.layout.basePanels;
+      setMessage(
+        `${s.c.mark}: tela lançada com ${n} ${n === 1 ? 'painel-base' : 'painéis-base'}. TS lança novamente.`,
+      );
+    } else meshConsumed.current = false;
+  }
   function startStirrup(forceCriteria: boolean, editId?: string) {
     if (activeSheet) {
       notify('Abra um desenho para lançar estribos.');
@@ -4979,6 +5438,94 @@ export default function App() {
       );
     }
   }, [p, documentKey, activeDetailId, isolatedDetailId, drawingMaskId]);
+  useEffect(() => {
+    if (meshSession && !stirrupContextValid(meshSession)) {
+      cancelWeldedMesh();
+      notify(
+        'Lançamento de tela cancelado: o projeto ou contexto mudou. Reinicie no destino correto.',
+      );
+    }
+  }, [p, documentKey, activeDetailId, isolatedDetailId, drawingMaskId]);
+  const meshPicking =
+    !!meshSession &&
+    ((meshSession.stage === 'region' && meshSession.mode === 'contour') ||
+      (meshSession.stage === 'openings' &&
+        meshSession.openingInput === 'entity'));
+  // Mesma regra da medição de contorno: máscaras do detalhamento ativo.
+  const meshEntities = useMemo(
+    () => (meshPicking ? contourMeasureCandidates(p, maskDrawingContext) : []),
+    [p, documentKey, activeDetailId, isolatedDetailId, meshPicking],
+  );
+  const meshPreview = useMemo(() => {
+    const s = meshSession;
+    if (!s?.outer) return undefined;
+    const islands = s.click
+      ? s.click.islands[s.click.index].filter((_, i) => s.click!.chosen[i])
+      : [];
+    const maskId = s.outerRef?.maskId ?? s.click?.maskId;
+    return previewWeldedMeshDraft({
+      criteria: s.c,
+      mode: s.mode,
+      outer: s.outer,
+      openings: [...s.openings.map((o) => o.outline), ...islands],
+      ...(maskId ? { maskId } : {}),
+      entityIds: [
+        ...(s.outerRef ? [s.outerRef.key] : []),
+        ...s.openings.flatMap((o) => (o.ref ? [o.ref] : [])),
+      ],
+      ...(s.anchor ? { anchor: s.anchor } : {}),
+    });
+  }, [
+    meshSession?.outer,
+    meshSession?.openings,
+    meshSession?.c,
+    meshSession?.mode,
+    meshSession?.outerRef,
+    meshSession?.click,
+    meshSession?.anchor,
+  ]);
+  const meshLines = useMemo(() => {
+    const s = meshSession;
+    if (!s) return undefined;
+    const outline = (points: Point[], closed: boolean): Primitive => ({
+      layer: 'ARMADURAS',
+      points,
+      closed,
+    });
+    const lines: Primitive[] = meshPreview?.ok ? [...meshPreview.lines] : [];
+    if (s.outer) lines.push(outline(s.outer.points, true));
+    for (const o of s.openings) lines.push(outline(o.outline.points, true));
+    const drawing = [
+      ...s.points,
+      ...(s.cursor && s.points.length ? [s.cursor] : []),
+    ];
+    if (drawing.length >= 2) lines.push(outline(drawing, false));
+    if (s.anchor) {
+      // Marca do ponto de partida: uma cruz de 300 mm.
+      const { x, y } = s.anchor;
+      lines.push(
+        outline(
+          [
+            { x: x - 150, y },
+            { x: x + 150, y },
+          ],
+          false,
+        ),
+      );
+      lines.push(
+        outline(
+          [
+            { x, y: y - 150 },
+            { x, y: y + 150 },
+          ],
+          false,
+        ),
+      );
+    }
+    return lines;
+  }, [meshSession, meshPreview]);
+  const meshClicking =
+    meshSession?.stage === 'region' && meshSession.mode === 'click';
   const stirrupPreview = useMemo(() => {
     const s = stirrupSession;
     if (!s || s.stage === 'shape') return {};
@@ -5342,6 +5889,10 @@ export default function App() {
     }
   }
   const finish = () => {
+    if (meshSession) {
+      finishWeldedMesh();
+      return;
+    }
     if (beamClampSession) {
       if (beamClampSession.stage === 'ready') confirmBeamClamp();
       return;
@@ -5434,6 +5985,10 @@ export default function App() {
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (meshSession) {
+      weldedMeshPoint(point);
+      return;
+    }
     if (beamClampSession) {
       beamClampPoint(point);
       return;
@@ -5921,6 +6476,15 @@ export default function App() {
               ? { ...m, origin: add(m.origin, delta) }
               : m,
           ),
+          ...(p.weldedMeshes
+            ? {
+                weldedMeshes: p.weldedMeshes.map((l) =>
+                  selected.includes(l.id)
+                    ? transformWeldedMesh(l, { kind: 'translate', delta })
+                    : l,
+                ),
+              }
+            : {}),
         };
       }
       commit(() => next);
@@ -6225,6 +6789,23 @@ export default function App() {
       cancelStirrup();
       if (['undo', 'redo'].includes(a)) return;
     }
+    if (
+      meshSession &&
+      ![
+        'fit',
+        'grid',
+        'snap',
+        'ortho',
+        'dimensions',
+        'sidebar',
+        'focus',
+        'save',
+        'welded-mesh-criteria',
+      ].includes(a)
+    ) {
+      cancelWeldedMesh();
+      if (['undo', 'redo'].includes(a)) return;
+    }
 
     if (measureSession && ['undo', 'redo'].includes(a)) {
       endMeasure();
@@ -6248,6 +6829,10 @@ export default function App() {
       ].includes(a)
     )
       endMeasure();
+    if (a === 'welded-mesh-criteria') {
+      openWeldedMeshCriteria();
+      return;
+    }
     if (a === 'measure-contour') {
       startContourMeasure();
       return;
@@ -6535,6 +7120,9 @@ export default function App() {
         options: {
           textHeight: options.textHeight,
           allowancePercent: options.allowancePercent,
+          ...(options.meshLossPercent
+            ? { meshLossPercent: options.meshLossPercent }
+            : {}),
         },
       });
       notify(
@@ -7053,7 +7641,7 @@ export default function App() {
                 id: b.id,
                 references: 'remove',
               }));
-            const next = commands.length
+            const batched = commands.length
               ? applyRebarBatch(
                   current,
                   executeRebarBatch(current, commands, {
@@ -7063,6 +7651,10 @@ export default function App() {
                   }),
                 )
               : current;
+            // Telas: a mesma limpeza de vínculo do domínio.
+            const next = (batched.weldedMeshes ?? [])
+              .filter((l) => selected.includes(l.id))
+              .reduce((q, l) => deleteWeldedMesh(q, l.id), batched);
             return {
               ...next,
               details: next.details.filter((d) => !selected.includes(d.id)),
@@ -7161,6 +7753,7 @@ export default function App() {
   const afterProjectReplaced = () => {
     savedBaseline.current = historyRef.current.present;
     stirrupCriteria.current = undefined;
+    weldedMeshCriteria.current = undefined;
     select([]);
     setTool('select');
     setTimeout(() => canvas()?.fit(), 50);
@@ -7427,6 +8020,7 @@ export default function App() {
     maskManip ||
     stirrupSession ||
     beamClampSession ||
+    meshSession ||
     helixSession ||
     followRequest ||
     measureSession ||
@@ -7640,7 +8234,7 @@ export default function App() {
         e.preventDefault();
       return;
     }
-    if (stirrupDialog || beamClampDialog || helixDialog) {
+    if (stirrupDialog || beamClampDialog || helixDialog || weldedMeshDialog) {
       if (
         (e.ctrlKey || e.metaKey) &&
         ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -7693,6 +8287,11 @@ export default function App() {
       return;
     }
     if (modalIsOpen()) return;
+    if (e.key === 'Backspace' && !typing && meshSession?.points.length) {
+      e.preventDefault();
+      backWeldedMesh();
+      return;
+    }
     if (e.key === 'Escape') {
       if (e.repeat) return;
       if (
@@ -7706,6 +8305,11 @@ export default function App() {
       )
         return;
       if (e.target === cmdInput.current) clearCommand();
+      if (meshSession) {
+        cancelWeldedMesh();
+        cmdInput.current?.blur();
+        return;
+      }
       if (beamClampSession) {
         cancelBeamClamp();
         cmdInput.current?.blur();
@@ -7850,6 +8454,40 @@ export default function App() {
           event.preventDefault();
       }}
     >
+      {weldedMeshDialog && (
+        <WeldedMeshCriteriaDialog
+          initial={weldedMeshDialog.c}
+          layers={p.layers}
+          submitLabel={
+            weldedMeshDialog.target === 'launch'
+              ? 'Usar critérios e lançar'
+              : weldedMeshDialog.target === 'session'
+                ? 'Aplicar ao lançamento'
+                : weldedMeshDialog.target === 'edit'
+                  ? 'Aplicar nesta tela'
+                  : 'Usar critérios'
+          }
+          {...(weldedMeshDialog.target === 'edit'
+            ? {
+                title: `Editar critérios de ${weldedMeshDialog.c.mark}`,
+                impact: (c: WeldedMeshCriteria) => {
+                  const id = weldedMeshDialog.editId;
+                  if (!id) return { error: 'Tela soldada inexistente.' };
+                  try {
+                    const r = previewWeldedMeshUpdate(p, id, {
+                      criteria: c,
+                    });
+                    return { before: r.before, after: r.after };
+                  } catch (e) {
+                    return { error: (e as Error).message };
+                  }
+                },
+              }
+            : {})}
+          onAccept={acceptWeldedMeshCriteria}
+          onClose={() => setWeldedMeshDialog(null)}
+        />
+      )}
       {helixDialog && (
         <HelixCriteriaDialog
           initial={helixDialog.c}
@@ -8517,57 +9155,67 @@ export default function App() {
                       }
                     : undefined
                 }
-                maskSidePick={maskOffset?.stage === 'side'}
+                maskSidePick={meshClicking || maskOffset?.stage === 'side'}
                 maskEditing={
-                  match && match.stage !== 'properties'
+                  meshPicking
                     ? {
-                        entities: maskCadEntities(p, maskDrawingContext),
-                        targetMaskId: drawingMaskId,
-                        stage: 'targets',
+                        entities: meshEntities,
+                        targetMaskId: '',
+                        stage: 'limits',
                       }
-                    : maskOffset?.stage === 'entity'
+                    : match && match.stage !== 'properties'
                       ? {
-                          entities: offsetEntities,
-                          targetMaskId: maskOffset.maskId,
+                          entities: maskCadEntities(p, maskDrawingContext),
+                          targetMaskId: drawingMaskId,
                           stage: 'targets',
                         }
-                      : measureSession?.mode === 'contour'
+                      : maskOffset?.stage === 'entity'
                         ? {
-                            entities: contourEntities,
-                            targetMaskId: '',
-                            stage: 'limits',
+                            entities: offsetEntities,
+                            targetMaskId: maskOffset.maskId,
+                            stage: 'targets',
                           }
-                        : maskManip?.stage === 'selection' &&
-                            (maskManip.mode !== 'rotate' ||
-                              maskManip.scope !== 'mask')
+                        : measureSession?.mode === 'contour'
                           ? {
-                              entities: manipEntities,
-                              targetMaskId: maskManip.maskId,
-                              stage: 'targets',
+                              entities: contourEntities,
+                              targetMaskId: '',
+                              stage: 'limits',
                             }
-                          : maskCad
+                          : maskManip?.stage === 'selection' &&
+                              (maskManip.mode !== 'rotate' ||
+                                maskManip.scope !== 'mask')
                             ? {
-                                entities: cadMaskEntities,
-                                targetMaskId: maskCad.maskId,
-                                all: maskCad.all,
-                                stage: maskCad.stage,
-                                selectedTarget: maskCad.selectedTarget,
+                                entities: manipEntities,
+                                targetMaskId: maskManip.maskId,
+                                stage: 'targets',
                               }
-                            : undefined
+                            : maskCad
+                              ? {
+                                  entities: cadMaskEntities,
+                                  targetMaskId: maskCad.maskId,
+                                  all: maskCad.all,
+                                  stage: maskCad.stage,
+                                  selectedTarget: maskCad.selectedTarget,
+                                }
+                              : undefined
                 }
                 onMaskEntityPick={
-                  match
-                    ? (ref) => {
-                        if (ref) pickMatch(ref.key);
-                      }
-                    : measureSession?.mode === 'contour'
-                      ? (ref) => pickContour(ref)
-                      : maskOffset
-                        ? (ref, at, tolerance) =>
-                            offsetPoint(at, ref, tolerance)
-                        : maskManip
-                          ? (ref) => toggleManipEntity(ref)
-                          : pickMaskCad
+                  meshClicking
+                    ? (_ref, at) => pickWeldedMeshClick(at)
+                    : meshPicking
+                      ? (ref) => pickWeldedMeshEntity(ref)
+                      : match
+                        ? (ref) => {
+                            if (ref) pickMatch(ref.key);
+                          }
+                        : measureSession?.mode === 'contour'
+                          ? (ref) => pickContour(ref)
+                          : maskOffset
+                            ? (ref, at, tolerance) =>
+                                offsetPoint(at, ref, tolerance)
+                            : maskManip
+                              ? (ref) => toggleManipEntity(ref)
+                              : pickMaskCad
                 }
                 onMaskEntityHover={(ref, at, tolerance) =>
                   maskOffset?.stage === 'side'
@@ -8633,6 +9281,7 @@ export default function App() {
                   measureSession?.presentation
                 }
                 previewLines={
+                  meshLines ??
                   beamClampPreview.lines ??
                   helixPreview.lines ??
                   (stirrupSession?.stage === 'shape'
@@ -8785,6 +9434,8 @@ export default function App() {
                 setTool={setTool}
                 onCursor={(point) => {
                   onCursor(point);
+                  if (meshSession?.points.length)
+                    setMeshSession((s) => (s ? { ...s, cursor: point } : s));
                   if (beamClampSession && beamClampSession.stage !== 'ready')
                     setBeamClampSession((s) =>
                       s ? { ...s, cursor: point } : s,
@@ -8956,6 +9607,88 @@ export default function App() {
                   }}
                   onBack={backStirrup}
                   onCancel={cancelStirrup}
+                />
+              )}
+              {meshSession && (
+                <WeldedMeshLaunchPanel
+                  session={meshSession}
+                  preview={meshPreview}
+                  before={(() => {
+                    const l =
+                      meshSession.editId &&
+                      p.weldedMeshes?.find((m) => m.id === meshSession.editId);
+                    const r = l ? weldedMeshPlan(l) : undefined;
+                    return r?.ok ? r.layout : undefined;
+                  })()}
+                  activeMask={p.masks.find((m) => m.id === drawingMaskId)?.name}
+                  onCandidate={chooseWeldedMeshCandidate}
+                  onIsland={(i, use) =>
+                    setMeshSession((s) =>
+                      s?.click
+                        ? {
+                            ...s,
+                            click: {
+                              ...s.click,
+                              chosen: s.click.chosen.map((v, j) =>
+                                j === i ? use : v,
+                              ),
+                            },
+                            confirmed: false,
+                          }
+                        : s,
+                    )
+                  }
+                  onAnchorPick={() =>
+                    setMeshSession((s) =>
+                      s
+                        ? { ...s, anchorPick: !s.anchorPick, issue: undefined }
+                        : s,
+                    )
+                  }
+                  onClearAnchor={() =>
+                    setMeshSession((s) =>
+                      s ? { ...s, anchor: undefined, anchorPick: false } : s,
+                    )
+                  }
+                  onMode={(mode) =>
+                    setMeshSession((s) =>
+                      s
+                        ? {
+                            ...s,
+                            mode,
+                            points: [],
+                            cursor: undefined,
+                            issue: undefined,
+                          }
+                        : s,
+                    )
+                  }
+                  onOpeningInput={(openingInput) =>
+                    setMeshSession((s) =>
+                      s
+                        ? { ...s, openingInput, points: [], issue: undefined }
+                        : s,
+                    )
+                  }
+                  onCriteria={openWeldedMeshCriteria}
+                  onRemoveOpening={(i) =>
+                    setMeshSession((s) =>
+                      s
+                        ? {
+                            ...s,
+                            openings: s.openings.filter((_, j) => j !== i),
+                            confirmed: false,
+                          }
+                        : s,
+                    )
+                  }
+                  onConfirmGaps={(confirmed) =>
+                    setMeshSession((s) => (s ? { ...s, confirmed } : s))
+                  }
+                  onNext={nextWeldedMesh}
+                  onBack={backWeldedMesh}
+                  onCancel={cancelWeldedMesh}
+                  onConfirm={confirmWeldedMesh}
                 />
               )}
               {measureSession && (
@@ -9586,6 +10319,22 @@ export default function App() {
                 project={p}
                 bar={chosen}
                 mask={mask}
+                mesh={selectedMesh}
+                onMesh={(patch) =>
+                  selectedMesh &&
+                  commit((current) => ({
+                    ...current,
+                    weldedMeshes: (current.weldedMeshes ?? []).map((l) =>
+                      l.id === selectedMesh.id ? { ...l, ...patch } : l,
+                    ),
+                  }))
+                }
+                onMeshCriteria={() =>
+                  selectedMesh && openWeldedMeshEdit(selectedMesh.id)
+                }
+                onMeshRegion={() =>
+                  selectedMesh && startWeldedMeshRegion(selectedMesh.id)
+                }
                 onBar={(patch) => chosen && editBar(chosen.id, patch)}
                 onDistributionSpacing={(spacing) =>
                   chosen?.distribution &&

@@ -1296,6 +1296,27 @@ svg {
   margin: 25px 0 27px;
   gap: 15px;
 }
+.schedule-stats.with-meshes {
+  grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr;
+}
+.schedule-meshes {
+  margin-top: 28px;
+}
+.schedule-meshes > h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: #26324d;
+}
+.schedule-mesh-summary {
+  margin-top: 14px;
+  max-width: 560px;
+}
+.tree-summary .tree-summary-mesh {
+  margin: 9px 0 0;
+  font-size: 11px;
+  color: #8d99b2;
+}
 .schedule-stats > div {
   padding: 16px 18px;
   border: 1px solid #e2e7f0;
@@ -4011,6 +4032,84 @@ button.hierarchy-drawing {
 }
 .stirrup-error {
   color: var(--danger, #c8334b);
+}
+/* Critérios de telas soldadas: mesmo layout da janela de estribos. */
+.welded-mesh-properties {
+  width: 100%;
+  margin: 10px 0;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.welded-mesh-properties th,
+.welded-mesh-properties td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-weight: normal;
+}
+.welded-mesh-properties thead th {
+  color: var(--muted);
+}
+.welded-mesh-properties input {
+  width: 100%;
+}
+.welded-mesh-panel {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.welded-mesh-issues {
+  padding-left: 32px;
+}
+.welded-mesh-preview svg text {
+  font-family: inherit;
+}
+.welded-mesh-launch-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.welded-mesh-launch-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: space-between;
+}
+.welded-mesh-launch-modes nav {
+  display: flex;
+  gap: 6px;
+}
+.welded-mesh-launch-modes button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.welded-mesh-launch-numbers {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+.welded-mesh-launch-numbers dt {
+  color: var(--muted);
+}
+.welded-mesh-launch-numbers dd {
+  margin: 0;
+}
+.welded-mesh-openings {
+  margin: 0;
+  padding-left: 18px;
+}
+.welded-mesh-note {
+  display: block;
+  color: var(--muted);
+}
+.welded-mesh-gaps {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+}
+.welded-mesh-gaps ul {
+  margin: 0 0 6px;
+  padding-left: 18px;
 }
 .stirrup-launch-panel {
   position: absolute;

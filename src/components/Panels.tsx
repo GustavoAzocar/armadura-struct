@@ -1,6 +1,16 @@
 import DimensionPresentationFields from './DimensionPresentationFields';
 import { dimensionReferenceIssue } from '../domain/maskDimensions';
 import LayerInspector from './LayerInspector';
+import WeldedMeshInspector from './WeldedMeshInspector';
+import {
+  weldedMeshPlan,
+  type WeldedMeshLaunch,
+} from '../domain/weldedMeshLaunch';
+import { weldedMeshLabel } from '../domain/weldedMesh';
+import {
+  weldedMeshSchedule,
+  type WeldedMeshSchedule,
+} from '../domain/weldedMeshSchedule';
 import { BeamClampViewFields } from './BeamClampCriteriaDialog';
 import { HelixMemoryTable } from './HelixCriteriaDialog';
 import { helixOutline } from '../domain/helixViews';
@@ -217,6 +227,10 @@ function Section({
 export function Inspector({
   bar,
   mask,
+  mesh,
+  onMesh,
+  onMeshCriteria,
+  onMeshRegion,
   onBar,
   onDistributionSpacing,
   onVertexEdit,
@@ -232,6 +246,11 @@ export function Inspector({
 }: {
   bar?: Bar;
   mask?: Mask;
+  /** Tela soldada selecionada (quando não há barra nem máscara). */
+  mesh?: WeldedMeshLaunch;
+  onMesh?: (patch: Partial<WeldedMeshLaunch>) => void;
+  onMeshCriteria?: () => void;
+  onMeshRegion?: () => void;
   onBar: (patch: Partial<Bar>) => void | boolean;
   onVertexEdit?: (mode: 'insert' | 'extend' | 'remove') => void;
   onStirrupCriteria?: () => void;
@@ -246,6 +265,31 @@ export function Inspector({
   onProject: (patch: Partial<Project>) => void;
 }) {
   const g = bar ? geometry(bar) : null;
+  if (mesh && !bar && !mask)
+    return (
+      <aside className="inspector">
+        <div className="panel-heading">
+          <Settings2 size={15} />
+          <b>Propriedades</b>
+          <span>TELA SOLDADA</span>
+        </div>
+        <div className="panel-scroll">
+          <Section title="Layer e estilo" initial={false}>
+            <LayerInspector
+              project={project}
+              object={mesh}
+              role="ARMADURAS"
+              onChange={(patch) => onMesh?.(patch)}
+            />
+          </Section>
+          <WeldedMeshInspector
+            mesh={mesh}
+            onCriteria={() => onMeshCriteria?.()}
+            onRegion={() => onMeshRegion?.()}
+          />
+        </div>
+      </aside>
+    );
   return (
     <aside className="inspector">
       <div className="panel-heading">
@@ -1167,8 +1211,26 @@ export function ProjectTree({
     (a) => owns(a.id) && (!search || match(`${a.kind} ${a.label}`)),
   );
   const polylines = project.polylines.filter((l) => owns(l.id));
+  const meshes = (project.weldedMeshes ?? []).filter(
+    (l) =>
+      owns(l.id) &&
+      (!search ||
+        match(`${l.criteria.mark} ${weldedMeshLabel(l.criteria.mesh)}`)),
+  );
   const rows = schedule(project),
     valid = rows.filter((r) => !r.errors.length);
+  // O plano das telas usa recorte de polígonos: só refaz quando o projeto muda.
+  const meshSchedule = useMemo(() => meshScheduleOf(project), [project]);
+  const meshPanels = useMemo(
+    () =>
+      new Map(
+        (project.weldedMeshes ?? []).map((l) => {
+          const r = weldedMeshPlan(l);
+          return [l.id, r.ok ? r.layout.basePanels : undefined];
+        }),
+      ),
+    [project.weldedMeshes],
+  );
   // Pan/zoom não deve reformatar as bitolas de todas as linhas da árvore.
   const diameterLabels = useMemo(
     () =>
@@ -1309,6 +1371,47 @@ export function ProjectTree({
             )}
           </div>
         )}
+        {meshes.length > 0 && (
+          <>
+            <div className="tree-section">
+              <Shapes size={14} />
+              Telas soldadas
+              <em>{meshes.length}</em>
+            </div>
+            <div className="bar-list" aria-label="Telas soldadas">
+              {meshes.map((l) => {
+                const n = meshPanels.get(l.id);
+                return (
+                  <button
+                    key={l.id}
+                    className={`bar-row ${selected.includes(l.id) ? 'selected' : ''}`}
+                    onClick={(e) =>
+                      onSelect(
+                        toggleDetailSelection(
+                          project,
+                          selected,
+                          l.id,
+                          e.shiftKey,
+                          isolatedDetailId,
+                        ),
+                      )
+                    }
+                  >
+                    <span className="bar-mark">{l.criteria.mark}</span>
+                    <span>
+                      <b>Tela {weldedMeshLabel(l.criteria.mesh)}</b>
+                      <small>
+                        {n === undefined
+                          ? 'Revisar região'
+                          : `${n} ${n === 1 ? 'painel' : 'painéis'}`}
+                      </small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
         {(polylines.length > 0 || annotations.length > 0) && (
           <>
             <div className="tree-section">
@@ -1394,6 +1497,15 @@ export function ProjectTree({
             Total parcial · geometria a revisar
           </small>
         )}
+        {meshSchedule && (
+          <p
+            className="tree-summary-mesh"
+            aria-label="Telas soldadas no projeto"
+          >
+            Telas soldadas · {meshCount(meshSchedule)} tela(s) ·{' '}
+            {format(meshSchedule.total, 2)} kg
+          </p>
+        )}
       </div>
     </aside>
   );
@@ -1407,6 +1519,10 @@ export function Schedule({
 }) {
   const rows = schedule(project),
     valid = rows.filter((r) => !r.errors.length);
+  const meshes = useMemo(() => meshScheduleOf(project), [project]);
+  const meshIssues = meshes
+    ? [...new Set(meshes.rows.flatMap((r) => [...r.errors, ...r.warnings]))]
+    : [];
   return (
     <div className="schedule-page">
       <div className="document-intro">
@@ -1428,7 +1544,7 @@ export function Schedule({
           dentro da grade de comparação; totais usam cada comprimento real.
         </p>
       </div>
-      <div className="schedule-stats">
+      <div className={`schedule-stats ${meshes ? 'with-meshes' : ''}`}>
         <div>
           <span>POSIÇÕES</span>
           <b>{rows.length.toString().padStart(2, '0')}</b>
@@ -1453,6 +1569,14 @@ export function Schedule({
             <small>kg</small>
           </b>
         </div>
+        {meshes && (
+          <div>
+            <span>TELAS SOLDADAS</span>
+            <b>
+              {format(meshes.total, 2)} <small>kg</small>
+            </b>
+          </div>
+        )}
       </div>
       {rows.some((r) => r.errors.length > 0) && (
         <div className="inline-warning">
@@ -1553,6 +1677,98 @@ export function Schedule({
           </div>
         )}
       </div>
+      {meshes && (
+        <section
+          className="schedule-meshes"
+          aria-label="Quadro de telas soldadas"
+        >
+          <h2>Telas soldadas</h2>
+          {meshIssues.map((w) => (
+            <div key={w} className="inline-warning">
+              {w}
+            </div>
+          ))}
+          <div className="schedule-table-wrap">
+            <table className="schedule-table">
+              <thead>
+                <tr>
+                  <th>Posição</th>
+                  <th>Tela</th>
+                  <th>Elemento</th>
+                  <th>Painéis-base</th>
+                  <th>Área útil m²</th>
+                  <th>Área aplicada m²</th>
+                  <th>Massa aplicada kg</th>
+                  <th>Fornecimento kg</th>
+                </tr>
+              </thead>
+              <tbody>
+                {meshes.rows.map((r) => {
+                  const id = r.contributions[0]?.launchId,
+                    bad = r.errors.length > 0;
+                  return (
+                    <tr
+                      key={`${r.mark}|${r.label}`}
+                      onClick={() => id && onSelect(id)}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && id) onSelect(id);
+                      }}
+                    >
+                      <td>
+                        <span className="position-tag">{r.mark}</span>
+                      </td>
+                      <td>{r.label}</td>
+                      <td>
+                        {[
+                          ...new Set(r.contributions.map((c) => c.detailTitle)),
+                        ].join(', ')}
+                        {r.contributions.some((c) => c.repetitions > 1) &&
+                          ` · ${r.contributions.map((c) => `×${c.repetitions}`).join(' + ')}`}
+                      </td>
+                      <td>
+                        {bad
+                          ? 'Revisar'
+                          : `${r.basePanels} (${r.cutPieces} recortada(s))`}
+                      </td>
+                      <td>{bad ? '—' : format(r.usefulArea / 1e6, 2)}</td>
+                      <td>{bad ? '—' : format(r.appliedArea / 1e6, 2)}</td>
+                      <td>{bad ? '—' : format(r.appliedMass, 2)}</td>
+                      <td>{bad ? '—' : format(r.supplyMass, 1)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <table
+            className="schedule-table schedule-mesh-summary"
+            aria-label="Resumo das telas"
+          >
+            <thead>
+              <tr>
+                <th>Tela</th>
+                <th>Posições</th>
+                <th>Peso kg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {meshes.summary.map((s) => (
+                <tr key={s.label}>
+                  <td>{s.label}</td>
+                  <td>{s.marks.join(', ')}</td>
+                  <td>{format(s.weight, 2)}</td>
+                </tr>
+              ))}
+              <tr>
+                <th scope="row">Total</th>
+                <td />
+                <td>{format(meshes.total, 2)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      )}
       <div className="schedule-notes">
         <b>Critério de levantamento</b>
         <p>
@@ -1564,10 +1780,28 @@ export function Schedule({
           O detalhamento utiliza os mandris e os ganchos informados pelo
           projetista.
         </p>
+        {meshes && (
+          <p>
+            Telas: massa aplicada = área aplicada × kg/m²; fornecimento =
+            painéis-base × kg/painel, que já inclui os retalhos. As duas não se
+            somam. Este quadro não aplica perda nas telas; ela é informada no
+            quadro da prancha e no CSV por escopo.
+          </p>
+        )}
       </div>
     </div>
   );
 }
+
+/** Quadro global das telas (sem perda), ou undefined sem telas. */
+function meshScheduleOf(p: Project): WeldedMeshSchedule | undefined {
+  const any = p.scheduleLock
+    ? p.scheduleLock.weldedMeshes?.length
+    : p.weldedMeshes?.length;
+  return any ? weldedMeshSchedule(p) : undefined;
+}
+const meshCount = (m: WeldedMeshSchedule) =>
+  new Set(m.rows.flatMap((r) => r.contributions.map((c) => c.launchId))).size;
 
 const annotationNames: Record<Annotation['kind'], string> = {
   'dimension-aligned': 'Cota alinhada',

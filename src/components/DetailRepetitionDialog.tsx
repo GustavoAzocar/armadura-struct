@@ -243,7 +243,11 @@ export default function DetailRepetitionDialog({
                         <span>
                           {d.path}
                           <small>
-                            {d.positions} posições · repetição atual {d.factor}×
+                            {d.positions} posições
+                            {d.meshes
+                              ? ` · ${d.meshes} ${d.meshes === 1 ? 'tela' : 'telas'}`
+                              : ''}{' '}
+                            · repetição atual {d.factor}×
                           </small>
                         </span>
                       </label>

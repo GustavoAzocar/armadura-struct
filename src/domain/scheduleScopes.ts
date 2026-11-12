@@ -6,6 +6,10 @@ import {
   type SteelSummaryRow,
 } from './sheetSchedule';
 import { detailTitle } from './detailQuantities';
+import {
+  weldedMeshSchedule,
+  type WeldedMeshSchedule,
+} from './weldedMeshSchedule';
 
 /**
  * Escopos da exportação configurável da relação do aço.
@@ -20,6 +24,10 @@ import { detailTitle } from './detailQuantities';
  *   outro detalhamento não entram: o aço pertence ao seu dono. O texto
  *   `Bar.element`, o grupo da árvore e os nomes da repetição não são usados como
  *   filtro.
+ *
+ * Telas soldadas seguem as mesmas regras de escopo (`meshIds`), em quadro à
+ * parte. A perda das telas usa a mesma política de modos do acréscimo das
+ * barras, com percentual próprio (padrão 0%).
  *
  * Nada aqui altera o projeto; todas as funções são puras.
  */
@@ -39,6 +47,8 @@ export type ExportScope = {
   /** Pavimento › grupo (detalhamento) ou detalhamentos colocados (prancha). */
   context: string;
   barIds: string[];
+  /** Telas soldadas do escopo, pela mesma regra de propriedade das barras. */
+  meshIds: string[];
 };
 export type DetailOption = {
   id: string;
@@ -115,6 +125,7 @@ export function resolveScopes(
           name: p.name || 'Projeto',
           context: 'Projeto completo',
           barIds: p.bars.map((b) => b.id),
+          meshIds: (p.weldedMeshes ?? []).map((l) => l.id),
         },
       ],
       issues,
@@ -151,6 +162,7 @@ export function resolveScopes(
           ? `Detalhamentos: ${data.names.join('; ')}`
           : 'Sem detalhamentos colocados',
         barIds: data.barIds,
+        meshIds: data.meshIds,
       });
     }
     return { scopes, issues };
@@ -176,6 +188,9 @@ export function resolveScopes(
       barIds: p.bars
         .filter((b) => p.hierarchy.objectDetails[b.id] === id)
         .map((b) => b.id),
+      meshIds: (p.weldedMeshes ?? [])
+        .filter((l) => p.hierarchy.objectDetails[l.id] === id)
+        .map((l) => l.id),
     });
   }
   return { scopes, issues };
@@ -219,6 +234,39 @@ function validPercent(n: number) {
   if (!Number.isFinite(n) || n < 0 || n > 100)
     throw new Error('O acréscimo deve estar entre 0 e 100%.');
 }
+/**
+ * Perda das telas por escopo, com os mesmos modos do acréscimo das barras:
+ * prancha com quadro usa a perda do quadro (ausente = 0%); os demais escopos,
+ * o percentual da exportação (padrão 0%).
+ */
+export function scopeMeshLoss(
+  p: Project,
+  scope: ExportScope,
+  policy: AllowancePolicy,
+): ScopeAllowance {
+  if (policy.mode === 'none') return { percent: 0, source: 'Sem perda' };
+  if (
+    !Number.isFinite(policy.percent) ||
+    policy.percent < 0 ||
+    policy.percent > 100
+  )
+    throw new Error('A perda das telas deve estar entre 0 e 100%.');
+  if (policy.mode === 'override')
+    return { percent: policy.percent, source: 'Definida nesta exportação' };
+  if (scope.kind === 'sheet') {
+    const configured = p.sheets.find((s) => s.id === scope.id)?.steelSchedule;
+    if (configured)
+      return {
+        percent: configured.meshLossPercent ?? 0,
+        source: 'Quadro inserido na prancha',
+      };
+    return {
+      percent: policy.percent,
+      source: 'Prancha sem quadro inserido; definida nesta exportação',
+    };
+  }
+  return { percent: policy.percent, source: 'Definida nesta exportação' };
+}
 
 export type ScopeData = {
   scope: ExportScope;
@@ -227,12 +275,19 @@ export type ScopeData = {
   /** `undefined` quando escopos consolidados têm reservas conflitantes. */
   allowance?: ScopeAllowance;
   allowanceNote?: string;
+  /** Quadro de telas do escopo (vazio quando não há telas). */
+  meshes: WeldedMeshSchedule;
+  /** `undefined` quando escopos consolidados têm perdas conflitantes. */
+  meshLoss?: ScopeAllowance;
+  meshLossNote?: string;
 };
 export type ScopedSchedule = {
   scopes: ScopeData[];
   physicalTotal?: ScopeData;
   /** IDs físicos presentes em mais de um escopo selecionado. */
   sharedBarIds: string[];
+  /** Telas presentes em mais de um escopo selecionado. */
+  sharedMeshIds: string[];
 };
 
 /** Monta os dados com o motor atual da relação de aço. Sem cálculo paralelo. */
@@ -240,38 +295,73 @@ export function buildScopedSchedule(
   p: Project,
   scopes: ExportScope[],
   policy: AllowancePolicy,
-  options: { physicalTotal?: boolean } = {},
+  options: { physicalTotal?: boolean; meshLoss?: AllowancePolicy } = {},
 ): ScopedSchedule {
+  const meshPolicy = options.meshLoss ?? { mode: 'scope', percent: 0 };
   const data = scopes.map((scope) => {
     const { rows } = scheduleForBarIds(p, new Set(scope.barIds));
+    const meshLoss = scopeMeshLoss(p, scope, meshPolicy);
     return {
       scope,
       rows,
       summary: steelSummary(rows),
       allowance: scopeAllowance(p, scope, policy),
+      meshes: weldedMeshSchedule(p, {
+        ids: new Set(scope.meshIds),
+        lossPercent: meshLoss.percent,
+      }),
+      meshLoss,
     };
   });
-  const seen = new Map<string, number>();
-  for (const s of scopes)
-    for (const id of new Set(s.barIds)) seen.set(id, (seen.get(id) ?? 0) + 1);
-  const sharedBarIds = [...seen].filter(([, n]) => n > 1).map(([id]) => id);
+  const shared = (pick: (s: ExportScope) => string[]) => {
+    const seen = new Map<string, number>();
+    for (const s of scopes)
+      for (const id of new Set(pick(s))) seen.set(id, (seen.get(id) ?? 0) + 1);
+    return [...seen].filter(([, n]) => n > 1).map(([id]) => id);
+  };
+  const sharedBarIds = shared((s) => s.barIds),
+    sharedMeshIds = shared((s) => s.meshIds);
   let physicalTotal: ScopeData | undefined;
   if (options.physicalTotal && scopes.length > 1) {
     // União dos IDs físicos antes de agregar: nunca a soma dos arquivos.
     const union = new Set(scopes.flatMap((s) => s.barIds));
+    const meshUnion = new Set(scopes.flatMap((s) => s.meshIds));
     const scope: ExportScope = {
       kind: 'physical-total',
       id: 'uniao',
       name: 'Total físico (união dos IDs)',
       context: `União de ${scopes.length} escopos; armaduras repetidas contadas uma vez`,
       barIds: p.bars.filter((b) => union.has(b.id)).map((b) => b.id),
+      meshIds: (p.weldedMeshes ?? [])
+        .filter((l) => meshUnion.has(l.id))
+        .map((l) => l.id),
     };
     const { rows } = scheduleForBarIds(p, union);
     const percents = [...new Set(data.map((d) => d.allowance.percent))];
+    const losses = [...new Set(data.map((d) => d.meshLoss.percent))];
     physicalTotal = {
       scope,
       rows,
       summary: steelSummary(rows),
+      meshes: weldedMeshSchedule(p, {
+        ids: meshUnion,
+        lossPercent: losses.length === 1 ? losses[0] : 0,
+      }),
+      ...(losses.length === 1
+        ? {
+            meshLoss: {
+              percent: losses[0],
+              source:
+                meshPolicy.mode === 'none'
+                  ? 'Sem perda'
+                  : 'Mesma perda em todos os escopos',
+            },
+          }
+        : {
+            meshLossNote: `Perdas de telas diferentes entre escopos (${losses
+              .map((n) => percentLabel(n))
+              .join(', ')}%). Perda não aplicada ao total físico.`,
+          }),
       ...(percents.length === 1
         ? {
             allowance: {
@@ -291,7 +381,7 @@ export function buildScopedSchedule(
           }),
     };
   }
-  return { scopes: data, physicalTotal, sharedBarIds };
+  return { scopes: data, physicalTotal, sharedBarIds, sharedMeshIds };
 }
 export const percentLabel = (n: number, decimal: ',' | '.' = ',') =>
   n.toLocaleString(decimal === ',' ? 'pt-BR' : 'en-US', {

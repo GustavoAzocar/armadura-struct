@@ -40,7 +40,8 @@ export function detailTitle(p: Project, detailId: string): string {
   const names = repetitionNames(p, d.repetition);
   return `${names.length ? names.join(' = ') + ' · ' : ''}${d.name} · ${d.repetition.factor}×`;
 }
-export function quantityContext(p: Project, b: Bar) {
+/** Repetição do detalhamento dono; vale para barras e telas soldadas (pelo ID). */
+export function quantityContext(p: Project, b: Pick<Bar, 'id'>) {
   const owner = p.hierarchy.objectDetails[b.id];
   const d = p.hierarchy.details.find((d) => d.id === owner);
   return {

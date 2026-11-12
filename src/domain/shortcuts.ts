@@ -3,6 +3,7 @@ import type { Tool } from './types';
 export type Action =
   | Tool
   | 'stirrup-criteria'
+  | 'welded-mesh-criteria'
   | 'beam-clamp-criteria'
   | 'helix-criteria'
   | 'cad-settings'
@@ -315,6 +316,13 @@ export const shortcutCatalog: Record<Action, Command> = {
     ...model,
     ...individual,
   }),
+  'welded-mesh': command(
+    'Lançar tela',
+    armatures,
+    global(['TS', 'TELA']),
+    model,
+  ),
+  'welded-mesh-criteria': command('Critérios de telas', armatures, {}, model),
   'beam-clamp': command(
     'Grampo de viga',
     armatures,
