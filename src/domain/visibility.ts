@@ -157,6 +157,9 @@ export function visibilityProjection(
     polylines: base.polylines.filter(keep),
     masks: base.masks.filter(keep),
     symbolInstances: (base.symbolInstances ?? []).filter(keep),
+    ...(base.weldedMeshes
+      ? { weldedMeshes: base.weldedMeshes.filter(keep) }
+      : {}),
   };
 }
 /** Ghosts are never capturable/editable or passed to an exporter. */
@@ -170,6 +173,7 @@ export function visibilityReview(p: Project, key: string): Project {
     annotations: p.annotations.filter(keep),
     polylines: p.polylines.filter(keep),
     symbolInstances: (p.symbolInstances ?? []).filter(keep),
+    ...(p.weldedMeshes ? { weldedMeshes: p.weldedMeshes.filter(keep) } : {}),
     masks: p.masks.filter(keep).map((m) => ({
       ...m,
       primitives:

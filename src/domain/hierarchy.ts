@@ -8,7 +8,13 @@ import { uid, type Project, type ProjectHierarchy } from './types';
 export type HierarchyKind = 'floor' | 'element' | 'detail';
 type Content = Pick<
   Project,
-  'bars' | 'details' | 'annotations' | 'masks' | 'polylines' | 'symbolInstances'
+  | 'bars'
+  | 'details'
+  | 'annotations'
+  | 'masks'
+  | 'polylines'
+  | 'symbolInstances'
+  | 'weldedMeshes'
 >;
 
 export function contentObjects(project: Content) {
@@ -19,6 +25,7 @@ export function contentObjects(project: Content) {
     ...project.masks,
     ...project.polylines,
     ...(project.symbolInstances ?? []),
+    ...(project.weldedMeshes ?? []),
   ];
 }
 
@@ -284,10 +291,12 @@ export function moveObjectsToDetail(
   const targetFactor =
     project.hierarchy.details.find((d) => d.id === detailId)?.repetition
       ?.factor ?? 1;
-  for (const b of project.bars.filter((b) => ids.has(b.id))) {
+  // Barras e telas são posições físicas: o fator de repetição multiplica as duas.
+  const physical = [...project.bars, ...(project.weldedMeshes ?? [])];
+  for (const o of physical.filter((o) => ids.has(o.id))) {
     const factor =
       project.hierarchy.details.find(
-        (d) => d.id === project.hierarchy.objectDetails[b.id],
+        (d) => d.id === project.hierarchy.objectDetails[o.id],
       )?.repetition?.factor ?? 1;
     if (factor !== targetFactor)
       throw new Error(

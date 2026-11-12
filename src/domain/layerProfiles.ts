@@ -190,6 +190,7 @@ export function layerProjection(
     annotations: p.annotations.filter(keep),
     polylines: p.polylines.filter(keep),
     symbolInstances: (p.symbolInstances ?? []).filter(keep),
+    ...(p.weldedMeshes ? { weldedMeshes: p.weldedMeshes.filter(keep) } : {}),
     masks: p.masks.filter(keep).map((m) => ({
       ...m,
       primitives: m.primitives.filter(

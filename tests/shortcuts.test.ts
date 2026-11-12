@@ -123,6 +123,17 @@ describe('catálogo e resolução dos atalhos', () => {
     expect(maps.drawing.aliases.get('RO')).toBeUndefined();
     expect(maps.masks.keys.has('PL')).toBe(false);
   });
+  it('leva TS e TELA ao lançamento de telas em todos os contextos', () => {
+    for (const scope of ['masks', 'drawing'] as const) {
+      expect(maps[scope].aliases.get('TS')).toBe('welded-mesh');
+      expect(maps[scope].aliases.get('TELA')).toBe('welded-mesh');
+    }
+    expect(shortcutCatalog['welded-mesh'].needsDrawing).toBe(true);
+    expect(shortcutCatalog['welded-mesh-criteria']).toMatchObject({
+      name: 'Critérios de telas',
+      category: 'Armaduras',
+    });
+  });
   it('desativa teclas únicas e preserva aliases e combinações', () => {
     const disabled = { ...preferences, singleKeysDisabled: true };
     const web = compileShortcuts(disabled);

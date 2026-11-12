@@ -78,6 +78,8 @@ export default function CsvExportDialog({
   const toggle = (list: string[], id: string, on: boolean) =>
     on ? [...list, id] : list.filter((v) => v !== id);
   const percent = o.allowance.mode === 'none' ? 0 : o.allowance.percent;
+  const meshLoss = o.meshLoss ?? { mode: 'scope', percent: 0 },
+    meshPercent = meshLoss.mode === 'none' ? 0 : meshLoss.percent;
   const unit = (u: 'cm' | 'm') =>
     `${u} (${lengthDigits(u, o.precision)} casa${lengthDigits(u, o.precision) > 1 ? 's' : ''})`;
   return (
@@ -412,6 +414,61 @@ export default function CsvExportDialog({
             alterada.
           </p>
         </fieldset>
+        {(p.weldedMeshes?.length ?? 0) > 0 && (
+          <fieldset disabled={busy}>
+            <legend>Perda das telas</legend>
+            <label className="field">
+              <span>Política</span>
+              <select
+                aria-label="Política de perda das telas"
+                value={meshLoss.mode}
+                onChange={(e) => {
+                  const mode = e.target.value as typeof meshLoss.mode;
+                  set({
+                    meshLoss:
+                      mode === 'none'
+                        ? { mode }
+                        : { mode, percent: meshPercent },
+                  });
+                }}
+              >
+                <option value="scope">Do quadro de cada prancha</option>
+                <option value="override">Mesmo valor para todos</option>
+                <option value="none">Sem perda</option>
+              </select>
+            </label>
+            {meshLoss.mode !== 'none' && (
+              <label className="field">
+                <span>
+                  {meshLoss.mode === 'scope'
+                    ? 'Escopos sem quadro inserido (%)'
+                    : 'Perda desta exportação (%)'}
+                </span>
+                <input
+                  aria-label="Percentual de perda das telas"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={meshPercent}
+                  onChange={(e) =>
+                    set({
+                      meshLoss: {
+                        mode: meshLoss.mode as 'scope' | 'override',
+                        percent: e.target.valueAsNumber,
+                      },
+                    })
+                  }
+                />
+              </label>
+            )}
+            <p className="field-help">
+              A perda incide sobre a massa nominal aplicada das telas e aparece
+              à parte. A massa de fornecimento já inclui os retalhos e não
+              recebe perda.
+            </p>
+          </fieldset>
+        )}
       </div>
       <h3>Prévia</h3>
       <div aria-label="Prévia da exportação CSV" className="csv-export-preview">

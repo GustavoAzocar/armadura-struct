@@ -20,6 +20,104 @@ import { annotationError, primitiveBounds } from '../domain/drafting';
 import { formatTurns, helixMetrics } from '../domain/helix';
 import { version as appVersion } from '../../package.json';
 import { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
+import {
+  weldedMeshSchedule,
+  type WeldedMeshScheduleRow,
+} from '../domain/weldedMeshSchedule';
+
+/** Ø e espaçamento de uma direção da tela: "4,2 c/15" (mm, cm). */
+const meshDirection = (d: WeldedMeshScheduleRow['mesh']['longitudinal']) =>
+  `${format(d.diameter, 1)} c/${(d.spacing / 10).toLocaleString('pt-BR', { maximumFractionDigits: 1, useGrouping: false })}`;
+const meshPanel = (r: WeldedMeshScheduleRow, times = '×') =>
+  `${format(r.mesh.width / 1000, 2)}${times}${format(r.mesh.length / 1000, 2)}`;
+/**
+ * Quadro global de telas nas exportações do projeto. Com a RA bloqueada, usa a
+ * fotografia; o projeto não tem perda configurada para o quadro global (0%).
+ */
+function meshDxfLines(p: Project) {
+  const s = weldedMeshSchedule(p);
+  if (!s.rows.length) return [];
+  return [
+    'QUADRO DE TELAS SOLDADAS | areas em m2, massas em kg',
+    'POS   TELA   ACO   LONG (D c/cm)   TRANSV (D c/cm)   PAINEL(m)   PAINEIS   RECORTES   A.UTIL   A.APLIC   PESO   FORNEC',
+    ...s.rows.map(
+      (r) =>
+        `${r.mark}   ${r.label}   ${r.mesh.steel}   ${meshDirection(r.mesh.longitudinal)}   ${meshDirection(r.mesh.transverse)}   ${meshPanel(r, 'x')}   ${r.basePanels}   ${r.cutPieces}   ${format(r.usefulArea / 1e6, 2)}   ${format(r.appliedArea / 1e6, 2)}   ${format(r.weight, 2)}   ${format(r.supplyMass, 2)}`,
+    ),
+    ...s.summary.map((t) => `${t.label}   ${format(t.weight, 2)} kg`),
+    `TOTAL TELAS   ${format(s.total, 2)} kg`,
+  ];
+}
+function meshCsvRows(p: Project): unknown[][] {
+  const s = weldedMeshSchedule(p);
+  if (!s.rows.length) return [];
+  return [
+    [],
+    ['Telas soldadas'],
+    [
+      'Posição',
+      'Tela',
+      'Aço',
+      'Longitudinal (Ø mm c/cm)',
+      'Transversal (Ø mm c/cm)',
+      'Painel (m)',
+      'Painéis-base',
+      'Peças recortadas',
+      'Área útil (m²)',
+      'Área aplicada (m²)',
+      'Massa aplicada (kg)',
+      'Perda (kg)',
+      'Peso (kg)',
+      'Massa de fornecimento (kg)',
+    ],
+    ...s.rows.map((r) => [
+      r.mark,
+      r.label,
+      r.mesh.steel,
+      meshDirection(r.mesh.longitudinal),
+      meshDirection(r.mesh.transverse),
+      meshPanel(r),
+      r.basePanels,
+      r.cutPieces,
+      format(r.usefulArea / 1e6, 2),
+      format(r.appliedArea / 1e6, 2),
+      format(r.appliedMass, 2),
+      format(r.lossMass, 2),
+      format(r.weight, 2),
+      format(r.supplyMass, 2),
+    ]),
+    ...s.summary.map((t) => [
+      'Tela soldada',
+      t.label,
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      format(t.weight, 2),
+    ]),
+    [
+      'Total das telas soldadas',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      format(s.total, 2),
+    ],
+  ];
+}
 export { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
 import type { Point, Project, TextFont } from '../domain/types';
 import { resolveTextFont, type ResolvedTextFont } from '../domain/textStyle';
@@ -68,6 +166,7 @@ export function toDxf(p: Project): string {
         `${r.mark}   ${r.steel}   ${r.diameter}   ${scheduleQuantityLabel(r).replace(/×/g, 'x')}   ${format(r.unitLength, 3)}   ${format(r.totalLength, 3)}   ${format(r.weight, 2)}`,
     ),
     ...helixScheduleNotes(p),
+    ...meshDxfLines(p),
   ]) {
     raw.push(
       stylePrimitive(
@@ -454,6 +553,7 @@ export function toCsv(p: Project) {
         r.contributions.map((c) => (c.showRibbed ? 'Sim' : 'Não')).join('/'),
         r.contributions.map((c) => c.columnLevel).join(' / '),
       ]),
+      ...meshCsvRows(p),
     ]
       .map((row) => row.map(safe).join(';'))
       .join('\r\n')
@@ -667,6 +767,91 @@ export function toPdf(p: Project): Uint8Array {
       }
       doc.text(line, 18, y);
     }
+  }
+  const meshes = weldedMeshSchedule(p);
+  if (meshes.rows.length) {
+    doc.addPage();
+    title('Quadro de telas soldadas');
+    const cols = [18, 36, 74, 94, 128, 164, 196, 220, 248, 282, 322, 360];
+    let my = 39;
+    const meshHeader = () => {
+      doc.setFillColor(
+        p.plotting?.preset === 'monochrome'
+          ? '#ffffff'
+          : plotColor(p, '#ecf0f8'),
+      );
+      doc.rect(14, my - 6, 392, 10, 'F');
+      doc.setTextColor(ra.style.color);
+      doc.setFontSize(9);
+      [
+        'Pos.',
+        'Tela',
+        'Aço',
+        'Long. Ø c/',
+        'Transv. Ø c/',
+        'Painel m',
+        'Painéis',
+        'Recortes',
+        'Á. útil m²',
+        'Á. aplic. m²',
+        'Peso kg',
+        'Fornec. kg',
+      ].forEach((t, i) => doc.text(t, cols[i], my));
+      my += 13;
+    };
+    meshHeader();
+    for (const r of meshes.rows) {
+      if (my > 258) {
+        doc.addPage();
+        title('Quadro de telas soldadas · continuação');
+        my = 39;
+        meshHeader();
+      }
+      doc.setTextColor(ra.style.color);
+      doc.setFontSize(9);
+      [
+        r.mark,
+        r.label,
+        r.mesh.steel,
+        meshDirection(r.mesh.longitudinal),
+        meshDirection(r.mesh.transverse),
+        meshPanel(r),
+        String(r.basePanels),
+        String(r.cutPieces),
+        format(r.usefulArea / 1e6, 2),
+        format(r.appliedArea / 1e6, 2),
+        format(r.weight, 2),
+        format(r.supplyMass, 2),
+      ].forEach((t, i) => doc.text(t, cols[i], my));
+      doc.setDrawColor(plotColor(p, '#e1e1e1'));
+      doc.setLineWidth(0.1);
+      doc.line(14, my + 3, 406, my + 3);
+      my += 11;
+    }
+    if (my > 220) {
+      doc.addPage();
+      title('Resumo das telas soldadas');
+      my = 40;
+    }
+    doc.setFont('helvetica', 'bold');
+    my += 6;
+    for (const t of meshes.summary) {
+      doc.text(`${t.label}: ${format(t.weight, 2)} kg`, 18, my);
+      my += 7;
+    }
+    doc.text(`Total das telas soldadas: ${format(meshes.total, 2)} kg`, 18, my);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(
+      'Peso das telas = massa nominal aplicada (área aplicada × kg/m²) + perda (0% no quadro do projeto). Fornecimento = painéis inteiros × kg/painel, sem perda.',
+      18,
+      my + 12,
+    );
+    doc.text(
+      'Paginação conservadora, sem reaproveitamento de retalhos nem otimização de corte. Sobreposições e afastamentos não são traspasse nem cobrimento normativos.',
+      18,
+      my + 18,
+    );
   }
   return new Uint8Array(doc.output('arraybuffer'));
 }

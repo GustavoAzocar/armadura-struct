@@ -168,9 +168,10 @@ describe('AS-67: persistência, intercâmbio e quantitativos físicos', () => {
     expect(() =>
       readDetailPackage({ ...pack, schema: 'openstruct.detail/17' }),
     ).toThrow(/19/);
+    // O v18 passou a existir (telas soldadas, #128) e é anterior aos grampos.
     expect(() =>
       readDetailPackage({ ...pack, schema: 'openstruct.detail/18' }),
-    ).toThrow(/não suportada/);
+    ).toThrow(/19/);
     const legacy = emptyProject();
     legacy.bars = [{ ...newBar('N1'), id: 'free' }];
     const q = decodeProject(

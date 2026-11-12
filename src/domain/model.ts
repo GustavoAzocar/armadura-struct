@@ -32,6 +32,11 @@ import {
   validateSymbols,
 } from './symbols';
 import { layerEnvironmentSchema } from './layerProfiles';
+import { weldedMeshCriteriaSchema } from './weldedMesh';
+import {
+  weldedMeshLaunchIssues,
+  weldedMeshLaunchSchema,
+} from './weldedMeshLaunch';
 import { defaultLayers, completeLayers, validateLayers } from './layers';
 import { drawingLayerSchema, layerBindingShape } from './layerSchema';
 import { armatureReferences } from './armatureReferences';
@@ -292,6 +297,8 @@ const schema = z.object({
   ]),
   stirrupDefaults: stirrupCriteriaSchema.optional(),
   beamClampDefaults: beamClampCriteriaSchema.optional(),
+  weldedMeshes: z.array(weldedMeshLaunchSchema).max(2000).optional(),
+  weldedMeshDefaults: weldedMeshCriteriaSchema.optional(),
   helixDefaults: helixCriteriaSchema.optional(),
   cadDefaults: cadDefaultsSchema.optional(),
   layerEnvironment: layerEnvironmentSchema.optional(),
@@ -405,6 +412,7 @@ const schema = z.object({
       origins: z.record(z.string(), z.string()).optional(),
       detailIds: z.record(z.string(), z.string()).optional(),
       bars: z.array(barSchema).max(10000),
+      weldedMeshes: z.array(weldedMeshLaunchSchema).max(2000).optional(),
       fabricationPositions: z
         .array(fabricationPositionSchema)
         .max(10000)
@@ -467,6 +475,7 @@ export const detailContentSchema = schema.pick({
   masks: true,
   annotations: true,
   polylines: true,
+  weldedMeshes: true,
 });
 
 /** Free text (native insertion point) or typography written by format 28. */
@@ -578,7 +587,20 @@ export function decodeProject(
     clampVersion || input?.schema === 'armadurastruct/30';
   if (!beamClampVersion && hasBeamClampData(input))
     throw new Error('Grampos de viga exigem formato 30.');
-  const textVersion = beamClampVersion || input?.schema === 'armadurastruct/28';
+  // O 29 foi reservado às telas soldadas (#128); as versões seguintes também as aceitam.
+  const meshVersion = beamClampVersion || input?.schema === 'armadurastruct/29';
+  if (
+    !meshVersion &&
+    (input?.weldedMeshes !== undefined ||
+      input?.weldedMeshDefaults !== undefined ||
+      input?.scheduleLock?.weldedMeshes !== undefined ||
+      input?.sheets?.some(
+        (s: { steelSchedule?: { meshLossPercent?: unknown } }) =>
+          s?.steelSchedule?.meshLossPercent !== undefined,
+      ))
+  )
+    throw new Error('Telas soldadas exigem formato 29.');
+  const textVersion = meshVersion || input?.schema === 'armadurastruct/28';
   if (!textVersion && hasFreeTextData(input))
     throw new Error('Textos livres e tipografia CAD exigem formato 28.');
   const symbolVersion = textVersion || input?.schema === 'armadurastruct/27';
@@ -960,9 +982,18 @@ export function decodeProject(
     ...p.annotations,
     ...p.polylines,
     ...(p.symbolInstances ?? []),
+    ...(p.weldedMeshes ?? []),
   ].map((o) => o.id);
   if (new Set(allIds).size !== allIds.length)
     throw new Error('Identificadores de objetos duplicados.');
+  for (const l of [
+    ...(p.weldedMeshes ?? []),
+    ...(p.scheduleLock?.weldedMeshes ?? []),
+  ]) {
+    const issues = weldedMeshLaunchIssues(l);
+    if (issues.length)
+      throw new Error(`Tela soldada ${l.criteria.mark}: ${issues.join(' ')}`);
+  }
   if (
     !options.allowOrphanReferences &&
     [...p.annotations, ...p.polylines].some((a) =>
@@ -1068,12 +1099,15 @@ export function decodeProject(
     throw new Error('Vínculos auxiliares exigem formato 13.');
   validateHierarchy(p);
   if (p.scheduleLock?.quantities) {
-    const ids = new Set(p.scheduleLock.bars.map((b) => b.id));
+    // Barras e telas da fotografia têm, cada uma, o seu contexto de repetição.
+    const locked = [
+      ...p.scheduleLock.bars,
+      ...(p.scheduleLock.weldedMeshes ?? []),
+    ];
+    const ids = new Set(locked.map((o) => o.id));
     if (
       Object.keys(p.scheduleLock.quantities).some((id) => !ids.has(id)) ||
-      p.scheduleLock.bars.some(
-        (b) => !Object.hasOwn(p.scheduleLock!.quantities!, b.id),
-      )
+      locked.some((o) => !Object.hasOwn(p.scheduleLock!.quantities!, o.id))
     )
       throw new Error('Contexto de repetição da RA incompleto.');
   } else if (
@@ -1160,18 +1194,23 @@ export function createScheduleLock(
   p: Project,
   at = new Date().toISOString(),
 ): NonNullable<Project['scheduleLock']> {
+  // Telas entram na fotografia só quando existem: projetos só com barras
+  // continuam com a mesma forma de bloqueio.
+  const meshes = p.weldedMeshes ?? [];
+  const objects = [...p.bars, ...meshes];
   return {
     at,
     bars: structuredClone(p.bars),
+    ...(meshes.length ? { weldedMeshes: structuredClone(meshes) } : {}),
     fabricationPositions: structuredClone(fabricationPositions(p)),
     detailIds: Object.fromEntries(
-      p.bars.map((b) => [b.id, p.hierarchy.objectDetails[b.id]]),
+      objects.map((o) => [o.id, p.hierarchy.objectDetails[o.id]]),
     ),
     origins: Object.fromEntries(
-      p.bars.map((b) => [b.id, contributionOrigin(p, b.id)]),
+      objects.map((o) => [o.id, contributionOrigin(p, o.id)]),
     ),
     quantities: Object.fromEntries(
-      p.bars.map((b) => [b.id, quantityContext(p, b)]),
+      objects.map((o) => [o.id, quantityContext(p, o)]),
     ),
   };
 }
@@ -1324,7 +1363,31 @@ export function scheduleChanged(p: Project) {
       ) !== fingerprint(p.scheduleLock.bars, p.scheduleLock.quantities)) ||
     (!!p.scheduleLock &&
       JSON.stringify(fabricationPositions(p)) !==
-        JSON.stringify(fabricationPositions(p.scheduleLock)))
+        JSON.stringify(fabricationPositions(p.scheduleLock))) ||
+    (!!p.scheduleLock &&
+      meshFingerprint(
+        p.weldedMeshes,
+        Object.fromEntries(
+          (p.weldedMeshes ?? []).map((l) => [l.id, quantityContext(p, l)]),
+        ),
+      ) !==
+        meshFingerprint(p.scheduleLock.weldedMeshes, p.scheduleLock.quantities))
+  );
+}
+/** Tudo o que muda o quadro de telas: critérios, região, âncora e repetição. */
+function meshFingerprint(
+  meshes: Project['weldedMeshes'],
+  quantities: NonNullable<Project['scheduleLock']>['quantities'],
+) {
+  return JSON.stringify(
+    (meshes ?? []).map((l) => ({
+      id: l.id,
+      criteria: l.criteria,
+      region: l.region,
+      anchor: l.anchor ?? null,
+      repetitions: quantities?.[l.id]?.repetitions ?? 1,
+      detailTitle: quantities?.[l.id]?.detailTitle ?? '',
+    })),
   );
 }
 export function projectPoints(p: Project) {
