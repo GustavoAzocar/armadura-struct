@@ -401,6 +401,10 @@ export type Geometry = {
   length: number;
   errors: string[];
   vertices: Point[];
+  /** Theoretical corners of the planar chain before its bends are trimmed. */
+  theoreticalVertices?: Point[];
+  /** Counts of physical segments at each end, in traversal order. */
+  hookSegments?: { start: number; end: number };
 };
 export type ScheduleContribution = {
   barId: string;

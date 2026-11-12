@@ -76,3 +76,19 @@ Nas demais formas, o domínio sinaliza a indisponibilidade da cotagem
 externa e conserva as referências existentes para a apresentação.
 Geometria inválida recebe diagnóstico. Zoom, rotação da vista e
 arredondamento são tratados na apresentação.
+
+## Memória do desenvolvimento
+
+O comprimento geométrico é a soma das parcelas ao longo do eixo físico.
+Em uma poligonal válida, pode-se somar as retas efetivas e os arcos ou
+partir dos trechos teóricos, subtrair os recuos nas tangências e somar os
+arcos. Quando os ganchos são construídos à parte do corpo, suas parcelas
+completam o total. No estribo legado, os ganchos já fazem parte da cadeia
+de trechos teóricos e entram uma única vez.
+
+O cálculo usa o raio no eixo `R = (mandril interno + bitola) / 2` nas
+dobras circulares. A hélice usa uma parcela espacial calculada com seu
+diâmetro no eixo, altura útil e passo. Recuos de tangência descrevem
+somente a substituição geométrica dos cantos. Na política atual, o
+comprimento de corte é o próprio desenvolvimento geométrico. A soma
+usa os valores internos antes da formatação.
