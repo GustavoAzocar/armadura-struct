@@ -40,11 +40,14 @@ export type DrawingLayer = DrawingStyle & {
   plot?: PlotStyle;
 };
 export type Point = { x: number; y: number };
+export type BarDimensionConvention = 'axis' | 'external';
 export type Bar = LayerBinding & {
   id: string;
   mark: string;
   element: string;
   kind: 'free' | 'stirrup' | 'beam-clamp' | 'helix';
+  /** Optional convention for automatic labels on the physical bar drawing. */
+  dimensionConvention?: BarDimensionConvention;
   /** Continuous circular helix; one physical piece, never a series of rings. */
   helix?: import('./helixSchema').HelixProfile;
   helixDisplay?: import('./helixSchema').HelixDisplay;
@@ -133,6 +136,8 @@ export type BarRepresentation = LayerBinding & {
     omitPrefix?: string;
   };
   showDimensions?: boolean;
+  /** Automatic labels are independent of the source bar and other views. */
+  dimensionConvention?: BarDimensionConvention;
 };
 export type Detail = BarRepresentation;
 export type Floor = { id: string; name: string };

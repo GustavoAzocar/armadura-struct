@@ -1,0 +1,75 @@
+.bar-cut-memory {
+  padding: 8px;
+  font-size: 11px;
+}
+
+.bar-cut-memory summary {
+  cursor: pointer;
+}
+
+.bar-cut-memory-content {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.bar-cut-memory-content :is(figure, dl, p) {
+  margin: 0;
+}
+
+.bar-cut-memory-content svg {
+  display: block;
+  width: 100%;
+  height: 90px;
+}
+
+.bar-cut-memory-content dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 8px;
+}
+
+.bar-cut-memory-content dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.bar-cut-memory-rows {
+  max-height: 148px;
+  overflow: auto;
+}
+
+.bar-cut-memory-rows table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bar-cut-memory-rows :is(th, td) {
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.bar-cut-memory-rows th {
+  font-weight: 600;
+}
+
+.bar-cut-memory-rows small {
+  display: block;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+.bar-cut-memory-rows td {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bar-cut-memory-totals {
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+}

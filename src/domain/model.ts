@@ -206,6 +206,9 @@ export const quantitySourceSchema = z.union([
     })
     .strict(),
 ]);
+export const barDimensionConventionSchema = z
+  .enum(['axis', 'external'])
+  .optional();
 export const armatureDataSchema = {
   multiplier: z.number().int().min(1).max(10000).default(1),
   quantitySource: quantitySourceSchema.default({ kind: 'manual' }),
@@ -220,6 +223,7 @@ const barSchema = z
     ...layerBindingShape,
     ...armatureDataSchema,
     manufacturing: manufacturingSchema.optional(),
+    dimensionConvention: barDimensionConventionSchema,
     id: z.string(),
     mark: z.string().min(1).max(40),
     element: z.string().max(100),
@@ -440,6 +444,7 @@ const schema = z.object({
         scale: number.positive().max(10000).optional(),
         label: representationLabelSchema.optional(),
         showDimensions: z.boolean().optional(),
+        dimensionConvention: barDimensionConventionSchema,
         beamClampView: beamClampViewSchema.optional(),
         identification: z
           .enum(['legacy', 'primary', 'mark', 'none'])

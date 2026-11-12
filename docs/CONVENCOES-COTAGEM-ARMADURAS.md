@@ -92,3 +92,17 @@ diâmetro no eixo, altura útil e passo. Recuos de tangência descrevem
 somente a substituição geométrica dos cantos. Na política atual, o
 comprimento de corte é o próprio desenvolvimento geométrico. A soma
 usa os valores internos antes da formatação.
+
+## Consulta no CAD
+
+Selecione a armadura ou um rebatimento e abra **Cotagem e corte** nas
+propriedades. Em **Convenção de cotagem**, escolha **Pelo eixo** ou
+**Externa**. O desenho identifica cada convenção como `(eixo)` ou
+`(ext.)`. Cada inserção tem sua própria escolha. **Padrão do desenho**
+recupera a apresentação original daquela armadura ou inserção.
+
+Abra **Memória de corte** para consultar o esquema, comparar medidas e
+conferir as parcelas. As cotas externas são marcadas no esquema quando
+há referências de superfície definidas. Se a forma não tiver uma
+convenção externa, o inspetor informa o motivo e o desenho conserva a
+referência disponível.
