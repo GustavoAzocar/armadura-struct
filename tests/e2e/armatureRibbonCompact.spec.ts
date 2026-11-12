@@ -13,6 +13,8 @@ const commands = {
   repeat: 'Repetir estribo',
   'beam-clamp': 'Grampo de viga',
   'beam-clamp-criteria': 'Critérios do grampo de viga',
+  helix: 'Estribo helicoidal',
+  'helix-criteria': 'Critérios do helicoidal',
   detail: 'Rebater armadura',
   convert: 'Converter polilinha',
   follow: 'Seguir fôrma',
@@ -72,7 +74,7 @@ test('inventário, ícones, campos e largura: 1920/1366/1000 nos dois fundos', a
   const icons = await ribbon(page)
     .locator('.ribbon-tool svg')
     .evaluateAll((es) => es.map((e) => e.innerHTML));
-  expect(new Set(icons).size).toBe(22);
+  expect(new Set(icons).size).toBe(24);
   const parameters = page.getByRole('group', {
     name: 'Parâmetros das próximas criações',
   });

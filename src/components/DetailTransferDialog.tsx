@@ -29,7 +29,7 @@ type Props = {
 };
 const barInfo = (b?: Bar) =>
   b
-    ? `${b.quantity} × Ø${format(b.diameter, 1)} ${b.steel} · C=${format(geometry(b).length / 1000, 3)} m · ${b.kind === 'stirrup' ? 'estribo' : 'barra livre'}`
+    ? `${b.quantity} × Ø${format(b.diameter, 1)} ${b.steel} · C=${format(geometry(b).length / 1000, 3)} m · ${b.kind === 'stirrup' ? 'estribo' : b.kind === 'helix' ? 'estribo helicoidal' : b.kind === 'beam-clamp' ? 'grampo de viga' : 'barra livre'}`
     : '—';
 
 export default function DetailTransferDialog({

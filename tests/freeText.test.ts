@@ -160,7 +160,7 @@ describe('texto CAD livre na máscara', () => {
     const { p, context } = fixture(),
       m = p.masks[0];
     const q = appendFreeText(p, m.id, at, draft(p), context, m).project;
-    expect(q.schema).toBe('armadurastruct/32');
+    expect(q.schema).toBe('armadurastruct/33');
     const restored = decodeProject(JSON.stringify(q));
     expect(restored).toEqual(q);
     expect(restored.masks[0].primitives.at(-1)!.text).toBe(CONTENT);
@@ -403,7 +403,7 @@ describe('texto CAD livre na máscara', () => {
         producer: { app: 'Test', version: '1' },
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/21');
+      expect(pack.schema).toBe('openstruct.detail/22');
       const r = readDetailPackage(pack).project;
       const a = maskPrimitives(q.masks[0]).at(-1)!,
         b = maskPrimitives(r.masks[0]).at(-1)!;
@@ -429,7 +429,7 @@ describe('texto CAD livre na máscara', () => {
       ...JSON.parse(JSON.stringify(p)),
       schema: 'armadurastruct/27',
     };
-    expect(decodeProject(JSON.stringify(old)).schema).toBe('armadurastruct/32');
+    expect(decodeProject(JSON.stringify(old)).schema).toBe('armadurastruct/33');
   });
   it('mover/espelhar e símbolos mantêm o ponto nativo coerente com a entidade', () => {
     const { p, context } = fixture(),

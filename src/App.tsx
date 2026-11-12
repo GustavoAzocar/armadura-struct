@@ -46,6 +46,18 @@ import {
   type BeamClampCriteria,
 } from './domain/beamClampSchema';
 import { beamClampPrimitives } from './domain/beamClampViews';
+import HelixCriteriaDialog from './components/HelixCriteriaDialog';
+import HelixLaunchPanel, {
+  helixPlacementStage,
+  type HelixSession,
+} from './components/HelixLaunchPanel';
+import {
+  helixBar,
+  helixCriteriaFromBar,
+  helixFromPoints,
+} from './domain/helixBars';
+import { defaultHelixCriteria, type HelixCriteria } from './domain/helixSchema';
+import { helixPrimitives } from './domain/helixViews';
 import { physicalBarTextPrimitives } from './domain/drawingPrimitives';
 import StirrupLaunchPanel, {
   type StirrupSession,
@@ -508,6 +520,8 @@ const prompts: Record<Tool, string> = {
   stirrup: 'Indique dois cantos opostos do estribo. Dimensões medidas no eixo.',
   'beam-clamp':
     'Posicione o meio do lado fechado do grampo de viga. Enter confirma a prévia.',
+  helix:
+    'Indique o início e o fim do eixo do estribo helicoidal. Enter confirma a prévia.',
   move: 'Indique o ponto base e o destino da seleção.',
   copy: 'Indique o ponto base e o destino da cópia.',
   detail: 'Indique onde posicionar o rebatimento da armadura.',
@@ -540,6 +554,7 @@ const tools: Tool[] = [
   'bar',
   'stirrup',
   'beam-clamp',
+  'helix',
   'move',
   'copy',
   'detail',
@@ -892,6 +907,21 @@ export default function App() {
     { projectId: string; c: BeamClampCriteria } | undefined
   >(undefined);
   const beamClampConsumed = useRef(false);
+  const [helixSession, setHelixSession] = useState<HelixSession | null>(null);
+  const [helixDialog, setHelixDialog] = useState<{
+    base: Project;
+    key: string;
+    detailId: string;
+    scope?: string;
+    maskId?: string;
+    c: HelixCriteria;
+    editId?: string;
+    resume?: HelixSession;
+  } | null>(null);
+  const helixCriteria = useRef<
+    { projectId: string; c: HelixCriteria } | undefined
+  >(undefined);
+  const helixConsumed = useRef(false);
   const [grid, setGrid] = useState(true),
     [snap, setSnap] = useState(true),
     [ortho, setOrtho] = useState(false),
@@ -1552,6 +1582,8 @@ export default function App() {
     setWeldedMeshDialog(null);
     setBeamClampSession(null);
     setBeamClampDialog(null);
+    setHelixSession(null);
+    setHelixDialog(null);
     setMeasureSession(null);
     setMatch(null);
     if (maskOffset) {
@@ -1590,6 +1622,10 @@ export default function App() {
     }
     if (t === 'beam-clamp') {
       startBeamClamp(false);
+      return;
+    }
+    if (t === 'helix') {
+      startHelix(false);
       return;
     }
     if (dimensionTool(t)) {
@@ -4578,6 +4614,337 @@ export default function App() {
       cursor: undefined,
     });
   }
+  function cancelHelix() {
+    helixConsumed.current = true;
+    setHelixSession(null);
+    setHelixDialog(null);
+    setToolRaw('select');
+    setDraft([]);
+  }
+  function startHelix(forceCriteria: boolean, editId?: string) {
+    if (activeSheet) {
+      notify('Abra um desenho para lançar estribos helicoidais.');
+      return;
+    }
+    const base = historyRef.current.present;
+    const bar = editId ? base.bars.find((b) => b.id === editId) : undefined;
+    if (
+      editId &&
+      (!bar ||
+        bar.kind !== 'helix' ||
+        !canCaptureObject(base, documentKey, editId))
+    ) {
+      notify('Estribo helicoidal indisponível neste contexto.');
+      return;
+    }
+    const c = bar
+      ? helixCriteriaFromBar(bar)
+      : helixCriteria.current?.projectId === base.id
+        ? helixCriteria.current.c
+        : (base.helixDefaults ?? defaultHelixCriteria());
+    const context = {
+      base,
+      key: documentKey,
+      detailId: activeDetailId,
+      scope: isolatedDetailId,
+      maskId: drawingMaskId,
+      c: structuredClone(c),
+      editId,
+    };
+    setSelectedRaw([]);
+    setMaskId(null);
+    setNativeEntity(undefined);
+    setDraft([]);
+    setPage('drawing');
+    setToolRaw('helix');
+    if (
+      forceCriteria ||
+      editId ||
+      (!base.helixDefaults && helixCriteria.current?.projectId !== base.id)
+    ) {
+      setHelixSession(null);
+      setHelixDialog(context);
+    } else {
+      helixConsumed.current = false;
+      setHelixSession({
+        ...context,
+        id: uid(),
+        mark: nextMark(base),
+        mode: 'points',
+        angle: 0,
+        stage: 'start',
+      });
+    }
+  }
+  function reopenHelixCriteria() {
+    const s = helixSession;
+    if (!s) return;
+    setHelixDialog({ ...s, resume: s });
+    setHelixSession(null);
+  }
+  /** The single construction used by preview and confirmation. */
+  function helixFromSession(s: HelixSession, preview = false) {
+    const start =
+      s.start ??
+      (preview && s.mode === 'numeric' && s.stage === 'start'
+        ? s.cursor
+        : undefined);
+    if (!start) return undefined;
+    let b: Bar;
+    if (s.mode === 'points') {
+      const end = s.end ?? (preview ? s.cursor : undefined);
+      if (!end) return undefined;
+      b = helixFromPoints(s.c, start, end, s.mark, s.id);
+    } else {
+      if (!Number.isFinite(s.angle))
+        throw Error('Informe a direção A→B em graus.');
+      b = helixBar(s.c, start, s.angle, s.mark, s.id);
+    }
+    const old = s.editId
+      ? s.base.bars.find((v) => v.id === s.editId)
+      : undefined;
+    if (old)
+      b = {
+        ...old,
+        origin: b.origin,
+        rotation: b.rotation,
+        diameter: b.diameter,
+        mandrel: b.mandrel,
+        steel: b.steel,
+        quantity: b.quantity,
+        multiplier: b.multiplier,
+        quantitySource: b.quantitySource,
+        helix: b.helix,
+        helixDisplay: b.helixDisplay,
+        distribution: undefined,
+      };
+    return b;
+  }
+  const helixPreview = useMemo(() => {
+    const s = helixSession;
+    if (!s) return {};
+    try {
+      const guide =
+        s.start && s.mode === 'points' && (s.end ?? s.cursor)
+          ? [
+              {
+                layer: 'COTAS',
+                points: [s.start, (s.end ?? s.cursor)!],
+              },
+            ]
+          : [];
+      const bar = helixFromSession(s, true);
+      if (!bar) return { lines: guide };
+      const previewProject = {
+        ...s.base,
+        hierarchy: {
+          ...s.base.hierarchy,
+          objectDetails: {
+            ...s.base.hierarchy.objectDetails,
+            [bar.id]: s.detailId,
+          },
+        },
+      };
+      return {
+        bar,
+        lines: [
+          ...guide,
+          ...helixPrimitives(bar),
+          ...physicalBarTextPrimitives(bar, previewProject),
+        ],
+      };
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  }, [helixSession]);
+  useEffect(() => {
+    const s = helixSession ?? helixDialog;
+    if (s && !stirrupContextValid(s)) {
+      cancelHelix();
+      notify(
+        'Lançamento do helicoidal cancelado: o projeto ou contexto mudou. Reinicie no destino correto.',
+      );
+    }
+  }, [p, documentKey, activeDetailId, isolatedDetailId, drawingMaskId]);
+  function acceptHelixCriteria(c: HelixCriteria) {
+    const d = helixDialog;
+    if (!d) return;
+    if (!stirrupContextValid(d)) {
+      cancelHelix();
+      return;
+    }
+    try {
+      helixBar(c, { x: 0, y: 0 }, 0, 'prévia', 'preview');
+      const old = d.editId
+        ? d.base.bars.find((b) => b.id === d.editId)
+        : undefined;
+      const s: HelixSession = d.resume
+        ? { ...d.resume, c, error: undefined }
+        : old
+          ? {
+              ...d,
+              c,
+              id: old.id,
+              mark: old.mark,
+              // Edit keeps A and the direction; the declared span governs B.
+              mode: 'numeric',
+              angle: old.rotation,
+              start: old.origin,
+              stage: 'ready',
+            }
+          : {
+              ...d,
+              c,
+              id: uid(),
+              mark: nextMark(d.base),
+              mode: 'points',
+              angle: 0,
+              stage: 'start',
+            };
+      s.stage = s.stage === 'label' ? 'label' : helixPlacementStage(s);
+      helixConsumed.current = false;
+      setHelixDialog(null);
+      setHelixSession(s);
+    } catch (e) {
+      notify((e as Error).message);
+    }
+  }
+  function helixPoint(point: Point) {
+    const s = helixSession;
+    if (!s || helixConsumed.current) return;
+    if (!stirrupContextValid(s)) {
+      cancelHelix();
+      return;
+    }
+    if (
+      ![point.x, point.y].every((v) => Number.isFinite(v) && Math.abs(v) <= 1e8)
+    ) {
+      setHelixSession({
+        ...s,
+        error: 'Informe coordenadas finitas dentro dos limites do modelo.',
+      });
+      return;
+    }
+    if (s.stage === 'start') {
+      const next = {
+        ...s,
+        start: point,
+        end: undefined,
+        cursor: undefined,
+        error: undefined,
+      };
+      setHelixSession({ ...next, stage: helixPlacementStage(next) });
+    } else if (s.stage === 'end') {
+      try {
+        helixFromPoints(s.c, s.start!, point, s.mark, s.id);
+        setHelixSession({
+          ...s,
+          end: point,
+          cursor: undefined,
+          error: undefined,
+          stage: 'ready',
+        });
+      } catch (e) {
+        setHelixSession({ ...s, error: (e as Error).message });
+      }
+    } else if (s.stage === 'label') {
+      const bar = helixFromSession(s);
+      if (!bar) return;
+      const at = local(point, bar);
+      const next = {
+        ...s,
+        c: { ...s.c, display: { ...s.c.display, label: at } },
+        cursor: undefined,
+        error: undefined,
+      };
+      setHelixSession({ ...next, stage: helixPlacementStage(next) });
+    }
+  }
+  function confirmHelix() {
+    const s = helixSession;
+    if (!s || s.stage !== 'ready' || helixConsumed.current || s.error) return;
+    if (!stirrupContextValid(s)) {
+      cancelHelix();
+      return;
+    }
+    helixConsumed.current = true;
+    let confirmed: HelixCriteria | undefined;
+    const ok = commit((current) => {
+      if (current !== s.base) throw Error('O projeto mudou durante a prévia.');
+      const raw = helixFromSession(s);
+      if (!raw) throw Error('Indique o início e o fim do eixo.');
+      const b = s.editId
+        ? raw
+        : { ...barCadDefaults(current, raw, true), steel: raw.steel };
+      const definition = rebarDefinition(b);
+      const commands: RebarCommand[] = s.editId
+        ? [{ type: 'bar.update', id: s.id, patch: definition }]
+        : [{ type: 'bar.create', id: s.id, detailId: s.detailId, definition }];
+      const next = applyRebarBatch(
+        current,
+        executeRebarBatch(current, commands, {
+          units: 'mm',
+          scopeDetailId: s.scope,
+          layerContext: s.key,
+        }),
+      );
+      // Confirmed criteria configure the next creations (span as launched).
+      confirmed = {
+        ...structuredClone(s.c),
+        profile: structuredClone(raw.helix!),
+        display: { ...structuredClone(s.c.display), label: undefined },
+      };
+      delete confirmed.display.label;
+      return s.editId ? next : { ...next, helixDefaults: confirmed };
+    });
+    if (ok) {
+      if (!s.editId && confirmed)
+        helixCriteria.current = { projectId: s.base.id, c: confirmed };
+      cancelHelix();
+      select([s.id]);
+      setMessage(
+        `${s.mark}: estribo helicoidal confirmado como uma peça contínua. R cria somente uma vista gráfica vinculada.`,
+      );
+    } else helixConsumed.current = false;
+  }
+  function backHelix() {
+    const s = helixSession;
+    if (!s) return;
+    if (s.stage === 'start') {
+      reopenHelixCriteria();
+      return;
+    }
+    if (s.stage === 'label') {
+      setHelixSession({
+        ...s,
+        stage: helixPlacementStage(s),
+        error: undefined,
+        cursor: undefined,
+      });
+      return;
+    }
+    if (
+      (s.stage === 'ready' || s.stage === 'end') &&
+      s.mode === 'points' &&
+      s.end
+    ) {
+      setHelixSession({
+        ...s,
+        stage: 'end',
+        end: undefined,
+        error: undefined,
+      });
+      return;
+    }
+    setHelixSession({
+      ...s,
+      stage: 'start',
+      start: undefined,
+      end: undefined,
+      error: undefined,
+      cursor: undefined,
+    });
+  }
   function cancelStirrup() {
     setStirrupSession(null);
     setStirrupDialog(null);
@@ -5524,6 +5891,10 @@ export default function App() {
       if (beamClampSession.stage === 'ready') confirmBeamClamp();
       return;
     }
+    if (helixSession) {
+      if (helixSession.stage === 'ready') confirmHelix();
+      return;
+    }
     if (freeText) {
       if (freeText.stage === 'content') confirmFreeText();
       else notify('Escolha o ponto de inserção do texto. Esc cancela.');
@@ -5614,6 +5985,10 @@ export default function App() {
     }
     if (beamClampSession) {
       beamClampPoint(point);
+      return;
+    }
+    if (helixSession) {
+      helixPoint(point);
       return;
     }
     if (stirrupSession) {
@@ -6361,6 +6736,30 @@ export default function App() {
       ].includes(a)
     ) {
       cancelBeamClamp();
+      if (['undo', 'redo'].includes(a)) return;
+    }
+    if (a === 'helix-criteria') {
+      if (helixSession) reopenHelixCriteria();
+      else {
+        setTool('select');
+        startHelix(true);
+      }
+      return;
+    }
+    if (
+      helixSession &&
+      ![
+        'fit',
+        'grid',
+        'snap',
+        'ortho',
+        'dimensions',
+        'sidebar',
+        'focus',
+        'save',
+      ].includes(a)
+    ) {
+      cancelHelix();
       if (['undo', 'redo'].includes(a)) return;
     }
     if (a === 'stirrup-criteria') {
@@ -7616,6 +8015,7 @@ export default function App() {
     stirrupSession ||
     beamClampSession ||
     meshSession ||
+    helixSession ||
     followRequest ||
     measureSession ||
     match ||
@@ -7764,6 +8164,8 @@ export default function App() {
               beamClampSession?.end ??
               beamClampSession?.start ??
               beamClampSession?.insertion ??
+              helixSession?.end ??
+              helixSession?.start ??
               stirrupSession?.points.at(-1) ??
               stirrupSession?.end ??
               stirrupSession?.start ??
@@ -7787,6 +8189,8 @@ export default function App() {
               beamClampSession?.end ??
               beamClampSession?.start ??
               beamClampSession?.insertion ??
+              helixSession?.end ??
+              helixSession?.start ??
               stirrupSession?.points.at(-1) ??
               stirrupSession?.end ??
               stirrupSession?.start ??
@@ -7824,7 +8228,7 @@ export default function App() {
         e.preventDefault();
       return;
     }
-    if (stirrupDialog || beamClampDialog || weldedMeshDialog) {
+    if (stirrupDialog || beamClampDialog || helixDialog || weldedMeshDialog) {
       if (
         (e.ctrlKey || e.metaKey) &&
         ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -7902,6 +8306,11 @@ export default function App() {
       }
       if (beamClampSession) {
         cancelBeamClamp();
+        cmdInput.current?.blur();
+        return;
+      }
+      if (helixSession) {
+        cancelHelix();
         cmdInput.current?.blur();
         return;
       }
@@ -8071,6 +8480,18 @@ export default function App() {
             : {})}
           onAccept={acceptWeldedMeshCriteria}
           onClose={() => setWeldedMeshDialog(null)}
+        />
+      )}
+      {helixDialog && (
+        <HelixCriteriaDialog
+          initial={helixDialog.c}
+          editMark={
+            helixDialog.editId
+              ? p.bars.find((b) => b.id === helixDialog.editId)?.mark
+              : undefined
+          }
+          onAccept={acceptHelixCriteria}
+          onClose={cancelHelix}
         />
       )}
       {beamClampDialog && (
@@ -8856,6 +9277,7 @@ export default function App() {
                 previewLines={
                   meshLines ??
                   beamClampPreview.lines ??
+                  helixPreview.lines ??
                   (stirrupSession?.stage === 'shape'
                     ? [
                         {
@@ -8916,6 +9338,7 @@ export default function App() {
                 }
                 commandActive={
                   !!beamClampSession ||
+                  !!helixSession ||
                   !!freeText ||
                   !!symbolPick ||
                   !!stirrupSession ||
@@ -8943,6 +9366,7 @@ export default function App() {
                 onEditDetail={beginDetailEdit}
                 tool={
                   beamClampSession ||
+                  helixSession ||
                   freeText ||
                   symbolPick ||
                   stirrupSession ||
@@ -8972,26 +9396,30 @@ export default function App() {
                           beamClampSession.start
                         ? [beamClampSession.start]
                         : []
-                    : stirrupSession
-                      ? stirrupSession.stage === 'shape'
-                        ? stirrupSession.points
-                        : stirrupSession.stage === 'range-end' &&
-                            stirrupSession.start
-                          ? [stirrupSession.start]
-                          : []
-                      : maskOffset?.stage === 'measure'
-                        ? maskOffset.points
-                        : maskManip
-                          ? manipAnchor
-                            ? [manipAnchor]
+                    : helixSession
+                      ? helixSession.stage === 'end' && helixSession.start
+                        ? [helixSession.start]
+                        : []
+                      : stirrupSession
+                        ? stirrupSession.stage === 'shape'
+                          ? stirrupSession.points
+                          : stirrupSession.stage === 'range-end' &&
+                              stirrupSession.start
+                            ? [stirrupSession.start]
                             : []
-                          : maskCalibration
-                            ? maskCalibration.points.length === 1
-                              ? maskCalibration.points
+                        : maskOffset?.stage === 'measure'
+                          ? maskOffset.points
+                          : maskManip
+                            ? manipAnchor
+                              ? [manipAnchor]
                               : []
-                            : vertexRequest && vertexPreview.anchor
-                              ? [vertexPreview.anchor]
-                              : draft
+                            : maskCalibration
+                              ? maskCalibration.points.length === 1
+                                ? maskCalibration.points
+                                : []
+                              : vertexRequest && vertexPreview.anchor
+                                ? [vertexPreview.anchor]
+                                : draft
                 }
                 grid={grid}
                 snap={snap}
@@ -9006,6 +9434,12 @@ export default function App() {
                     setBeamClampSession((s) =>
                       s ? { ...s, cursor: point } : s,
                     );
+                  if (
+                    helixSession?.stage === 'end' ||
+                    (helixSession?.stage === 'start' &&
+                      helixSession.mode === 'numeric')
+                  )
+                    setHelixSession((s) => (s ? { ...s, cursor: point } : s));
                   if (stirrupSession && stirrupSession.stage !== 'ready')
                     setStirrupSession((s) =>
                       s ? { ...s, cursor: point, error: undefined } : s,
@@ -9044,6 +9478,58 @@ export default function App() {
                 }}
                 showDimensions={dimensions}
               />
+              {helixSession && (
+                <HelixLaunchPanel
+                  session={helixSession}
+                  bar={helixPreview.bar}
+                  error={helixPreview.error}
+                  onConfirm={confirmHelix}
+                  onBack={backHelix}
+                  onCancel={cancelHelix}
+                  onCriteria={reopenHelixCriteria}
+                  onMode={(mode) =>
+                    setHelixSession((s) => {
+                      if (!s) return s;
+                      const next = {
+                        ...s,
+                        mode,
+                        // Keep the drawn direction when switching to numeric.
+                        angle:
+                          mode === 'numeric' && s.start && s.end
+                            ? (Math.atan2(
+                                s.end.y - s.start.y,
+                                s.end.x - s.start.x,
+                              ) *
+                                180) /
+                              Math.PI
+                            : s.angle,
+                        end: undefined,
+                        cursor: undefined,
+                        error: undefined,
+                      };
+                      return { ...next, stage: helixPlacementStage(next) };
+                    })
+                  }
+                  onAngle={(angle) =>
+                    setHelixSession((s) =>
+                      s ? { ...s, angle, error: undefined } : s,
+                    )
+                  }
+                  onLabel={() => {
+                    const s = helixSession;
+                    if (!s.start) {
+                      notify('Indique primeiro o eixo da hélice.');
+                      return;
+                    }
+                    setHelixSession({
+                      ...s,
+                      stage: 'label',
+                      error: undefined,
+                      cursor: undefined,
+                    });
+                  }}
+                />
+              )}
               {beamClampSession && (
                 <BeamClampLaunchPanel
                   session={beamClampSession}
@@ -9798,6 +10284,12 @@ export default function App() {
                   if (chosen) {
                     setTool('select');
                     startBeamClamp(true, chosen.id);
+                  }
+                }}
+                onHelixCriteria={() => {
+                  if (chosen) {
+                    setTool('select');
+                    startHelix(true, chosen.id);
                   }
                 }}
                 onStirrupCriteria={() => {
@@ -10573,6 +11065,8 @@ export default function App() {
               stirrupDialog ||
               beamClampSession ||
               beamClampDialog ||
+              helixSession ||
+              helixDialog ||
               followRequest ||
               measureSession ||
               freeText ||

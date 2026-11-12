@@ -12,6 +12,8 @@ import {
   type WeldedMeshSchedule,
 } from '../domain/weldedMeshSchedule';
 import { BeamClampViewFields } from './BeamClampCriteriaDialog';
+import { HelixMemoryTable } from './HelixCriteriaDialog';
+import { helixOutline } from '../domain/helixViews';
 import { defaultBeamClampCriteria } from '../domain/beamClampSchema';
 import { resolveStyle } from '../domain/layers';
 import {
@@ -157,6 +159,31 @@ export function TextField({
   );
 }
 export function ShapePreview({ bar }: { bar: Bar }) {
+  if (bar.kind === 'helix') {
+    const lines = helixOutline(bar);
+    const b = bounds(lines.flat()),
+      pad = Math.max(b.width, b.height) * 0.08 + 10;
+    return (
+      <svg
+        className="shape-preview"
+        viewBox={`${b.x - pad} ${-b.y - b.height - pad} ${b.width + 2 * pad} ${b.height + 2 * pad}`}
+        aria-hidden="true"
+      >
+        <g transform="scale(1 -1)">
+          {lines.map((l, i) => (
+            <polyline
+              key={i}
+              points={l.map((p) => `${p.x},${p.y}`).join(' ')}
+              fill="none"
+              stroke={bar.color}
+              strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </g>
+      </svg>
+    );
+  }
   const g = geometry(bar),
     b = bounds(g.vertices),
     pad = Math.max(b.width, b.height) * 0.15 + 10;
@@ -210,6 +237,7 @@ export function Inspector({
   onDimensionEdit,
   onStirrupCriteria,
   onBeamClampCriteria,
+  onHelixCriteria,
   onMask,
   onSelectRepresentation,
   onRemoveDetails,
@@ -227,6 +255,7 @@ export function Inspector({
   onVertexEdit?: (mode: 'insert' | 'extend' | 'remove') => void;
   onStirrupCriteria?: () => void;
   onBeamClampCriteria?: () => void;
+  onHelixCriteria?: () => void;
   onDimensionEdit?: (mode: 'segment' | 'lengthen') => void;
   onDistributionSpacing: (spacing: number) => void | boolean;
   onMask: (patch: Partial<Mask>) => void;
@@ -285,13 +314,15 @@ export function Inspector({
               <span style={{ background: bar.color }}>{bar.mark}</span>
               <div>
                 <b>
-                  {bar.kind === 'beam-clamp'
-                    ? 'Grampo de viga em U'
-                    : bar.kind === 'stirrup'
-                      ? bar.stirrupProfile?.clamp
-                        ? `Grampo de pilar ${bar.stirrupProfile.shape === 'clamp-s' ? 'S' : 'C'}`
-                        : `Estribo ${bar.stirrupProfile?.shape === 'circle' ? 'circular' : bar.stirrupProfile?.shape === 'free' ? 'livre' : 'retangular'}`
-                      : 'Barra livre'}{' '}
+                  {bar.kind === 'helix'
+                    ? 'Estribo helicoidal'
+                    : bar.kind === 'beam-clamp'
+                      ? 'Grampo de viga em U'
+                      : bar.kind === 'stirrup'
+                        ? bar.stirrupProfile?.clamp
+                          ? `Grampo de pilar ${bar.stirrupProfile.shape === 'clamp-s' ? 'S' : 'C'}`
+                          : `Estribo ${bar.stirrupProfile?.shape === 'circle' ? 'circular' : bar.stirrupProfile?.shape === 'free' ? 'livre' : 'retangular'}`
+                        : 'Barra livre'}{' '}
                 </b>
                 <small>{bar.element}</small>
               </div>
@@ -377,8 +408,14 @@ export function Inspector({
               </div>
               <div className="fields-2">
                 <NumberField
-                  label="Quantidade"
-                  compactLabel="Peças por grupo"
+                  label={
+                    bar.kind === 'helix'
+                      ? 'Quantidade de hélices'
+                      : 'Quantidade'
+                  }
+                  compactLabel={
+                    bar.kind === 'helix' ? 'Hélices' : 'Peças por grupo'
+                  }
                   disabled={
                     bar.quantitySource?.kind === 'distribution' &&
                     bar.quantitySource.mode === 'spacing'
@@ -604,159 +641,178 @@ export function Inspector({
                 posição compartilhada.
               </p>
             </details>
-            <Section title="Geometria e dobras">
-              {bar.kind === 'beam-clamp' && (
-                <>
-                  <button onClick={onBeamClampCriteria}>
-                    Editar critérios do grampo de viga
-                  </button>
-                  <p className="field-help">
-                    L = {format(bar.beamClamp!.longitudinal, 2)} mm · T ={' '}
-                    {format(bar.beamClamp!.transverse, 2)} mm. Medidas no eixo
-                    até os vértices teóricos. Altere a peça nos critérios, com
-                    prévia das dobras e terminações.
-                  </p>
-                </>
-              )}
-              {bar.kind === 'stirrup' && (
-                <button onClick={onStirrupCriteria}>
+            {bar.kind === 'helix' && (
+              <Section title="Hélice contínua">
+                <button onClick={onHelixCriteria}>
                   Editar critérios desta posição
                 </button>
-              )}
-              {bar.stirrupProfile && (
+                <HelixMemoryTable
+                  bar={bar}
+                  quantity={barQuantities(project, bar)}
+                />
                 <p className="field-help">
-                  Forma{' '}
-                  {bar.stirrupProfile.clamp
-                    ? `grampo de pilar ${bar.stirrupProfile.shape === 'clamp-s' ? 'S' : 'C'}`
-                    : bar.stirrupProfile.shape === 'circle'
-                      ? 'circular'
-                      : bar.stirrupProfile.shape === 'free'
-                        ? 'livre'
-                        : 'retangular'}{' '}
-                  · medidas{' '}
-                  {bar.stirrupProfile.reference === 'axis'
-                    ? 'no eixo'
-                    : 'da seção de concreto'}
-                  . Ganchos e fechamento nos critérios.
+                  Uma peça física contínua. Vistas, seção e rebatimentos não
+                  acrescentam aço; mover ou girar não altera o desenvolvimento.
                 </p>
-              )}
-              {bar.kind === 'stirrup' && !bar.stirrupProfile && (
-                <>
-                  <div className="fields-2">
-                    <NumberField
-                      label="Largura no eixo"
-                      value={bar.width}
-                      min={1}
-                      onChange={(width) => onBar({ width })}
-                      suffix="mm"
-                    />
-                    <NumberField
-                      label="Altura no eixo"
-                      value={bar.height}
-                      min={1}
-                      onChange={(height) => onBar({ height })}
-                      suffix="mm"
-                    />
-                  </div>
-                  <NumberField
-                    label="Prolongamento reto do gancho"
-                    value={bar.hook}
-                    min={0}
-                    onChange={(hook) => onBar({ hook })}
-                    suffix="mm"
-                  />
-                </>
-              )}
-              <NumberField
-                label="Diâmetro interno da dobra"
-                min={1}
-                max={2000}
-                value={bar.mandrel}
-                onChange={(mandrel) => onBar({ mandrel })}
-                suffix="mm"
-              />
-              {bar.kind === 'beam-clamp' && (
-                <details className="compact-fields">
-                  <summary>Representação gráfica do grampo</summary>
-                  <BeamClampViewFields
-                    value={bar.beamClampView ?? defaultBeamClampCriteria().view}
-                    onChange={(beamClampView) => onBar({ beamClampView })}
-                  />
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={
-                        (bar.beamClampView?.hooks ??
-                          bar.beamClampDisplay?.hooks) !== false
-                      }
-                      onChange={(e) =>
-                        onBar({
-                          beamClampView: {
-                            ...(bar.beamClampView ??
-                              defaultBeamClampCriteria().view),
-                            hooks: e.target.checked,
-                          },
-                          beamClampDisplay: {
-                            dimensions: true,
-                            identification: true,
-                            ...bar.beamClampDisplay,
-                            hooks: e.target.checked,
-                          },
-                        })
-                      }
-                    />
-                    Mostrar ganchos na representação
-                  </label>
-                </details>
-              )}
-              <p className="field-help">
-                Comprimento pelo eixo, descontando os trechos retos substituídos
-                pelos arcos. Mandril definido pelo projetista.
-              </p>
-              {bar.kind === 'free' && onDimensionEdit && (
-                <div className="visibility-actions">
-                  <button onClick={() => onDimensionEdit?.('segment')}>
-                    Comprimentos e ângulos
+              </Section>
+            )}
+            {bar.kind !== 'helix' && (
+              <Section title="Geometria e dobras">
+                {bar.kind === 'beam-clamp' && (
+                  <>
+                    <button onClick={onBeamClampCriteria}>
+                      Editar critérios do grampo de viga
+                    </button>
+                    <p className="field-help">
+                      L = {format(bar.beamClamp!.longitudinal, 2)} mm · T ={' '}
+                      {format(bar.beamClamp!.transverse, 2)} mm. Medidas no eixo
+                      até os vértices teóricos. Altere a peça nos critérios, com
+                      prévia das dobras e terminações.
+                    </p>
+                  </>
+                )}
+                {bar.kind === 'stirrup' && (
+                  <button onClick={onStirrupCriteria}>
+                    Editar critérios desta posição
                   </button>
-                  <button onClick={() => onDimensionEdit?.('lengthen')}>
-                    Estender barra
-                  </button>
-                </div>
-              )}
-              {bar.kind === 'free' && (
-                <details className="vertices-editor">
-                  <summary>Vértices locais · mm</summary>
-                  {onVertexEdit && <VertexCommands onAction={onVertexEdit} />}
-                  {bar.points.map((pt, i) => (
-                    <div key={i} className="vertex-row">
-                      <span>{i + 1}</span>
+                )}
+                {bar.stirrupProfile && (
+                  <p className="field-help">
+                    Forma{' '}
+                    {bar.stirrupProfile.clamp
+                      ? `grampo de pilar ${bar.stirrupProfile.shape === 'clamp-s' ? 'S' : 'C'}`
+                      : bar.stirrupProfile.shape === 'circle'
+                        ? 'circular'
+                        : bar.stirrupProfile.shape === 'free'
+                          ? 'livre'
+                          : 'retangular'}{' '}
+                    · medidas{' '}
+                    {bar.stirrupProfile.reference === 'axis'
+                      ? 'no eixo'
+                      : 'da seção de concreto'}
+                    . Ganchos e fechamento nos critérios.
+                  </p>
+                )}
+                {bar.kind === 'stirrup' && !bar.stirrupProfile && (
+                  <>
+                    <div className="fields-2">
                       <NumberField
-                        label={`X do vértice ${i + 1}`}
-                        value={pt.x}
-                        onChange={(x) =>
-                          onBar({
-                            points: bar.points.map((p, j) =>
-                              j === i ? { ...p, x } : p,
-                            ),
-                          })
-                        }
+                        label="Largura no eixo"
+                        value={bar.width}
+                        min={1}
+                        onChange={(width) => onBar({ width })}
+                        suffix="mm"
                       />
                       <NumberField
-                        label={`Y do vértice ${i + 1}`}
-                        value={pt.y}
-                        onChange={(y) =>
-                          onBar({
-                            points: bar.points.map((p, j) =>
-                              j === i ? { ...p, y } : p,
-                            ),
-                          })
-                        }
+                        label="Altura no eixo"
+                        value={bar.height}
+                        min={1}
+                        onChange={(height) => onBar({ height })}
+                        suffix="mm"
                       />
                     </div>
-                  ))}
-                </details>
-              )}
-            </Section>
+                    <NumberField
+                      label="Prolongamento reto do gancho"
+                      value={bar.hook}
+                      min={0}
+                      onChange={(hook) => onBar({ hook })}
+                      suffix="mm"
+                    />
+                  </>
+                )}
+                <NumberField
+                  label="Diâmetro interno da dobra"
+                  min={1}
+                  max={2000}
+                  value={bar.mandrel}
+                  onChange={(mandrel) => onBar({ mandrel })}
+                  suffix="mm"
+                />
+                {bar.kind === 'beam-clamp' && (
+                  <details className="compact-fields">
+                    <summary>Representação gráfica do grampo</summary>
+                    <BeamClampViewFields
+                      value={
+                        bar.beamClampView ?? defaultBeamClampCriteria().view
+                      }
+                      onChange={(beamClampView) => onBar({ beamClampView })}
+                    />
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={
+                          (bar.beamClampView?.hooks ??
+                            bar.beamClampDisplay?.hooks) !== false
+                        }
+                        onChange={(e) =>
+                          onBar({
+                            beamClampView: {
+                              ...(bar.beamClampView ??
+                                defaultBeamClampCriteria().view),
+                              hooks: e.target.checked,
+                            },
+                            beamClampDisplay: {
+                              dimensions: true,
+                              identification: true,
+                              ...bar.beamClampDisplay,
+                              hooks: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      Mostrar ganchos na representação
+                    </label>
+                  </details>
+                )}
+                <p className="field-help">
+                  Comprimento pelo eixo, descontando os trechos retos
+                  substituídos pelos arcos. Mandril definido pelo projetista.
+                </p>
+                {bar.kind === 'free' && onDimensionEdit && (
+                  <div className="visibility-actions">
+                    <button onClick={() => onDimensionEdit?.('segment')}>
+                      Comprimentos e ângulos
+                    </button>
+                    <button onClick={() => onDimensionEdit?.('lengthen')}>
+                      Estender barra
+                    </button>
+                  </div>
+                )}
+                {bar.kind === 'free' && (
+                  <details className="vertices-editor">
+                    <summary>Vértices locais · mm</summary>
+                    {onVertexEdit && <VertexCommands onAction={onVertexEdit} />}
+                    {bar.points.map((pt, i) => (
+                      <div key={i} className="vertex-row">
+                        <span>{i + 1}</span>
+                        <NumberField
+                          label={`X do vértice ${i + 1}`}
+                          value={pt.x}
+                          onChange={(x) =>
+                            onBar({
+                              points: bar.points.map((p, j) =>
+                                j === i ? { ...p, x } : p,
+                              ),
+                            })
+                          }
+                        />
+                        <NumberField
+                          label={`Y do vértice ${i + 1}`}
+                          value={pt.y}
+                          onChange={(y) =>
+                            onBar({
+                              points: bar.points.map((p, j) =>
+                                j === i ? { ...p, y } : p,
+                              ),
+                            })
+                          }
+                        />
+                      </div>
+                    ))}
+                  </details>
+                )}
+              </Section>
+            )}
             {bar.distribution && (
               <Section title="Distribuição vinculada">
                 <label className="field">
@@ -1293,11 +1349,13 @@ export function ProjectTree({
                 </span>
                 <span>
                   <b>
-                    {b.kind === 'beam-clamp'
-                      ? 'Grampo de viga'
-                      : b.kind === 'stirrup'
-                        ? 'Estribo'
-                        : 'Barra'}{' '}
+                    {b.kind === 'helix'
+                      ? 'Estribo helicoidal'
+                      : b.kind === 'beam-clamp'
+                        ? 'Grampo de viga'
+                        : b.kind === 'stirrup'
+                          ? 'Estribo'
+                          : 'Barra'}{' '}
                     Ø{diameterLabels.get(b.diameter)}
                   </b>
                   <small>

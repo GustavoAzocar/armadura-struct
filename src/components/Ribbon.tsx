@@ -71,7 +71,11 @@ import {
   CircleIcon,
   DimensionAlignedIcon,
   DimensionOrthogonalIcon,
+  BeamClampCriteriaIcon,
   ExtendIcon,
+  HelixCriteriaIcon,
+  StirrupCriteriaIcon,
+  HelixIcon,
   LineIcon,
   MatchPropertiesIcon,
   MeasureContourIcon,
@@ -531,6 +535,14 @@ export default function Ribbon({
             'Critérios do grampo de viga',
             RebarIcons.BeamClampCriteriaIcon,
           ),
+        ],
+      },
+      {
+        name: 'Helicoidal',
+        compact: { columns: 1 },
+        items: [
+          item('helix', 'Estribo helicoidal', HelixIcon),
+          item('helix-criteria', 'Critérios do helicoidal', HelixCriteriaIcon),
         ],
       },
       {

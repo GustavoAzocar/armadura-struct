@@ -13,6 +13,7 @@ import {
   mirrorBeamClampView,
   defaultBeamClampCriteria,
 } from './beamClampSchema';
+import { mirrorHelixDisplay, mirrorHelixProfile } from './helixSchema';
 const point = z
   .object({
     x: z.number().finite().min(-1e9).max(1e9),
@@ -132,17 +133,24 @@ export function transformSelection(
             ...(flipped
               ? b.kind === 'free'
                 ? { points: b.points.map(reflect) }
-                : b.kind === 'beam-clamp' && b.beamClamp
+                : b.kind === 'helix' && b.helix
                   ? {
-                      beamClamp: {
-                        ...b.beamClamp,
-                        mirrored: !b.beamClamp.mirrored,
-                      },
-                      beamClampView: mirrorBeamClampView(
-                        b.beamClampView ?? defaultBeamClampCriteria().view,
-                      ),
+                      helix: mirrorHelixProfile(b.helix),
+                      ...(b.helixDisplay
+                        ? { helixDisplay: mirrorHelixDisplay(b.helixDisplay) }
+                        : {}),
                     }
-                  : { stirrupMirrored: !b.stirrupMirrored }
+                  : b.kind === 'beam-clamp' && b.beamClamp
+                    ? {
+                        beamClamp: {
+                          ...b.beamClamp,
+                          mirrored: !b.beamClamp.mirrored,
+                        },
+                        beamClampView: mirrorBeamClampView(
+                          b.beamClampView ?? defaultBeamClampCriteria().view,
+                        ),
+                      }
+                    : { stirrupMirrored: !b.stirrupMirrored }
               : {}),
             distribution: b.distribution
               ? {

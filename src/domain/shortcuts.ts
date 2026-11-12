@@ -5,6 +5,7 @@ export type Action =
   | 'stirrup-criteria'
   | 'welded-mesh-criteria'
   | 'beam-clamp-criteria'
+  | 'helix-criteria'
   | 'cad-settings'
   | 'shortcuts'
   | 'toggle-ribbon'
@@ -332,6 +333,18 @@ export const shortcutCatalog: Record<Action, Command> = {
     'Critérios do grampo de viga',
     armatures,
     global(['CRITERIOSGRAMPO']),
+    model,
+  ),
+  helix: command(
+    'Estribo helicoidal',
+    armatures,
+    global(['HELICOIDAL', 'ESTRIBOHELICOIDAL']),
+    model,
+  ),
+  'helix-criteria': command(
+    'Critérios do helicoidal',
+    armatures,
+    global(['CRITERIOSHELICOIDAL']),
     model,
   ),
   convert: command(

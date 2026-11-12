@@ -205,3 +205,4 @@ Hefesto trabalhando uma armadura, em gravura preta e marfim sobre fundo âmbar. 
 [Telas soldadas: critérios, lançamento por contorno, pontos ou clique, edição e quadros](docs/TELAS-SOLDADAS.md).
 
 [Organização compacta do menu Armaduras](docs/MENU-ARMADURAS.md).
+[Estribo helicoidal: passo, extremos e comprimento desenvolvido](docs/ESTRIBO-HELICOIDAL.md).
