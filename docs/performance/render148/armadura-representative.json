@@ -1,0 +1,3670 @@
+{
+  "label": "issue148-d402139",
+  "commit": "d402139b5de275d331b53f92ffb3725298ae2ca2",
+  "environment": {
+    "system": "linux 6.18.57",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 3,
+    "memoryBytes": 10452459520,
+    "browser": "156.0.8078.79",
+    "graphics": {
+      "devices": [
+        {
+          "vendorId": 65535,
+          "deviceId": 65535,
+          "vendorString": "Google Inc. (Google)",
+          "deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+          "driverVendor": "SwANGLE",
+          "driverVersion": "5.0.0"
+        }
+      ],
+      "features": {
+        "2d_canvas": "unavailable_software",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "disabled_software",
+        "multiple_raster_threads": "disabled_off",
+        "opengl": "disabled_off",
+        "rasterization": "disabled_software",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "disabled_software",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "unavailable_software",
+        "webgpu": "unavailable_software",
+        "webgpu_on_vk_via_gl_interop": "disabled_off",
+        "webnn": "unavailable_software"
+      }
+    },
+    "node": "v24.22.1",
+    "url": "http://127.0.0.1:1420",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "samples": 60,
+    "repeats": 3,
+    "snapModes": ["endpoint", "midpoint"]
+  },
+  "scenes": {
+    "empty": {
+      "bytes": 2911,
+      "bars": 0,
+      "representations": 0,
+      "masks": 0,
+      "maskPrimitives": 0,
+      "maskPoints": 0,
+      "svgElements": 5,
+      "actions": {
+        "cursor-no-snap": [
+          {
+            "elapsedMs": 1021.2968890000002,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.643339000000196,
+              "p95": 17.740280999999413,
+              "max": 19.21709799999917
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 16.700000000000273,
+              "max": 50.09999999999991
+            },
+            "inputToTwoFramesMs": {
+              "count": 58,
+              "median": 33,
+              "p95": 33.30000000001746,
+              "max": 33.89999999999418
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 29.508,
+              "TaskDuration": 197.046,
+              "LayoutDuration": 9.865,
+              "RecalcStyleDuration": 2.6670000000000003
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 901.368
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 170.493
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 2.455
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 2.083
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 1.291
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 1.143
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 1.126
+              },
+              {
+                "frame": "point ../../src/App.tsx:1272",
+                "selfMs": 1.122
+              },
+              {
+                "frame": "updateWorkInProgressHook ../../node_modules/react-dom/cjs/react-dom-client.production.js:4749",
+                "selfMs": 1.109
+              },
+              {
+                "frame": "completeRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12867",
+                "selfMs": 1.109
+              },
+              {
+                "frame": "batchedUpdates$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:1663",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "processDispatchQueue ../../node_modules/react-dom/cjs/react-dom-client.production.js:13748",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "XI ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:9",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "recursivelyTraverseLayoutEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:11117",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "updateTextNode ../../node_modules/react-dom/cjs/react-dom-client.production.js:3633",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 1.078
+              },
+              {
+                "frame": "raw ../../src/components/CadCanvas.tsx:795",
+                "selfMs": 1.076
+              },
+              {
+                "frame": "(anonymous) :0",
+                "selfMs": 1.065
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 1.059
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17907",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchEventForPluginEventSystem ../../node_modules/react-dom/cjs/react-dom-client.production.js:13884",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1027.3590160000003,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.661276000000726,
+              "p95": 17.71498999999949,
+              "max": 17.934954999999718
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.699999999999818,
+              "p95": 16.700000000000273,
+              "max": 16.800000000000182
+            },
+            "inputToTwoFramesMs": {
+              "count": 58,
+              "median": 33,
+              "p95": 33.5,
+              "max": 33.69999999998254
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 26.588,
+              "TaskDuration": 131.021,
+              "LayoutDuration": 9.703000000000001,
+              "RecalcStyleDuration": 3.0630000000000006
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 925.375
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 98.953
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 3.556
+              },
+              {
+                "frame": "processRootScheduleInMicrotask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13456",
+                "selfMs": 2.349
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 2.234
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.165
+              },
+              {
+                "frame": "movementX ../../node_modules/react-dom/cjs/react-dom-client.production.js:1874",
+                "selfMs": 1.109
+              },
+              {
+                "frame": "peek ../../node_modules/scheduler/cjs/scheduler.production.js:23",
+                "selfMs": 1.1
+              },
+              {
+                "frame": "getEventTarget ../../node_modules/react-dom/cjs/react-dom-client.production.js:1588",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "point ../../src/App.tsx:1272",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "commitRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12906",
+                "selfMs": 1.079
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 1.079
+              },
+              {
+                "frame": "scheduleTaskForRootDuringMicrotask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13483",
+                "selfMs": 1.077
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 1.074
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12069",
+                "selfMs": 0
+              },
+              {
+                "frame": "completeRootWhenReady ../../node_modules/react-dom/cjs/react-dom-client.production.js:12240",
+                "selfMs": 0
+              },
+              {
+                "frame": "completeRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12867",
+                "selfMs": 0
+              },
+              {
+                "frame": "renderRootSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12522",
+                "selfMs": 0
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1025.7345100000002,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.671065000000453,
+              "p95": 17.059785999999804,
+              "max": 17.265260000000126
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.699999999999818,
+              "p95": 16.700000000000728,
+              "max": 16.800000000000182
+            },
+            "inputToTwoFramesMs": {
+              "count": 58,
+              "median": 33.09999999997672,
+              "p95": 33.5,
+              "max": 33.70000000001164
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 23.24,
+              "TaskDuration": 126.94,
+              "LayoutDuration": 10.241,
+              "RecalcStyleDuration": 1.9190000000000005
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 920.93
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 102.861
+              },
+              {
+                "frame": "bubbleProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:8335",
+                "selfMs": 2.247
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 1.666
+              },
+              {
+                "frame": "scheduleTaskForRootDuringMicrotask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13483",
+                "selfMs": 1.294
+              },
+              {
+                "frame": "checkScheduledUpdateOrContext ../../node_modules/react-dom/cjs/react-dom-client.production.js:7653",
+                "selfMs": 1.217
+              },
+              {
+                "frame": "attemptEarlyBailoutIfNoScheduledUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:7658",
+                "selfMs": 1.14
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 1.121
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13579",
+                "selfMs": 1.112
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 1.102
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.1
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 1.096
+              },
+              {
+                "frame": "point ../../src/App.tsx:9484",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "getEventTarget ../../node_modules/react-dom/cjs/react-dom-client.production.js:1588",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "sn.createElement ../../node_modules/react/cjs/react.production.js:453",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "e ../../src/components/CadCanvas.tsx:638",
+                "selfMs": 1.065
+              },
+              {
+                "frame": "getNearestMountedFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:39",
+                "selfMs": 1.062
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12069",
+                "selfMs": 0
+              },
+              {
+                "frame": "renderRootSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12522",
+                "selfMs": 0
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 0
+              }
+            ]
+          }
+        ],
+        "pan": [
+          {
+            "elapsedMs": 1020.8089149999996,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.755299999999806,
+              "p95": 19.35258199999953,
+              "max": 25.337564000000384
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.699999999999818,
+              "p95": 16.800000000000182,
+              "max": 16.800000000000182
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 32.20000000001164,
+              "p95": 32.89999999999418,
+              "max": 33.5
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 38.373000000000005,
+              "TaskDuration": 174.63600000000002,
+              "LayoutDuration": 1.9440000000000048,
+              "RecalcStyleDuration": 3.817000000000001
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 874.477
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 132.767
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 4.361
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 2.295
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 2.277
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.213
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 1.7510000000000001
+              },
+              {
+                "frame": "getActiveElementDeep ../../node_modules/react-dom/cjs/react-dom-client.production.js:2354",
+                "selfMs": 1.651
+              },
+              {
+                "frame": "sn.createElement ../../node_modules/react/cjs/react.production.js:453",
+                "selfMs": 1.215
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 1.14
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 1.13
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 1.121
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 1.11
+              },
+              {
+                "frame": "flushSyncWorkAcrossRoots_impl ../../node_modules/react-dom/cjs/react-dom-client.production.js:13408",
+                "selfMs": 1.107
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "getChildHostContextProd ../../node_modules/react-dom/cjs/react-dom-client.production.js:15453",
+                "selfMs": 1.096
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "updateMemo ../../node_modules/react-dom/cjs/react-dom-client.production.js:5454",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "scheduleCallback$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:13389",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 1.091
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 1.085
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.079
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1025.153295,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.648502000000008,
+              "p95": 17.89509100000032,
+              "max": 18.221589000000677
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.699999999999818,
+              "p95": 16.700000000000728,
+              "max": 16.800000000000182
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 32.60000000000582,
+              "p95": 33,
+              "max": 33
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 39.766999999999996,
+              "TaskDuration": 159.36700000000005,
+              "LayoutDuration": 1.8780000000000046,
+              "RecalcStyleDuration": 3.620000000000002
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 886.265
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 116.816
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 7.379
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 5.444
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 4.483
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 3.338
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 3.335
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 2.233
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.724
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 1.328
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 1.316
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:13",
+                "selfMs": 1.224
+              },
+              {
+                "frame": "getActiveElement ../../node_modules/react-dom/cjs/react-dom-client.production.js:2303",
+                "selfMs": 1.18
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 1.146
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 1.115
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.113
+              },
+              {
+                "frame": "e.unstable_now ../../node_modules/scheduler/cjs/scheduler.production.js:63",
+                "selfMs": 1.091
+              },
+              {
+                "frame": "queueMicrotask :0",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "e.unstable_scheduleCallback ../../node_modules/scheduler/cjs/scheduler.production.js:272",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 1.073
+              },
+              {
+                "frame": "commitBeforeMutationEffects_complete ../../node_modules/react-dom/cjs/react-dom-client.production.js:9871",
+                "selfMs": 0.542
+              },
+              {
+                "frame": "scheduleTaskForRootDuringMicrotask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13483",
+                "selfMs": 0.44
+              },
+              {
+                "frame": "pop ../../node_modules/scheduler/cjs/scheduler.production.js:26",
+                "selfMs": 0.165
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 0.034
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1052.46969,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.69787499999984,
+              "p95": 30.508662000000186,
+              "max": 40.10833500000081
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.69999999999891,
+              "p95": 16.799999999999272,
+              "max": 33.20000000000073
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 31.29999999998836,
+              "p95": 37.79999999998836,
+              "max": 45
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 43.80699999999999,
+              "TaskDuration": 250.39400000000012,
+              "LayoutDuration": 1.6639999999999988,
+              "RecalcStyleDuration": 3.4080000000000013
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 830.029
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 206.727
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 4.558
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 3.965
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 3.9190000000000005
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 3.729
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 3.454
+              },
+              {
+                "frame": "document.querySelector.addEventListener.capture :20",
+                "selfMs": 3.378
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 3.224
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 3.067
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.524
+              },
+              {
+                "frame": "updateReducerImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4852",
+                "selfMs": 2.442
+              },
+              {
+                "frame": "getEventTarget ../../node_modules/react-dom/cjs/react-dom-client.production.js:1588",
+                "selfMs": 2.143
+              },
+              {
+                "frame": "(anonymous) :24",
+                "selfMs": 1.305
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 1.078
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 0.9
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 0.535
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 0.507
+              },
+              {
+                "frame": "sn.useImperativeHandle ../../node_modules/react/cjs/react.production.js:527",
+                "selfMs": 0.499
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 0.432
+              },
+              {
+                "frame": "now :0",
+                "selfMs": 0.225
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12069",
+                "selfMs": 0
+              },
+              {
+                "frame": "renderRootSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12522",
+                "selfMs": 0
+              }
+            ]
+          }
+        ],
+        "zoom": [
+          {
+            "elapsedMs": 2021.7504339999996,
+            "dispatchMs": {
+              "count": 60,
+              "median": 33.361306999999215,
+              "p95": 34.21489399999882,
+              "max": 35.03070600000137
+            },
+            "frameMs": {
+              "count": 123,
+              "median": 16.69999999999891,
+              "p95": 16.799999999999272,
+              "max": 16.80000000000109
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 48.60000000000582,
+              "p95": 49.10000000000582,
+              "max": 49.20000000001164
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 40.55500000000001,
+              "TaskDuration": 181.86199999999997,
+              "LayoutDuration": 2.501000000000003,
+              "RecalcStyleDuration": 4.572
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 1889.052
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 126.035
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 5.9239999999999995
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 3.013
+              },
+              {
+                "frame": "XI ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:9",
+                "selfMs": 2.804
+              },
+              {
+                "frame": "sn.useEffect ../../node_modules/react/cjs/react.production.js:518",
+                "selfMs": 1.602
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.592
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:13",
+                "selfMs": 1.193
+              },
+              {
+                "frame": "flushPassiveEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:13229",
+                "selfMs": 1.158
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 1.107
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.107
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.1
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 1.078
+              },
+              {
+                "frame": "findInstanceBlockingTarget ../../node_modules/react-dom/cjs/react-dom-client.production.js:17997",
+                "selfMs": 1.071
+              },
+              {
+                "frame": "commitHookEffectListMount ../../node_modules/react-dom/cjs/react-dom-client.production.js:9011",
+                "selfMs": 1.067
+              },
+              {
+                "frame": "string ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:8",
+                "selfMs": 1.047
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 0.314
+              },
+              {
+                "frame": "processDispatchQueue ../../node_modules/react-dom/cjs/react-dom-client.production.js:13748",
+                "selfMs": 0.205
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17907",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 2021.4432099999995,
+            "dispatchMs": {
+              "count": 60,
+              "median": 33.31305000000066,
+              "p95": 34.19883999999911,
+              "max": 34.92715800000042
+            },
+            "frameMs": {
+              "count": 123,
+              "median": 16.69999999999891,
+              "p95": 16.700000000000728,
+              "max": 16.80000000000109
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 48.70000000001164,
+              "p95": 49.19999999998254,
+              "max": 49.29999999998836
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 36.380000000000024,
+              "TaskDuration": 167.52600000000007,
+              "LayoutDuration": 2.167999999999996,
+              "RecalcStyleDuration": 4.170999999999998
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 1905.85
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 117.657
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 3.338
+              },
+              {
+                "frame": "sn.createElement ../../node_modules/react/cjs/react.production.js:453",
+                "selfMs": 2.234
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.187
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 2.179
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 2.147
+              },
+              {
+                "frame": "e.unstable_now ../../node_modules/scheduler/cjs/scheduler.production.js:63",
+                "selfMs": 1.558
+              },
+              {
+                "frame": "bailoutOnAlreadyFinishedWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7622",
+                "selfMs": 1.342
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 1.137
+              },
+              {
+                "frame": "push ../../node_modules/react-dom/cjs/react-dom-client.production.js:382",
+                "selfMs": 1.119
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 1.106
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "v ../../src/components/CadCanvas.tsx:1623",
+                "selfMs": 1.092
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:36",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "processDispatchQueue ../../node_modules/react-dom/cjs/react-dom-client.production.js:13748",
+                "selfMs": 1.075
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12069",
+                "selfMs": 0
+              },
+              {
+                "frame": "renderRootSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12522",
+                "selfMs": 0
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 0
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 0
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 2023.7251850000011,
+            "dispatchMs": {
+              "count": 60,
+              "median": 33.30123199999798,
+              "p95": 34.11755099999937,
+              "max": 34.624878999999055
+            },
+            "frameMs": {
+              "count": 123,
+              "median": 16.69999999999891,
+              "p95": 16.799999999999272,
+              "max": 16.80000000000109
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 48.79999999998836,
+              "p95": 49.39999999999418,
+              "max": 49.69999999998254
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 35.42899999999999,
+              "TaskDuration": 172.96199999999985,
+              "LayoutDuration": 2.4520000000000026,
+              "RecalcStyleDuration": 4.794000000000003
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 1889.198
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 125.004
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 3.625
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 2.943
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 2.492
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 2.466
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 2.455
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.163
+              },
+              {
+                "frame": "document.querySelector.addEventListener.capture :20",
+                "selfMs": 2.147
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 1.487
+              },
+              {
+                "frame": "updateRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:5360",
+                "selfMs": 1.474
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 1.338
+              },
+              {
+                "frame": "getRootForUpdatedFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:2625",
+                "selfMs": 1.295
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 1.278
+              },
+              {
+                "frame": "queueMicrotask :0",
+                "selfMs": 1.095
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1355",
+                "selfMs": 1.077
+              },
+              {
+                "frame": "batchedUpdates$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:1663",
+                "selfMs": 1.076
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.075
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 1.074
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.067
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17907",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchEventForPluginEventSystem ../../node_modules/react-dom/cjs/react-dom-client.production.js:13884",
+                "selfMs": 0
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    },
+    "large": {
+      "bytes": 2554283,
+      "bars": 400,
+      "representations": 400,
+      "masks": 1,
+      "maskPrimitives": 20000,
+      "maskPoints": 40000,
+      "svgElements": 5127,
+      "actions": {
+        "cursor-no-snap": [
+          {
+            "elapsedMs": 1046.1165469999978,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.57252200000221,
+              "p95": 19.28407099999822,
+              "max": 38.700668999998015
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.699999999999818,
+              "p95": 16.700000000000728,
+              "max": 316.6999999999998
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.60000000000582,
+              "p95": 40,
+              "max": 58.39999999999418
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 38.029,
+              "TaskDuration": 1051.5819999999999,
+              "LayoutDuration": 11.001999999999999,
+              "RecalcStyleDuration": 3.314
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1012.412
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 304.38
+              },
+              {
+                "frame": "now :0",
+                "selfMs": 2.591
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 2.26
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 2.234
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 2.219
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 2.1879999999999997
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.179
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 2.165
+              },
+              {
+                "frame": "prepareFreshStack ../../node_modules/react-dom/cjs/react-dom-client.production.js:12424",
+                "selfMs": 1.382
+              },
+              {
+                "frame": "finishQueueingConcurrentUpdates ../../node_modules/react-dom/cjs/react-dom-client.production.js:2555",
+                "selfMs": 1.38
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 1.304
+              },
+              {
+                "frame": "updateReducerImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4852",
+                "selfMs": 1.196
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 1.149
+              },
+              {
+                "frame": "e ../../src/components/CadCanvas.tsx:638",
+                "selfMs": 1.123
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 1.119
+              },
+              {
+                "frame": "dispatchEventForPluginEventSystem ../../node_modules/react-dom/cjs/react-dom-client.production.js:13884",
+                "selfMs": 1.103
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 1.1
+              },
+              {
+                "frame": "getActiveElement ../../node_modules/react-dom/cjs/react-dom-client.production.js:2303",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "batchedUpdates$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:1663",
+                "selfMs": 1.096
+              },
+              {
+                "frame": "dispatchSetState ../../node_modules/react-dom/cjs/react-dom-client.production.js:5663",
+                "selfMs": 1.094
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:36",
+                "selfMs": 1.091
+              },
+              {
+                "frame": "updateMemo ../../node_modules/react-dom/cjs/react-dom-client.production.js:5454",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 1.082
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1024.5373209999998,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.65925900000002,
+              "p95": 18.96844499999861,
+              "max": 19.318943000002037
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 16.800000000000182,
+              "max": 216.59999999999945
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.39999999999418,
+              "p95": 39.10000000000582,
+              "max": 39.59999999997672
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 30.993,
+              "TaskDuration": 908.2700000000001,
+              "LayoutDuration": 10.131999999999998,
+              "RecalcStyleDuration": 2.053
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 879.755
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 356.251
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 3.298
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 2.1660000000000004
+              },
+              {
+                "frame": "updateElement ../../node_modules/react-dom/cjs/react-dom-client.production.js:3644",
+                "selfMs": 1.256
+              },
+              {
+                "frame": "mapRemainingChildren ../../node_modules/react-dom/cjs/react-dom-client.production.js:3598",
+                "selfMs": 1.192
+              },
+              {
+                "frame": "string ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:8",
+                "selfMs": 1.18
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 1.127
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 1.122
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.118
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 1.107
+              },
+              {
+                "frame": "flushSpawnedWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:13134",
+                "selfMs": 1.107
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 1.1
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 1.078
+              },
+              {
+                "frame": "e ../../src/components/CadCanvas.tsx:1114",
+                "selfMs": 1.078
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 1.074
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.047
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12069",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1021.3379380000006,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.63674600000013,
+              "p95": 19.576152999998158,
+              "max": 21.79853599999842
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 16.700000000000728,
+              "max": 233.19999999999982
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.39999999999418,
+              "p95": 40.29999999998836,
+              "max": 43.20000000001164
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 42.87700000000001,
+              "TaskDuration": 974.806,
+              "LayoutDuration": 11.011,
+              "RecalcStyleDuration": 2.326
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 915.34
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 305.265
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 4.939
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 4.4430000000000005
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 3.397
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 3.2960000000000003
+              },
+              {
+                "frame": "point ../../src/App.tsx:1272",
+                "selfMs": 3.26
+              },
+              {
+                "frame": "raw ../../src/components/CadCanvas.tsx:795",
+                "selfMs": 2.455
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 2.164
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 2.161
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 1.507
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 1.457
+              },
+              {
+                "frame": "flushSpawnedWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:13134",
+                "selfMs": 1.218
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 1.194
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 1.163
+              },
+              {
+                "frame": "updateMemo ../../node_modules/react-dom/cjs/react-dom-client.production.js:5454",
+                "selfMs": 1.158
+              },
+              {
+                "frame": "dispatchSetState ../../node_modules/react-dom/cjs/react-dom-client.production.js:5663",
+                "selfMs": 1.101
+              },
+              {
+                "frame": "getActiveElementDeep ../../node_modules/react-dom/cjs/react-dom-client.production.js:2354",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "push ../../node_modules/scheduler/cjs/scheduler.production.js:12",
+                "selfMs": 1.095
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "getEventTarget ../../node_modules/react-dom/cjs/react-dom-client.production.js:1588",
+                "selfMs": 1.093
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13579",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "sn.createElement ../../node_modules/react/cjs/react.production.js:453",
+                "selfMs": 1.086
+              }
+            ]
+          }
+        ],
+        "pan": [
+          {
+            "elapsedMs": 12257.024708,
+            "dispatchMs": {
+              "count": 60,
+              "median": 203.45146699999896,
+              "p95": 261.9196929999998,
+              "max": 267.61483299999963
+            },
+            "frameMs": {
+              "count": 67,
+              "median": 200,
+              "p95": 250.09999999999854,
+              "max": 266.7000000000007
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 407.3999999999942,
+              "p95": 504.5,
+              "max": 526.7999999999884
+            },
+            "longTasks": {
+              "count": 58,
+              "median": 203,
+              "p95": 260,
+              "max": 267
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 51.37500000000001,
+              "TaskDuration": 12086.155999999999,
+              "LayoutDuration": 9.734,
+              "RecalcStyleDuration": 22.322
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 12012.335
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 431.284
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 12.576
+              },
+              {
+                "frame": "updateElement ../../node_modules/react-dom/cjs/react-dom-client.production.js:3644",
+                "selfMs": 9.959
+              },
+              {
+                "frame": "string ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:8",
+                "selfMs": 4.166
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:13",
+                "selfMs": 3.205
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 2.927
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 2.197
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:9",
+                "selfMs": 2.162
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 2.089
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 1.905
+              },
+              {
+                "frame": "PerformanceObserver.observe.type :31",
+                "selfMs": 1.815
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 1.807
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 1.569
+              },
+              {
+                "frame": "updateMemo ../../node_modules/react-dom/cjs/react-dom-client.production.js:5454",
+                "selfMs": 1.257
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.234
+              },
+              {
+                "frame": "queueMicrotask :0",
+                "selfMs": 1.105
+              },
+              {
+                "frame": "lanesToEventPriority ../../node_modules/react-dom/cjs/react-dom-client.production.js:985",
+                "selfMs": 1.079
+              },
+              {
+                "frame": "now :0",
+                "selfMs": 1.064
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:4249",
+                "selfMs": 1.061
+              },
+              {
+                "frame": "flushLayoutEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:13110",
+                "selfMs": 1.01
+              },
+              {
+                "frame": "scheduleTaskForRootDuringMicrotask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13483",
+                "selfMs": 0.887
+              },
+              {
+                "frame": "clearIfContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:18130",
+                "selfMs": 0.34
+              },
+              {
+                "frame": "commitDeletionEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10201",
+                "selfMs": 0.289
+              }
+            ]
+          },
+          {
+            "elapsedMs": 13396.505756999999,
+            "dispatchMs": {
+              "count": 60,
+              "median": 212.6283689999982,
+              "p95": 440.3850900000034,
+              "max": 863.440966999995
+            },
+            "frameMs": {
+              "count": 66,
+              "median": 200.10000000000218,
+              "p95": 416.7000000000007,
+              "max": 866.6000000000022
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 424.79999999998836,
+              "p95": 635,
+              "max": 1081.5999999999767
+            },
+            "longTasks": {
+              "count": 54,
+              "median": 210,
+              "p95": 263,
+              "max": 295
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 85.757,
+              "TaskDuration": 12563.502000000002,
+              "LayoutDuration": 14.621000000000002,
+              "RecalcStyleDuration": 29.512000000000004
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 12208.965
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 1095.833
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 274.064
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 15.771
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 6.627
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/createLucideIcon.js:14",
+                "selfMs": 5.772
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 4.998
+              },
+              {
+                "frame": "string ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:8",
+                "selfMs": 4.757
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 2.869
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.808
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 2.795
+              },
+              {
+                "frame": "getNativeBeforeInputChars ../../node_modules/react-dom/cjs/react-dom-client.production.js:2110",
+                "selfMs": 2.341
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:13",
+                "selfMs": 2.301
+              },
+              {
+                "frame": "updateMemo ../../node_modules/react-dom/cjs/react-dom-client.production.js:5454",
+                "selfMs": 2.144
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.763
+              },
+              {
+                "frame": "renderRootSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12522",
+                "selfMs": 1.728
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 1.347
+              },
+              {
+                "frame": "dispatchEventForPluginEventSystem ../../node_modules/react-dom/cjs/react-dom-client.production.js:13884",
+                "selfMs": 1.32
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 1.238
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 1.23
+              },
+              {
+                "frame": "push ../../node_modules/scheduler/cjs/scheduler.production.js:12",
+                "selfMs": 1.178
+              },
+              {
+                "frame": "getChildHostContextProd ../../node_modules/react-dom/cjs/react-dom-client.production.js:15453",
+                "selfMs": 1.175
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "getEntries :0",
+                "selfMs": 1.081
+              }
+            ]
+          },
+          {
+            "elapsedMs": 12427.107967000004,
+            "dispatchMs": {
+              "count": 60,
+              "median": 199.95753400000103,
+              "p95": 270.5091719999982,
+              "max": 292.79983699999866
+            },
+            "frameMs": {
+              "count": 66,
+              "median": 200,
+              "p95": 266.6999999999971,
+              "max": 283.3000000000029
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 390.30000000001746,
+              "p95": 507.30000000004657,
+              "max": 538.5999999999767
+            },
+            "longTasks": {
+              "count": 58,
+              "median": 200,
+              "p95": 266,
+              "max": 275
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 86.82299999999998,
+              "TaskDuration": 12041.797000000002,
+              "LayoutDuration": 9.256,
+              "RecalcStyleDuration": 20.313
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 11961.523
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 482.285
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 10.78
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 8.858
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 7.716
+              },
+              {
+                "frame": "batchedUpdates$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:1663",
+                "selfMs": 6.963
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 6.843999999999999
+              },
+              {
+                "frame": "findInstanceBlockingTarget ../../node_modules/react-dom/cjs/react-dom-client.production.js:17997",
+                "selfMs": 6.717
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 5.715
+              },
+              {
+                "frame": "hasSelectionCapabilities ../../node_modules/react-dom/cjs/react-dom-client.production.js:2378",
+                "selfMs": 5.485
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:13",
+                "selfMs": 2.154
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 1.762
+              },
+              {
+                "frame": "sn.createElement ../../node_modules/react/cjs/react.production.js:453",
+                "selfMs": 1.444
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.377
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 1.151
+              },
+              {
+                "frame": "areHookInputsEqual ../../node_modules/react-dom/cjs/react-dom-client.production.js:4621",
+                "selfMs": 1.126
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 1.119
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.115
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 1.091
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 1.074
+              },
+              {
+                "frame": "getHoistableRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:16895",
+                "selfMs": 1.056
+              },
+              {
+                "frame": "flushPassiveEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:13229",
+                "selfMs": 1.019
+              },
+              {
+                "frame": "XI ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:9",
+                "selfMs": 1.017
+              },
+              {
+                "frame": "getActiveElementDeep ../../node_modules/react-dom/cjs/react-dom-client.production.js:2354",
+                "selfMs": 0.896
+              }
+            ]
+          }
+        ],
+        "zoom": [
+          {
+            "elapsedMs": 11505.438511999993,
+            "dispatchMs": {
+              "count": 60,
+              "median": 177.00472399999853,
+              "p95": 301.4466560000001,
+              "max": 341.5156350000034
+            },
+            "frameMs": {
+              "count": 242,
+              "median": 16.799999999995634,
+              "p95": 183.40000000000146,
+              "max": 233.3000000000029
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 191.39999999996508,
+              "p95": 317.5,
+              "max": 352
+            },
+            "longTasks": {
+              "count": 21,
+              "median": 60,
+              "p95": 81,
+              "max": 106
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 712.0799999999998,
+              "TaskDuration": 5241.816,
+              "LayoutDuration": 1566.5399999999997,
+              "RecalcStyleDuration": 217.92099999999996
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 6389.454
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 4393.436
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 177.436
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1299",
+                "selfMs": 116.842
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 90.90899999999999
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 80.35099999999998
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1329",
+                "selfMs": 42.877
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 32.394999999999996
+              },
+              {
+                "frame": "Na ../../src/components/CadCanvas.tsx:1203",
+                "selfMs": 27.485
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 25.608
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 24.727
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 23.125
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 21.523999999999997
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 18.346
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 17.712999999999997
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 11.678
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 10.806
+              },
+              {
+                "frame": "en ../../src/components/CadCanvas.tsx:1294",
+                "selfMs": 9.653
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 9.647
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1446",
+                "selfMs": 8.973
+              },
+              {
+                "frame": "updateFromMap ../../node_modules/react-dom/cjs/react-dom-client.production.js:3834",
+                "selfMs": 5.43
+              },
+              {
+                "frame": "updateElement ../../node_modules/react-dom/cjs/react-dom-client.production.js:3644",
+                "selfMs": 5.393
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 4.353
+              },
+              {
+                "frame": "mapRemainingChildren ../../node_modules/react-dom/cjs/react-dom-client.production.js:3598",
+                "selfMs": 4.286
+              }
+            ]
+          },
+          {
+            "elapsedMs": 11926.246448999998,
+            "dispatchMs": {
+              "count": 60,
+              "median": 184.08574599999702,
+              "p95": 303.6483739999967,
+              "max": 391.089638999998
+            },
+            "frameMs": {
+              "count": 245,
+              "median": 16.80000000000291,
+              "p95": 199.90000000000146,
+              "max": 283.29999999998836
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 212.19999999995343,
+              "p95": 315.20000000001164,
+              "max": 403.30000000004657
+            },
+            "longTasks": {
+              "count": 22,
+              "median": 58,
+              "p95": 110,
+              "max": 110
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 729.827,
+              "TaskDuration": 5526.406999999999,
+              "LayoutDuration": 1716.854,
+              "RecalcStyleDuration": 190.28099999999998
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 6507.866
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 4623.798
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 231.364
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 91.773
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1299",
+                "selfMs": 88.904
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 86.787
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 39.397999999999996
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 35.244
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1329",
+                "selfMs": 33.853
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 31.856
+              },
+              {
+                "frame": "en ../../src/components/CadCanvas.tsx:1294",
+                "selfMs": 30.64
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 26.1
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 22.376
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 20.313
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 20.121999999999996
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 19.558000000000003
+              },
+              {
+                "frame": "Na ../../src/components/CadCanvas.tsx:1203",
+                "selfMs": 17.075
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 13.232999999999999
+              },
+              {
+                "frame": "b ../../src/components/CadCanvas.tsx:1457",
+                "selfMs": 9.172
+              },
+              {
+                "frame": "commitLayoutEffectOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:9962",
+                "selfMs": 8.653
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 7.38
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 6.461
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1446",
+                "selfMs": 5.73
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 5.497
+              }
+            ]
+          },
+          {
+            "elapsedMs": 11174.729648000008,
+            "dispatchMs": {
+              "count": 60,
+              "median": 133.8802710000018,
+              "p95": 315.34030200001143,
+              "max": 366.9768530000001
+            },
+            "frameMs": {
+              "count": 246,
+              "median": 16.80000000000291,
+              "p95": 183.40000000000873,
+              "max": 283.3000000000029
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 145.5,
+              "p95": 322.70000000001164,
+              "max": 378.79999999998836
+            },
+            "longTasks": {
+              "count": 7,
+              "median": 55,
+              "p95": 66,
+              "max": 66
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 616.009,
+              "TaskDuration": 4803.918000000003,
+              "LayoutDuration": 1392.8789999999997,
+              "RecalcStyleDuration": 175.46399999999994
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 6487.538
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 3986.188
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 218.833
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1299",
+                "selfMs": 83.606
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 81.814
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 72.33500000000001
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1329",
+                "selfMs": 46.658
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 46.431
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 28.875
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 23.77
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 21.834
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 19.608
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 18.519000000000002
+              },
+              {
+                "frame": "Na ../../src/components/CadCanvas.tsx:1203",
+                "selfMs": 17.909
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 16.215
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 13.647
+              },
+              {
+                "frame": "updateFromMap ../../node_modules/react-dom/cjs/react-dom-client.production.js:3834",
+                "selfMs": 11.143
+              },
+              {
+                "frame": "commitLayoutEffectOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:9962",
+                "selfMs": 9.75
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 7.581
+              },
+              {
+                "frame": "en ../../src/components/CadCanvas.tsx:1294",
+                "selfMs": 6.926
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1484",
+                "selfMs": 6.811
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1446",
+                "selfMs": 6.193
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 5.413
+              },
+              {
+                "frame": "mapRemainingChildren ../../node_modules/react-dom/cjs/react-dom-client.production.js:3598",
+                "selfMs": 5.408
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    },
+    "large-no-mask": {
+      "bytes": 387016,
+      "bars": 400,
+      "representations": 400,
+      "masks": 0,
+      "maskPrimitives": 0,
+      "maskPoints": 0,
+      "svgElements": 5125,
+      "actions": {
+        "cursor-no-snap": [
+          {
+            "elapsedMs": 1033.1032280000072,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.63121599999431,
+              "p95": 17.448528000008082,
+              "max": 17.708746999996947
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.699999999999818,
+              "p95": 16.800000000000182,
+              "max": 149.9000000000001
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 34.29999999998836,
+              "p95": 35.29999999998836,
+              "max": 36.09999999997672
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 37.23,
+              "TaskDuration": 612.2090000000001,
+              "LayoutDuration": 12.089,
+              "RecalcStyleDuration": 2.498
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 570.005
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 563.879
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 4.093
+              },
+              {
+                "frame": "point ../../src/App.tsx:1272",
+                "selfMs": 3.281
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 2.688
+              },
+              {
+                "frame": "prepareFreshStack ../../node_modules/react-dom/cjs/react-dom-client.production.js:12424",
+                "selfMs": 2.576
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 2.35
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 2.202
+              },
+              {
+                "frame": "e.unstable_now ../../node_modules/scheduler/cjs/scheduler.production.js:63",
+                "selfMs": 1.451
+              },
+              {
+                "frame": "renderRootSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12522",
+                "selfMs": 1.242
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 1.232
+              },
+              {
+                "frame": "sn.createElement ../../node_modules/react/cjs/react.production.js:453",
+                "selfMs": 1.202
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 1.195
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 1.182
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.176
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 1.171
+              },
+              {
+                "frame": "string ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:8",
+                "selfMs": 1.167
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 1.15
+              },
+              {
+                "frame": "dispatchSetState ../../node_modules/react-dom/cjs/react-dom-client.production.js:5663",
+                "selfMs": 1.142
+              },
+              {
+                "frame": "updateWorkInProgressHook ../../node_modules/react-dom/cjs/react-dom-client.production.js:4749",
+                "selfMs": 1.111
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 1.107
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:9",
+                "selfMs": 1.106
+              },
+              {
+                "frame": "(anonymous) :24",
+                "selfMs": 1.104
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:13",
+                "selfMs": 1.102
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1024.5320479999937,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.662232999995467,
+              "p95": 17.403925999999046,
+              "max": 21.17050899998867
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 16.800000000000182,
+              "max": 66.70000000000073
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 34.09999999997672,
+              "p95": 34.899999999965075,
+              "max": 38.399999999965075
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 33.196000000000005,
+              "TaskDuration": 534.0520000000001,
+              "LayoutDuration": 10.197999999999999,
+              "RecalcStyleDuration": 2.2120000000000006
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 580.833
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 492.688
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 4.461
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 4.362
+              },
+              {
+                "frame": "bailoutOnAlreadyFinishedWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7622",
+                "selfMs": 3.83
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/createLucideIcon.js:14",
+                "selfMs": 3.34
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 2.73
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 2.534
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 2.316
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 2.221
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 1.422
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 1.379
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 1.319
+              },
+              {
+                "frame": "bubbleProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:8335",
+                "selfMs": 1.264
+              },
+              {
+                "frame": "popHostContext ../../node_modules/react-dom/cjs/react-dom-client.production.js:442",
+                "selfMs": 1.229
+              },
+              {
+                "frame": "updateTextNode ../../node_modules/react-dom/cjs/react-dom-client.production.js:3633",
+                "selfMs": 1.15
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 1.108
+              },
+              {
+                "frame": "processRootScheduleInMicrotask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13456",
+                "selfMs": 1.096
+              },
+              {
+                "frame": "dispatchEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17907",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 1.069
+              },
+              {
+                "frame": "batchedUpdates$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:1663",
+                "selfMs": 1.066
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13579",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1020.7427860000025,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.66870700000436,
+              "p95": 16.950282000005245,
+              "max": 17.103675999998813
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.699999999999818,
+              "p95": 16.699999999999818,
+              "max": 66.60000000000036
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 34.100000000034925,
+              "p95": 34.70000000001164,
+              "max": 35
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 31.48300000000001,
+              "TaskDuration": 525.366,
+              "LayoutDuration": 10.699999999999998,
+              "RecalcStyleDuration": 2.1529999999999996
+            },
+            "profile": [
+              {
+                "frame": "(idle) :0",
+                "selfMs": 595.667
+              },
+              {
+                "frame": "(program) :0",
+                "selfMs": 488.191
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 4.7989999999999995
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 3.481
+              },
+              {
+                "frame": "e ../../src/components/CadCanvas.tsx:1114",
+                "selfMs": 2.195
+              },
+              {
+                "frame": "now :0",
+                "selfMs": 1.439
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 1.404
+              },
+              {
+                "frame": "e.unstable_now ../../node_modules/scheduler/cjs/scheduler.production.js:63",
+                "selfMs": 1.278
+              },
+              {
+                "frame": "(anonymous) :1",
+                "selfMs": 1.208
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 1.123
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.121
+              },
+              {
+                "frame": "(anonymous) :0",
+                "selfMs": 1.101
+              },
+              {
+                "frame": "sn.createElement ../../node_modules/react/cjs/react.production.js:453",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "getHoistableRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:16895",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 1.091
+              },
+              {
+                "frame": "commitHookEffectListMount ../../node_modules/react-dom/cjs/react-dom-client.production.js:9011",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "timeStamp ../../node_modules/react-dom/cjs/react-dom-client.production.js:1841",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 1.085
+              },
+              {
+                "frame": "extractEvents$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:13609",
+                "selfMs": 1.082
+              },
+              {
+                "frame": "batchedUpdates$1 ../../node_modules/react-dom/cjs/react-dom-client.production.js:1663",
+                "selfMs": 1.067
+              },
+              {
+                "frame": "isRenderPhaseUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:5731",
+                "selfMs": 1.065
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "dispatchContinuousEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:17890",
+                "selfMs": 0
+              }
+            ]
+          }
+        ],
+        "pan": [
+          {
+            "elapsedMs": 1383.7148639999941,
+            "dispatchMs": {
+              "count": 60,
+              "median": 19.46365700000024,
+              "p95": 41.997017000001506,
+              "max": 56.04379799999879
+            },
+            "frameMs": {
+              "count": 65,
+              "median": 16.699999999999818,
+              "p95": 50,
+              "max": 66.69999999999982
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 36.79999999998836,
+              "p95": 62.40000000002328,
+              "max": 78.20000000001164
+            },
+            "longTasks": {
+              "count": 1,
+              "median": 52,
+              "p95": 52,
+              "max": 52
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 69.05900000000001,
+              "TaskDuration": 1297.4669999999999,
+              "LayoutDuration": 6.171999999999997,
+              "RecalcStyleDuration": 21.643000000000004
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1218.995
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 166.201
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 7.550000000000001
+              },
+              {
+                "frame": "attemptEarlyBailoutIfNoScheduledUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:7658",
+                "selfMs": 5.305
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 4.651
+              },
+              {
+                "frame": "getChildHostContextProd ../../node_modules/react-dom/cjs/react-dom-client.production.js:15453",
+                "selfMs": 3.828
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 3.397
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 3.101
+              },
+              {
+                "frame": "pushHostContainer ../../node_modules/react-dom/cjs/react-dom-client.production.js:391",
+                "selfMs": 2.679
+              },
+              {
+                "frame": "findInstanceBlockingTarget ../../node_modules/react-dom/cjs/react-dom-client.production.js:17997",
+                "selfMs": 2.23
+              },
+              {
+                "frame": "schedule ../../src/domain/model.ts:1226",
+                "selfMs": 2.205
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 2.191
+              },
+              {
+                "frame": "hasSelectionCapabilities ../../node_modules/react-dom/cjs/react-dom-client.production.js:2378",
+                "selfMs": 1.887
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.596
+              },
+              {
+                "frame": "App ../../src/App.tsx:592",
+                "selfMs": 1.568
+              },
+              {
+                "frame": "(anonymous) :0",
+                "selfMs": 1.479
+              },
+              {
+                "frame": "pushHostContext ../../node_modules/react-dom/cjs/react-dom-client.production.js:431",
+                "selfMs": 1.391
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 1.364
+              },
+              {
+                "frame": "e.unstable_scheduleCallback ../../node_modules/scheduler/cjs/scheduler.production.js:272",
+                "selfMs": 1.352
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 1.265
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 1.223
+              },
+              {
+                "frame": "processDispatchQueue ../../node_modules/react-dom/cjs/react-dom-client.production.js:13748",
+                "selfMs": 1.158
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 1.118
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 1.117
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1241.2888789999997,
+            "dispatchMs": {
+              "count": 60,
+              "median": 19.039860999997472,
+              "p95": 33.789970999991056,
+              "max": 39.50277900000219
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.700000000000728,
+              "p95": 33.399999999999636,
+              "max": 49.900000000001455
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 34,
+              "p95": 51.79999999998836,
+              "max": 64
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 35.689,
+              "TaskDuration": 1187.3420000000006,
+              "LayoutDuration": 4.723999999999999,
+              "RecalcStyleDuration": 20.444999999999997
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1147.613
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 129.992
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 4.37
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 3.287
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 3.27
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 2.4
+              },
+              {
+                "frame": "performWorkUntilDeadline ../../node_modules/scheduler/cjs/scheduler.production.js:121",
+                "selfMs": 2.236
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 2.211
+              },
+              {
+                "frame": "commitLayoutEffectOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:9962",
+                "selfMs": 2.169
+              },
+              {
+                "frame": "setValueForAttribute ../../node_modules/react-dom/cjs/react-dom-client.production.js:1125",
+                "selfMs": 1.795
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 1.717
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 1.695
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 1.404
+              },
+              {
+                "frame": "updateMemo ../../node_modules/react-dom/cjs/react-dom-client.production.js:5454",
+                "selfMs": 1.365
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:4249",
+                "selfMs": 1.302
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 1.124
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 1.101
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "finishQueueingConcurrentUpdates ../../node_modules/react-dom/cjs/react-dom-client.production.js:2555",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "performWorkOnRoot ../../node_modules/react-dom/cjs/react-dom-client.production.js:12069",
+                "selfMs": 0
+              },
+              {
+                "frame": "renderRootSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12522",
+                "selfMs": 0
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1552.4051029999973,
+            "dispatchMs": {
+              "count": 60,
+              "median": 24.463831000000937,
+              "p95": 39.984926000004634,
+              "max": 44.67261799999687
+            },
+            "frameMs": {
+              "count": 65,
+              "median": 16.799999999999272,
+              "p95": 49.899999999999636,
+              "max": 50.100000000000364
+            },
+            "inputToTwoFramesMs": {
+              "count": 61,
+              "median": 47,
+              "p95": 62.90000000002328,
+              "max": 88.59999999997672
+            },
+            "longTasks": {
+              "count": 1,
+              "median": 50,
+              "p95": 50,
+              "max": 50
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 47.07900000000001,
+              "TaskDuration": 1283.5160000000005,
+              "LayoutDuration": 5.878000000000001,
+              "RecalcStyleDuration": 42.075999999999986
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1193.556
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 364.649
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 20.872
+              },
+              {
+                "frame": "getBoundingClientRect :0",
+                "selfMs": 9.406
+              },
+              {
+                "frame": "renderWithHooks ../../node_modules/react-dom/cjs/react-dom-client.production.js:4627",
+                "selfMs": 4.815
+              },
+              {
+                "frame": "sn.useMemo ../../node_modules/react/cjs/react.production.js:536",
+                "selfMs": 4.071
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 3.945
+              },
+              {
+                "frame": "updateElement ../../node_modules/react-dom/cjs/react-dom-client.production.js:3644",
+                "selfMs": 3.299
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 3.236
+              },
+              {
+                "frame": " ../../node_modules/lucide-react/dist/esm/Icon.js:13",
+                "selfMs": 2.543
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 2.283
+              },
+              {
+                "frame": "string ../../node_modules/lucide-react/dist/esm/shared/src/utils.js:8",
+                "selfMs": 2.195
+              },
+              {
+                "frame": "SyntheticBaseEvent ../../node_modules/react-dom/cjs/react-dom-client.production.js:1784",
+                "selfMs": 2.192
+              },
+              {
+                "frame": "updateForwardRef ../../node_modules/react-dom/cjs/react-dom-client.production.js:6425",
+                "selfMs": 2.164
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:4249",
+                "selfMs": 1.875
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.701
+              },
+              {
+                "frame": "commitBeforeMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:9756",
+                "selfMs": 1.237
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 1.138
+              },
+              {
+                "frame": "performWorkOnRootViaSchedulerTask ../../node_modules/react-dom/cjs/react-dom-client.production.js:13555",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "(anonymous) :24",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "dispatchSetState ../../node_modules/react-dom/cjs/react-dom-client.production.js:5663",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "getListener ../../node_modules/react-dom/cjs/react-dom-client.production.js:1686",
+                "selfMs": 1.088
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 1.027
+              }
+            ]
+          }
+        ],
+        "zoom": [
+          {
+            "elapsedMs": 5081.296413000004,
+            "dispatchMs": {
+              "count": 60,
+              "median": 83.35776300000725,
+              "p95": 99.87032200000249,
+              "max": 105.27004200000374
+            },
+            "frameMs": {
+              "count": 241,
+              "median": 16.700000000000728,
+              "p95": 33.399999999999636,
+              "max": 50.099999999998545
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 98.10000000003492,
+              "p95": 114.89999999996508,
+              "max": 119
+            },
+            "longTasks": {
+              "count": 4,
+              "median": 58,
+              "p95": 59,
+              "max": 59
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 588.92,
+              "TaskDuration": 3451.818,
+              "LayoutDuration": 1339.51,
+              "RecalcStyleDuration": 160.183
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 2809.668
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 1689.21
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1299",
+                "selfMs": 124.593
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 77.758
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 69.07000000000001
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 53.623
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 38.287000000000006
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1329",
+                "selfMs": 35.757
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 34.786
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 22.228
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 15.912
+              },
+              {
+                "frame": "Na ../../src/components/CadCanvas.tsx:1203",
+                "selfMs": 14.516
+              },
+              {
+                "frame": "en ../../src/components/CadCanvas.tsx:1294",
+                "selfMs": 12.434
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 11.415000000000001
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 11.033
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 10.847999999999999
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1484",
+                "selfMs": 9.807
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1446",
+                "selfMs": 8.021
+              },
+              {
+                "frame": "b ../../src/components/CadCanvas.tsx:1457",
+                "selfMs": 7.378
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 4.547
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 4.394
+              },
+              {
+                "frame": "setValueForAttribute ../../node_modules/react-dom/cjs/react-dom-client.production.js:1125",
+                "selfMs": 4.297
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 3.325
+              },
+              {
+                "frame": "We ../../src/domain/geometry.ts:32",
+                "selfMs": 3.281
+              }
+            ]
+          },
+          {
+            "elapsedMs": 5283.6503419999935,
+            "dispatchMs": {
+              "count": 60,
+              "median": 83.52630700000736,
+              "p95": 118.94731100001081,
+              "max": 125.84619300000486
+            },
+            "frameMs": {
+              "count": 241,
+              "median": 16.700000000000728,
+              "p95": 49.900000000001455,
+              "max": 66.70000000000073
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 98,
+              "p95": 128.29999999998836,
+              "max": 136
+            },
+            "longTasks": {
+              "count": 10,
+              "median": 56,
+              "p95": 80,
+              "max": 80
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 572.6869999999999,
+              "TaskDuration": 3714.2930000000015,
+              "LayoutDuration": 1432.1850000000002,
+              "RecalcStyleDuration": 172.17900000000003
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 3071.864
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 1672.965
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1299",
+                "selfMs": 106.06099999999999
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 78.281
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 78.17099999999999
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 58.782
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 33.668
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1329",
+                "selfMs": 29.075
+              },
+              {
+                "frame": "Na ../../src/components/CadCanvas.tsx:1203",
+                "selfMs": 25.15
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 21.24
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 19.532
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1484",
+                "selfMs": 17.433
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 15.492999999999999
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 13.17
+              },
+              {
+                "frame": "en ../../src/components/CadCanvas.tsx:1294",
+                "selfMs": 10.774000000000001
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 9.509
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 7.523
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1446",
+                "selfMs": 5.749
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:193",
+                "selfMs": 5.236
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 5.231
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 4.361000000000001
+              },
+              {
+                "frame": "b ../../src/components/CadCanvas.tsx:1457",
+                "selfMs": 4.299
+              },
+              {
+                "frame": "document.querySelector.addEventListener.capture :20",
+                "selfMs": 3.415
+              },
+              {
+                "frame": "completeWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:8359",
+                "selfMs": 3.389
+              }
+            ]
+          },
+          {
+            "elapsedMs": 5269.634665999998,
+            "dispatchMs": {
+              "count": 60,
+              "median": 83.40923000000475,
+              "p95": 116.76948400000401,
+              "max": 119.17052499999409
+            },
+            "frameMs": {
+              "count": 242,
+              "median": 16.700000000000728,
+              "p95": 33.400000000001455,
+              "max": 66.70000000000073
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 98.10000000003492,
+              "p95": 130.29999999998836,
+              "max": 131.79999999998836
+            },
+            "longTasks": {
+              "count": 11,
+              "median": 52,
+              "p95": 67,
+              "max": 67
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 553.258,
+              "TaskDuration": 3678.482000000001,
+              "LayoutDuration": 1422.1409999999994,
+              "RecalcStyleDuration": 187.85700000000006
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 3047.124
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 1646.474
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1299",
+                "selfMs": 93.967
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 84.861
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 80.187
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 69.243
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1329",
+                "selfMs": 43.466
+              },
+              {
+                "frame": "recursivelyTraverseMutationEffects ../../node_modules/react-dom/cjs/react-dom-client.production.js:10454",
+                "selfMs": 32.721999999999994
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 19.482
+              },
+              {
+                "frame": "jsxProd ../../node_modules/react/cjs/react-jsx-runtime.production.js:14",
+                "selfMs": 19.480999999999998
+              },
+              {
+                "frame": "en ../../src/components/CadCanvas.tsx:1294",
+                "selfMs": 18.779
+              },
+              {
+                "frame": "Na ../../src/components/CadCanvas.tsx:1203",
+                "selfMs": 16.516
+              },
+              {
+                "frame": "performUnitOfWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:12706",
+                "selfMs": 14.031
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 11.973
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 10.853
+              },
+              {
+                "frame": "setProp ../../node_modules/react-dom/cjs/react-dom-client.production.js:14406",
+                "selfMs": 9.940999999999999
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1484",
+                "selfMs": 7.763
+              },
+              {
+                "frame": "setValueForAttribute ../../node_modules/react-dom/cjs/react-dom-client.production.js:1125",
+                "selfMs": 6.825
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 6.457000000000001
+              },
+              {
+                "frame": "b ../../src/components/CadCanvas.tsx:1457",
+                "selfMs": 6.388
+              },
+              {
+                "frame": "bubbleProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:8335",
+                "selfMs": 6.148
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1460",
+                "selfMs": 3.923
+              },
+              {
+                "frame": " ../../node_modules/react-dom/cjs/react-dom-client.production.js:13931",
+                "selfMs": 3.855
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 3.55
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    }
+  }
+}

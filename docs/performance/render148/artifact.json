@@ -1,0 +1,10 @@
+{
+  "tag": "v0.20.1",
+  "targetCommitish": "7526dc62c14e71b3c8d46e73bbf1fa29ef506af1",
+  "releaseUrl": "https://github.com/storytold/cadcraft/releases/tag/v0.20.1",
+  "downloadUrl": "https://github.com/storytold/cadcraft/releases/download/v0.20.1/cadcraft-web-0.20.1.zip",
+  "sha256": "300e870c50b66d371055915ba95e3ddbfd4c45431466d5214743b5dcab95a0e1",
+  "checksumSource": "https://github.com/storytold/cadcraft/releases/download/v0.20.1/SHA256SUMS.txt",
+  "method": "download digest compared to published checksum, signature/build provenance not independently verified",
+  "nativeRustToolchainInstalled": false
+}
