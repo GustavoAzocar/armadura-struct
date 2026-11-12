@@ -1,0 +1,860 @@
+{
+  "label": "snaps-depois-padroes",
+  "commit": "f078dedf9f0f3186261dd518f995d88c11d4fa2e",
+  "environment": {
+    "system": "linux 6.18.57",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "browser": "153.0.8010.0",
+    "graphics": {
+      "devices": [
+        {
+          "vendorId": 65535,
+          "deviceId": 65535,
+          "vendorString": "Google Inc. (Google)",
+          "deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+          "driverVendor": "SwANGLE",
+          "driverVersion": "5.0.0"
+        }
+      ],
+      "features": {
+        "2d_canvas": "enabled",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "enabled",
+        "multiple_raster_threads": "enabled_on",
+        "opengl": "enabled_on",
+        "rasterization": "enabled",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "disabled_software",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "enabled",
+        "webgpu": "unavailable_software",
+        "webgpu_on_vk_via_gl_interop": "disabled_off",
+        "webnn": "disabled_off"
+      }
+    },
+    "node": "v24.22.1",
+    "url": "http://127.0.0.1:1420",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "samples": 60,
+    "repeats": 3,
+    "snapModes": ["endpoint", "midpoint"]
+  },
+  "scenes": {
+    "large": {
+      "bytes": 2554283,
+      "bars": 400,
+      "representations": 400,
+      "masks": 1,
+      "maskPrimitives": 20000,
+      "maskPoints": 40000,
+      "svgElements": 5127,
+      "actions": {
+        "cursor-snap": [
+          {
+            "elapsedMs": 1479.8296870000004,
+            "dispatchMs": {
+              "count": 60,
+              "median": 21.37177200000042,
+              "p95": 36.38398099999995,
+              "max": 69.13463499999943
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.700000000000728,
+              "p95": 33.5,
+              "max": 316.59999999999945
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 45.399999998509884,
+              "p95": 93.29999999888241,
+              "max": 102.90000000037253
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 57.51899999999999,
+              "TaskDuration": 1683.516,
+              "LayoutDuration": 19.400000000000002,
+              "RecalcStyleDuration": 7.693
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1612.106
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 103.117
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 4.693
+              },
+              {
+                "frame": "If index-DdgQc3GD.js:9",
+                "selfMs": 3.921
+              },
+              {
+                "frame": "Pd index-DdgQc3GD.js:9",
+                "selfMs": 3.598
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 2.955
+              },
+              {
+                "frame": "QC index-DdgQc3GD.js:9",
+                "selfMs": 2.683
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.265
+              },
+              {
+                "frame": "tC index-DdgQc3GD.js:9",
+                "selfMs": 2.217
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:10",
+                "selfMs": 2.1959999999999997
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 2.163
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 1.799
+              },
+              {
+                "frame": "oS index-DdgQc3GD.js:9",
+                "selfMs": 1.614
+              },
+              {
+                "frame": "qu index-DdgQc3GD.js:9",
+                "selfMs": 1.583
+              },
+              {
+                "frame": "$s index-DdgQc3GD.js:9",
+                "selfMs": 1.466
+              },
+              {
+                "frame": "od index-DdgQc3GD.js:9",
+                "selfMs": 1.465
+              },
+              {
+                "frame": "Ls index-DdgQc3GD.js:9",
+                "selfMs": 1.293
+              },
+              {
+                "frame": "e.unstable_now index-DdgQc3GD.js:2",
+                "selfMs": 1.269
+              },
+              {
+                "frame": "Hx index-DdgQc3GD.js:9",
+                "selfMs": 1.24
+              },
+              {
+                "frame": "u0 index-DdgQc3GD.js:9",
+                "selfMs": 1.206
+              },
+              {
+                "frame": "pt index-DdgQc3GD.js:9",
+                "selfMs": 1.187
+              },
+              {
+                "frame": "Ck index-DdgQc3GD.js:66",
+                "selfMs": 1.132
+              },
+              {
+                "frame": "X0 index-DdgQc3GD.js:10",
+                "selfMs": 1.128
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.126
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1446.8190130000003,
+            "dispatchMs": {
+              "count": 60,
+              "median": 22.508911000000808,
+              "p95": 31.479546999999002,
+              "max": 38.347444000000905
+            },
+            "frameMs": {
+              "count": 65,
+              "median": 16.700000000000728,
+              "p95": 33.399999999999636,
+              "max": 283.2000000000007
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 48,
+              "p95": 64.90000000037253,
+              "max": 65.20000000111759
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 51.799,
+              "TaskDuration": 1722.373,
+              "LayoutDuration": 19.387999999999998,
+              "RecalcStyleDuration": 8.514000000000001
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1668.821
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 19.651
+              },
+              {
+                "frame": "setAttribute :0",
+                "selfMs": 3.344
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:10",
+                "selfMs": 3.2699999999999996
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 2.234
+              },
+              {
+                "frame": "gd index-DdgQc3GD.js:9",
+                "selfMs": 2.213
+              },
+              {
+                "frame": "cr index-DdgQc3GD.js:9",
+                "selfMs": 2.19
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 2.187
+              },
+              {
+                "frame": "oO index-DdgQc3GD.js:9",
+                "selfMs": 2.185
+              },
+              {
+                "frame": "aO index-DdgQc3GD.js:9",
+                "selfMs": 2.18
+              },
+              {
+                "frame": "sS index-DdgQc3GD.js:9",
+                "selfMs": 2.178
+              },
+              {
+                "frame": "SO index-DdgQc3GD.js:10",
+                "selfMs": 2.169
+              },
+              {
+                "frame": "od index-DdgQc3GD.js:9",
+                "selfMs": 2.163
+              },
+              {
+                "frame": "ei index-DdgQc3GD.js:10",
+                "selfMs": 2.161
+              },
+              {
+                "frame": "r5 index-DdgQc3GD.js:66",
+                "selfMs": 1.134
+              },
+              {
+                "frame": "Ar index-DdgQc3GD.js:71",
+                "selfMs": 1.106
+              },
+              {
+                "frame": "pn index-DdgQc3GD.js:9",
+                "selfMs": 1.104
+              },
+              {
+                "frame": "up index-DdgQc3GD.js:66",
+                "selfMs": 1.102
+              },
+              {
+                "frame": "g index-DdgQc3GD.js:66",
+                "selfMs": 1.096
+              },
+              {
+                "frame": "TC index-DdgQc3GD.js:9",
+                "selfMs": 1.094
+              },
+              {
+                "frame": "dx index-DdgQc3GD.js:69",
+                "selfMs": 1.092
+              },
+              {
+                "frame": "h index-DdgQc3GD.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "ci index-DdgQc3GD.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "Hx index-DdgQc3GD.js:9",
+                "selfMs": 1.088
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1434.8258409999999,
+            "dispatchMs": {
+              "count": 60,
+              "median": 22.938960000001316,
+              "p95": 34.08689500000037,
+              "max": 34.21073200000137
+            },
+            "frameMs": {
+              "count": 66,
+              "median": 16.700000000000728,
+              "p95": 33.399999999999636,
+              "max": 283.39999999999964
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 49,
+              "p95": 63.70000000111759,
+              "max": 69.5
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 43.56399999999999,
+              "TaskDuration": 1798.8700000000003,
+              "LayoutDuration": 18.836,
+              "RecalcStyleDuration": 8.646
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 1686.566
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 25.83
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 3.298
+              },
+              {
+                "frame": "frame :11",
+                "selfMs": 3.25
+              },
+              {
+                "frame": "ei index-DdgQc3GD.js:10",
+                "selfMs": 2.222
+              },
+              {
+                "frame": "od index-DdgQc3GD.js:9",
+                "selfMs": 2.186
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 2.184
+              },
+              {
+                "frame": "KN index-DdgQc3GD.js:9",
+                "selfMs": 2.177
+              },
+              {
+                "frame": "up index-DdgQc3GD.js:66",
+                "selfMs": 2.174
+              },
+              {
+                "frame": "SO index-DdgQc3GD.js:10",
+                "selfMs": 2.167
+              },
+              {
+                "frame": "el index-DdgQc3GD.js:66",
+                "selfMs": 2.162
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 2.148
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 2.04
+              },
+              {
+                "frame": "gd index-DdgQc3GD.js:9",
+                "selfMs": 1.116
+              },
+              {
+                "frame": "mD index-DdgQc3GD.js:10",
+                "selfMs": 1.103
+              },
+              {
+                "frame": "QC index-DdgQc3GD.js:9",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:10",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "Za index-DdgQc3GD.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 1.088
+              },
+              {
+                "frame": "(anonymous) :24",
+                "selfMs": 1.088
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:9",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "sd index-DdgQc3GD.js:9",
+                "selfMs": 1.086
+              },
+              {
+                "frame": "sS index-DdgQc3GD.js:9",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "XI index-DdgQc3GD.js:10",
+                "selfMs": 1.081
+              }
+            ]
+          }
+        ],
+        "cursor-no-snap": [
+          {
+            "elapsedMs": 1054.1498279999996,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.650972999999794,
+              "p95": 24.31865199999993,
+              "max": 24.377760999999737
+            },
+            "frameMs": {
+              "count": 63,
+              "median": 16.69999999999891,
+              "p95": 16.799999999999272,
+              "max": 133.29999999999927
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.19999999925494,
+              "p95": 45.69999999925494,
+              "max": 48
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 30.883999999999993,
+              "TaskDuration": 836.7840000000007,
+              "LayoutDuration": 7.285999999999994,
+              "RecalcStyleDuration": 1.399000000000001
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 799.622
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 342.191
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 3.236
+              },
+              {
+                "frame": "Pd index-DdgQc3GD.js:9",
+                "selfMs": 2.329
+              },
+              {
+                "frame": "re index-DdgQc3GD.js:2",
+                "selfMs": 2.255
+              },
+              {
+                "frame": "od index-DdgQc3GD.js:9",
+                "selfMs": 2.22
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 2.199
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:9",
+                "selfMs": 2.168
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.157
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 1.48
+              },
+              {
+                "frame": "OD index-DdgQc3GD.js:10",
+                "selfMs": 1.123
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 1.107
+              },
+              {
+                "frame": "mh index-DdgQc3GD.js:9",
+                "selfMs": 1.104
+              },
+              {
+                "frame": "tC index-DdgQc3GD.js:9",
+                "selfMs": 1.101
+              },
+              {
+                "frame": "Ar index-DdgQc3GD.js:71",
+                "selfMs": 1.099
+              },
+              {
+                "frame": "oS index-DdgQc3GD.js:9",
+                "selfMs": 1.09
+              },
+              {
+                "frame": "Xa index-DdgQc3GD.js:9",
+                "selfMs": 1.089
+              },
+              {
+                "frame": "nd index-DdgQc3GD.js:9",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "sn.createElement index-DdgQc3GD.js:2",
+                "selfMs": 1.084
+              },
+              {
+                "frame": "document.querySelector.addEventListener.capture :20",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "tE index-DdgQc3GD.js:10",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "mD index-DdgQc3GD.js:10",
+                "selfMs": 1.077
+              },
+              {
+                "frame": "ye index-DdgQc3GD.js:9",
+                "selfMs": 1.067
+              },
+              {
+                "frame": "aO index-DdgQc3GD.js:9",
+                "selfMs": 1.046
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1028.1876510000002,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.59922600000027,
+              "p95": 20.06869700000061,
+              "max": 29.512744999999995
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.69999999999891,
+              "p95": 16.799999999999272,
+              "max": 100
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36,
+              "p95": 39,
+              "max": 39.90000000037253
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 25.933999999999983,
+              "TaskDuration": 746.3340000000001,
+              "LayoutDuration": 6.8160000000000025,
+              "RecalcStyleDuration": 1.3230000000000013
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 705.139
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 407.948
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 5.097
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:10",
+                "selfMs": 2.295
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 2.2169999999999996
+              },
+              {
+                "frame": "requestAnimationFrame :0",
+                "selfMs": 2.186
+              },
+              {
+                "frame": "tC index-DdgQc3GD.js:9",
+                "selfMs": 1.208
+              },
+              {
+                "frame": "Ae index-DdgQc3GD.js:9",
+                "selfMs": 1.122
+              },
+              {
+                "frame": "AC index-DdgQc3GD.js:9",
+                "selfMs": 1.118
+              },
+              {
+                "frame": "So index-DdgQc3GD.js:9",
+                "selfMs": 1.111
+              },
+              {
+                "frame": "OD index-DdgQc3GD.js:10",
+                "selfMs": 1.11
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 1.105
+              },
+              {
+                "frame": "mS index-DdgQc3GD.js:9",
+                "selfMs": 1.105
+              },
+              {
+                "frame": "r index-DdgQc3GD.js:2",
+                "selfMs": 1.098
+              },
+              {
+                "frame": "SO index-DdgQc3GD.js:10",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "pO index-DdgQc3GD.js:9",
+                "selfMs": 1.097
+              },
+              {
+                "frame": "Ar index-DdgQc3GD.js:71",
+                "selfMs": 1.093
+              },
+              {
+                "frame": "t index-DdgQc3GD.js:2",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "Hx index-DdgQc3GD.js:9",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "mD index-DdgQc3GD.js:10",
+                "selfMs": 1.08
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 1.076
+              },
+              {
+                "frame": "pt index-DdgQc3GD.js:9",
+                "selfMs": 1.074
+              },
+              {
+                "frame": "postMessage :0",
+                "selfMs": 1.06
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              }
+            ]
+          },
+          {
+            "elapsedMs": 1028.3805359999988,
+            "dispatchMs": {
+              "count": 60,
+              "median": 16.66237099999853,
+              "p95": 19.01137899999958,
+              "max": 19.271458999999595
+            },
+            "frameMs": {
+              "count": 64,
+              "median": 16.69999999999891,
+              "p95": 16.799999999999272,
+              "max": 133.39999999999964
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 36.30000000074506,
+              "p95": 38.79999999888241,
+              "max": 39
+            },
+            "longTasks": {
+              "count": 0,
+              "median": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 24.55199999999999,
+              "TaskDuration": 767.55,
+              "LayoutDuration": 6.102999999999997,
+              "RecalcStyleDuration": 1.1689999999999998
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 741.369
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 410.291
+              },
+              {
+                "frame": "(anonymous) index-DdgQc3GD.js:71",
+                "selfMs": 4.366
+              },
+              {
+                "frame": "QC index-DdgQc3GD.js:9",
+                "selfMs": 2.203
+              },
+              {
+                "frame": "e.unstable_scheduleCallback index-DdgQc3GD.js:2",
+                "selfMs": 2.195
+              },
+              {
+                "frame": "a index-DdgQc3GD.js:9",
+                "selfMs": 2.185
+              },
+              {
+                "frame": "pt index-DdgQc3GD.js:9",
+                "selfMs": 1.134
+              },
+              {
+                "frame": "XI index-DdgQc3GD.js:10",
+                "selfMs": 1.126
+              },
+              {
+                "frame": "AC index-DdgQc3GD.js:9",
+                "selfMs": 1.114
+              },
+              {
+                "frame": "gd index-DdgQc3GD.js:9",
+                "selfMs": 1.111
+              },
+              {
+                "frame": "onCursor index-DdgQc3GD.js:71",
+                "selfMs": 1.109
+              },
+              {
+                "frame": "Pd index-DdgQc3GD.js:9",
+                "selfMs": 1.108
+              },
+              {
+                "frame": "ye index-DdgQc3GD.js:9",
+                "selfMs": 1.108
+              },
+              {
+                "frame": "sS index-DdgQc3GD.js:9",
+                "selfMs": 1.106
+              },
+              {
+                "frame": "Pe index-DdgQc3GD.js:2",
+                "selfMs": 1.087
+              },
+              {
+                "frame": "sl index-DdgQc3GD.js:9",
+                "selfMs": 1.083
+              },
+              {
+                "frame": "r index-DdgQc3GD.js:2",
+                "selfMs": 1.081
+              },
+              {
+                "frame": "We index-DdgQc3GD.js:66",
+                "selfMs": 1.078
+              },
+              {
+                "frame": "ei index-DdgQc3GD.js:10",
+                "selfMs": 1.075
+              },
+              {
+                "frame": "Ht index-DdgQc3GD.js:2",
+                "selfMs": 1.057
+              },
+              {
+                "frame": "(root) :0",
+                "selfMs": 0
+              },
+              {
+                "frame": "re index-DdgQc3GD.js:2",
+                "selfMs": 0
+              },
+              {
+                "frame": "oS index-DdgQc3GD.js:9",
+                "selfMs": 0
+              },
+              {
+                "frame": "HC index-DdgQc3GD.js:9",
+                "selfMs": 0
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    }
+  }
+}

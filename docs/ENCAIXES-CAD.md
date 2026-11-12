@@ -66,6 +66,8 @@ Os índices espaciais são preparados quando a cena muda e reutilizados durante 
 
 ## Conferência
 
+[Resultados completos dos testes e comparação na cena densa](VALIDACAO-ENCAIXES-CAD.md).
+
 Os testes de domínio incluem os casos numéricos literais das issues, comparação com o resolvedor antigo, curvas finitas, contornos inválidos, âncoras, transformações e uma cena de 20 mil entidades. As regressões de navegador verificam marcador, prévia e coordenada gravada em dois zooms, F3, ORTO, captura protegida e ausência de mudanças no projeto ao configurar modos. A calibração por dois pontos permanece coberta por sua suíte existente.
 
 ![Modos de encaixe](object-snaps-modes.png)
