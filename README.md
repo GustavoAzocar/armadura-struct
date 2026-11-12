@@ -206,5 +206,3 @@ Hefesto trabalhando uma armadura, em gravura preta e marfim sobre fundo âmbar. 
 
 [Organização compacta do menu Armaduras](docs/MENU-ARMADURAS.md).
 [Estribo helicoidal: passo, extremos e comprimento desenvolvido](docs/ESTRIBO-HELICOIDAL.md).
-
-[Análise técnica dos renderizadores CADCraft e ArmaduraStruct](docs/ANALISE-RENDERIZADOR-CAD.md).
