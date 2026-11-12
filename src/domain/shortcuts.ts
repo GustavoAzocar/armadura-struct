@@ -46,6 +46,7 @@ export type Action =
   | 'fit'
   | 'grid'
   | 'snap'
+  | 'snap-modes'
   | 'ortho'
   | 'dimensions'
   | 'pdf'
@@ -496,6 +497,11 @@ export const shortcutCatalog: Record<Action, Command> = {
   pan: command('Pan', navigation, global(['H'], ['H'])),
   fit: command('Enquadrar', navigation, global(['F', 'ZOOM'], ['F'])),
   snap: command('Encaixes', navigation, global([], ['F3'])),
+  'snap-modes': command(
+    'Modos de encaixe',
+    navigation,
+    global(['OSNAP', 'MODOSENCAIXE']),
+  ),
   ortho: command('Ortogonal', navigation, global([], ['F8'])),
   sidebar: command('Painel lateral', navigation, global([], ['F4'])),
   'toggle-ribbon': command(

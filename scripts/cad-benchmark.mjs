@@ -24,6 +24,12 @@ const { performanceScene } = await loader.ssrLoadModule(
 const { emptyProject, decodeProject } = await loader.ssrLoadModule(
   '/src/domain/model.ts',
 );
+const requestedSnapModes = args['snap-modes']?.split(',').filter(Boolean);
+const snapDefinitions = requestedSnapModes
+  ? (await loader.ssrLoadModule('/src/domain/objectSnaps.ts')).snapModeLabels
+  : undefined;
+if (requestedSnapModes?.some((mode) => !Object.hasOwn(snapDefinitions, mode)))
+  throw new Error('Modo de encaixe desconhecido em --snap-modes.');
 const scenes = {
   empty: emptyProject(),
   large: performanceScene(),
@@ -64,6 +70,7 @@ const result = {
     viewport: { width: 1600, height: 1000 },
     samples,
     repeats,
+    snapModes: requestedSnapModes ?? ['endpoint', 'midpoint'],
   },
   scenes: {},
 };
@@ -139,6 +146,23 @@ try {
       .getByRole('button', { name: 'Desenho', exact: true })
       .click();
     await page.getByTestId('cad-canvas').waitFor();
+    if (requestedSnapModes) {
+      await page
+        .locator('.status-toggles')
+        .getByRole('button', { name: 'Modos de encaixe', exact: true })
+        .click();
+      const dialog = page.getByRole('dialog', {
+        name: 'Modos de encaixe',
+        exact: true,
+      });
+      for (const [mode, label] of Object.entries(snapDefinitions))
+        await dialog
+          .getByRole('checkbox', { name: label, exact: true })
+          .setChecked(requestedSnapModes.includes(mode));
+      await dialog
+        .getByRole('button', { name: 'Aplicar modos', exact: true })
+        .click();
+    }
     await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
     await page
       .getByRole('button', { name: 'Ajustar à tela', exact: true })
