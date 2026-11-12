@@ -1,6 +1,6 @@
 # Telas soldadas — #121
 
-Em **Armaduras → Telas soldadas**, **Critérios de telas** define a tela dos próximos lançamentos e **Lançar tela** (comandos `TS` ou `TELA`) lança uma tela sobre uma região da fôrma. Na primeira vez da sessão, os critérios abrem antes do lançamento.
+Em **Armaduras → Faixas e telas**, **Critérios de telas** define a tela dos próximos lançamentos e **Lançar tela** (comandos `TS` ou `TELA`) lança uma tela sobre uma região da fôrma. Na primeira vez da sessão, os critérios abrem antes do lançamento.
 
 ## Critérios
 
@@ -77,8 +77,8 @@ O lançamento guarda uma cópia dos critérios efetivos e a região estática; a
 
 ## Resultados desta contribuição
 
-- `npm run check`: 75 arquivos, 1074 testes unitários aprovados; testes de distribuição e validação do plugin de exemplo aprovados.
+- `npm run check`: 76 arquivos, 1119 testes unitários aprovados; testes de distribuição e validação do plugin de exemplo aprovados.
 - `npm run build` e `npm run format:check`: aprovados.
-- `npx playwright test`: suíte completa, 294 fluxos aprovados no Chromium, contra o master com a central de atalhos. Inclui critérios, lançamento por contorno, pontos e clique, edição e quadros das telas, os atalhos, e o menu Armaduras compacto em 1000, 1280, 1366 e 1920 px.
+- `npx playwright test`: suíte completa, 298 fluxos aprovados no Chromium, contra o master com a central de atalhos e o estribo helicoidal. Inclui critérios, lançamento por contorno, pontos e clique, edição e quadros das telas, os atalhos, e o menu Armaduras compacto, com o grupo Faixas e telas, em 1000, 1280, 1366 e 1920 px.
 - Cada parte do domínio e da interface passou por testes de mutação (alterações propositais no código), todas detectadas pelos testes.
 - Interação nativa desktop Linux/Windows não executada. Capturas e fluxos foram verificados no Chromium.

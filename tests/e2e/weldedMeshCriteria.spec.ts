@@ -33,7 +33,7 @@ async function open(page: Page) {
   await page
     .locator('.ribbon-group', {
       has: page.locator('.ribbon-group-label', {
-        hasText: /^Telas soldadas$/,
+        hasText: /^Faixas e telas$/,
       }),
     })
     .getByRole('button', { name: 'Critérios de telas', exact: true })
