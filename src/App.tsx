@@ -890,6 +890,7 @@ export default function App() {
     ...defaultSnapModes,
   }));
   const [snapModesOpen, setSnapModesOpen] = useState(false);
+  const [snapCommand, setSnapCommand] = useState(0);
   const [light, setLight] = useState(
     () => readUiPreference('armadurastruct.canvas') === 'light',
   );
@@ -7131,6 +7132,7 @@ export default function App() {
     }
   };
   const action = async (a: Action) => {
+    if (!commandsDuringOperation.has(a)) setSnapCommand((n) => n + 1);
     if (a === 'shortcuts') {
       setShortcutsOpen(true);
       return;
@@ -8800,6 +8802,8 @@ export default function App() {
                 grid={grid}
                 snap={snap}
                 snapModes={snapModes}
+                snapBase={vertexRequest ? null : transformRequest?.base}
+                snapContext={`${snapCommand}:${nativeKind ?? tool}:${maskManip?.mode ?? ''}`}
                 ortho={ortho && vertexRequest?.mode !== 'lengthen'}
                 light={light}
                 setTool={setTool}

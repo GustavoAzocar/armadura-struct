@@ -16,6 +16,8 @@ const descriptions: Record<SnapMode, string> = {
   nearest: 'Projeção mais próxima na geometria disponível.',
   insertion: 'Âncora preservada de um texto.',
   node: 'Somente objetos de ponto identificáveis.',
+  perpendicular: 'Pé perpendicular a partir do ponto-base do comando.',
+  tangent: 'Tangência a círculo ou arco a partir de uma base exterior.',
 };
 export default function ObjectSnapDialog({
   modes,
