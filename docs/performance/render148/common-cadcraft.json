@@ -1,0 +1,4164 @@
+{
+  "commit": "d402139b5de275d331b53f92ffb3725298ae2ca2",
+  "cadcraft": {
+    "version": "0.20.1",
+    "commit": "7526dc62c14e71b3c8d46e73bbf1fa29ef506af1",
+    "webZipSha256": "300e870c50b66d371055915ba95e3ddbfd4c45431466d5214743b5dcab95a0e1"
+  },
+  "environment": {
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cpus": 3,
+    "memory": 10452459520,
+    "os": "linux 6.18.57",
+    "browser": "156.0.8078.79",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "deviceScaleFactor": 1,
+    "gpu": {
+      "devices": [
+        {
+          "vendorId": 65535,
+          "deviceId": 65535,
+          "vendorString": "Google Inc. (Google)",
+          "deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+          "driverVendor": "SwANGLE",
+          "driverVersion": "5.0.0"
+        }
+      ],
+      "auxAttributes": {
+        "amdSwitchable": false,
+        "canSupportThreadedTextureMailbox": false,
+        "directRenderingVersion": "",
+        "displayType": "ANGLE_SWIFTSHADER",
+        "glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+        "glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+        "glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "glResetNotificationStrategy": 33362,
+        "glVendor": "Google Inc. (Google)",
+        "glVersion": "OpenGL ES 3.0 (ANGLE 2.1 git hash: unknown hash)",
+        "glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+        "glWsVendor": "Google Inc. (Google)",
+        "glWsVersion": "1.5 (ANGLE 2.1 git hash: unknown hash)",
+        "hardwareSupportsVulkan": false,
+        "inProcessGpu": false,
+        "initializationTime": 0.080844,
+        "isAsan": false,
+        "isClangCoverage": false,
+        "jpegDecodeAcceleratorSupported": false,
+        "maxMsaaSamples": "4",
+        "optimus": false,
+        "passthroughCmdDecoder": true,
+        "pixelShaderVersion": "3.00",
+        "processCrashCount": 0,
+        "sandboxed": false,
+        "skiaBackendType": "None",
+        "subpixelFontRendering": true,
+        "targetCpuBits": 64,
+        "vertexShaderVersion": "3.00",
+        "visibilityCallbackCallCount": 0
+      },
+      "featureStatus": {
+        "2d_canvas": "unavailable_software",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "disabled_software",
+        "multiple_raster_threads": "disabled_off",
+        "opengl": "disabled_off",
+        "rasterization": "disabled_software",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "disabled_software",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "unavailable_software",
+        "webgpu": "unavailable_software",
+        "webgpu_on_vk_via_gl_interop": "disabled_off",
+        "webnn": "unavailable_software"
+      },
+      "driverBugWorkarounds": [],
+      "videoDecoding": [],
+      "videoEncoding": []
+    },
+    "flags": "[\"--no-sandbox\"]",
+    "samples": 60,
+    "repeats": 3
+  },
+  "fixtures": {
+    "small": {
+      "sha256": "193eb2646dc5f8d597ea7532d72d774cce6f513dbff0d4351242ebe2513cc838",
+      "bytes": 4888,
+      "primitives": 100,
+      "points": 200,
+      "warnings": [],
+      "nodeParseAndProjectMs": 39.04493100000013
+    },
+    "medium": {
+      "sha256": "97d8156542fcb4f81b61e773b2f4cd0fa1fc9e84c09b38caf3b0738f0e96dde8",
+      "bytes": 96728,
+      "primitives": 2000,
+      "points": 4000,
+      "warnings": [],
+      "nodeParseAndProjectMs": 172.93816500000003
+    },
+    "large": {
+      "sha256": "d9d18d48ebb60323373edb9df890436c8bc5dabd6c90d373404ac813aeb0e699",
+      "bytes": 1007328,
+      "primitives": 20000,
+      "points": 40000,
+      "warnings": [],
+      "nodeParseAndProjectMs": 1486.4960039999999
+    },
+    "quality": {
+      "sha256": "4d2867ea1e5212e8b6f4102e3a86fe2fcc91b9697c45000e0929e46c6604e311",
+      "bytes": 11806,
+      "primitives": 296,
+      "points": 715,
+      "warnings": [],
+      "nodeParseAndProjectMs": 44.303057999999965,
+      "circleChecks": [
+        {
+          "points": 73,
+          "analyticChordErrorAtR300": 0.28553352544266053
+        }
+      ]
+    },
+    "precisionOrigin": {
+      "sha256": "253888f72f07fdbfe06b5dc243f82c6aa3b6ce1ee4b90305b7d90830d5dda937",
+      "bytes": 4488,
+      "primitives": 100,
+      "points": 200,
+      "warnings": [],
+      "nodeParseAndProjectMs": 6.977644999999939
+    },
+    "precisionFar": {
+      "sha256": "11c9cc1106a41889e207bb17f9886a7d6c4449381a421e81a2b0d35c7870bd1b",
+      "bytes": 7328,
+      "primitives": 100,
+      "points": 200,
+      "warnings": [],
+      "nodeParseAndProjectMs": 6.84220600000026
+    }
+  },
+  "runs": [
+    {
+      "app": "cadcraft",
+      "scene": "small",
+      "startupProxyMs": 1438.2345309999996,
+      "openToReadyProxyMs": 4670.748715999999,
+      "canvas": {
+        "x": 224,
+        "y": 82,
+        "width": 1072,
+        "height": 892
+      },
+      "inspect": {
+        "doc": {
+          "blockEditor": null,
+          "blocks": ["MARK"],
+          "counts": {
+            "Line": 100
+          },
+          "currentLayer": "0",
+          "dimStyles": ["Standard"],
+          "dirty": false,
+          "entityCount": 100,
+          "extents": [
+            [0, 0],
+            [15940, 60]
+          ],
+          "layers": [
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "0",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "Defpoints",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "CONTINUOUS",
+              "locked": false,
+              "name": "COMMON",
+              "on": true
+            }
+          ],
+          "layouts": ["Layout1"],
+          "linetypes": ["ByBlock", "ByLayer", "Continuous", "DASHED"],
+          "path": null,
+          "readNotes": [],
+          "selection": [],
+          "skipped": {
+            "count": 0,
+            "sections": {}
+          },
+          "space": "Model",
+          "textStyles": ["Standard"],
+          "title": "study.dxf",
+          "undo": [],
+          "view": {
+            "center": [7970, 30],
+            "height": 13926.682835820897
+          }
+        },
+        "ui": {
+          "animations": true,
+          "canvasRect": [224, 82, 1072, 892],
+          "closePrompt": null,
+          "cursor": null,
+          "focus": {
+            "id": null,
+            "keyboardInput": false,
+            "label": null,
+            "role": null
+          },
+          "perf": {
+            "buildMs": 6.100000000000136,
+            "building": false,
+            "drawMs": 0,
+            "frameMs": 1.5,
+            "meshMs": 0.10000000000013642,
+            "passIndex": 0,
+            "prims": 100,
+            "renderer": "gpu",
+            "truncated": false,
+            "uiFrames": 8
+          },
+          "session": {
+            "documents": [
+              {
+                "active": true,
+                "blockEditor": null,
+                "dirty": false,
+                "entities": 100,
+                "index": 0,
+                "path": null,
+                "revision": 1,
+                "title": "study.dxf"
+              }
+            ],
+            "prompt": "Command:",
+            "running": null,
+            "selection": [],
+            "settings": {
+              "acadlspasdoc": false,
+              "annoallvisible": true,
+              "annoautoscale": false,
+              "aperture": 10,
+              "attreq": true,
+              "auditctl": false,
+              "cmdecho": true,
+              "crossingareacolor": 100,
+              "cursorsize": 5,
+              "dyndigrip": 31,
+              "dyndivis": 1,
+              "dynmode": true,
+              "dynpiAbsolute": false,
+              "dynpiCartesian": false,
+              "dynprompt": true,
+              "filedia": true,
+              "gridmajor": 5,
+              "gridmode": true,
+              "gridunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "gripobjlimit": 100,
+              "grips": 1,
+              "gripsize": 5,
+              "highlight": true,
+              "isodraft": false,
+              "isoplane": "left",
+              "lwdisplay": false,
+              "maxarray": 100000,
+              "measureinit": false,
+              "orthomode": false,
+              "osmode": 4133,
+              "osnaphatch": false,
+              "otrack": true,
+              "pickadd": true,
+              "pickbox": 3,
+              "pickdrag": true,
+              "pickfirst": true,
+              "pickstyle": 1,
+              "plotTransparencyOverride": 1,
+              "polarFlags": 0,
+              "polaraddang": [],
+              "polarang": 1.5707963267948966,
+              "polardist": 0,
+              "polarmode": true,
+              "polarsnap": false,
+              "previeweffect": 2,
+              "previewfilter": 3,
+              "qpmode": false,
+              "selectionCycling": false,
+              "selectionCyclingDisplay": 2,
+              "selectionarea": true,
+              "selectionareaopacity": 25,
+              "selectioneffect": 1,
+              "selectionpreview": 3,
+              "selectsimilarmode": 130,
+              "snapmode": false,
+              "snapunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transparencyDisplay": true,
+              "viewLayerSnapshot": true,
+              "windowareacolor": 150,
+              "zoomfactor": 60
+            }
+          },
+          "snap": null,
+          "theme": "dark",
+          "ui": {
+            "animations": "system",
+            "collapsedGroups": [],
+            "dialog": null,
+            "docking": {
+              "hidden": [],
+              "layout": {
+                "floating": [],
+                "root": {
+                  "Split": {
+                    "axis": "Horizontal",
+                    "first": {
+                      "Dock": {
+                        "columns": [
+                          {
+                            "groups": [
+                              {
+                                "active": 0,
+                                "height": null,
+                                "minimized": false,
+                                "panels": ["toolSets"]
+                              }
+                            ],
+                            "iconic": false,
+                            "iconic_width": null,
+                            "width": 220
+                          }
+                        ],
+                        "side": "Start"
+                      }
+                    },
+                    "second": {
+                      "Split": {
+                        "axis": "Horizontal",
+                        "first": {
+                          "Tabs": {
+                            "active": 0,
+                            "panels": ["canvas"]
+                          }
+                        },
+                        "second": {
+                          "Dock": {
+                            "columns": [
+                              {
+                                "groups": [
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["layers"]
+                                  },
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["properties"]
+                                  }
+                                ],
+                                "iconic": false,
+                                "iconic_width": null,
+                                "width": 300
+                              }
+                            ],
+                            "side": "End"
+                          }
+                        },
+                        "size": {
+                          "FixedSecond": 300
+                        }
+                      }
+                    },
+                    "size": {
+                      "FixedFirst": 220
+                    }
+                  }
+                }
+              },
+              "locked": false,
+              "saved": null,
+              "version": 2
+            },
+            "hiddenTools": [],
+            "historyLines": 3,
+            "inWindowMenu": true,
+            "interfaceLanguage": "auto",
+            "lastLispDir": null,
+            "lastPgpDir": null,
+            "propertiesAll": true,
+            "recentFiles": [],
+            "saveFormat": "dxf",
+            "saveVersion": "2018",
+            "shortcuts": {},
+            "showCommandLine": true,
+            "showFileTabs": true,
+            "showLayerList": false,
+            "showPalettes": true,
+            "showStatusBar": true,
+            "showToolbar": true,
+            "showToolsets": true,
+            "showUcsIcon": true,
+            "showViewcube": true,
+            "startTab": false,
+            "systemCursor": false,
+            "theme": "dark",
+            "toolsetTab": "Drafting"
+          },
+          "view": {
+            "center": [7970, 30],
+            "height": 13926.682835820897
+          },
+          "window": [1600, 1000]
+        }
+      },
+      "heap": {
+        "usedSize": 3532848,
+        "totalSize": 6074368,
+        "embedderHeapUsedSize": 1498528,
+        "backingStorageSize": 223293
+      },
+      "errors": [],
+      "actions": {
+        "pan": [
+          {
+            "elapsed": 27351.345836,
+            "frameMs": {
+              "count": 64,
+              "median": 416.7000000000007,
+              "p95": 500,
+              "max": 549.9999999999964
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 861.6000000000931,
+              "p95": 988.5,
+              "max": 1008.8000000000466
+            },
+            "longTasks": {
+              "count": 65,
+              "median": 416,
+              "p95": 498,
+              "max": 554
+            },
+            "cpuMs": {
+              "ScriptDuration": 247.358,
+              "TaskDuration": 28157.582,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                400, 450, 500, 516.6999999999989, 483.3000000000011,
+                416.60000000000036, 383.2999999999993, 416.7000000000007,
+                499.89999999999964, 433.39999999999964, 433.2999999999993, 400,
+                416.60000000000036, 400, 416.60000000000036, 400, 400,
+                433.40000000000146, 549.8999999999978, 450, 383.40000000000146,
+                483.2000000000007, 416.59999999999854, 416.7999999999993,
+                466.6000000000022, 416.59999999999854, 483.40000000000146,
+                416.59999999999854, 416.59999999999854, 450, 500,
+                416.6000000000022, 416.7000000000007, 416.6999999999971,
+                449.90000000000146, 416.7000000000007, 400, 416.59999999999854,
+                483.2999999999993, 416.6000000000022, 416.7000000000007,
+                466.6999999999971, 416.6000000000022, 416.7000000000007, 450,
+                399.8999999999978, 416.7000000000007, 416.7000000000007,
+                466.59999999999854, 416.7000000000007, 416.59999999999854,
+                466.7000000000007, 449.90000000000146, 549.9999999999964,
+                416.6000000000058, 400.09999999999854, 383.29999999999563,
+                416.6000000000058, 400, 399.8999999999942, 400, 400,
+                433.3000000000029, 433.40000000000146
+              ],
+              "events": [
+                944.0999999999767, 1008.8000000000466, 1000, 898.0999999999767,
+                808, 815.3000000000466, 906.7999999999302, 933.3000000000466,
+                853.5999999999767, 823.4000000000233, 814, 815.7999999999302,
+                811.0999999999767, 816, 811.9000000000233, 827.5,
+                977.0999999999767, 975.0999999999767, 842.5, 862.6999999999534,
+                890.2999999999302, 817.5, 890.5999999999767, 891.4000000000233,
+                896.0999999999767, 883.8999999999069, 827.5999999999767,
+                882.2999999999302, 951.9000000000233, 913.5, 849.7999999999302,
+                826.7000000000698, 849.0999999999767, 862.0999999999767,
+                818.8000000000466, 828.2000000000698, 908.6999999999534,
+                906.6999999999534, 832.1999999999534, 870.9000000000233,
+                865.3999999999069, 832.9000000000233, 868.5, 861.6000000000931,
+                818.1999999999534, 823.3000000000466, 868.8999999999069,
+                902.1000000000931, 837.1000000000931, 885, 912.5, 988.5,
+                960.8000000000466, 800.5, 795.6999999999534, 807.0999999999767,
+                813.6000000000931, 788, 794.2999999999302, 807.2000000000698
+              ],
+              "longTasks": [
+                391, 462, 498, 507, 487, 405, 398, 416, 491, 440, 418, 414, 407,
+                409, 402, 412, 399, 429, 547, 445, 394, 482, 406, 415, 466, 418,
+                474, 413, 414, 462, 485, 425, 420, 402, 446, 414, 405, 422, 483,
+                420, 410, 463, 415, 415, 452, 407, 409, 410, 464, 429, 416, 468,
+                440, 554, 405, 399, 396, 414, 401, 391, 404, 404, 420, 440, 413
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 6.100000000000136,
+              "building": false,
+              "drawMs": 0.10000000000582077,
+              "frameMs": 1.3000000000029104,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 100,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 81
+            }
+          },
+          {
+            "elapsed": 26967.35516,
+            "frameMs": {
+              "count": 64,
+              "median": 416.70000000000437,
+              "p95": 483.3000000000029,
+              "max": 516.6000000000058
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 838,
+              "p95": 926.4000000000233,
+              "max": 993.3000000000466
+            },
+            "longTasks": {
+              "count": 64,
+              "median": 418,
+              "p95": 487,
+              "max": 512
+            },
+            "cpuMs": {
+              "ScriptDuration": 228.17099999999996,
+              "TaskDuration": 27802.865999999998,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                400, 400, 416.70000000000437, 433.29999999999563,
+                433.40000000000146, 399.90000000000146, 416.6999999999971,
+                449.90000000000146, 416.70000000000437, 416.59999999999854, 400,
+                400, 433.40000000000146, 399.8999999999942, 400,
+                516.6000000000058, 466.6999999999971, 416.59999999999854,
+                433.3000000000029, 416.6999999999971, 500, 483.3000000000029,
+                416.6999999999971, 416.59999999999854, 416.6000000000058,
+                466.6999999999971, 433.3000000000029, 466.6999999999971,
+                416.59999999999854, 483.3000000000029, 433.29999999999563,
+                466.70000000000437, 433.29999999999563, 416.6000000000058,
+                416.6999999999971, 416.59999999999854, 400.09999999999854,
+                416.5, 400.1000000000058, 433.29999999999563, 483.3000000000029,
+                433.29999999999563, 466.6000000000058, 433.3999999999942,
+                449.90000000000146, 416.70000000000437, 433.29999999999563, 450,
+                416.70000000000437, 399.8999999999942, 416.70000000000437,
+                416.59999999999854, 400, 433.40000000000146, 383.29999999999563,
+                399.90000000000146, 416.70000000000437, 416.6999999999971, 400,
+                399.90000000000146, 416.70000000000437, 416.59999999999127,
+                466.6000000000058, 400
+              ],
+              "events": [
+                811.7000000000698, 850.1999999999534, 844.5999999999767, 832.5,
+                825.6000000000931, 869.9000000000233, 867.2999999999302, 831.5,
+                815, 800.2000000000698, 836.1999999999534, 829.0999999999767,
+                801.5, 926.4000000000233, 993.3000000000466, 891.1000000000931,
+                845.9000000000233, 835.7999999999302, 906.6999999999534,
+                979.4000000000233, 908, 830.2000000000698, 829.7999999999302,
+                891.7999999999302, 903.2000000000698, 890.7999999999302,
+                878.9000000000233, 894.2000000000698, 918.8999999999069,
+                899.1999999999534, 903.6999999999534, 853.2000000000698,
+                831.4000000000233, 825.9000000000233, 813, 819.5,
+                818.8000000000466, 838, 920.1999999999534, 916.2000000000698,
+                895.8000000000466, 909.2999999999302, 851.2999999999302,
+                862.7000000000698, 847.2999999999302, 866.5999999999767, 854.5,
+                818.9000000000233, 830, 837, 810.9000000000233,
+                807.4000000000233, 803.7999999999302, 793.5999999999767,
+                819.4000000000233, 821.3000000000466, 803.3000000000466, 809,
+                816.2000000000698, 827.0999999999767
+              ],
+              "longTasks": [
+                406, 396, 411, 436, 426, 406, 418, 452, 414, 416, 397, 397, 433,
+                391, 408, 512, 477, 414, 431, 416, 491, 487, 421, 409, 418, 473,
+                434, 455, 423, 475, 442, 455, 446, 405, 425, 403, 410, 409, 408,
+                428, 490, 425, 466, 440, 444, 418, 431, 438, 416, 404, 424, 414,
+                398, 424, 393, 402, 416, 405, 401, 406, 409, 415, 463, 406
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 6.100000000000136,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.4000000000087311,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 100,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 151
+            }
+          },
+          {
+            "elapsed": 26795.651463000002,
+            "frameMs": {
+              "count": 64,
+              "median": 416.6000000000058,
+              "p95": 483.3000000000029,
+              "max": 583.1999999999971
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 841.7999999999302,
+              "p95": 1002.8000000000466,
+              "max": 1110.5999999999767
+            },
+            "longTasks": {
+              "count": 65,
+              "median": 414,
+              "p95": 483,
+              "max": 580
+            },
+            "cpuMs": {
+              "ScriptDuration": 192.79100000000005,
+              "TaskDuration": 27712.216999999997,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                416.6000000000058, 416.59999999999127, 416.6000000000058, 450,
+                400.09999999999127, 416.6000000000058, 400, 416.6000000000058,
+                383.29999999998836, 450, 416.70000000001164, 433.29999999998836,
+                383.3000000000029, 416.6000000000058, 483.3999999999942,
+                399.90000000000873, 433.3999999999942, 416.6000000000058,
+                449.8999999999942, 416.8000000000029, 433.3000000000029,
+                433.29999999998836, 416.6000000000058, 383.3000000000029,
+                416.6999999999971, 416.6000000000058, 400.09999999999127,
+                416.6000000000058, 400, 383.3000000000029, 400,
+                416.59999999999127, 433.3000000000029, 416.6999999999971,
+                416.6000000000058, 400, 400, 400, 400, 433.3000000000029,
+                466.59999999999127, 533.4000000000087, 583.1999999999971,
+                483.3000000000029, 416.6999999999971, 466.6999999999971,
+                399.8999999999942, 416.6000000000058, 416.8000000000029,
+                416.59999999999127, 433.3000000000029, 416.6000000000058,
+                416.6999999999971, 416.6999999999971, 400, 466.6000000000058,
+                400, 416.59999999999127, 416.70000000001164, 483.29999999998836,
+                416.6000000000058, 400, 450, 433.3000000000029
+              ],
+              "events": [
+                846.0999999999767, 869.7000000000698, 849.5, 818.3000000000466,
+                808.4000000000233, 812.5, 810.2000000000698, 830.5999999999767,
+                852.1999999999534, 853.3999999999069, 829.9000000000233,
+                802.8000000000466, 894.2000000000698, 883, 841.8000000000466,
+                861.4000000000233, 848.0999999999767, 862.8000000000466,
+                843.1999999999534, 860.2000000000698, 853.1999999999534,
+                802.2999999999302, 792.6999999999534, 820.4000000000233,
+                814.6000000000931, 822.9000000000233, 815.5, 795.5999999999767,
+                796.9000000000233, 813.7000000000698, 845.1999999999534,
+                845.5999999999767, 819.1999999999534, 810.7000000000698,
+                805.0999999999767, 806.0999999999767, 802.1000000000931,
+                832.0999999999767, 903.5, 1002.8000000000466,
+                1110.5999999999767, 1040.6999999999534, 897.0999999999767, 882,
+                881.1999999999534, 816.5999999999767, 832.5999999999767,
+                836.5999999999767, 841.7999999999302, 851.8999999999069,
+                842.5999999999767, 836.2000000000698, 818.1999999999534, 865.5,
+                868.2999999999302, 822.8999999999069, 831.2999999999302,
+                905.0999999999767, 888.3000000000466, 816.9000000000233
+              ],
+              "longTasks": [
+                409, 417, 426, 441, 407, 409, 398, 414, 393, 437, 415, 438, 391,
+                410, 482, 398, 441, 417, 440, 420, 421, 444, 410, 392, 404, 414,
+                402, 418, 397, 396, 400, 411, 433, 411, 411, 400, 404, 402, 400,
+                428, 474, 527, 580, 483, 411, 469, 410, 405, 426, 410, 429, 417,
+                423, 409, 408, 454, 411, 409, 423, 482, 405, 410, 452, 427, 513
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 6.100000000000136,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 4.30000000000291,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 100,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 221
+            }
+          }
+        ],
+        "zoom": [
+          {
+            "elapsed": 75947.20119300002,
+            "frameMs": {
+              "count": 180,
+              "median": 416.70000000001164,
+              "p95": 483.4000000000233,
+              "max": 550
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1687.1999999999534,
+              "p95": 1879.3999999999069,
+              "max": 1919.5999999999767
+            },
+            "longTasks": {
+              "count": 179,
+              "median": 418,
+              "p95": 490,
+              "max": 555
+            },
+            "cpuMs": {
+              "ScriptDuration": 617.796,
+              "TaskDuration": 77136.66300000002,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                400.1000000000058, 416.5, 16.80000000000291, 16.59999999999127,
+                383.3000000000029, 400, 399.8999999999942, 400.1000000000058,
+                416.6000000000058, 516.6999999999971, 399.8999999999942,
+                383.40000000000873, 416.59999999999127, 400, 450, 450,
+                466.6000000000058, 416.59999999999127, 483.40000000000873,
+                449.8999999999942, 450.1000000000058, 433.1999999999971, 450,
+                450, 400, 416.6999999999971, 383.3000000000029,
+                416.6000000000058, 466.6999999999971, 416.59999999999127, 400,
+                383.3000000000029, 416.6999999999971, 416.6000000000058, 400,
+                399.8999999999942, 450, 416.70000000001164, 433.29999999998836,
+                450, 416.70000000001164, 399.8999999999942, 416.6999999999971,
+                449.90000000000873, 450.09999999999127, 483.3000000000029,
+                416.6000000000058, 416.6999999999971, 416.59999999999127,
+                433.3000000000029, 500, 433.3000000000029, 450.1000000000058,
+                416.59999999999127, 416.6999999999971, 449.90000000000873,
+                383.3000000000029, 433.3999999999942, 433.3000000000029,
+                399.8999999999942, 400.1000000000058, 416.59999999999127,
+                383.20000000001164, 400, 416.6999999999971, 400, 450,
+                416.59999999999127, 433.40000000000873, 399.8999999999942,
+                416.6999999999971, 449.90000000000873, 400, 416.6999999999971,
+                400, 433.3000000000029, 400, 416.59999999999127,
+                416.70000000001164, 400, 416.6000000000058, 400,
+                399.8999999999942, 400.1000000000058, 416.69999999998254,
+                399.8999999999942, 400, 400, 416.6000000000058, 450,
+                433.30000000001746, 400, 416.5999999999767, 416.70000000001164,
+                450, 433.29999999998836, 416.6000000000058, 450,
+                416.70000000001164, 433.29999999998836, 383.30000000001746,
+                483.3999999999942, 433.29999999998836, 449.8999999999942,
+                416.6000000000058, 416.70000000001164, 416.69999999998254,
+                416.70000000001164, 433.20000000001164, 416.69999999998254,
+                399.8999999999942, 433.4000000000233, 400, 466.69999999998254,
+                483.30000000001746, 466.5999999999767, 516.6000000000058,
+                416.70000000001164, 416.6000000000058, 483.29999999998836,
+                466.70000000001164, 549.8999999999942, 450, 433.29999999998836,
+                450.1000000000058, 449.8999999999942, 500.1000000000058,
+                449.8999999999942, 450, 399.8999999999942, 550,
+                483.4000000000233, 433.29999999998836, 433.29999999998836,
+                449.9000000000233, 500, 500.0999999999767, 400,
+                483.20000000001164, 416.70000000001164, 416.5999999999767,
+                416.70000000001164, 433.29999999998836, 416.70000000001164,
+                399.8999999999942, 416.6000000000058, 400, 416.70000000001164,
+                450, 433.29999999998836, 433.29999999998836, 416.70000000001164,
+                449.8999999999942, 483.3999999999942, 400, 416.70000000001164,
+                399.79999999998836, 433.4000000000233, 466.5999999999767,
+                466.70000000001164, 466.70000000001164, 416.5999999999767,
+                416.6000000000058, 433.3999999999942, 416.6000000000058, 400,
+                433.30000000001746, 400, 433.29999999998836, 383.29999999998836,
+                416.6000000000058, 433.3999999999942, 416.70000000001164,
+                416.6000000000058, 433.3999999999942, 399.8999999999942, 400,
+                416.6000000000058, 466.70000000001164, 400
+              ],
+              "events": [
+                822.5, 1596.9000000000233, 1730.0999999999767,
+                1602.3000000000466, 1761.0999999999767, 1802.3000000000466,
+                1318.5, 1727.3000000000466, 1595.2000000000698,
+                1701.2000000000698, 1199.5, 1634.4000000000233, 1692,
+                1701.6999999999534, 1266.9000000000233, 1795, 1677, 1801.5,
+                1722.2999999999302, 1707.5, 1636.3000000000466, 1620, 1690.5,
+                1667.1999999999534, 1679.1999999999534, 1646.2999999999302,
+                1643.0999999999767, 1616.7999999999302, 1610.6000000000931,
+                1628.6999999999534, 1706.4000000000233, 1686.7000000000698,
+                1751, 1677.4000000000233, 1755.8000000000466,
+                1704.6999999999534, 1671.8000000000466, 1658.4000000000233,
+                1816.3000000000466, 1815.7999999999302, 1919.5999999999767,
+                1873.8999999999069, 1846.8999999999069, 1848.3000000000466,
+                1887.3000000000466, 1879.3999999999069, 1776.5,
+                1681.9000000000233, 1655.1999999999534, 1687.1999999999534,
+                1728.1999999999534, 1752, 1642.6999999999534,
+                1839.6999999999534, 1728.7000000000698, 1669.0999999999767,
+                1648.6999999999534, 1654.9000000000233, 1650.4000000000233, 1681
+              ],
+              "longTasks": [
+                412, 414, 392, 405, 396, 403, 414, 510, 399, 390, 410, 400, 447,
+                453, 464, 420, 483, 433, 465, 426, 442, 462, 391, 419, 384, 409,
+                468, 411, 406, 386, 410, 416, 401, 403, 440, 424, 427, 442, 417,
+                412, 410, 446, 446, 493, 411, 410, 415, 438, 502, 434, 439, 423,
+                410, 448, 389, 441, 427, 407, 393, 406, 395, 396, 418, 401, 440,
+                426, 425, 403, 415, 444, 408, 408, 409, 424, 398, 416, 413, 411,
+                408, 400, 399, 409, 401, 398, 403, 404, 424, 440, 427, 411, 405,
+                415, 456, 442, 415, 440, 414, 429, 391, 482, 436, 450, 407, 427,
+                416, 403, 436, 413, 405, 433, 404, 461, 484, 464, 527, 410, 417,
+                487, 456, 555, 439, 448, 439, 448, 511, 448, 442, 408, 543, 476,
+                432, 438, 451, 506, 487, 407, 482, 415, 425, 416, 422, 420, 396,
+                415, 404, 422, 443, 434, 431, 419, 442, 490, 400, 413, 400, 423,
+                476, 465, 473, 409, 415, 429, 409, 402, 427, 408, 428, 391, 407,
+                435, 422, 411, 432, 395, 410, 416, 459, 405, 403
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 6.100000000000136,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.3999999999941792,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 100,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 405
+            }
+          },
+          {
+            "elapsed": 75309.32042100001,
+            "frameMs": {
+              "count": 175,
+              "median": 416.69999999998254,
+              "p95": 533.3000000000175,
+              "max": 599.8999999999942
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1682,
+              "p95": 2107.70000000007,
+              "max": 2219.100000000093
+            },
+            "longTasks": {
+              "count": 174,
+              "median": 415,
+              "p95": 533,
+              "max": 598
+            },
+            "cpuMs": {
+              "ScriptDuration": 529.941,
+              "TaskDuration": 76572.79400000001,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                416.69999999998254, 400, 16.60000000000582, 450,
+                416.6000000000058, 450.1000000000058, 433.29999999998836,
+                399.8999999999942, 400.1000000000058, 416.6000000000058,
+                416.6000000000058, 466.5999999999767, 400, 416.70000000001164,
+                400, 400, 399.8999999999942, 400, 416.70000000001164, 500, 500,
+                599.8999999999942, 450, 500, 550, 533.2999999999884,
+                483.30000000001746, 516.6999999999825, 466.6000000000058,
+                533.3000000000175, 516.5999999999767, 416.70000000001164,
+                433.29999999998836, 466.70000000001164, 400, 533.2000000000116,
+                450, 416.69999999998254, 483.3999999999942, 583.3000000000175,
+                566.5, 583.2999999999884, 550, 533.3000000000175,
+                533.3999999999942, 499.8999999999942, 483.3999999999942,
+                516.6000000000058, 400, 483.29999999998836, 400, 400,
+                416.6000000000058, 483.30000000001746, 416.69999999998254,
+                466.6000000000058, 416.70000000001164, 433.29999999998836, 400,
+                433.29999999998836, 450, 549.9000000000233, 450.0999999999767,
+                450, 433.30000000001746, 399.8999999999942, 483.29999999998836,
+                400, 400, 400, 416.6000000000058, 416.70000000001164,
+                416.69999999998254, 450, 416.6000000000058, 400, 450,
+                416.6000000000058, 433.29999999998836, 466.6000000000058,
+                450.1000000000058, 483.29999999998836, 399.9000000000233, 400,
+                416.5999999999767, 400.1000000000058, 483.30000000001746,
+                433.29999999998836, 383.29999999998836, 466.6000000000058,
+                433.3999999999942, 383.30000000001746, 433.29999999998836, 450,
+                400, 400, 400, 416.6000000000058, 416.70000000001164,
+                399.8999999999942, 400, 450, 416.69999999998254, 400,
+                399.9000000000233, 400, 416.5999999999767, 400,
+                400.1000000000058, 416.6000000000058, 433.29999999998836,
+                433.30000000001746, 450, 433.29999999998836, 433.30000000001746,
+                416.5999999999767, 433.4000000000233, 416.5999999999767, 400,
+                416.70000000001164, 400, 416.6000000000058, 416.6000000000058,
+                466.5999999999767, 400.1000000000058, 399.8999999999942,
+                416.70000000001164, 400, 416.6000000000058, 400, 400, 400,
+                433.3999999999942, 416.6000000000058, 416.6000000000058,
+                416.69999999998254, 400, 400, 416.6000000000058, 400,
+                416.6000000000058, 416.69999999998254, 466.6000000000058, 400,
+                449.8999999999942, 500.1000000000058, 416.6000000000058, 400,
+                400, 400, 416.6000000000058, 416.6000000000058,
+                466.69999999998254, 416.70000000001164, 383.29999999998836, 400,
+                400, 399.8999999999942, 416.70000000001164, 399.8999999999942,
+                416.80000000001746, 466.5, 416.69999999998254,
+                416.70000000001164, 399.8999999999942, 450, 433.3999999999942,
+                399.8999999999942, 400, 450, 416.6000000000058,
+                416.70000000001164, 416.69999999998254, 399.9000000000233,
+                416.69999999998254
+              ],
+              "events": [
+                875.5999999999767, 1756.4000000000233, 1632.5,
+                1697.3999999999069, 1607.1000000000931, 1617, 2007.5,
+                2107.70000000007, 2077.29999999993, 1510, 1906.9000000000233,
+                1840.7999999999302, 1888.8999999999069, 2219.100000000093,
+                2207.9000000000233, 2033.6999999999534, 1798.3999999999069,
+                1702.0999999999767, 1774.2999999999302, 1682, 1891.5,
+                1735.0999999999767, 1285.5999999999767, 1621.1999999999534,
+                1701.4000000000233, 1719.5999999999767, 1764.4000000000233,
+                1794.2999999999302, 1215.0999999999767, 1722.9000000000233,
+                1285.5999999999767, 1289.6999999999534, 1658,
+                1613.2000000000698, 1637.4000000000233, 1666.6000000000931,
+                1618.7999999999302, 1628.5999999999767, 1719,
+                1742.7999999999302, 1669.8000000000466, 1637.6000000000931,
+                1707.0999999999767, 1213.9000000000233, 1628.8000000000466,
+                1624.5, 1670.0999999999767, 1631.9000000000233,
+                1654.6999999999534, 1717.5, 1765.6000000000931,
+                1610.5999999999767, 1711.1999999999534, 1606.3000000000466,
+                1620.9000000000233, 1694.0999999999767, 1235.3999999999069,
+                1685.4000000000233, 1675.5, 1658.2000000000698
+              ],
+              "longTasks": [
+                412, 407, 464, 404, 457, 415, 406, 403, 405, 428, 464, 397, 406,
+                399, 401, 407, 393, 413, 508, 492, 598, 463, 493, 552, 533, 481,
+                508, 471, 530, 523, 408, 438, 461, 405, 532, 449, 415, 482, 576,
+                562, 597, 544, 533, 529, 508, 479, 514, 405, 475, 406, 399, 418,
+                481, 412, 470, 407, 428, 400, 445, 453, 546, 444, 457, 422, 408,
+                476, 398, 398, 410, 414, 407, 422, 455, 410, 402, 453, 406, 440,
+                464, 445, 481, 401, 403, 409, 406, 475, 433, 389, 460, 436, 390,
+                422, 447, 397, 401, 403, 412, 414, 410, 398, 451, 405, 408, 402,
+                403, 405, 404, 406, 413, 433, 421, 452, 433, 442, 416, 428, 409,
+                412, 412, 396, 416, 424, 459, 404, 398, 408, 407, 413, 399, 393,
+                404, 425, 425, 409, 413, 404, 397, 415, 399, 417, 425, 459, 403,
+                439, 506, 426, 391, 398, 395, 422, 420, 459, 410, 389, 399, 406,
+                398, 411, 404, 406, 474, 412, 412, 408, 453, 419, 403, 408, 439,
+                422, 416, 419, 396, 420
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 6.100000000000136,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.599999999976717,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 100,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 585
+            }
+          },
+          {
+            "elapsed": 73170.04712799998,
+            "frameMs": {
+              "count": 179,
+              "median": 416.5,
+              "p95": 450,
+              "max": 500.0999999999767
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1646.2999999999302,
+              "p95": 1711.0999999999767,
+              "max": 1751.5999999999767
+            },
+            "longTasks": {
+              "count": 178,
+              "median": 406,
+              "p95": 452,
+              "max": 512
+            },
+            "cpuMs": {
+              "ScriptDuration": 606.9269999999998,
+              "TaskDuration": 74011.81199999999,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                450, 416.6000000000058, 16.699999999982538, 400,
+                416.70000000001164, 383.19999999998254, 416.70000000001164, 400,
+                416.6000000000058, 400, 400, 400, 400, 399.8999999999942,
+                400.1000000000058, 399.9999999999709, 399.9000000000233, 400,
+                400, 399.9000000000233, 416.69999999995343, 400, 400,
+                433.20000000001164, 416.79999999998836, 416.6000000000349,
+                416.70000000001164, 400, 399.8999999999651, 400,
+                416.6000000000349, 416.69999999995343, 416.70000000001164,
+                416.6000000000349, 416.69999999995343, 416.6000000000349,
+                399.8999999999651, 400.1000000000349, 399.8999999999651,
+                466.70000000001164, 400, 400, 400, 399.9000000000233, 400,
+                433.29999999998836, 400, 416.70000000001164, 416.5999999999767,
+                416.70000000001164, 433.29999999998836, 433.29999999998836, 400,
+                400, 416.6000000000349, 416.5999999999767, 416.70000000001164,
+                416.5999999999767, 400.1000000000349, 416.5999999999767,
+                383.29999999998836, 416.70000000001164, 416.6000000000349, 400,
+                383.3999999999651, 416.6000000000349, 449.8999999999651,
+                416.70000000001164, 400, 400, 416.70000000001164,
+                466.5999999999767, 400, 399.9000000000233, 500.0999999999767,
+                400, 499.79999999998836, 416.70000000001164, 433.4000000000233,
+                433.29999999998836, 383.29999999998836, 416.70000000001164,
+                399.9000000000233, 400, 400, 433.29999999998836, 400, 400,
+                416.5999999999767, 416.70000000001164, 433.29999999998836, 450,
+                400, 400, 416.5, 400.1000000000349, 416.5999999999767,
+                416.5999999999767, 433.30000000004657, 400.0999999999767,
+                416.70000000001164, 399.8999999999651, 416.70000000001164,
+                416.6000000000349, 400, 416.5999999999767, 400,
+                416.70000000001164, 416.70000000001164, 399.8999999999651,
+                416.6000000000349, 433.29999999998836, 416.70000000001164, 400,
+                399.8999999999651, 400.1000000000349, 400, 416.5999999999767,
+                400, 416.70000000001164, 416.5999999999767, 449.9000000000233,
+                400.0999999999767, 433.29999999998836, 416.6000000000349,
+                416.5999999999767, 400.1000000000349, 416.5999999999767,
+                416.5999999999767, 400, 400.1000000000349, 416.5,
+                400.0999999999767, 400, 400, 416.6000000000349,
+                416.5999999999767, 400, 466.70000000001164, 399.8999999999651,
+                416.70000000001164, 400, 416.70000000001164, 449.9000000000233,
+                400, 400, 416.5999999999767, 500, 416.70000000001164, 400,
+                416.5999999999767, 450, 399.9000000000233, 450, 400, 400,
+                416.70000000001164, 449.8999999999651, 400.1000000000349,
+                399.8999999999651, 400, 416.6000000000349, 416.69999999995343,
+                400, 399.9000000000233, 400, 450.0999999999767,
+                399.9000000000233, 400, 400, 433.29999999998836,
+                416.70000000001164, 400, 399.9000000000233, 483.3999999999651,
+                416.6000000000349, 400, 416.5999999999767, 383.29999999998836
+              ],
+              "events": [
+                827.1999999999534, 1618.1000000000931, 1616.0999999999767,
+                1604.4000000000233, 1598.7000000000698, 1607,
+                1615.4000000000233, 1649, 1647.0999999999767,
+                1615.3000000000466, 1661.0999999999767, 1643.2000000000698,
+                1653.5, 1656.7999999999302, 1636.5999999999767,
+                1668.8000000000466, 1702.8000000000466, 1648.6999999999534,
+                1654.5999999999767, 1613, 1618.6999999999534,
+                1655.2000000000698, 1677.1999999999534, 1680.5,
+                1702.7999999999302, 1751.5999999999767, 1649.7000000000698,
+                1600.5999999999767, 1644.9000000000233, 1666.7999999999302,
+                1699.0999999999767, 1632.5, 1655.0999999999767,
+                1645.8999999999069, 1214.5999999999767, 1212.1000000000931,
+                1638.8000000000466, 1662, 1611.9000000000233,
+                1615.5999999999767, 1689.4000000000233, 1688.8000000000466,
+                1646.2999999999302, 1624, 1614.2999999999302,
+                1625.0999999999767, 1685.0999999999767, 1618.0999999999767,
+                1675.6000000000931, 1723.4000000000233, 1684, 1702,
+                1661.7000000000698, 1251.7000000000698, 1628,
+                1631.4000000000233, 1638, 1642, 1703.1999999999534,
+                1711.0999999999767
+              ],
+              "longTasks": [
+                420, 400, 416, 395, 405, 406, 411, 398, 403, 397, 402, 406, 392,
+                397, 407, 398, 401, 398, 413, 400, 397, 443, 404, 428, 408, 403,
+                398, 399, 411, 424, 417, 405, 416, 430, 388, 402, 404, 456, 398,
+                399, 399, 415, 397, 421, 405, 411, 427, 415, 433, 423, 397, 398,
+                426, 417, 420, 406, 407, 404, 393, 419, 402, 402, 395, 402, 452,
+                413, 409, 404, 402, 478, 393, 403, 498, 402, 496, 424, 425, 427,
+                395, 403, 400, 397, 400, 437, 407, 402, 413, 404, 445, 443, 409,
+                398, 410, 413, 406, 417, 431, 396, 417, 404, 406, 411, 398, 408,
+                407, 406, 419, 404, 413, 432, 412, 399, 407, 396, 405, 405, 411,
+                404, 426, 447, 401, 432, 408, 418, 417, 405, 404, 412, 401, 411,
+                394, 408, 398, 410, 412, 405, 475, 392, 407, 403, 417, 448, 410,
+                401, 404, 512, 410, 405, 407, 459, 401, 441, 399, 404, 412, 447,
+                405, 396, 402, 407, 419, 411, 398, 395, 436, 402, 403, 401, 438,
+                402, 407, 403, 487, 400, 405, 415, 387, 409
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 6.100000000000136,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.2999999999883585,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 100,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 768
+            }
+          }
+        ]
+      }
+    },
+    {
+      "app": "cadcraft",
+      "scene": "medium",
+      "startupProxyMs": 1540.9741709999507,
+      "openToReadyProxyMs": 4555.5763650000445,
+      "canvas": {
+        "x": 224,
+        "y": 82,
+        "width": 1072,
+        "height": 892
+      },
+      "inspect": {
+        "doc": {
+          "blockEditor": null,
+          "blocks": ["MARK"],
+          "counts": {
+            "Line": 2000
+          },
+          "currentLayer": "0",
+          "dimStyles": ["Standard"],
+          "dirty": false,
+          "entityCount": 2000,
+          "extents": [
+            [0, 0],
+            [31940, 2220]
+          ],
+          "layers": [
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "0",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "Defpoints",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "CONTINUOUS",
+              "locked": false,
+              "name": "COMMON",
+              "on": true
+            }
+          ],
+          "layouts": ["Layout1"],
+          "linetypes": ["ByBlock", "ByLayer", "Continuous", "DASHED"],
+          "path": null,
+          "readNotes": [],
+          "selection": [],
+          "skipped": {
+            "count": 0,
+            "sections": {}
+          },
+          "space": "Model",
+          "textStyles": ["Standard"],
+          "title": "study.dxf",
+          "undo": [],
+          "view": {
+            "center": [15970, 1110],
+            "height": 27905.787313432837
+          }
+        },
+        "ui": {
+          "animations": true,
+          "canvasRect": [224, 82, 1072, 892],
+          "closePrompt": null,
+          "cursor": null,
+          "focus": {
+            "id": null,
+            "keyboardInput": false,
+            "label": null,
+            "role": null
+          },
+          "perf": {
+            "buildMs": 15.200000000000045,
+            "building": false,
+            "drawMs": 0,
+            "frameMs": 1.7000000000002728,
+            "meshMs": 0.10000000000013642,
+            "passIndex": 0,
+            "prims": 2000,
+            "renderer": "gpu",
+            "truncated": false,
+            "uiFrames": 8
+          },
+          "session": {
+            "documents": [
+              {
+                "active": true,
+                "blockEditor": null,
+                "dirty": false,
+                "entities": 2000,
+                "index": 0,
+                "path": null,
+                "revision": 1,
+                "title": "study.dxf"
+              }
+            ],
+            "prompt": "Command:",
+            "running": null,
+            "selection": [],
+            "settings": {
+              "acadlspasdoc": false,
+              "annoallvisible": true,
+              "annoautoscale": false,
+              "aperture": 10,
+              "attreq": true,
+              "auditctl": false,
+              "cmdecho": true,
+              "crossingareacolor": 100,
+              "cursorsize": 5,
+              "dyndigrip": 31,
+              "dyndivis": 1,
+              "dynmode": true,
+              "dynpiAbsolute": false,
+              "dynpiCartesian": false,
+              "dynprompt": true,
+              "filedia": true,
+              "gridmajor": 5,
+              "gridmode": true,
+              "gridunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "gripobjlimit": 100,
+              "grips": 1,
+              "gripsize": 5,
+              "highlight": true,
+              "isodraft": false,
+              "isoplane": "left",
+              "lwdisplay": false,
+              "maxarray": 100000,
+              "measureinit": false,
+              "orthomode": false,
+              "osmode": 4133,
+              "osnaphatch": false,
+              "otrack": true,
+              "pickadd": true,
+              "pickbox": 3,
+              "pickdrag": true,
+              "pickfirst": true,
+              "pickstyle": 1,
+              "plotTransparencyOverride": 1,
+              "polarFlags": 0,
+              "polaraddang": [],
+              "polarang": 1.5707963267948966,
+              "polardist": 0,
+              "polarmode": true,
+              "polarsnap": false,
+              "previeweffect": 2,
+              "previewfilter": 3,
+              "qpmode": false,
+              "selectionCycling": false,
+              "selectionCyclingDisplay": 2,
+              "selectionarea": true,
+              "selectionareaopacity": 25,
+              "selectioneffect": 1,
+              "selectionpreview": 3,
+              "selectsimilarmode": 130,
+              "snapmode": false,
+              "snapunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transparencyDisplay": true,
+              "viewLayerSnapshot": true,
+              "windowareacolor": 150,
+              "zoomfactor": 60
+            }
+          },
+          "snap": null,
+          "theme": "dark",
+          "ui": {
+            "animations": "system",
+            "collapsedGroups": [],
+            "dialog": null,
+            "docking": {
+              "hidden": [],
+              "layout": {
+                "floating": [],
+                "root": {
+                  "Split": {
+                    "axis": "Horizontal",
+                    "first": {
+                      "Dock": {
+                        "columns": [
+                          {
+                            "groups": [
+                              {
+                                "active": 0,
+                                "height": null,
+                                "minimized": false,
+                                "panels": ["toolSets"]
+                              }
+                            ],
+                            "iconic": false,
+                            "iconic_width": null,
+                            "width": 220
+                          }
+                        ],
+                        "side": "Start"
+                      }
+                    },
+                    "second": {
+                      "Split": {
+                        "axis": "Horizontal",
+                        "first": {
+                          "Tabs": {
+                            "active": 0,
+                            "panels": ["canvas"]
+                          }
+                        },
+                        "second": {
+                          "Dock": {
+                            "columns": [
+                              {
+                                "groups": [
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["layers"]
+                                  },
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["properties"]
+                                  }
+                                ],
+                                "iconic": false,
+                                "iconic_width": null,
+                                "width": 300
+                              }
+                            ],
+                            "side": "End"
+                          }
+                        },
+                        "size": {
+                          "FixedSecond": 300
+                        }
+                      }
+                    },
+                    "size": {
+                      "FixedFirst": 220
+                    }
+                  }
+                }
+              },
+              "locked": false,
+              "saved": null,
+              "version": 2
+            },
+            "hiddenTools": [],
+            "historyLines": 3,
+            "inWindowMenu": true,
+            "interfaceLanguage": "auto",
+            "lastLispDir": null,
+            "lastPgpDir": null,
+            "propertiesAll": true,
+            "recentFiles": [],
+            "saveFormat": "dxf",
+            "saveVersion": "2018",
+            "shortcuts": {},
+            "showCommandLine": true,
+            "showFileTabs": true,
+            "showLayerList": false,
+            "showPalettes": true,
+            "showStatusBar": true,
+            "showToolbar": true,
+            "showToolsets": true,
+            "showUcsIcon": true,
+            "showViewcube": true,
+            "startTab": false,
+            "systemCursor": false,
+            "theme": "dark",
+            "toolsetTab": "Drafting"
+          },
+          "view": {
+            "center": [15970, 1110],
+            "height": 27905.787313432837
+          },
+          "window": [1600, 1000]
+        }
+      },
+      "heap": {
+        "usedSize": 4189668,
+        "totalSize": 6336512,
+        "embedderHeapUsedSize": 1497736,
+        "backingStorageSize": 425700
+      },
+      "errors": [],
+      "actions": {
+        "pan": [
+          {
+            "elapsed": 29463.583012000017,
+            "frameMs": {
+              "count": 64,
+              "median": 450.09999999999854,
+              "p95": 550,
+              "max": 583.2999999999993
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 926.7999999999302,
+              "p95": 1062.5,
+              "max": 1113.9000000000233
+            },
+            "longTasks": {
+              "count": 65,
+              "median": 461,
+              "p95": 556,
+              "max": 584
+            },
+            "cpuMs": {
+              "ScriptDuration": 253.90200000000002,
+              "TaskDuration": 30381.504999999997,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                433.40000000000146, 550, 433.2999999999993, 433.2999999999993,
+                566.6000000000004, 500, 450, 416.60000000000036,
+                516.6000000000004, 500, 400, 433.2999999999993,
+                483.39999999999964, 449.90000000000146, 433.3999999999978,
+                499.90000000000146, 483.40000000000146, 416.59999999999854,
+                566.5999999999985, 433.40000000000146, 450, 466.59999999999854,
+                466.6000000000022, 433.3999999999978, 449.90000000000146, 450,
+                466.59999999999854, 500.1000000000022, 433.2000000000007, 500,
+                450, 433.2999999999993, 500, 516.5999999999985,
+                483.40000000000146, 583.2999999999993, 533.2999999999993,
+                483.2999999999993, 466.6000000000022, 500, 450,
+                483.3999999999978, 416.6000000000022, 450, 449.8999999999978,
+                516.7000000000007, 450, 450, 449.90000000000146,
+                416.6000000000022, 466.6999999999971, 450, 466.6999999999971,
+                466.6000000000058, 550, 433.29999999999563, 483.3000000000029,
+                483.40000000000146, 483.1999999999971, 416.6999999999971,
+                416.6000000000058, 450.09999999999854, 433.29999999999563,
+                416.6000000000058
+              ],
+              "events": [
+                965.1999999999534, 861.1000000000931, 995.8000000000466, 1062.5,
+                967.0999999999767, 871.3999999999069, 927, 1004.6999999999534,
+                908.0999999999767, 849.6000000000931, 913.2000000000698,
+                938.3000000000466, 881.1999999999534, 939.7000000000698,
+                978.6999999999534, 894.9000000000233, 996.7000000000698,
+                993.0999999999767, 876.9000000000233, 924, 931.3000000000466,
+                897, 890, 902, 917.7999999999302, 964.3000000000466, 918,
+                922.1000000000931, 955.7999999999302, 894.6999999999534,
+                925.0999999999767, 1019.7999999999302, 1004.5, 1063,
+                1113.9000000000233, 1008.2999999999302, 952.5,
+                971.0999999999767, 950.5, 926.7999999999302, 912, 878.5,
+                896.6999999999534, 956.7000000000698, 963.1999999999534,
+                878.3000000000466, 903.1999999999534, 857.0999999999767, 873.5,
+                913.9000000000233, 917.6000000000931, 929.9000000000233,
+                1008.9000000000233, 979.6000000000931, 910, 945.5,
+                974.1999999999534, 904, 832.3999999999069, 869.5999999999767
+              ],
+              "longTasks": [
+                418, 563, 420, 442, 556, 508, 453, 413, 511, 493, 409, 418, 492,
+                443, 435, 501, 477, 429, 567, 424, 456, 466, 463, 432, 455, 444,
+                470, 494, 427, 499, 457, 435, 494, 523, 475, 584, 526, 485, 465,
+                505, 445, 482, 427, 448, 449, 501, 461, 441, 461, 416, 463, 450,
+                467, 464, 544, 431, 476, 485, 487, 416, 413, 452, 424, 415, 475
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 15.200000000000045,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.2999999999956344,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 2000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 81
+            }
+          },
+          {
+            "elapsed": 28011.693786000018,
+            "frameMs": {
+              "count": 64,
+              "median": 450,
+              "p95": 483.3000000000029,
+              "max": 500
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 889.8000000000466,
+              "p95": 947.4000000000233,
+              "max": 957.2000000000698
+            },
+            "longTasks": {
+              "count": 64,
+              "median": 445,
+              "p95": 482,
+              "max": 498
+            },
+            "cpuMs": {
+              "ScriptDuration": 246.81899999999996,
+              "TaskDuration": 28949.92,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                483.40000000000146, 416.59999999999854, 450, 483.3000000000029,
+                450, 433.29999999999563, 466.59999999999854, 450, 450,
+                416.70000000000437, 416.59999999999854, 466.6999999999971,
+                483.3000000000029, 416.59999999999854, 416.70000000000437,
+                416.6999999999971, 466.59999999999854, 433.3000000000029, 500,
+                450, 466.59999999999854, 450, 433.3000000000029,
+                466.59999999999854, 416.6999999999971, 433.3000000000029,
+                450.09999999999854, 449.90000000000146, 483.29999999999563,
+                466.70000000000437, 433.29999999999563, 483.3000000000029,
+                416.6999999999971, 449.90000000000146, 450, 466.70000000000437,
+                416.59999999999854, 433.29999999999563, 466.6000000000058,
+                416.6999999999971, 483.3000000000029, 433.29999999999563, 450,
+                433.3000000000029, 450, 450, 466.6999999999971,
+                416.59999999999854, 433.40000000000146, 466.59999999999854,
+                416.6000000000058, 450, 416.59999999999854, 416.70000000000437,
+                449.8999999999942, 433.3000000000029, 483.3999999999942,
+                416.6000000000058, 416.6999999999971, 433.3000000000029, 450,
+                400, 433.3000000000029, 466.59999999999127
+              ],
+              "events": [
+                868.5999999999767, 947.4000000000233, 936.7999999999302,
+                863.8000000000466, 895.7999999999302, 939.3000000000466, 894,
+                843.8000000000466, 832.5, 890.6999999999534, 957.2000000000698,
+                905.7000000000698, 836.0999999999767, 834.6999999999534,
+                883.0999999999767, 896.1000000000931, 925.2999999999302,
+                956.1000000000931, 909.3000000000466, 909.1999999999534,
+                885.4000000000233, 904.1000000000931, 881.3000000000466, 844.5,
+                889.8000000000466, 919.8000000000466, 926.5, 944.6999999999534,
+                891.9000000000233, 900.1000000000931, 897.5, 869.6000000000931,
+                896, 912.8000000000466, 890, 846.0999999999767,
+                885.7000000000698, 868.1000000000931, 906.7000000000698,
+                907.3000000000466, 885.5, 868.6999999999534, 877.0999999999767,
+                902.8000000000466, 912.5, 887.2000000000698, 857.3000000000466,
+                885.5999999999767, 876.7999999999302, 871.0999999999767,
+                875.2999999999302, 847.9000000000233, 859.5, 876.0999999999767,
+                913, 892.5, 846.1999999999534, 845.8000000000466,
+                875.2000000000698, 861.1999999999534
+              ],
+              "longTasks": [
+                415, 450, 478, 457, 421, 477, 461, 431, 413, 419, 469, 485, 417,
+                418, 414, 468, 423, 498, 456, 457, 449, 435, 470, 415, 427, 462,
+                443, 484, 473, 419, 482, 415, 458, 442, 469, 421, 427, 462, 425,
+                480, 427, 458, 427, 449, 453, 461, 425, 429, 459, 418, 452, 426,
+                416, 445, 432, 474, 423, 420, 422, 449, 411, 420, 473, 475
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 15.200000000000045,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 7.5,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 2000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 150
+            }
+          },
+          {
+            "elapsed": 27916.76864699996,
+            "frameMs": {
+              "count": 64,
+              "median": 433.40000000000873,
+              "p95": 483.3999999999942,
+              "max": 500
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 881.2000000000698,
+              "p95": 979.6999999999534,
+              "max": 990.9000000001397
+            },
+            "longTasks": {
+              "count": 65,
+              "median": 440,
+              "p95": 491,
+              "max": 507
+            },
+            "cpuMs": {
+              "ScriptDuration": 233.85500000000005,
+              "TaskDuration": 28791.455000000013,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                450, 416.6999999999971, 433.3000000000029, 450,
+                433.29999999998836, 399.90000000000873, 466.6999999999971,
+                416.6999999999971, 416.6000000000058, 483.3999999999942,
+                433.3000000000029, 499.8999999999942, 450, 433.40000000000873,
+                416.59999999999127, 450, 416.6000000000058, 416.6999999999971,
+                483.3000000000029, 500, 416.6000000000058, 450,
+                416.59999999999127, 416.6000000000058, 433.3999999999942,
+                483.3000000000029, 483.3000000000029, 450, 466.6999999999971,
+                466.6000000000058, 433.29999999998836, 466.70000000001164,
+                433.29999999998836, 433.3000000000029, 483.3000000000029, 500,
+                449.8999999999942, 416.70000000001164, 483.29999999998836,
+                416.70000000001164, 483.29999999998836, 433.40000000000873,
+                449.8999999999942, 433.3000000000029, 416.6999999999971, 450,
+                433.1999999999971, 416.70000000001164, 450, 466.59999999999127,
+                450.1000000000058, 433.1999999999971, 433.3000000000029,
+                466.8000000000029, 416.59999999999127, 450, 416.6000000000058,
+                416.59999999999127, 466.70000000001164, 416.6999999999971,
+                416.59999999999127, 450, 416.6000000000058, 416.6000000000058
+              ],
+              "events": [
+                833.7999999999302, 882.4000000000233, 881.2000000000698, 834.5,
+                872.5, 877.2000000000698, 831.6999999999534, 896.0999999999767,
+                925, 924.9000000000233, 935.9000000000233, 886.5999999999767,
+                850.3999999999069, 862.3000000000466, 846.3000000000466,
+                833.1999999999534, 906.6000000000931, 987, 918.3000000000466,
+                856.5, 864.8999999999069, 843.8999999999069, 841.1000000000931,
+                918.5999999998603, 990.9000000001397, 937.8999999999069,
+                905.3999999999069, 934.3999999999069, 898.2999999998137,
+                885.8999999999069, 901.1000000000931, 875.6999999999534,
+                914.3999999999069, 979.6999999999534, 960, 872,
+                906.4000000001397, 904.3999999999069, 898.5, 897.1000000000931,
+                884.5999999998603, 884.8999999999069, 849, 879.5999999998603,
+                875.5, 842.8999999999069, 873.8000000000466, 913.1999999999534,
+                924.3000000000466, 877.8000000000466, 870.3000000000466,
+                912.3000000000466, 875, 860.8000000000466, 849.3000000000466,
+                836.1999999999534, 879.0999999998603, 880.3000000000466,
+                844.2999999998137, 861.1999999999534
+              ],
+              "longTasks": [
+                460, 410, 423, 463, 418, 415, 456, 420, 415, 480, 442, 485, 451,
+                438, 416, 445, 413, 419, 482, 503, 412, 440, 425, 416, 423, 493,
+                491, 446, 457, 469, 427, 462, 434, 441, 471, 507, 453, 418, 485,
+                417, 478, 423, 459, 423, 422, 454, 421, 421, 448, 467, 456, 422,
+                447, 461, 412, 450, 415, 419, 458, 423, 421, 443, 421, 419, 418
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 15.200000000000045,
+              "building": false,
+              "drawMs": 0.09999999999126885,
+              "frameMs": 1.4000000000087311,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 2000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 220
+            }
+          }
+        ],
+        "zoom": [
+          {
+            "elapsed": 77495.136016,
+            "frameMs": {
+              "count": 175,
+              "median": 449.8999999999942,
+              "p95": 500,
+              "max": 599.9000000000087
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1773.8999999999069,
+              "p95": 1993.6999999999534,
+              "max": 2007.3000000000466
+            },
+            "longTasks": {
+              "count": 173,
+              "median": 444,
+              "p95": 504,
+              "max": 591
+            },
+            "cpuMs": {
+              "ScriptDuration": 600.4249999999998,
+              "TaskDuration": 78349.50499999999,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                466.59999999999127, 416.6000000000058, 16.69999999999709,
+                16.69999999999709, 400, 500, 449.90000000000873,
+                416.59999999999127, 416.70000000001164, 483.3999999999942,
+                399.8999999999942, 483.3000000000029, 500, 416.6999999999971,
+                599.9000000000087, 483.3999999999942, 433.3000000000029, 500,
+                499.8999999999942, 466.70000000001164, 416.6999999999971,
+                433.1999999999971, 466.6999999999971, 433.3000000000029,
+                466.6999999999971, 433.3000000000029, 449.8999999999942,
+                433.40000000000873, 466.59999999999127, 433.40000000000873,
+                416.59999999999127, 483.3000000000029, 400, 483.3000000000029,
+                499.8999999999942, 416.70000000001164, 416.6999999999971,
+                466.59999999999127, 566.7000000000116, 466.59999999999127,
+                466.6999999999971, 433.3000000000029, 466.6000000000058,
+                416.59999999999127, 466.8000000000029, 416.6000000000058,
+                416.59999999999127, 450, 450, 466.6000000000058,
+                416.6999999999971, 483.3000000000029, 416.6999999999971,
+                433.3000000000029, 483.3000000000029, 416.59999999999127,
+                483.40000000000873, 433.1999999999971, 433.3999999999942,
+                433.3000000000029, 416.6000000000058, 450.09999999999127,
+                416.6000000000058, 399.8999999999942, 500.1000000000058,
+                416.6000000000058, 466.6000000000058, 433.29999999998836,
+                483.3999999999942, 416.6000000000058, 483.3999999999942,
+                483.30000000001746, 433.19999999998254, 516.7000000000116,
+                466.6000000000058, 416.69999999998254, 466.70000000001164,
+                433.29999999998836, 483.30000000001746, 400, 483.29999999998836,
+                416.6000000000058, 416.6000000000058, 466.69999999998254,
+                433.3999999999942, 583.3000000000175, 583.2999999999884, 400,
+                433.20000000001164, 500, 466.69999999998254, 500,
+                499.9000000000233, 533.2999999999884, 466.70000000001164,
+                433.29999999998836, 450.1000000000058, 416.6000000000058,
+                416.5999999999767, 416.6000000000058, 450.1000000000058, 450,
+                416.6000000000058, 450, 450, 450, 433.29999999998836,
+                416.6000000000058, 449.8999999999942, 416.80000000001746,
+                416.5999999999767, 483.30000000001746, 416.6000000000058,
+                450.0999999999767, 416.5, 433.30000000001746,
+                416.79999999998836, 483.20000000001164, 400.1000000000058,
+                449.8999999999942, 416.69999999998254, 500, 433.30000000001746,
+                483.29999999998836, 433.30000000001746, 450, 433.29999999998836,
+                416.70000000001164, 450, 416.5, 433.3999999999942,
+                483.29999999998836, 466.6000000000058, 416.70000000001164,
+                483.29999999998836, 483.29999999998836, 433.30000000001746,
+                433.3999999999942, 483.29999999998836, 450, 433.30000000001746,
+                416.6000000000058, 466.69999999998254, 450, 449.8999999999942,
+                416.70000000001164, 416.70000000001164, 466.5,
+                450.0999999999767, 450, 433.30000000001746, 483.29999999998836,
+                400, 433.30000000001746, 466.5999999999767, 416.6000000000058,
+                416.70000000001164, 450, 416.69999999998254, 416.6000000000058,
+                483.3999999999942, 483.20000000001164, 450, 500, 450,
+                416.6000000000058, 483.29999999998836, 450, 450,
+                416.6000000000058, 433.3999999999942, 433.30000000001746,
+                433.29999999998836, 466.6000000000058, 516.6999999999825
+              ],
+              "events": [
+                858.8000000000466, 1767.7999999998137, 1318.1000000000931,
+                1855.3000000000466, 1995.5, 1919.7999999998137, 1808,
+                1803.1000000000931, 1770.7000000001863, 1744,
+                1787.6000000000931, 1800.9000000001397, 1929.5,
+                1833.5999999998603, 1760.3999999999069, 1284.6999999999534,
+                1367.3999999999069, 1784.4000000001397, 1774.5,
+                1772.0999999998603, 1281.0999999998603, 1689.8999999999069,
+                1791.1999999999534, 1791.6000000000931, 1818.1000000000931,
+                1420.4000000001397, 1358.4000000001397, 1786.8000000000466,
+                1728.9000000001397, 1905.3000000000466, 2007.3000000000466,
+                1387.5, 1993.6999999999534, 1877.1000000000931,
+                1690.6000000000931, 1725.6000000000931, 1768.1000000000931,
+                1751, 1773.8999999999069, 1768.0999999998603,
+                1745.1000000000931, 1738.8000000000466, 1813.1999999999534,
+                1788.7000000001863, 1709.1999999999534, 1799.2999999998137,
+                1849.4000000001397, 1339.6000000000931, 1797.1999999999534,
+                1759.3000000000466, 1735.3000000000466, 1785.3000000000466,
+                1775.5999999998603, 1723.2999999998137, 1697.7000000001863,
+                1798.8000000000466, 1885.5999999998603, 1801,
+                1733.8000000000466, 1766.5
+              ],
+              "longTasks": [
+                466, 417, 410, 495, 451, 408, 427, 478, 408, 483, 487, 425, 587,
+                492, 429, 504, 493, 466, 418, 434, 470, 433, 448, 426, 462, 433,
+                459, 428, 417, 480, 408, 476, 499, 414, 416, 471, 562, 479, 464,
+                431, 458, 416, 467, 416, 420, 447, 451, 467, 418, 473, 424, 429,
+                480, 420, 476, 444, 428, 429, 417, 450, 411, 408, 501, 418, 456,
+                426, 489, 415, 480, 485, 435, 507, 476, 418, 459, 428, 480, 412,
+                476, 421, 415, 463, 431, 591, 571, 410, 431, 501, 457, 505, 503,
+                526, 465, 440, 443, 421, 416, 414, 441, 455, 417, 452, 445, 451,
+                429, 414, 454, 422, 416, 478, 414, 448, 426, 433, 411, 478, 411,
+                450, 416, 499, 433, 467, 440, 450, 429, 412, 453, 414, 441, 477,
+                468, 423, 484, 470, 434, 433, 488, 449, 425, 423, 463, 444, 454,
+                420, 418, 459, 449, 455, 422, 484, 413, 424, 468, 412, 417, 452,
+                416, 418, 479, 484, 454, 495, 453, 422, 482, 442, 449, 424, 417,
+                440, 433, 474, 510
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 15.200000000000045,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.3000000000174623,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 2000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 398
+            }
+          },
+          {
+            "elapsed": 73453.53999299998,
+            "frameMs": {
+              "count": 169,
+              "median": 433.30000000001746,
+              "p95": 483.4000000000233,
+              "max": 549.8999999999942
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1724.0999999998603,
+              "p95": 1857.5,
+              "max": 1909.6999999999534
+            },
+            "longTasks": {
+              "count": 169,
+              "median": 433,
+              "p95": 489,
+              "max": 545
+            },
+            "cpuMs": {
+              "ScriptDuration": 517.007,
+              "TaskDuration": 74292.15299999999,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                416.6000000000058, 450, 16.70000000001164, 416.5999999999767,
+                433.30000000001746, 450, 433.3999999999942, 450,
+                433.20000000001164, 416.69999999998254, 466.6000000000058,
+                416.6000000000058, 433.3999999999942, 450, 416.6000000000058,
+                416.69999999998254, 400, 450, 416.6000000000058,
+                433.30000000001746, 466.69999999998254, 449.8999999999942,
+                483.30000000001746, 416.69999999998254, 450, 450,
+                449.9000000000233, 450, 450.0999999999767, 433.20000000001164,
+                483.29999999998836, 433.4000000000233, 466.5999999999767,
+                416.6000000000058, 466.70000000001164, 416.6000000000058,
+                416.69999999998254, 433.30000000001746, 433.29999999998836,
+                450.1000000000058, 433.19999999998254, 416.70000000001164,
+                433.29999999998836, 466.6000000000058, 400, 433.30000000001746,
+                400.0999999999767, 416.6000000000058, 450, 416.70000000001164,
+                416.6000000000058, 483.29999999998836, 416.6000000000058,
+                433.3999999999942, 433.29999999998836, 433.30000000001746, 450,
+                499.8999999999942, 433.3999999999942, 433.20000000001164,
+                500.1000000000058, 449.8999999999942, 416.69999999998254,
+                433.30000000001746, 433.3999999999942, 433.20000000001164,
+                416.69999999998254, 416.6000000000058, 483.29999999998836, 500,
+                416.70000000001164, 450, 500, 549.8999999999942,
+                466.70000000001164, 500, 433.29999999998836, 449.8999999999942,
+                433.4000000000233, 416.5999999999767, 450, 433.30000000001746,
+                433.29999999998836, 450, 416.70000000001164, 499.8999999999942,
+                416.70000000001164, 533.2999999999884, 466.70000000001164,
+                433.29999999998836, 449.8999999999942, 400.1000000000058,
+                416.6000000000058, 450, 449.8999999999942, 450,
+                416.70000000001164, 416.5999999999767, 483.30000000001746,
+                483.29999999998836, 416.70000000001164, 416.69999999998254,
+                433.30000000001746, 449.8999999999942, 416.70000000001164,
+                483.29999999998836, 416.70000000001164, 466.5999999999767,
+                416.70000000001164, 416.6000000000058, 416.69999999998254, 450,
+                416.6000000000058, 433.30000000001746, 450, 450, 450,
+                449.8999999999942, 466.6000000000058, 416.69999999998254,
+                416.70000000001164, 483.29999999998836, 399.8999999999942,
+                466.80000000001746, 433.19999999998254, 483.4000000000233,
+                466.5999999999767, 433.30000000001746, 416.69999999998254,
+                416.6000000000058, 450, 416.6000000000058, 416.70000000001164,
+                416.69999999998254, 466.70000000001164, 416.6000000000058,
+                416.5999999999767, 450, 416.70000000001164, 416.6000000000058,
+                416.6000000000058, 450, 416.5999999999767, 433.4000000000233,
+                449.8999999999942, 433.3999999999942, 450, 433.29999999998836,
+                433.30000000001746, 433.29999999998836, 433.30000000001746,
+                416.69999999998254, 400, 466.6000000000058, 416.70000000001164,
+                416.69999999998254, 416.5, 433.3999999999942,
+                433.30000000001746, 399.8999999999942, 433.3999999999942, 450,
+                416.6000000000058, 433.29999999998836, 483.30000000001746,
+                416.69999999998254, 450, 433.30000000001746, 450
+              ],
+              "events": [
+                888.7999999998137, 1313.8000000000466, 1330.2999999998137,
+                1770.5, 1769.9000000001397, 1665.4000000001397,
+                1702.6000000000931, 1369, 1800.8999999999069,
+                1791.6000000000931, 1811.5, 1805.6999999999534,
+                1715.3000000000466, 1724.0999999998603, 1723.6000000000931,
+                1725.6000000000931, 1700.1999999999534, 1752.5,
+                1334.5999999998603, 1296.1999999999534, 1821.5, 1829, 1736,
+                1697.3999999999069, 1410.1999999999534, 1857.5,
+                1519.1999999999534, 1858.6000000000931, 1298.5999999998603,
+                1741.3999999999069, 1800.5999999998603, 1909.6999999999534,
+                1758.2000000001863, 1716.8999999999069, 1732.3999999999069,
+                1805.6000000000931, 1709.5999999998603, 1756.5,
+                1718.4000000001397, 1700.5, 1288.6000000000931,
+                1802.6000000000931, 1753.6999999999534, 1759.3000000000466,
+                1836.8000000000466, 1735.3999999999069, 1704.1000000000931,
+                1706.8999999999069, 1696.5999999998603, 1702.3000000000466,
+                1731.1000000000931, 1769.8000000000466, 1294.8000000000466,
+                1697.1000000000931, 1287.0999999998603, 1685.1999999999534,
+                1277.1999999999534, 1291.5, 1778.7999999998137,
+                1791.4000000001397
+              ],
+              "longTasks": [
+                410, 447, 429, 424, 456, 427, 445, 434, 418, 472, 417, 434, 444,
+                416, 411, 409, 445, 421, 423, 471, 468, 461, 417, 453, 438, 458,
+                442, 462, 425, 480, 437, 468, 421, 457, 421, 414, 439, 433, 434,
+                441, 423, 426, 462, 411, 422, 407, 434, 433, 417, 415, 484, 411,
+                439, 425, 426, 451, 499, 441, 431, 493, 460, 417, 422, 432, 434,
+                411, 424, 490, 496, 415, 455, 488, 545, 477, 495, 433, 450, 425,
+                418, 458, 425, 426, 453, 428, 490, 410, 537, 468, 433, 445, 409,
+                411, 449, 446, 446, 417, 420, 479, 489, 415, 415, 442, 439, 425,
+                471, 422, 465, 420, 411, 421, 447, 420, 420, 447, 454, 452, 446,
+                467, 426, 413, 474, 412, 457, 430, 481, 467, 430, 418, 417, 459,
+                410, 416, 423, 460, 409, 417, 458, 410, 424, 416, 450, 415, 424,
+                461, 420, 457, 428, 431, 433, 430, 418, 413, 457, 413, 414, 419,
+                435, 428, 411, 428, 449, 416, 428, 482, 422, 443, 440, 451, 446
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 15.200000000000045,
+              "building": false,
+              "drawMs": 0.09999999997671694,
+              "frameMs": 1.2999999999592546,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 2000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 571
+            }
+          },
+          {
+            "elapsed": 77766.88826599997,
+            "frameMs": {
+              "count": 174,
+              "median": 449.9000000000233,
+              "p95": 516.6000000000349,
+              "max": 649.9000000000233
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1777.5,
+              "p95": 2025.6999999999534,
+              "max": 2165
+            },
+            "longTasks": {
+              "count": 173,
+              "median": 442,
+              "p95": 519,
+              "max": 641
+            },
+            "cpuMs": {
+              "ScriptDuration": 626.4110000000001,
+              "TaskDuration": 79101.68400000001,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                483.19999999998254, 466.80000000001746, 16.599999999976717,
+                449.9000000000233, 416.69999999998254, 483.3999999999942,
+                433.29999999998836, 450, 433.20000000001164, 466.70000000001164,
+                433.29999999998836, 466.70000000001164, 416.5999999999767,
+                416.6000000000349, 450, 433.3999999999651, 416.70000000001164,
+                416.5, 433.4000000000233, 449.8999999999651, 400,
+                483.4000000000233, 433.20000000001164, 450, 433.3999999999651,
+                416.6000000000349, 450, 433.3999999999651, 449.9000000000233,
+                433.29999999998836, 500, 416.70000000001164, 449.9000000000233,
+                433.3999999999651, 416.6000000000349, 449.8999999999651,
+                433.4000000000233, 483.29999999998836, 483.29999999998836,
+                433.29999999998836, 516.7000000000116, 416.6000000000349,
+                433.3999999999651, 433.29999999998836, 416.6000000000349,
+                416.5999999999767, 483.4000000000233, 499.8999999999651,
+                483.4000000000233, 433.29999999998836, 466.70000000001164,
+                416.5999999999767, 466.70000000001164, 433.20000000001164,
+                416.70000000001164, 466.5999999999767, 416.70000000001164,
+                466.70000000001164, 433.20000000001164, 433.3999999999651,
+                449.9000000000233, 433.3999999999651, 500, 450,
+                433.30000000004657, 516.5999999999767, 500, 433.29999999998836,
+                450, 416.6000000000349, 450, 450, 400, 466.5999999999767,
+                416.70000000001164, 416.5999999999767, 483.29999999998836,
+                433.4000000000233, 450, 466.5, 566.7999999999884,
+                649.9000000000233, 433.29999999998836, 516.7000000000116,
+                533.2999999999884, 466.5999999999767, 466.70000000001164,
+                466.6000000000349, 450.0999999999767, 483.20000000001164,
+                416.70000000001164, 466.5999999999767, 433.29999999998836,
+                416.70000000001164, 450, 416.5999999999767, 416.6000000000349,
+                416.70000000001164, 450, 416.69999999995343, 433.20000000001164,
+                466.70000000001164, 500, 499.9000000000233, 466.69999999995343,
+                433.30000000004657, 416.69999999995343, 399.9000000000233,
+                433.4000000000233, 450, 399.8999999999651, 416.70000000001164,
+                416.5999999999767, 450, 416.70000000001164, 416.6000000000349,
+                483.29999999998836, 433.3999999999651, 450, 416.6000000000349,
+                416.70000000001164, 416.5999999999767, 450, 433.29999999998836,
+                483.29999999998836, 433.30000000004657, 450, 433.29999999998836,
+                416.5999999999767, 466.70000000001164, 416.70000000001164,
+                466.5999999999767, 433.29999999998836, 416.70000000001164, 500,
+                483.29999999998836, 500, 416.6000000000349, 616.7000000000116,
+                550, 516.5999999999767, 483.20000000001164, 416.79999999998836,
+                416.5, 466.70000000001164, 433.3999999999651, 466.6000000000349,
+                416.5999999999767, 483.4000000000233, 416.5999999999767,
+                416.70000000001164, 466.5999999999767, 516.7000000000116, 500,
+                516.6000000000349, 483.29999999998836, 466.70000000001164,
+                433.29999999998836, 483.29999999998836, 416.5999999999767,
+                466.70000000001164, 416.6000000000349, 466.69999999995343,
+                449.9000000000233, 466.70000000001164, 433.29999999998836, 500,
+                500, 516.5999999999767, 483.30000000004657, 416.5999999999767,
+                450, 416.70000000001164, 433.29999999998836
+              ],
+              "events": [
+                936.2000000001863, 1793.3999999999069, 1327.6000000000931,
+                1797.8000000000466, 1753.3000000000466, 1701.5,
+                1710.0999999998603, 1319.4000000001397, 1318.8000000000466,
+                1298.6000000000931, 1773.5, 1788.3000000000466,
+                1740.3000000000466, 1366.8000000000466, 1918.3999999999069,
+                1791.1000000000931, 1745, 1896.3999999999069,
+                1781.1999999999534, 1779.7999999998137, 1756.3000000000466,
+                1744.5999999998603, 1813.6999999999534, 1888.8000000000466,
+                1752, 1764.4000000001397, 1751.4000000001397,
+                1820.6999999999534, 2114.7000000001863, 1948.1999999999534,
+                1841.8000000000466, 1812, 1765.1000000000931, 1701, 1702.5,
+                1893.1999999999534, 1813.8000000000466, 1694.7999999998137,
+                1676.1000000000931, 1696.6999999999534, 1782.5, 1707.5,
+                1785.3000000000466, 1798.5, 1311, 1755.1000000000931,
+                1841.9000000001397, 2025.6999999999534, 2165, 1777.5,
+                1778.8999999999069, 1740.6999999999534, 1916.2999999998137,
+                1967.5999999998603, 1810.1999999999534, 1309.8999999999069,
+                1805.8000000000466, 1889.5, 1493.5, 1775.1000000000931
+              ],
+              "longTasks": [
+                478, 470, 457, 423, 470, 440, 456, 428, 461, 429, 476, 420, 415,
+                441, 435, 409, 416, 446, 438, 407, 480, 431, 455, 425, 413, 457,
+                439, 448, 425, 496, 424, 441, 430, 425, 443, 432, 489, 479, 440,
+                510, 415, 444, 422, 412, 425, 483, 499, 485, 426, 464, 422, 467,
+                430, 422, 457, 421, 464, 433, 442, 442, 423, 498, 455, 434, 525,
+                485, 442, 440, 421, 445, 452, 408, 457, 423, 419, 471, 448, 440,
+                460, 579, 641, 431, 523, 536, 456, 476, 465, 443, 483, 420, 465,
+                424, 423, 449, 418, 420, 410, 452, 414, 425, 466, 503, 499, 464,
+                435, 415, 412, 417, 452, 408, 415, 415, 448, 415, 417, 480, 427,
+                459, 411, 417, 416, 456, 426, 483, 436, 451, 425, 426, 460, 415,
+                466, 429, 419, 500, 491, 499, 410, 618, 540, 523, 481, 418, 416,
+                461, 438, 459, 422, 478, 415, 424, 465, 506, 516, 503, 483, 463,
+                442, 472, 430, 455, 423, 469, 449, 459, 434, 505, 487, 519, 485,
+                420, 451, 417, 423
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 15.200000000000045,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.5,
+              "meshMs": 0.10000000000013642,
+              "passIndex": 0,
+              "prims": 2000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 750
+            }
+          }
+        ]
+      }
+    },
+    {
+      "app": "cadcraft",
+      "scene": "large",
+      "startupProxyMs": 739.9436170000117,
+      "openToReadyProxyMs": 5461.303038000013,
+      "canvas": {
+        "x": 224,
+        "y": 82,
+        "width": 1072,
+        "height": 892
+      },
+      "inspect": {
+        "doc": {
+          "blockEditor": null,
+          "blocks": ["MARK"],
+          "counts": {
+            "Line": 20000
+          },
+          "currentLayer": "0",
+          "dimStyles": ["Standard"],
+          "dirty": false,
+          "entityCount": 20000,
+          "extents": [
+            [0, 0],
+            [31940, 23820]
+          ],
+          "layers": [
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "0",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "Defpoints",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "CONTINUOUS",
+              "locked": false,
+              "name": "COMMON",
+              "on": true
+            }
+          ],
+          "layouts": ["Layout1"],
+          "linetypes": ["ByBlock", "ByLayer", "Continuous", "DASHED"],
+          "path": null,
+          "readNotes": [],
+          "selection": [],
+          "skipped": {
+            "count": 0,
+            "sections": {}
+          },
+          "space": "Model",
+          "textStyles": ["Standard"],
+          "title": "study.dxf",
+          "undo": [],
+          "view": {
+            "center": [15970, 11910],
+            "height": 27905.787313432837
+          }
+        },
+        "ui": {
+          "animations": true,
+          "canvasRect": [224, 82, 1072, 892],
+          "closePrompt": null,
+          "cursor": null,
+          "focus": {
+            "id": null,
+            "keyboardInput": false,
+            "label": null,
+            "role": null
+          },
+          "perf": {
+            "buildMs": 42.10000000000002,
+            "building": false,
+            "drawMs": 0.09999999999990905,
+            "frameMs": 1.800000000000182,
+            "meshMs": 0.6000000000001364,
+            "passIndex": 0,
+            "prims": 20000,
+            "renderer": "gpu",
+            "truncated": false,
+            "uiFrames": 7
+          },
+          "session": {
+            "documents": [
+              {
+                "active": true,
+                "blockEditor": null,
+                "dirty": false,
+                "entities": 20000,
+                "index": 0,
+                "path": null,
+                "revision": 1,
+                "title": "study.dxf"
+              }
+            ],
+            "prompt": "Command:",
+            "running": null,
+            "selection": [],
+            "settings": {
+              "acadlspasdoc": false,
+              "annoallvisible": true,
+              "annoautoscale": false,
+              "aperture": 10,
+              "attreq": true,
+              "auditctl": false,
+              "cmdecho": true,
+              "crossingareacolor": 100,
+              "cursorsize": 5,
+              "dyndigrip": 31,
+              "dyndivis": 1,
+              "dynmode": true,
+              "dynpiAbsolute": false,
+              "dynpiCartesian": false,
+              "dynprompt": true,
+              "filedia": true,
+              "gridmajor": 5,
+              "gridmode": true,
+              "gridunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "gripobjlimit": 100,
+              "grips": 1,
+              "gripsize": 5,
+              "highlight": true,
+              "isodraft": false,
+              "isoplane": "left",
+              "lwdisplay": false,
+              "maxarray": 100000,
+              "measureinit": false,
+              "orthomode": false,
+              "osmode": 4133,
+              "osnaphatch": false,
+              "otrack": true,
+              "pickadd": true,
+              "pickbox": 3,
+              "pickdrag": true,
+              "pickfirst": true,
+              "pickstyle": 1,
+              "plotTransparencyOverride": 1,
+              "polarFlags": 0,
+              "polaraddang": [],
+              "polarang": 1.5707963267948966,
+              "polardist": 0,
+              "polarmode": true,
+              "polarsnap": false,
+              "previeweffect": 2,
+              "previewfilter": 3,
+              "qpmode": false,
+              "selectionCycling": false,
+              "selectionCyclingDisplay": 2,
+              "selectionarea": true,
+              "selectionareaopacity": 25,
+              "selectioneffect": 1,
+              "selectionpreview": 3,
+              "selectsimilarmode": 130,
+              "snapmode": false,
+              "snapunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transparencyDisplay": true,
+              "viewLayerSnapshot": true,
+              "windowareacolor": 150,
+              "zoomfactor": 60
+            }
+          },
+          "snap": null,
+          "theme": "dark",
+          "ui": {
+            "animations": "system",
+            "collapsedGroups": [],
+            "dialog": null,
+            "docking": {
+              "hidden": [],
+              "layout": {
+                "floating": [],
+                "root": {
+                  "Split": {
+                    "axis": "Horizontal",
+                    "first": {
+                      "Dock": {
+                        "columns": [
+                          {
+                            "groups": [
+                              {
+                                "active": 0,
+                                "height": null,
+                                "minimized": false,
+                                "panels": ["toolSets"]
+                              }
+                            ],
+                            "iconic": false,
+                            "iconic_width": null,
+                            "width": 220
+                          }
+                        ],
+                        "side": "Start"
+                      }
+                    },
+                    "second": {
+                      "Split": {
+                        "axis": "Horizontal",
+                        "first": {
+                          "Tabs": {
+                            "active": 0,
+                            "panels": ["canvas"]
+                          }
+                        },
+                        "second": {
+                          "Dock": {
+                            "columns": [
+                              {
+                                "groups": [
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["layers"]
+                                  },
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["properties"]
+                                  }
+                                ],
+                                "iconic": false,
+                                "iconic_width": null,
+                                "width": 300
+                              }
+                            ],
+                            "side": "End"
+                          }
+                        },
+                        "size": {
+                          "FixedSecond": 300
+                        }
+                      }
+                    },
+                    "size": {
+                      "FixedFirst": 220
+                    }
+                  }
+                }
+              },
+              "locked": false,
+              "saved": null,
+              "version": 2
+            },
+            "hiddenTools": [],
+            "historyLines": 3,
+            "inWindowMenu": true,
+            "interfaceLanguage": "auto",
+            "lastLispDir": null,
+            "lastPgpDir": null,
+            "propertiesAll": true,
+            "recentFiles": [],
+            "saveFormat": "dxf",
+            "saveVersion": "2018",
+            "shortcuts": {},
+            "showCommandLine": true,
+            "showFileTabs": true,
+            "showLayerList": false,
+            "showPalettes": true,
+            "showStatusBar": true,
+            "showToolbar": true,
+            "showToolsets": true,
+            "showUcsIcon": true,
+            "showViewcube": true,
+            "startTab": false,
+            "systemCursor": false,
+            "theme": "dark",
+            "toolsetTab": "Drafting"
+          },
+          "view": {
+            "center": [15970, 11910],
+            "height": 27905.787313432837
+          },
+          "window": [1600, 1000]
+        }
+      },
+      "heap": {
+        "usedSize": 4267660,
+        "totalSize": 6541312,
+        "embedderHeapUsedSize": 778400,
+        "backingStorageSize": 2190390
+      },
+      "errors": [],
+      "actions": {
+        "pan": [
+          {
+            "elapsed": 29790.77585700003,
+            "frameMs": {
+              "count": 64,
+              "median": 466.6000000000058,
+              "p95": 550,
+              "max": 650
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 936.5,
+              "p95": 1120.8999999999069,
+              "max": 1184.7999999998137
+            },
+            "longTasks": {
+              "count": 64,
+              "median": 465,
+              "p95": 545,
+              "max": 650
+            },
+            "cpuMs": {
+              "ScriptDuration": 326.45599999999996,
+              "TaskDuration": 30814.485999999997,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                500.10000000000036, 549.8999999999996, 633.3999999999996,
+                483.2000000000007, 483.39999999999964, 449.89999999999964,
+                466.7000000000007, 466.6999999999989, 466.60000000000036, 650,
+                433.2999999999993, 449.90000000000146, 450.09999999999854,
+                416.60000000000036, 466.60000000000036, 483.2999999999993, 450,
+                466.7000000000007, 433.2999999999993, 516.7000000000007,
+                449.90000000000146, 433.2999999999993, 466.59999999999854,
+                433.40000000000146, 550, 433.2999999999993, 466.7000000000007,
+                433.2000000000007, 483.3999999999978, 416.6000000000022,
+                516.6999999999971, 466.6000000000022, 483.3999999999978,
+                433.2000000000007, 483.2999999999993, 500.1000000000022,
+                433.2999999999993, 483.2999999999993, 533.2999999999993,
+                466.6000000000022, 500.09999999999854, 449.90000000000146, 550,
+                483.2000000000007, 450.09999999999854, 466.59999999999854,
+                416.6000000000022, 483.3999999999978, 466.59999999999854,
+                433.3000000000029, 500, 483.40000000000146, 416.59999999999854,
+                483.3000000000029, 416.59999999999854, 466.6999999999971, 450,
+                483.3000000000029, 516.6999999999971, 466.59999999999854,
+                466.6000000000058, 466.6999999999971, 450, 433.3000000000029
+              ],
+              "events": [
+                1184.7999999998137, 1126.1999999999534, 962.7000000001863,
+                927.1000000000931, 914.5, 934.6999999999534, 939.1999999999534,
+                1120.8999999999069, 1080.0999999998603, 884.0999999998603,
+                896.6000000000931, 877, 893.5, 952.5, 936.5, 914.1000000000931,
+                893.3000000000466, 942.6999999999534, 964.3999999999069,
+                891.5999999998603, 894.1000000000931, 899.2999999998137, 987.5,
+                994, 912.4000000001397, 894, 902.1000000000931,
+                896.8000000000466, 937.3999999999069, 990.5, 950.3000000000466,
+                906.3999999999069, 932.3000000000466, 985.2999999998137, 920,
+                920.1999999999534, 1016.1999999999534, 1011.1000000000931,
+                948.4000000001397, 952, 1013.1999999999534, 1022.3999999999069,
+                940.6999999999534, 920.8000000000466, 916.3000000000466, 904,
+                948.7999999998137, 911.6999999999534, 936.7000000001863,
+                972.7999999998137, 905.1999999999534, 903.6999999999534,
+                905.6999999999534, 880.2000000001863, 913.1999999999534,
+                939.1999999999534, 999.9000000001397, 994.3999999999069,
+                938.0999999998603, 917.2999999998137
+              ],
+              "longTasks": [
+                504, 544, 632, 486, 474, 449, 467, 465, 469, 650, 427, 451, 447,
+                427, 463, 482, 447, 464, 425, 514, 456, 433, 462, 436, 545, 442,
+                465, 427, 474, 419, 513, 475, 475, 436, 493, 492, 430, 482, 530,
+                477, 488, 461, 548, 470, 450, 466, 428, 477, 463, 438, 493, 478,
+                423, 480, 423, 455, 455, 477, 519, 476, 460, 460, 458, 437
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 42.10000000000002,
+              "building": false,
+              "drawMs": 0.09999999999854481,
+              "frameMs": 1.3999999999941792,
+              "meshMs": 0.6000000000001364,
+              "passIndex": 0,
+              "prims": 20000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 80
+            }
+          },
+          {
+            "elapsed": 29789.53309500008,
+            "frameMs": {
+              "count": 64,
+              "median": 466.59999999999854,
+              "p95": 566.6999999999971,
+              "max": 599.9000000000015
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 926.1000000000931,
+              "p95": 1102.7000000001863,
+              "max": 1181.2000000001863
+            },
+            "longTasks": {
+              "count": 65,
+              "median": 463,
+              "p95": 558,
+              "max": 599
+            },
+            "cpuMs": {
+              "ScriptDuration": 241.629,
+              "TaskDuration": 30664.26,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                450, 450, 449.90000000000146, 433.40000000000146,
+                466.59999999999854, 500, 533.2999999999956, 583.4000000000015,
+                599.9000000000015, 500, 466.59999999999854, 416.59999999999854,
+                483.40000000000146, 433.3000000000029, 416.6999999999971,
+                483.3000000000029, 483.29999999999563, 483.3000000000029,
+                433.3000000000029, 466.59999999999854, 450, 566.6999999999971,
+                533.3000000000029, 416.59999999999854, 450.09999999999854,
+                433.3000000000029, 483.29999999999563, 416.70000000000437,
+                466.5, 483.40000000000146, 433.29999999999563,
+                483.40000000000146, 499.90000000000146, 483.29999999999563,
+                433.3000000000029, 483.3000000000029, 416.6999999999971, 450,
+                449.90000000000146, 416.6999999999971, 466.70000000000437,
+                433.29999999999563, 449.90000000000146, 433.3000000000029, 500,
+                416.6999999999971, 450, 516.5999999999985, 516.7000000000044,
+                566.5999999999913, 450, 533.3000000000029, 533.4000000000087,
+                516.5999999999913, 450, 466.6000000000058, 566.6999999999971,
+                433.3000000000029, 500, 549.8999999999942, 416.6999999999971,
+                416.6000000000058, 416.6999999999971, 449.90000000000873
+              ],
+              "events": [
+                907.1000000000931, 866.6999999999534, 902, 978.6999999999534,
+                1035.1999999999534, 1114.8000000000466, 1181.2000000001863,
+                1102.7000000001863, 967.6999999999534, 896.3999999999069,
+                911.8999999999069, 903.8000000000466, 843.0999999998603, 910,
+                970.0999999998603, 972.2000000001863, 905.5999999998603,
+                904.1000000000931, 915.5, 1011.1000000000931,
+                1100.9000000001397, 953.5, 870.6999999999534, 867.6000000000931,
+                919.6999999999534, 909.3000000000466, 881, 946,
+                926.1000000000931, 920.3000000000466, 974.0999999998603,
+                974.4000000001397, 923, 912.7999999998137, 895.1000000000931,
+                878.3999999999069, 890.8000000000466, 868.5, 891.9000000001397,
+                892.3999999999069, 883.8999999999069, 892.2999999998137,
+                929.1999999999534, 905.3000000000466, 872.5, 964.8000000000466,
+                1033.8999999999069, 1084, 1024.7999999998137, 993.6000000000931,
+                1061.6999999999534, 1039, 964.1999999999534, 928.7999999998137,
+                1025.6000000000931, 1008.5, 946.3999999999069,
+                1036.7999999998137, 958.7999999998137, 835
+              ],
+              "longTasks": [
+                449, 445, 439, 425, 474, 497, 532, 578, 599, 497, 467, 426, 484,
+                420, 425, 482, 486, 480, 426, 480, 435, 581, 520, 435, 436, 431,
+                488, 418, 459, 486, 434, 485, 491, 482, 440, 470, 425, 450, 440,
+                425, 465, 425, 455, 436, 488, 419, 453, 511, 520, 558, 463, 527,
+                532, 508, 458, 467, 558, 447, 497, 540, 418, 414, 412, 458, 422
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 42.10000000000002,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.5,
+              "meshMs": 0.6000000000001364,
+              "passIndex": 0,
+              "prims": 20000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 149
+            }
+          },
+          {
+            "elapsed": 29115.208269000053,
+            "frameMs": {
+              "count": 64,
+              "median": 450.1000000000058,
+              "p95": 516.7000000000116,
+              "max": 566.7000000000116
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 912.1999999999534,
+              "p95": 1055.9000000001397,
+              "max": 1076.3000000000466
+            },
+            "longTasks": {
+              "count": 65,
+              "median": 460,
+              "p95": 525,
+              "max": 552
+            },
+            "cpuMs": {
+              "ScriptDuration": 288.86100000000005,
+              "TaskDuration": 30032.892000000003,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                500, 499.90000000000873, 500, 416.6999999999971,
+                483.3000000000029, 416.6999999999971, 500, 416.59999999999127,
+                499.90000000000873, 466.6999999999971, 433.3999999999942,
+                516.6000000000058, 450, 433.1999999999971, 466.8000000000029,
+                416.5, 416.6999999999971, 450, 433.40000000000873, 416.5,
+                466.6999999999971, 483.3000000000029, 433.29999999998836,
+                516.7000000000116, 550, 433.29999999998836, 483.3000000000029,
+                416.6000000000058, 433.3999999999942, 450, 433.3000000000029,
+                466.6000000000058, 483.29999999998836, 433.3000000000029,
+                466.6999999999971, 483.40000000000873, 483.1999999999971,
+                466.6999999999971, 433.3000000000029, 449.8999999999942,
+                433.40000000000873, 500, 500, 449.8999999999942, 450,
+                466.6000000000058, 533.3999999999942, 483.3000000000029,
+                433.3000000000029, 450, 516.6999999999971, 416.6000000000058,
+                450, 433.29999999998836, 416.6000000000058, 466.6000000000058,
+                416.6999999999971, 416.6999999999971, 483.3000000000029,
+                516.5999999999913, 566.7000000000116, 516.6999999999971,
+                433.1999999999971, 450.1000000000058
+              ],
+              "events": [
+                1005.0999999998603, 918.8000000000466, 902.5999999998603, 895,
+                912.1999999999534, 917.1999999999534, 926.1999999999534,
+                960.2000000001863, 898.1000000000931, 941.5, 966.3000000000466,
+                893.6999999999534, 897.6999999999534, 880.8999999999069,
+                831.5999999998603, 883.3000000000466, 878, 834.8999999999069,
+                884.6000000000931, 953.8000000000466, 928.3000000000466, 958,
+                1071, 979.4000000001397, 911, 909.3000000000466,
+                865.6000000000931, 880, 893.0999999998603, 902.3000000000466,
+                954.6999999999534, 913.3999999999069, 891.0999999998603,
+                957.8000000000466, 983.6999999999534, 949.1999999999534,
+                919.6000000000931, 891.1000000000931, 875.8999999999069,
+                925.0999999998603, 989.6999999999534, 948, 904.8000000000466,
+                939.2000000001863, 1003.1999999999534, 1008.3000000000466,
+                910.5, 892.5999999998603, 947.3000000000466, 930.6999999999534,
+                877.1000000000931, 866.4000000001397, 843.1999999999534,
+                874.1000000000931, 880.8000000000466, 849.5, 911.1999999999534,
+                1019.3000000000466, 1076.3000000000466, 1055.9000000001397
+              ],
+              "longTasks": [
+                492, 505, 499, 418, 481, 412, 497, 421, 503, 460, 433, 508, 457,
+                435, 464, 411, 418, 461, 417, 417, 465, 486, 439, 516, 552, 424,
+                484, 422, 423, 454, 437, 463, 489, 421, 467, 487, 477, 469, 429,
+                459, 434, 492, 495, 451, 453, 475, 525, 481, 427, 465, 502, 428,
+                449, 419, 424, 458, 420, 427, 478, 521, 551, 527, 422, 460, 431
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 42.10000000000002,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.5999999999912689,
+              "meshMs": 0.6000000000001364,
+              "passIndex": 0,
+              "prims": 20000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 219
+            }
+          }
+        ],
+        "zoom": [
+          {
+            "elapsed": 78860.09501699999,
+            "frameMs": {
+              "count": 178,
+              "median": 450,
+              "p95": 499.9000000000233,
+              "max": 550
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1789.5,
+              "p95": 1934.6000000000931,
+              "max": 2049.6999999999534
+            },
+            "longTasks": {
+              "count": 177,
+              "median": 447,
+              "p95": 500,
+              "max": 549
+            },
+            "cpuMs": {
+              "ScriptDuration": 600.454,
+              "TaskDuration": 79713.952,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                433.3000000000029, 483.29999999998836, 16.70000000001164,
+                16.59999999999127, 400, 466.6000000000058, 433.3000000000029,
+                466.6999999999971, 416.6999999999971, 416.6000000000058,
+                466.6999999999971, 416.59999999999127, 416.70000000001164, 450,
+                433.1999999999971, 416.6999999999971, 450, 433.3000000000029,
+                416.6999999999971, 483.1999999999971, 433.40000000000873, 450,
+                499.8999999999942, 450, 483.3999999999942, 483.20000000001164,
+                450, 450.09999999999127, 416.6000000000058, 466.59999999999127,
+                416.6000000000058, 450, 450.1000000000058, 449.8999999999942,
+                450, 433.3000000000029, 450, 449.8999999999942,
+                466.6999999999971, 416.70000000001164, 500, 466.59999999999127,
+                450, 516.6000000000058, 466.6999999999971, 466.6999999999971,
+                433.3000000000029, 499.8999999999942, 483.3000000000029,
+                483.3000000000029, 450, 466.6000000000058, 450.09999999999127,
+                449.90000000000873, 450, 450, 483.3999999999942,
+                433.29999999998836, 449.9000000000233, 433.29999999998836,
+                416.70000000001164, 466.69999999998254, 416.6000000000058,
+                433.29999999998836, 466.6000000000058, 416.70000000001164,
+                466.6000000000058, 433.3999999999942, 466.69999999998254,
+                416.6000000000058, 416.6000000000058, 450, 433.29999999998836,
+                466.70000000001164, 449.8999999999942, 466.70000000001164,
+                449.8999999999942, 450, 433.29999999998836, 466.70000000001164,
+                433.29999999998836, 450, 433.30000000001746, 416.69999999998254,
+                466.70000000001164, 433.20000000001164, 466.69999999998254,
+                416.6000000000058, 533.2999999999884, 450.1000000000058,
+                416.6000000000058, 433.3999999999942, 449.8999999999942,
+                433.30000000001746, 433.29999999998836, 450, 416.70000000001164,
+                466.6000000000058, 433.29999999998836, 466.6000000000058, 450,
+                450.1000000000058, 449.8999999999942, 450, 433.29999999998836,
+                466.70000000001164, 433.29999999998836, 466.6000000000058,
+                433.3999999999942, 483.30000000001746, 500, 416.5999999999767,
+                466.6000000000058, 450, 466.70000000001164, 416.6000000000058,
+                466.69999999998254, 416.6000000000058, 433.3999999999942,
+                449.8999999999942, 433.4000000000233, 466.5999999999767,
+                433.30000000001746, 466.6000000000058, 433.3999999999942,
+                466.6000000000058, 416.5999999999767, 450, 450,
+                466.70000000001164, 499.8999999999942, 433.30000000001746,
+                450.0999999999767, 449.9000000000233, 483.29999999998836,
+                416.70000000001164, 433.29999999998836, 483.29999999998836,
+                483.4000000000233, 533.1999999999825, 550, 433.3999999999942,
+                499.9000000000233, 450, 433.29999999998836, 416.6000000000058,
+                466.69999999998254, 416.70000000001164, 416.6000000000058, 450,
+                433.29999999998836, 483.3999999999942, 433.20000000001164,
+                466.70000000001164, 433.29999999998836, 550, 416.6000000000058,
+                416.69999999998254, 433.30000000001746, 466.69999999998254,
+                416.6000000000058, 466.6000000000058, 416.70000000001164,
+                416.69999999998254, 466.5, 416.80000000001746,
+                433.29999999998836, 450, 433.29999999998836, 449.9000000000233,
+                433.3999999999942, 516.6000000000058, 449.8999999999942,
+                433.3999999999942, 483.29999999998836, 450, 466.6000000000058,
+                466.70000000001164
+              ],
+              "events": [
+                922.1999999999534, 1764.5, 1755.8000000000466,
+                1746.0999999998603, 1750.6999999999534, 1788.5,
+                1857.6000000000931, 1914.7999999998137, 1798.1999999999534,
+                1759.1999999999534, 1788.1999999999534, 1775.3000000000466,
+                1824.5, 1934.6000000000931, 1888.3999999999069, 1905.5, 1848,
+                1793.8000000000466, 1813.1999999999534, 1302.6000000000931,
+                1750.7000000001863, 1783, 1784.5, 1724.1999999999534,
+                1814.0999999998603, 1815.8000000000466, 1789.8999999999069,
+                1773.6000000000931, 1778.5, 1828.3000000000466,
+                1723.6000000000931, 1730.1000000000931, 1789.5, 1809.5,
+                1790.3999999999069, 1810.7000000001863, 1824.3999999999069,
+                1804.6999999999534, 1771.5, 1743.5999999998603, 1807.5,
+                1354.1999999999534, 1779.6000000000931, 1836.4000000001397,
+                1815.8000000000466, 1807.6999999999534, 2049.6999999999534,
+                1941.8999999999069, 1752.7999999998137, 1749.8000000000466,
+                1800.2999999998137, 1883.5, 1814.3000000000466,
+                1766.5999999998603, 1763.5999999998603, 1765.8000000000466,
+                1340.5, 1410, 1882, 1393.3000000000466
+              ],
+              "longTasks": [
+                440, 473, 412, 463, 438, 451, 421, 423, 456, 420, 418, 450, 427,
+                421, 456, 423, 426, 478, 422, 465, 488, 448, 483, 492, 448, 444,
+                417, 464, 422, 453, 442, 449, 441, 431, 454, 445, 472, 419, 490,
+                467, 449, 525, 463, 467, 429, 509, 479, 486, 437, 477, 447, 447,
+                454, 443, 484, 435, 444, 431, 424, 456, 425, 432, 457, 419, 470,
+                431, 462, 420, 418, 455, 428, 458, 450, 477, 435, 456, 444, 456,
+                426, 465, 425, 421, 460, 429, 462, 422, 527, 459, 417, 421, 457,
+                431, 436, 440, 422, 470, 439, 454, 472, 439, 441, 455, 419, 469,
+                446, 458, 429, 488, 487, 416, 481, 442, 464, 423, 458, 425, 426,
+                455, 439, 463, 429, 470, 425, 463, 423, 450, 441, 463, 507, 425,
+                462, 444, 481, 421, 430, 475, 483, 540, 548, 437, 500, 453, 421,
+                423, 456, 424, 416, 453, 432, 477, 437, 461, 433, 549, 420, 421,
+                423, 464, 416, 466, 418, 420, 460, 419, 428, 455, 431, 452, 431,
+                516, 435, 440, 474, 446, 476, 458, 454
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 42.10000000000002,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.3000000000174623,
+              "meshMs": 0.6000000000001364,
+              "passIndex": 0,
+              "prims": 20000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 400
+            }
+          },
+          {
+            "elapsed": 79639.99497499992,
+            "frameMs": {
+              "count": 179,
+              "median": 449.8999999999942,
+              "p95": 500,
+              "max": 566.6000000000058
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1784.8999999999069,
+              "p95": 1926,
+              "max": 1972.3000000000466
+            },
+            "longTasks": {
+              "count": 178,
+              "median": 443,
+              "p95": 496,
+              "max": 555
+            },
+            "cpuMs": {
+              "ScriptDuration": 638.6359999999997,
+              "TaskDuration": 80549.23700000001,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                466.70000000001164, 433.29999999998836, 16.60000000000582,
+                433.29999999998836, 433.30000000001746, 416.69999999998254, 450,
+                433.30000000001746, 433.29999999998836, 450, 433.29999999998836,
+                450, 433.30000000001746, 416.69999999998254, 499.9000000000233,
+                483.3999999999942, 416.6000000000058, 483.29999999998836,
+                416.70000000001164, 433.29999999998836, 433.29999999998836,
+                416.6000000000058, 433.3999999999942, 450, 433.30000000001746,
+                499.8999999999942, 500, 500, 433.29999999998836,
+                450.1000000000058, 416.6000000000058, 466.70000000001164,
+                416.5999999999767, 483.30000000001746, 433.19999999998254,
+                500.1000000000058, 483.30000000001746, 499.8999999999942,
+                483.3999999999942, 450, 433.29999999998836, 433.30000000001746,
+                416.6000000000058, 466.69999999998254, 416.6000000000058,
+                433.29999999998836, 450.1000000000058, 450, 449.8999999999942,
+                450, 466.70000000001164, 433.29999999998836, 449.9000000000233,
+                416.5999999999767, 416.70000000001164, 466.70000000001164,
+                416.5999999999767, 433.30000000001746, 450, 450,
+                466.6000000000058, 416.69999999998254, 483.30000000001746,
+                483.29999999998836, 416.70000000001164, 416.69999999998254,
+                466.6000000000058, 416.6000000000058, 416.69999999998254,
+                466.70000000001164, 416.6000000000058, 433.29999999998836,
+                483.30000000001746, 416.69999999998254, 449.8999999999942,
+                416.70000000001164, 433.29999999998836, 450, 433.30000000001746,
+                416.6000000000058, 450, 450, 450, 433.29999999998836,
+                416.70000000001164, 449.8999999999942, 433.3999999999942,
+                466.6000000000058, 416.69999999998254, 500, 416.6000000000058,
+                450, 433.30000000001746, 416.5999999999767, 466.70000000001164,
+                450, 449.8999999999942, 433.3999999999942, 466.6000000000058,
+                416.70000000001164, 433.29999999998836, 466.6000000000058, 500,
+                500, 483.29999999998836, 416.70000000001164, 433.29999999998836,
+                449.9000000000233, 416.69999999998254, 433.30000000001746, 450,
+                433.29999999998836, 416.70000000001164, 450, 483.29999999998836,
+                433.20000000001164, 416.69999999998254, 516.7000000000116, 450,
+                450, 450, 433.19999999998254, 466.70000000001164,
+                416.6000000000058, 416.6000000000058, 466.69999999998254,
+                483.3999999999942, 416.6000000000058, 433.3999999999942,
+                466.6000000000058, 433.30000000001746, 483.29999999998836,
+                499.8999999999942, 500.1000000000058, 416.6000000000058,
+                566.6000000000058, 433.3999999999942, 466.6000000000058,
+                416.5999999999767, 433.4000000000233, 466.5999999999767,
+                483.30000000001746, 433.29999999998836, 466.70000000001164,
+                433.29999999998836, 416.6000000000058, 450, 516.7000000000116,
+                500, 483.29999999998836, 533.2999999999884, 466.70000000001164,
+                416.6000000000058, 433.29999999998836, 466.70000000001164,
+                433.29999999998836, 466.6000000000058, 500, 416.70000000001164,
+                466.5999999999767, 416.70000000001164, 433.29999999998836,
+                466.6000000000058, 433.30000000001746, 450, 433.29999999998836,
+                483.4000000000233, 466.5999999999767, 433.29999999998836, 450,
+                483.29999999998836, 483.30000000004657, 516.5999999999767,
+                483.4000000000233, 483.29999999998836, 416.70000000001164,
+                449.8999999999651, 433.29999999998836, 433.30000000004657
+              ],
+              "events": [
+                877.3999999999069, 1746.8999999999069, 1771.8999999999069,
+                1764.1000000000931, 1829.6000000000931, 1793.5,
+                1710.1999999999534, 1733.2999999998137, 1923.6999999999534,
+                1810.2000000001863, 1780.0999999998603, 1903.5999999998603,
+                1910.4000000001397, 1733.6999999999534, 1725.2000000001863,
+                1783.5, 1797.6999999999534, 1725.1999999999534, 1728,
+                1789.6999999999534, 1851.5, 1781.5, 1763.7000000001863,
+                1791.3999999999069, 1754.5, 1721, 1764.3000000000466,
+                1763.3999999999069, 1771.0999999998603, 1381.5,
+                1790.3999999999069, 1784.5, 1797.1999999999534,
+                1784.0999999998603, 1926, 1789.9000000001397, 1765, 1763,
+                1790.1999999999534, 1822.3999999999069, 1793.3000000000466,
+                1769.4000000001397, 1801.1000000000931, 1810.5,
+                1902.8000000000466, 1882.1000000000931, 1786.8999999999069,
+                1848.6999999999534, 1773.1999999999534, 1442.3000000000466,
+                1972.3000000000466, 1791.8000000000466, 1860.8000000000466,
+                1378.1000000000931, 1773.0999999998603, 1784.8999999999069,
+                1810.5, 1845.3999999999069, 1953.8000000000466,
+                1783.4000000001397
+              ],
+              "longTasks": [
+                466, 423, 442, 432, 414, 458, 427, 429, 455, 425, 451, 431, 423,
+                504, 470, 426, 474, 420, 439, 430, 418, 422, 459, 430, 502, 494,
+                495, 448, 433, 430, 461, 419, 474, 447, 494, 486, 486, 492, 442,
+                445, 429, 413, 461, 427, 420, 452, 448, 459, 442, 467, 425, 456,
+                416, 424, 453, 427, 421, 464, 438, 464, 420, 482, 483, 423, 415,
+                458, 422, 420, 455, 426, 429, 478, 414, 457, 419, 432, 452, 418,
+                443, 435, 442, 458, 418, 421, 456, 424, 467, 425, 484, 419, 454,
+                431, 423, 462, 443, 459, 427, 472, 416, 428, 467, 496, 495, 482,
+                422, 425, 460, 421, 419, 461, 418, 419, 461, 483, 428, 415, 510,
+                461, 439, 456, 425, 470, 419, 418, 462, 480, 429, 429, 462, 437,
+                481, 498, 491, 429, 555, 438, 461, 421, 428, 474, 477, 431, 463,
+                431, 422, 457, 517, 487, 493, 520, 469, 422, 430, 467, 432, 467,
+                493, 427, 455, 425, 425, 463, 436, 460, 423, 486, 462, 436, 442,
+                493, 473, 527, 475, 481, 422, 449, 434, 430
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 42.10000000000002,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.2999999999883585,
+              "meshMs": 0.6000000000001364,
+              "passIndex": 0,
+              "prims": 20000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 583
+            }
+          },
+          {
+            "elapsed": 80875.62037400005,
+            "frameMs": {
+              "count": 181,
+              "median": 450,
+              "p95": 499.9000000000233,
+              "max": 583.2999999999884
+            },
+            "inputToTwoFramesMs": {
+              "count": 60,
+              "median": 1786.0999999998603,
+              "p95": 1922.1000000000931,
+              "max": 2067.5
+            },
+            "longTasks": {
+              "count": 181,
+              "median": 448,
+              "p95": 498,
+              "max": 584
+            },
+            "cpuMs": {
+              "ScriptDuration": 679.973,
+              "TaskDuration": 82244.504,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "raw": {
+              "running": false,
+              "frames": [
+                499.8999999999651, 450, 16.70000000001164, 400,
+                433.29999999998836, 450, 450, 499.9000000000233,
+                483.3999999999651, 466.6000000000349, 483.3999999999651,
+                449.9000000000233, 449.9000000000233, 450.0999999999767,
+                499.9000000000233, 450, 433.3999999999651, 416.6000000000349,
+                450, 449.8999999999651, 416.70000000001164, 466.5999999999767,
+                433.4000000000233, 450, 433.29999999998836, 466.6000000000349,
+                433.29999999998836, 450, 433.29999999998836, 483.29999999998836,
+                516.7000000000116, 466.5999999999767, 433.30000000004657,
+                466.69999999995343, 450, 450, 433.30000000004657,
+                483.29999999998836, 449.8999999999651, 483.30000000004657,
+                400.0999999999767, 466.5999999999767, 450, 483.30000000004657,
+                500, 466.5999999999767, 433.4000000000233, 466.5999999999767,
+                433.4000000000233, 499.8999999999651, 516.7000000000116,
+                483.29999999998836, 583.2999999999884, 533.3000000000466,
+                466.69999999995343, 416.6000000000349, 450, 449.8999999999651,
+                450, 433.4000000000233, 433.29999999998836, 466.6000000000349,
+                433.29999999998836, 450, 433.29999999998836, 466.5999999999767,
+                450.1000000000349, 466.5999999999767, 433.29999999998836,
+                466.6000000000349, 433.3999999999651, 483.30000000004657,
+                483.29999999998836, 433.29999999998836, 450, 450,
+                466.70000000001164, 466.5999999999767, 433.29999999998836,
+                433.30000000004657, 466.5999999999767, 416.70000000001164,
+                466.70000000001164, 416.5999999999767, 416.70000000001164,
+                466.5999999999767, 433.4000000000233, 466.5999999999767,
+                433.29999999998836, 416.6000000000349, 466.70000000001164,
+                416.69999999995343, 466.6000000000349, 416.70000000001164,
+                433.19999999995343, 450, 450, 466.6000000000349,
+                433.3999999999651, 466.6000000000349, 416.70000000001164,
+                466.5999999999767, 416.70000000001164, 433.29999999998836,
+                466.5999999999767, 433.4000000000233, 450, 433.29999999998836,
+                416.6000000000349, 466.5999999999767, 416.70000000001164,
+                449.8999999999651, 516.8000000000466, 416.5999999999767,
+                433.29999999998836, 466.70000000001164, 416.5999999999767,
+                499.9000000000233, 483.4000000000233, 516.6999999999534,
+                483.30000000004657, 466.5999999999767, 466.70000000001164,
+                466.5999999999767, 433.29999999998836, 466.70000000001164,
+                416.6000000000349, 450, 433.29999999998836, 483.29999999998836,
+                416.70000000001164, 483.29999999998836, 416.5999999999767,
+                433.30000000004657, 450.0999999999767, 449.9000000000233,
+                449.8999999999651, 416.70000000001164, 433.29999999998836,
+                450.1000000000349, 450, 483.19999999995343, 416.70000000001164,
+                466.6000000000349, 500, 483.29999999998836, 433.3999999999651,
+                466.6000000000349, 433.29999999998836, 450, 433.29999999998836,
+                433.29999999998836, 450, 483.30000000004657, 450, 450,
+                433.29999999998836, 433.29999999998836, 466.70000000001164,
+                416.5999999999767, 416.70000000001164, 450, 416.5999999999767,
+                433.30000000004657, 483.29999999998836, 483.29999999998836,
+                433.4000000000233, 466.5999999999767, 483.29999999998836,
+                416.70000000001164, 433.20000000001164, 466.79999999998836,
+                416.5999999999767, 450, 450, 416.6000000000349, 450,
+                416.70000000001164, 433.19999999995343, 450, 416.70000000001164
+              ],
+              "events": [
+                879, 1733, 1892.9000000001397, 1852.4000000001397,
+                1849.1999999999534, 1758.1000000000931, 1771.3999999999069,
+                1763.6999999999534, 1777.1999999999534, 1890.6000000000931,
+                1885.1000000000931, 1811.1000000000931, 1841.6999999999534,
+                1773.3999999999069, 1901.7000000001863, 1805,
+                1922.1000000000931, 2067.5, 1782.5999999998603,
+                1764.8000000000466, 1786.0999999998603, 1828.1999999999534,
+                1826, 1877.2000000001863, 1801.5, 1815.9000000001397,
+                1748.6999999999534, 1730.3000000000466, 1782.7999999998137,
+                1780.4000000001397, 1769.1000000000931, 1751,
+                1800.6999999999534, 1768.5, 1745.6000000000931,
+                1752.8000000000466, 1757.5999999998603, 1817.5,
+                1809.6999999999534, 1978.2000000001863, 1885.0999999998603,
+                1784.6000000000931, 1780.7999999998137, 1797.1999999999534,
+                1743.8000000000466, 1742.8000000000466, 1813.7000000001863,
+                1867.1999999999534, 1891.1999999999534, 1787.6999999999534,
+                1326.5, 1833.3000000000466, 1776.8000000000466,
+                1750.6000000000931, 1779.0999999998603, 1881.2000000001863,
+                1810.1999999999534, 1768.3000000000466, 1771.8000000000466,
+                1758.5
+              ],
+              "longTasks": [
+                498, 459, 413, 425, 455, 437, 508, 474, 470, 490, 440, 453, 448,
+                502, 442, 448, 413, 454, 434, 431, 452, 433, 459, 436, 462, 432,
+                444, 444, 475, 523, 458, 434, 468, 441, 454, 440, 480, 447, 474,
+                409, 464, 442, 496, 486, 476, 433, 465, 429, 507, 509, 478, 584,
+                529, 474, 417, 449, 440, 462, 430, 430, 462, 427, 460, 432, 460,
+                454, 472, 425, 467, 429, 495, 481, 419, 461, 436, 471, 473, 433,
+                425, 462, 426, 454, 427, 421, 461, 434, 462, 429, 422, 463, 421,
+                460, 424, 420, 461, 443, 461, 436, 460, 431, 457, 419, 426, 473,
+                424, 456, 431, 420, 461, 422, 454, 507, 422, 432, 462, 424, 487,
+                494, 502, 490, 459, 476, 461, 430, 472, 418, 440, 445, 473, 422,
+                480, 419, 428, 453, 440, 452, 422, 425, 462, 436, 492, 419, 460,
+                495, 496, 427, 471, 423, 447, 444, 426, 454, 475, 455, 446, 434,
+                429, 464, 419, 417, 453, 416, 423, 486, 480, 437, 476, 468, 418,
+                444, 456, 416, 448, 447, 417, 456, 420, 433, 451, 417, 419
+              ]
+            },
+            "perfAfter": {
+              "buildMs": 42.10000000000002,
+              "building": false,
+              "drawMs": 0,
+              "frameMs": 1.400000000023283,
+              "meshMs": 0.6000000000001364,
+              "passIndex": 0,
+              "prims": 20000,
+              "renderer": "gpu",
+              "truncated": false,
+              "uiFrames": 769
+            }
+          }
+        ]
+      }
+    },
+    {
+      "app": "cadcraft",
+      "scene": "quality",
+      "startupProxyMs": 1434.6966760000214,
+      "openToReadyProxyMs": 4810.796701000072,
+      "canvas": {
+        "x": 224,
+        "y": 82,
+        "width": 1072,
+        "height": 892
+      },
+      "inspect": {
+        "doc": {
+          "blockEditor": null,
+          "blocks": ["MARK"],
+          "counts": {
+            "Arc": 1,
+            "Block Reference": 20,
+            "Circle": 1,
+            "Hatch": 1,
+            "Line": 207,
+            "Text": 6
+          },
+          "currentLayer": "0",
+          "dimStyles": ["Standard"],
+          "dirty": false,
+          "entityCount": 236,
+          "extents": [
+            [-19.318516525781366, 0],
+            [2200, 1568.1363486197085]
+          ],
+          "layers": [
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "0",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "Defpoints",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "CONTINUOUS",
+              "locked": false,
+              "name": "COMMON",
+              "on": true
+            }
+          ],
+          "layouts": ["Layout1"],
+          "linetypes": ["ByBlock", "ByLayer", "Continuous", "DASHED"],
+          "path": null,
+          "readNotes": [],
+          "selection": [],
+          "skipped": {
+            "count": 0,
+            "sections": {}
+          },
+          "space": "Model",
+          "textStyles": ["Standard"],
+          "title": "study.dxf",
+          "undo": [],
+          "view": {
+            "center": [1090.3407417371093, 784.0681743098543],
+            "height": 1939.0053382257902
+          }
+        },
+        "ui": {
+          "animations": true,
+          "canvasRect": [224, 82, 1072, 892],
+          "closePrompt": null,
+          "cursor": null,
+          "focus": {
+            "id": null,
+            "keyboardInput": false,
+            "label": null,
+            "role": null
+          },
+          "perf": {
+            "buildMs": 18.299999999999955,
+            "building": false,
+            "drawMs": 0,
+            "frameMs": 1.800000000000182,
+            "meshMs": 0.10000000000002274,
+            "passIndex": 0,
+            "prims": 489,
+            "renderer": "gpu",
+            "truncated": false,
+            "uiFrames": 8
+          },
+          "session": {
+            "documents": [
+              {
+                "active": true,
+                "blockEditor": null,
+                "dirty": false,
+                "entities": 236,
+                "index": 0,
+                "path": null,
+                "revision": 1,
+                "title": "study.dxf"
+              }
+            ],
+            "prompt": "Command:",
+            "running": null,
+            "selection": [],
+            "settings": {
+              "acadlspasdoc": false,
+              "annoallvisible": true,
+              "annoautoscale": false,
+              "aperture": 10,
+              "attreq": true,
+              "auditctl": false,
+              "cmdecho": true,
+              "crossingareacolor": 100,
+              "cursorsize": 5,
+              "dyndigrip": 31,
+              "dyndivis": 1,
+              "dynmode": true,
+              "dynpiAbsolute": false,
+              "dynpiCartesian": false,
+              "dynprompt": true,
+              "filedia": true,
+              "gridmajor": 5,
+              "gridmode": true,
+              "gridunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "gripobjlimit": 100,
+              "grips": 1,
+              "gripsize": 5,
+              "highlight": true,
+              "isodraft": false,
+              "isoplane": "left",
+              "lwdisplay": false,
+              "maxarray": 100000,
+              "measureinit": false,
+              "orthomode": false,
+              "osmode": 4133,
+              "osnaphatch": false,
+              "otrack": true,
+              "pickadd": true,
+              "pickbox": 3,
+              "pickdrag": true,
+              "pickfirst": true,
+              "pickstyle": 1,
+              "plotTransparencyOverride": 1,
+              "polarFlags": 0,
+              "polaraddang": [],
+              "polarang": 1.5707963267948966,
+              "polardist": 0,
+              "polarmode": true,
+              "polarsnap": false,
+              "previeweffect": 2,
+              "previewfilter": 3,
+              "qpmode": false,
+              "selectionCycling": false,
+              "selectionCyclingDisplay": 2,
+              "selectionarea": true,
+              "selectionareaopacity": 25,
+              "selectioneffect": 1,
+              "selectionpreview": 3,
+              "selectsimilarmode": 130,
+              "snapmode": false,
+              "snapunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transparencyDisplay": true,
+              "viewLayerSnapshot": true,
+              "windowareacolor": 150,
+              "zoomfactor": 60
+            }
+          },
+          "snap": null,
+          "theme": "dark",
+          "ui": {
+            "animations": "system",
+            "collapsedGroups": [],
+            "dialog": null,
+            "docking": {
+              "hidden": [],
+              "layout": {
+                "floating": [],
+                "root": {
+                  "Split": {
+                    "axis": "Horizontal",
+                    "first": {
+                      "Dock": {
+                        "columns": [
+                          {
+                            "groups": [
+                              {
+                                "active": 0,
+                                "height": null,
+                                "minimized": false,
+                                "panels": ["toolSets"]
+                              }
+                            ],
+                            "iconic": false,
+                            "iconic_width": null,
+                            "width": 220
+                          }
+                        ],
+                        "side": "Start"
+                      }
+                    },
+                    "second": {
+                      "Split": {
+                        "axis": "Horizontal",
+                        "first": {
+                          "Tabs": {
+                            "active": 0,
+                            "panels": ["canvas"]
+                          }
+                        },
+                        "second": {
+                          "Dock": {
+                            "columns": [
+                              {
+                                "groups": [
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["layers"]
+                                  },
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["properties"]
+                                  }
+                                ],
+                                "iconic": false,
+                                "iconic_width": null,
+                                "width": 300
+                              }
+                            ],
+                            "side": "End"
+                          }
+                        },
+                        "size": {
+                          "FixedSecond": 300
+                        }
+                      }
+                    },
+                    "size": {
+                      "FixedFirst": 220
+                    }
+                  }
+                }
+              },
+              "locked": false,
+              "saved": null,
+              "version": 2
+            },
+            "hiddenTools": [],
+            "historyLines": 3,
+            "inWindowMenu": true,
+            "interfaceLanguage": "auto",
+            "lastLispDir": null,
+            "lastPgpDir": null,
+            "propertiesAll": true,
+            "recentFiles": [],
+            "saveFormat": "dxf",
+            "saveVersion": "2018",
+            "shortcuts": {},
+            "showCommandLine": true,
+            "showFileTabs": true,
+            "showLayerList": false,
+            "showPalettes": true,
+            "showStatusBar": true,
+            "showToolbar": true,
+            "showToolsets": true,
+            "showUcsIcon": true,
+            "showViewcube": true,
+            "startTab": false,
+            "systemCursor": false,
+            "theme": "dark",
+            "toolsetTab": "Drafting"
+          },
+          "view": {
+            "center": [1090.3407417371093, 784.0681743098543],
+            "height": 1939.0053382257902
+          },
+          "window": [1600, 1000]
+        }
+      },
+      "heap": {
+        "usedSize": 3560468,
+        "totalSize": 5550080,
+        "embedderHeapUsedSize": 1498328,
+        "backingStorageSize": 259469
+      },
+      "errors": [],
+      "actions": {},
+      "extremeZoom": {
+        "animations": true,
+        "canvasRect": [224, 82, 838, 660],
+        "closePrompt": null,
+        "cursor": null,
+        "focus": {
+          "id": null,
+          "keyboardInput": false,
+          "label": null,
+          "role": null
+        },
+        "perf": {
+          "buildMs": 18.299999999999955,
+          "building": false,
+          "drawMs": 0,
+          "frameMs": 5.599999999998545,
+          "meshMs": 0.10000000000002274,
+          "passIndex": 0,
+          "prims": 489,
+          "renderer": "gpu",
+          "truncated": false,
+          "uiFrames": 51
+        },
+        "session": {
+          "documents": [
+            {
+              "active": true,
+              "blockEditor": null,
+              "dirty": false,
+              "entities": 236,
+              "index": 0,
+              "path": null,
+              "revision": 1,
+              "title": "study.dxf"
+            }
+          ],
+          "prompt": "Command:",
+          "running": null,
+          "selection": [],
+          "settings": {
+            "acadlspasdoc": false,
+            "annoallvisible": true,
+            "annoautoscale": false,
+            "aperture": 10,
+            "attreq": true,
+            "auditctl": false,
+            "cmdecho": true,
+            "crossingareacolor": 100,
+            "cursorsize": 5,
+            "dyndigrip": 31,
+            "dyndivis": 1,
+            "dynmode": true,
+            "dynpiAbsolute": false,
+            "dynpiCartesian": false,
+            "dynprompt": true,
+            "filedia": true,
+            "gridmajor": 5,
+            "gridmode": true,
+            "gridunit": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "gripobjlimit": 100,
+            "grips": 1,
+            "gripsize": 5,
+            "highlight": true,
+            "isodraft": false,
+            "isoplane": "left",
+            "lwdisplay": false,
+            "maxarray": 100000,
+            "measureinit": false,
+            "orthomode": false,
+            "osmode": 4133,
+            "osnaphatch": false,
+            "otrack": true,
+            "pickadd": true,
+            "pickbox": 3,
+            "pickdrag": true,
+            "pickfirst": true,
+            "pickstyle": 1,
+            "plotTransparencyOverride": 1,
+            "polarFlags": 0,
+            "polaraddang": [],
+            "polarang": 1.5707963267948966,
+            "polardist": 0,
+            "polarmode": true,
+            "polarsnap": false,
+            "previeweffect": 2,
+            "previewfilter": 3,
+            "qpmode": false,
+            "selectionCycling": false,
+            "selectionCyclingDisplay": 2,
+            "selectionarea": true,
+            "selectionareaopacity": 25,
+            "selectioneffect": 1,
+            "selectionpreview": 3,
+            "selectsimilarmode": 130,
+            "snapmode": false,
+            "snapunit": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "transparencyDisplay": true,
+            "viewLayerSnapshot": true,
+            "windowareacolor": 150,
+            "zoomfactor": 60
+          }
+        },
+        "snap": null,
+        "theme": "dark",
+        "ui": {
+          "animations": "system",
+          "collapsedGroups": [],
+          "dialog": null,
+          "docking": {
+            "hidden": [],
+            "layout": {
+              "floating": [],
+              "root": {
+                "Split": {
+                  "axis": "Horizontal",
+                  "first": {
+                    "Dock": {
+                      "columns": [
+                        {
+                          "groups": [
+                            {
+                              "active": 0,
+                              "height": null,
+                              "minimized": false,
+                              "panels": ["toolSets"]
+                            }
+                          ],
+                          "iconic": false,
+                          "iconic_width": null,
+                          "width": 220
+                        }
+                      ],
+                      "side": "Start"
+                    }
+                  },
+                  "second": {
+                    "Split": {
+                      "axis": "Horizontal",
+                      "first": {
+                        "Tabs": {
+                          "active": 0,
+                          "panels": ["canvas"]
+                        }
+                      },
+                      "second": {
+                        "Dock": {
+                          "columns": [
+                            {
+                              "groups": [
+                                {
+                                  "active": 0,
+                                  "height": null,
+                                  "minimized": false,
+                                  "panels": ["layers"]
+                                },
+                                {
+                                  "active": 0,
+                                  "height": null,
+                                  "minimized": false,
+                                  "panels": ["properties"]
+                                }
+                              ],
+                              "iconic": false,
+                              "iconic_width": null,
+                              "width": 300
+                            }
+                          ],
+                          "side": "End"
+                        }
+                      },
+                      "size": {
+                        "FixedSecond": 300
+                      }
+                    }
+                  },
+                  "size": {
+                    "FixedFirst": 220
+                  }
+                }
+              }
+            },
+            "locked": false,
+            "saved": null,
+            "version": 2
+          },
+          "hiddenTools": [],
+          "historyLines": 3,
+          "inWindowMenu": true,
+          "interfaceLanguage": "auto",
+          "lastLispDir": null,
+          "lastPgpDir": null,
+          "propertiesAll": true,
+          "recentFiles": [],
+          "saveFormat": "dxf",
+          "saveVersion": "2018",
+          "shortcuts": {},
+          "showCommandLine": true,
+          "showFileTabs": true,
+          "showLayerList": false,
+          "showPalettes": true,
+          "showStatusBar": true,
+          "showToolbar": true,
+          "showToolsets": true,
+          "showUcsIcon": true,
+          "showViewcube": true,
+          "startTab": false,
+          "systemCursor": false,
+          "theme": "dark",
+          "toolsetTab": "Drafting"
+        },
+        "view": {
+          "center": [1090.3407417371093, 784.0681743098543],
+          "height": 1939.0053382257902
+        },
+        "window": [1366, 768]
+      }
+    },
+    {
+      "app": "cadcraft",
+      "scene": "precisionOrigin",
+      "startupProxyMs": 1111.5181940000039,
+      "openToReadyProxyMs": 4595.6417319998145,
+      "canvas": {
+        "x": 224,
+        "y": 82,
+        "width": 1072,
+        "height": 892
+      },
+      "inspect": {
+        "doc": {
+          "blockEditor": null,
+          "blocks": ["MARK"],
+          "counts": {
+            "Line": 100
+          },
+          "currentLayer": "0",
+          "dimStyles": ["Standard"],
+          "dirty": false,
+          "entityCount": 100,
+          "extents": [
+            [0, 0],
+            [93, 92]
+          ],
+          "layers": [
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "0",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "Defpoints",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "CONTINUOUS",
+              "locked": false,
+              "name": "COMMON",
+              "on": true
+            }
+          ],
+          "layouts": ["Layout1"],
+          "linetypes": ["ByBlock", "ByLayer", "Continuous", "DASHED"],
+          "path": null,
+          "readNotes": [],
+          "selection": [],
+          "skipped": {
+            "count": 0,
+            "sections": {}
+          },
+          "space": "Model",
+          "textStyles": ["Standard"],
+          "title": "study.dxf",
+          "undo": [],
+          "view": {
+            "center": [46.5, 46],
+            "height": 96.60000000000001
+          }
+        },
+        "ui": {
+          "animations": true,
+          "canvasRect": [224, 82, 1072, 892],
+          "closePrompt": null,
+          "cursor": null,
+          "focus": {
+            "id": null,
+            "keyboardInput": false,
+            "label": null,
+            "role": null
+          },
+          "perf": {
+            "buildMs": 5.5,
+            "building": false,
+            "drawMs": 0,
+            "frameMs": 1.800000000000182,
+            "meshMs": 0.10000000000002274,
+            "passIndex": 0,
+            "prims": 100,
+            "renderer": "gpu",
+            "truncated": false,
+            "uiFrames": 8
+          },
+          "session": {
+            "documents": [
+              {
+                "active": true,
+                "blockEditor": null,
+                "dirty": false,
+                "entities": 100,
+                "index": 0,
+                "path": null,
+                "revision": 1,
+                "title": "study.dxf"
+              }
+            ],
+            "prompt": "Command:",
+            "running": null,
+            "selection": [],
+            "settings": {
+              "acadlspasdoc": false,
+              "annoallvisible": true,
+              "annoautoscale": false,
+              "aperture": 10,
+              "attreq": true,
+              "auditctl": false,
+              "cmdecho": true,
+              "crossingareacolor": 100,
+              "cursorsize": 5,
+              "dyndigrip": 31,
+              "dyndivis": 1,
+              "dynmode": true,
+              "dynpiAbsolute": false,
+              "dynpiCartesian": false,
+              "dynprompt": true,
+              "filedia": true,
+              "gridmajor": 5,
+              "gridmode": true,
+              "gridunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "gripobjlimit": 100,
+              "grips": 1,
+              "gripsize": 5,
+              "highlight": true,
+              "isodraft": false,
+              "isoplane": "left",
+              "lwdisplay": false,
+              "maxarray": 100000,
+              "measureinit": false,
+              "orthomode": false,
+              "osmode": 4133,
+              "osnaphatch": false,
+              "otrack": true,
+              "pickadd": true,
+              "pickbox": 3,
+              "pickdrag": true,
+              "pickfirst": true,
+              "pickstyle": 1,
+              "plotTransparencyOverride": 1,
+              "polarFlags": 0,
+              "polaraddang": [],
+              "polarang": 1.5707963267948966,
+              "polardist": 0,
+              "polarmode": true,
+              "polarsnap": false,
+              "previeweffect": 2,
+              "previewfilter": 3,
+              "qpmode": false,
+              "selectionCycling": false,
+              "selectionCyclingDisplay": 2,
+              "selectionarea": true,
+              "selectionareaopacity": 25,
+              "selectioneffect": 1,
+              "selectionpreview": 3,
+              "selectsimilarmode": 130,
+              "snapmode": false,
+              "snapunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transparencyDisplay": true,
+              "viewLayerSnapshot": true,
+              "windowareacolor": 150,
+              "zoomfactor": 60
+            }
+          },
+          "snap": null,
+          "theme": "dark",
+          "ui": {
+            "animations": "system",
+            "collapsedGroups": [],
+            "dialog": null,
+            "docking": {
+              "hidden": [],
+              "layout": {
+                "floating": [],
+                "root": {
+                  "Split": {
+                    "axis": "Horizontal",
+                    "first": {
+                      "Dock": {
+                        "columns": [
+                          {
+                            "groups": [
+                              {
+                                "active": 0,
+                                "height": null,
+                                "minimized": false,
+                                "panels": ["toolSets"]
+                              }
+                            ],
+                            "iconic": false,
+                            "iconic_width": null,
+                            "width": 220
+                          }
+                        ],
+                        "side": "Start"
+                      }
+                    },
+                    "second": {
+                      "Split": {
+                        "axis": "Horizontal",
+                        "first": {
+                          "Tabs": {
+                            "active": 0,
+                            "panels": ["canvas"]
+                          }
+                        },
+                        "second": {
+                          "Dock": {
+                            "columns": [
+                              {
+                                "groups": [
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["layers"]
+                                  },
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["properties"]
+                                  }
+                                ],
+                                "iconic": false,
+                                "iconic_width": null,
+                                "width": 300
+                              }
+                            ],
+                            "side": "End"
+                          }
+                        },
+                        "size": {
+                          "FixedSecond": 300
+                        }
+                      }
+                    },
+                    "size": {
+                      "FixedFirst": 220
+                    }
+                  }
+                }
+              },
+              "locked": false,
+              "saved": null,
+              "version": 2
+            },
+            "hiddenTools": [],
+            "historyLines": 3,
+            "inWindowMenu": true,
+            "interfaceLanguage": "auto",
+            "lastLispDir": null,
+            "lastPgpDir": null,
+            "propertiesAll": true,
+            "recentFiles": [],
+            "saveFormat": "dxf",
+            "saveVersion": "2018",
+            "shortcuts": {},
+            "showCommandLine": true,
+            "showFileTabs": true,
+            "showLayerList": false,
+            "showPalettes": true,
+            "showStatusBar": true,
+            "showToolbar": true,
+            "showToolsets": true,
+            "showUcsIcon": true,
+            "showViewcube": true,
+            "startTab": false,
+            "systemCursor": false,
+            "theme": "dark",
+            "toolsetTab": "Drafting"
+          },
+          "view": {
+            "center": [46.5, 46],
+            "height": 96.60000000000001
+          },
+          "window": [1600, 1000]
+        }
+      },
+      "heap": {
+        "usedSize": 3948796,
+        "totalSize": 6074368,
+        "embedderHeapUsedSize": 1498328,
+        "backingStorageSize": 222078
+      },
+      "errors": [],
+      "actions": {}
+    },
+    {
+      "app": "cadcraft",
+      "scene": "precisionFar",
+      "startupProxyMs": 1882.3399370000698,
+      "openToReadyProxyMs": 4347.556749999989,
+      "canvas": {
+        "x": 224,
+        "y": 82,
+        "width": 1072,
+        "height": 892
+      },
+      "inspect": {
+        "doc": {
+          "blockEditor": null,
+          "blocks": ["MARK"],
+          "counts": {
+            "Line": 100
+          },
+          "currentLayer": "0",
+          "dimStyles": ["Standard"],
+          "dirty": false,
+          "entityCount": 100,
+          "extents": [
+            [100000000, 100000000],
+            [100000093, 100000092]
+          ],
+          "layers": [
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "0",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "Continuous",
+              "locked": false,
+              "name": "Defpoints",
+              "on": true
+            },
+            {
+              "color": "White",
+              "frozen": false,
+              "linetype": "CONTINUOUS",
+              "locked": false,
+              "name": "COMMON",
+              "on": true
+            }
+          ],
+          "layouts": ["Layout1"],
+          "linetypes": ["ByBlock", "ByLayer", "Continuous", "DASHED"],
+          "path": null,
+          "readNotes": [],
+          "selection": [],
+          "skipped": {
+            "count": 0,
+            "sections": {}
+          },
+          "space": "Model",
+          "textStyles": ["Standard"],
+          "title": "study.dxf",
+          "undo": [],
+          "view": {
+            "center": [100000046.5, 100000046],
+            "height": 96.60000000000001
+          }
+        },
+        "ui": {
+          "animations": true,
+          "canvasRect": [224, 82, 1072, 892],
+          "closePrompt": null,
+          "cursor": null,
+          "focus": {
+            "id": null,
+            "keyboardInput": false,
+            "label": null,
+            "role": null
+          },
+          "perf": {
+            "buildMs": 4.800000000000182,
+            "building": false,
+            "drawMs": 0.09999999999990905,
+            "frameMs": 2.700000000000273,
+            "meshMs": 0.10000000000013642,
+            "passIndex": 0,
+            "prims": 100,
+            "renderer": "gpu",
+            "truncated": false,
+            "uiFrames": 9
+          },
+          "session": {
+            "documents": [
+              {
+                "active": true,
+                "blockEditor": null,
+                "dirty": false,
+                "entities": 100,
+                "index": 0,
+                "path": null,
+                "revision": 1,
+                "title": "study.dxf"
+              }
+            ],
+            "prompt": "Command:",
+            "running": null,
+            "selection": [],
+            "settings": {
+              "acadlspasdoc": false,
+              "annoallvisible": true,
+              "annoautoscale": false,
+              "aperture": 10,
+              "attreq": true,
+              "auditctl": false,
+              "cmdecho": true,
+              "crossingareacolor": 100,
+              "cursorsize": 5,
+              "dyndigrip": 31,
+              "dyndivis": 1,
+              "dynmode": true,
+              "dynpiAbsolute": false,
+              "dynpiCartesian": false,
+              "dynprompt": true,
+              "filedia": true,
+              "gridmajor": 5,
+              "gridmode": true,
+              "gridunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "gripobjlimit": 100,
+              "grips": 1,
+              "gripsize": 5,
+              "highlight": true,
+              "isodraft": false,
+              "isoplane": "left",
+              "lwdisplay": false,
+              "maxarray": 100000,
+              "measureinit": false,
+              "orthomode": false,
+              "osmode": 4133,
+              "osnaphatch": false,
+              "otrack": true,
+              "pickadd": true,
+              "pickbox": 3,
+              "pickdrag": true,
+              "pickfirst": true,
+              "pickstyle": 1,
+              "plotTransparencyOverride": 1,
+              "polarFlags": 0,
+              "polaraddang": [],
+              "polarang": 1.5707963267948966,
+              "polardist": 0,
+              "polarmode": true,
+              "polarsnap": false,
+              "previeweffect": 2,
+              "previewfilter": 3,
+              "qpmode": false,
+              "selectionCycling": false,
+              "selectionCyclingDisplay": 2,
+              "selectionarea": true,
+              "selectionareaopacity": 25,
+              "selectioneffect": 1,
+              "selectionpreview": 3,
+              "selectsimilarmode": 130,
+              "snapmode": false,
+              "snapunit": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "transparencyDisplay": true,
+              "viewLayerSnapshot": true,
+              "windowareacolor": 150,
+              "zoomfactor": 60
+            }
+          },
+          "snap": null,
+          "theme": "dark",
+          "ui": {
+            "animations": "system",
+            "collapsedGroups": [],
+            "dialog": null,
+            "docking": {
+              "hidden": [],
+              "layout": {
+                "floating": [],
+                "root": {
+                  "Split": {
+                    "axis": "Horizontal",
+                    "first": {
+                      "Dock": {
+                        "columns": [
+                          {
+                            "groups": [
+                              {
+                                "active": 0,
+                                "height": null,
+                                "minimized": false,
+                                "panels": ["toolSets"]
+                              }
+                            ],
+                            "iconic": false,
+                            "iconic_width": null,
+                            "width": 220
+                          }
+                        ],
+                        "side": "Start"
+                      }
+                    },
+                    "second": {
+                      "Split": {
+                        "axis": "Horizontal",
+                        "first": {
+                          "Tabs": {
+                            "active": 0,
+                            "panels": ["canvas"]
+                          }
+                        },
+                        "second": {
+                          "Dock": {
+                            "columns": [
+                              {
+                                "groups": [
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["layers"]
+                                  },
+                                  {
+                                    "active": 0,
+                                    "height": null,
+                                    "minimized": false,
+                                    "panels": ["properties"]
+                                  }
+                                ],
+                                "iconic": false,
+                                "iconic_width": null,
+                                "width": 300
+                              }
+                            ],
+                            "side": "End"
+                          }
+                        },
+                        "size": {
+                          "FixedSecond": 300
+                        }
+                      }
+                    },
+                    "size": {
+                      "FixedFirst": 220
+                    }
+                  }
+                }
+              },
+              "locked": false,
+              "saved": null,
+              "version": 2
+            },
+            "hiddenTools": [],
+            "historyLines": 3,
+            "inWindowMenu": true,
+            "interfaceLanguage": "auto",
+            "lastLispDir": null,
+            "lastPgpDir": null,
+            "propertiesAll": true,
+            "recentFiles": [],
+            "saveFormat": "dxf",
+            "saveVersion": "2018",
+            "shortcuts": {},
+            "showCommandLine": true,
+            "showFileTabs": true,
+            "showLayerList": false,
+            "showPalettes": true,
+            "showStatusBar": true,
+            "showToolbar": true,
+            "showToolsets": true,
+            "showUcsIcon": true,
+            "showViewcube": true,
+            "startTab": false,
+            "systemCursor": false,
+            "theme": "dark",
+            "toolsetTab": "Drafting"
+          },
+          "view": {
+            "center": [100000046.5, 100000046],
+            "height": 96.60000000000001
+          },
+          "window": [1600, 1000]
+        }
+      },
+      "heap": {
+        "usedSize": 4005912,
+        "totalSize": 6336512,
+        "embedderHeapUsedSize": 1498056,
+        "backingStorageSize": 230722
+      },
+      "errors": [],
+      "actions": {}
+    }
+  ]
+}

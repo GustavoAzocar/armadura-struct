@@ -1,0 +1,198 @@
+{
+  "label": "issue148-local-edit",
+  "commit": "d402139b5de275d331b53f92ffb3725298ae2ca2",
+  "environment": {
+    "system": "linux 6.18.57",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 3,
+    "memoryBytes": 10452459520,
+    "browser": "156.0.8078.79",
+    "graphics": {
+      "devices": [
+        {
+          "vendorId": 65535,
+          "deviceId": 65535,
+          "vendorString": "Google Inc. (Google)",
+          "deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+          "driverVendor": "SwANGLE",
+          "driverVersion": "5.0.0"
+        }
+      ],
+      "features": {
+        "2d_canvas": "unavailable_software",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "disabled_software",
+        "multiple_raster_threads": "disabled_off",
+        "opengl": "disabled_off",
+        "rasterization": "disabled_software",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "disabled_software",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "unavailable_software",
+        "webgpu": "unavailable_software",
+        "webgpu_on_vk_via_gl_interop": "disabled_off",
+        "webnn": "unavailable_software"
+      }
+    },
+    "node": "v24.22.1",
+    "url": "http://127.0.0.1:1420",
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "samples": 30,
+    "repeats": 1,
+    "snapModes": ["endpoint", "midpoint"]
+  },
+  "scenes": {
+    "large": {
+      "bytes": 2554283,
+      "bars": 400,
+      "representations": 400,
+      "masks": 1,
+      "maskPrimitives": 20000,
+      "maskPoints": 40000,
+      "svgElements": 5127,
+      "actions": {
+        "grip": [
+          {
+            "elapsedMs": 1310.3326550000002,
+            "dispatchMs": {
+              "count": 30,
+              "median": 27.907633999999234,
+              "p95": 39.702361999999994,
+              "max": 46.50829999999951
+            },
+            "frameMs": {
+              "count": 54,
+              "median": 16.699999999999818,
+              "p95": 33.30000000000018,
+              "max": 433.39999999999964
+            },
+            "inputToTwoFramesMs": {
+              "count": 31,
+              "median": 26,
+              "p95": 47.300000000046566,
+              "max": 459.69999999995343
+            },
+            "longTasks": {
+              "count": 1,
+              "median": 443,
+              "p95": 443,
+              "max": 443
+            },
+            "writes": 0,
+            "cpuMs": {
+              "ScriptDuration": 737.5129999999999,
+              "TaskDuration": 1335.826,
+              "LayoutDuration": 10.276,
+              "RecalcStyleDuration": 2.6689999999999996
+            },
+            "profile": [
+              {
+                "frame": "(program) :0",
+                "selfMs": 547.118
+              },
+              {
+                "frame": "(idle) :0",
+                "selfMs": 302.221
+              },
+              {
+                "frame": "tree ../../src/domain/objectSnaps.ts:92",
+                "selfMs": 146.072
+              },
+              {
+                "frame": "(garbage collector) :0",
+                "selfMs": 82.808
+              },
+              {
+                "frame": " ../../src/domain/objectSnaps.ts:97",
+                "selfMs": 73.511
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1299",
+                "selfMs": 57.765
+              },
+              {
+                "frame": "updateProperties ../../node_modules/react-dom/cjs/react-dom-client.production.js:15035",
+                "selfMs": 41.52900000000001
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1329",
+                "selfMs": 32.623
+              },
+              {
+                "frame": "createSnapIndex ../../src/domain/objectSnaps.ts:167",
+                "selfMs": 20.715
+              },
+              {
+                "frame": "commitHostUpdate ../../node_modules/react-dom/cjs/react-dom-client.production.js:9218",
+                "selfMs": 19.973999999999997
+              },
+              {
+                "frame": "J1 ../../src/domain/rebarApi.ts:514",
+                "selfMs": 17.226
+              },
+              {
+                "frame": "commitMutationEffectsOnFiber ../../node_modules/react-dom/cjs/react-dom-client.production.js:10497",
+                "selfMs": 15.467
+              },
+              {
+                "frame": "reconcileChildrenArray ../../node_modules/react-dom/cjs/react-dom-client.production.js:3905",
+                "selfMs": 14.967
+              },
+              {
+                "frame": "workLoopSync ../../node_modules/react-dom/cjs/react-dom-client.production.js:12583",
+                "selfMs": 14.621
+              },
+              {
+                "frame": "m ../../src/components/CadCanvas.tsx:314",
+                "selfMs": 14.472
+              },
+              {
+                "frame": "Na ../../src/components/CadCanvas.tsx:1203",
+                "selfMs": 11.759
+              },
+              {
+                "frame": "objectRole ../../src/domain/layers.ts:66",
+                "selfMs": 9.745999999999999
+              },
+              {
+                "frame": "beginWork ../../node_modules/react-dom/cjs/react-dom-client.production.js:7768",
+                "selfMs": 9.198
+              },
+              {
+                "frame": "reconcileChildFibersImpl ../../node_modules/react-dom/cjs/react-dom-client.production.js:4078",
+                "selfMs": 8.702
+              },
+              {
+                "frame": " ../../src/components/CadCanvas.tsx:1484",
+                "selfMs": 7.468
+              },
+              {
+                "frame": "(anonymous) :0",
+                "selfMs": 7.462000000000001
+              },
+              {
+                "frame": "updateSlot ../../node_modules/react-dom/cjs/react-dom-client.production.js:3786",
+                "selfMs": 6.506
+              },
+              {
+                "frame": "createWorkInProgress ../../node_modules/react-dom/cjs/react-dom-client.production.js:2668",
+                "selfMs": 6.495
+              },
+              {
+                "frame": "stylePrimitive ../../src/domain/layers.ts:103",
+                "selfMs": 5.303999999999999
+              }
+            ]
+          }
+        ]
+      },
+      "errors": []
+    }
+  }
+}
