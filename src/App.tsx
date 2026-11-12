@@ -9453,6 +9453,31 @@ export default function App() {
                 snapModes={snapModes}
                 snapBase={vertexRequest ? null : transformRequest?.base}
                 snapContext={`${snapCommand}:${nativeKind ?? tool}:${maskManip?.mode ?? ''}`}
+                snapLinear={
+                  nativeKind
+                    ? nativeKind === 'line' || nativeKind === 'polyline'
+                    : !beamClampSession &&
+                      !helixSession &&
+                      !stirrupSession &&
+                      !maskOffset &&
+                      !maskManip &&
+                      !transformRequest &&
+                      !vertexRequest &&
+                      !alignmentRequest &&
+                      !freeText &&
+                      !symbolPick &&
+                      !match &&
+                      !maskCad &&
+                      [
+                        'bar',
+                        'polyline',
+                        'measure',
+                        'section',
+                        'leader',
+                        'dimension-aligned',
+                        'dimension-orthogonal',
+                      ].includes(tool)
+                }
                 ortho={ortho && vertexRequest?.mode !== 'lengthen'}
                 light={light}
                 setTool={setTool}

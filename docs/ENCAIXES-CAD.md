@@ -19,6 +19,10 @@ O marcador mostra o modo e o ponto efetivamente capturado. Prévia e clique usam
 | Ponto mais próximo | Geometria efetivamente disponível                                    | Projeção limitada ao trecho/arco; em importações amostradas, usa a aproximação retida.                                     |
 | Inserção           | Âncora preservada de texto nativo ou texto normalizado da importação | Não usa o centro da caixa do texto nem tenta reconstruir inserções de blocos expandidos.                                   |
 | Nó                 | Entidade de ponto identificável                                      | O formato/importador atuais não expõem essa entidade. O modo não oferece candidatos a partir de vértices ou de amostras.   |
+| Perpendicular      | Segmento finito ou círculo/arco analítico                            | Exige base efetiva e pé dentro da geometria; não prolonga implicitamente um segmento.                                      |
+| Tangente           | Círculo/arco analítico                                               | Exige base exterior; soluções fora da varredura não participam.                                                            |
+| Extensão           | Segmento ou arco analítico com extremo adquirido                     | Continua para fora do extremo durante o comando; não se aplica a círculo fechado ou arco perdido na amostragem.            |
+| Paralelo           | Direção adquirida de segmento capturável                             | Exige base e comando que crie trecho linear; a referência pode estar rotacionada e ser somente de leitura.                 |
 
 Os pontos discretos dentro da abertura têm prioridade sobre Ponto mais próximo. Entre eles vence a menor distância ao cursor; empates mantêm a ordem estável da cena, com os pontos extras dos comandos antes das cadeias antigas. Interseções usam ordem determinística dos pares. Um centroide de polígono importado descreve a **área da aproximação retida**, não o centro analítico de uma curva perdida.
 
@@ -39,6 +43,22 @@ A base vem dos pontos efetivos do comando: desenho de linhas/polilinhas/barras, 
 ![Tangência com ponto-base no CAD](object-snaps-tangent.png)
 
 ![Perpendicular em referência transformada](object-snaps-perpendicular.png)
+
+## Extensão e paralelo — #165
+
+As referências adquiridas ficam realçadas em verde. A guia aparece tracejada apenas quando o cursor se aproxima de sua continuação, dentro da mesma abertura de **10 pixels** dos demais encaixes. O marcador identifica o modo, e a prévia e o clique usam exatamente sua coordenada.
+
+**Extensão:** ative o modo, inicie um comando que peça pontos e passe o cursor junto do extremo desejado de um segmento ou arco analítico. Afaste o cursor acompanhando o prolongamento: um segmento continua para fora do extremo adquirido; o arco continua sua circunferência e o sentido de varredura naquele extremo. No extremo inicial, a continuação segue o sentido oposto ao percurso original. A extensão do arco não volta sobre o trecho original. Círculos fechados não têm extremos. Não é necessário clicar na referência, nem alterá-la.
+
+**Paralelo:** ative o modo, inicie um comando que crie um trecho linear, como Linha, Polilinha ou Barra, e escolha a primeira ponta. Passe o cursor sobre um segmento capturável para adquirir sua direção. Leve o cursor próximo da paralela que passa pela base escolhida e confirme a segunda ponta. Uma máscara rotacionada fornece a direção já transformada no modelo. Sem base ou em comandos de círculo/retângulo não há guia paralela.
+
+Não há guia sem aquisição. Afastar o cursor conserva a referência apenas durante a etapa do comando; Esc, troca/reinício de comando, F3 desligado, mudança de base ou indisponibilidade da referência descartam a aquisição. Ocultar a máscara ou desativar sua captura exige adquiri-la novamente ao recuperá-la. Pan e zoom mantêm a referência válida, com abertura visual constante. A guia não entra no histórico, no arquivo, nas pranchas ou nas exportações. ORTO continua tendo precedência; se deslocar o resultado, o marcador e a guia desse candidato são suprimidos.
+
+![Extensão de segmento](object-snaps-extension.png)
+
+![Paralelo em máscara transformada](object-snaps-parallel.png)
+
+![Continuação de arco analítico](object-snaps-arc-extension.png)
 
 ## Cena densa
 

@@ -18,6 +18,8 @@ const descriptions: Record<SnapMode, string> = {
   node: 'Somente objetos de ponto identificáveis.',
   perpendicular: 'Pé perpendicular a partir do ponto-base do comando.',
   tangent: 'Tangência a círculo ou arco a partir de uma base exterior.',
+  extension: 'Adquira um extremo e acompanhe seu prolongamento temporário.',
+  parallel: 'Após a base, adquira a direção de um segmento para o novo trecho.',
 };
 export default function ObjectSnapDialog({
   modes,
