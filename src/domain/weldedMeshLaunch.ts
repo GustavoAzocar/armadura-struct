@@ -247,7 +247,8 @@ export function deleteWeldedMesh(p: Project, id: string): Project {
 /**
  * Edição explícita de um lançamento: devolve o projeto atualizado e os planos
  * antes/depois, para a prévia do impacto. Não muda os critérios padrão. Uma
- * camada informada nos critérios passa a ser o vínculo do lançamento.
+ * camada informada nos critérios passa a ser o vínculo do lançamento;
+ * layerId: undefined explícito volta ao papel. Omitir a propriedade preserva-o.
  */
 export function previewWeldedMeshUpdate(
   p: Project,
@@ -263,6 +264,7 @@ export function previewWeldedMeshUpdate(
     const { layerId, ...own } = criteria;
     next.criteria = own;
     if (layerId) next.layerId = layerId;
+    else if (Object.hasOwn(criteria, 'layerId')) delete next.layerId;
   }
   assertValid(p, next);
   const after = weldedMeshPlan(next);

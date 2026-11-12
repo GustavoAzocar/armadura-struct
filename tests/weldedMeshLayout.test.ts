@@ -185,6 +185,86 @@ describe('Paginação conservadora', () => {
     expect(minX(full.rect)).toBe(500);
   });
 
+  it('região menor ou igual à sobreposição recebe um painel em todos os cantos e orientações', () => {
+    for (const start of [
+      'bottom-left',
+      'bottom-right',
+      'top-left',
+      'top-right',
+    ] as const)
+      for (const orientation of [0, 30, 90, -35])
+        for (const [w, h] of [
+          [6000, 100],
+          [500, 2450],
+          [500, 100],
+          [1000, 150],
+        ]) {
+          const l = plan(
+            region(rect(0, 0, w, h).map((p) => rotate(p, orientation))),
+            criteria({
+              start,
+              orientation,
+              lengthOverlap: 1000,
+              widthOverlap: 150,
+            }),
+          );
+          expect(l.basePanels).toBe(1);
+          expect(l.appliedArea).toBeCloseTo(w * h, 3);
+          expect(l.appliedMass).toBeCloseTo((w * h * 1.48) / 1e6, 6);
+          expect(l.supplyMass).toBe(21.8);
+          expect(l.overlapArea).toBe(0);
+          expect(layers(l, rotate(P(w / 2, h / 2), orientation))).toBe(1);
+          // Sem âncora explícita, o painel escolhido mantém o canto inicial.
+          const local = l.panels[0].local;
+          expect(local.u).toBeCloseTo(
+            start.endsWith('right') ? w - 6000 : 0,
+            3,
+          );
+          expect(local.v).toBeCloseTo(
+            start.startsWith('top') ? h - 2450 : 0,
+            3,
+          );
+        }
+  });
+
+  it('região pequena com âncora deslocada mantém a grade, sem painel redundante nem área descoberta', () => {
+    for (const start of [
+      'bottom-left',
+      'bottom-right',
+      'top-left',
+      'top-right',
+    ] as const)
+      for (const orientation of [0, 30, 90, -35])
+        for (const a of [
+          P(-200, -20),
+          P(250, 50),
+          P(700, 120),
+          P(10100, -4810),
+        ]) {
+          const l = plan(
+            region(rect(0, 0, 500, 100).map((p) => rotate(p, orientation))),
+            criteria({
+              start,
+              orientation,
+              lengthOverlap: 1000,
+              widthOverlap: 150,
+            }),
+            { anchor: rotate(a, orientation) },
+          );
+          expect(l.basePanels).toBe(1);
+          expect(l.appliedArea).toBeCloseTo(50000, 3);
+          expect(l.overlapArea).toBe(0);
+          const { u, v } = l.panels[0].local;
+          const i = (u - a.x + (start.endsWith('right') ? 6000 : 0)) / 5000;
+          const j = (v - a.y + (start.startsWith('top') ? 2450 : 0)) / 2300;
+          expect(i).toBeCloseTo(Math.round(i), 9);
+          expect(j).toBeCloseTo(Math.round(j), 9);
+          for (const x of [1, 250, 499])
+            for (const y of [1, 50, 99])
+              expect(layers(l, rotate(P(x, y), orientation))).toBe(1);
+        }
+  });
+
   it('painéis vizinhos sem sobreposição recebem aviso', () => {
     const l = plan(region(rect(0, 0, 12000, 2450)), criteria());
     expect(l.basePanels).toBe(2);

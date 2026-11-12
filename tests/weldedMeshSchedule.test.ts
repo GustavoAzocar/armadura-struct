@@ -7,6 +7,7 @@ import {
 } from '../src/domain/model';
 import {
   catalogWeldedMesh,
+  customWeldedMesh,
   defaultWeldedMeshCriteria,
   type WeldedMeshCriteria,
 } from '../src/domain/weldedMesh';
@@ -150,6 +151,53 @@ describe('Quadro de telas soldadas', () => {
     ]);
     for (const r of s.rows)
       expect(r.warnings.join(' ')).toContain('diferentes');
+  });
+
+  it('telas personalizadas com mesmo rótulo e definição diferente também recebem aviso', () => {
+    const mesh = customWeldedMesh(catalogWeldedMesh('Q92')!, {
+      massPerArea: 2,
+    });
+    let p = launch(
+      emptyProject(),
+      'tela-1',
+      rect(0, 0, 6000, 2450),
+      criteria({ mesh }),
+    );
+    p = launch(
+      p,
+      'tela-2',
+      rect(0, 10000, 6000, 2450),
+      criteria({ mesh: { ...mesh, massPerArea: 3 } }),
+    );
+    const s = weldedMeshSchedule(p);
+    expect(s.rows).toHaveLength(2);
+    expect(new Set(s.rows.map((r) => r.label)).size).toBe(1);
+    expect(s.total).toBeCloseTo(14.7 * 5, 9);
+    for (const r of s.rows)
+      expect(r.warnings.join(' ')).toContain('telas diferentes');
+  });
+
+  it('duplicar a mesma definição personalizada soma sem aviso de telas diferentes', () => {
+    const mesh = customWeldedMesh(catalogWeldedMesh('Q92')!, {
+      massPerArea: 2,
+    });
+    let p = launch(
+      emptyProject(),
+      'tela-1',
+      rect(0, 0, 6000, 2450),
+      criteria({ mesh }),
+    );
+    p = launch(
+      p,
+      'tela-2',
+      rect(0, 10000, 6000, 2450),
+      criteria({ mesh: structuredClone(mesh) }),
+    );
+    const s = weldedMeshSchedule(p);
+    expect(s.rows).toHaveLength(1);
+    expect(s.rows[0].contributions).toHaveLength(2);
+    expect(s.rows[0].warnings).toEqual([]);
+    expect(s.total).toBeCloseTo(14.7 * 4, 9);
   });
 
   it('repetição do detalhamento é aplicada uma única vez', () => {

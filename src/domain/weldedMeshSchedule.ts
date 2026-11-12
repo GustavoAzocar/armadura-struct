@@ -154,7 +154,11 @@ export function weldedMeshSchedule(
   for (const r of rows) {
     r.lossMass = (r.appliedMass * lossPercent) / 100;
     r.weight = r.appliedMass + r.lossMass;
-    marks.set(r.mark, (marks.get(r.mark) ?? new Set()).add(r.label));
+    // O rótulo pode coincidir em definições personalizadas diferentes.
+    marks.set(
+      r.mark,
+      (marks.get(r.mark) ?? new Set()).add(JSON.stringify(r.mesh)),
+    );
   }
   for (const r of rows)
     if (marks.get(r.mark)!.size > 1)

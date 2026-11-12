@@ -4965,6 +4965,12 @@ export default function App() {
   }
   function openWeldedMeshCriteria() {
     const base = historyRef.current.present;
+    if (meshSession?.editId) {
+      notify(
+        'Conclua ou cancele a redefinição da região antes de editar os critérios da tela.',
+      );
+      return;
+    }
     // Durante um lançamento, os critérios abertos são os dele.
     if (meshSession) {
       setWeldedMeshDialog({

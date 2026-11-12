@@ -159,6 +159,21 @@ test('selecionar, editar critérios só desta tela com antes × depois e redefin
   await expect(
     panel(page).getByRole('button', { name: 'Critérios…', exact: true }),
   ).toHaveCount(0);
+  // O mesmo contrato vale para o comando disponível na faixa Armaduras.
+  await page.getByRole('tab', { name: 'Armaduras', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Critérios de telas', exact: true })
+    .click();
+  await expect(
+    page.getByRole('dialog', {
+      name: 'Critérios de telas soldadas',
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(panel(page)).toContainText('Redefinir região · TS1 · Q138');
+  await expect(page.locator('.toast')).toContainText(
+    'Conclua ou cancele a redefinição da região',
+  );
   await clickModel(page, P(9500, 0));
   // Antes × depois lado a lado: o atual e a prévia da nova região.
   await expect(

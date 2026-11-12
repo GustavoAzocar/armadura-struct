@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decodeProject, emptyProject } from '../src/domain/model';
+import { layerId, layerUsage } from '../src/domain/layers';
 import {
   catalogWeldedMesh,
   defaultWeldedMeshCriteria,
@@ -173,6 +174,44 @@ describe('Formato do arquivo (telas desde o 29, reservado à #128)', () => {
 });
 
 describe('Edição do lançamento', () => {
+  it('voltar à camada pelo papel remove o vínculo só desta tela, sem mudar os critérios padrão', () => {
+    const explicitLayer = layerId('DESENHO');
+    const { p } = launched(undefined, criteria({ layerId: explicitLayer }));
+    const before = structuredClone(p);
+    const q = previewWeldedMeshUpdate(p, 'tela-1', {
+      criteria: criteria({ layerId: undefined }),
+    }).project;
+    expect(q.weldedMeshes![0]).not.toHaveProperty('layerId');
+    expect(q.weldedMeshes![0].criteria).not.toHaveProperty('layerId');
+    expect(layerUsage(q).get(layerId('ARMADURAS'))).toContain('tela-1');
+    expect(layerUsage(q).get(explicitLayer)).not.toContain('tela-1');
+    expect(q.weldedMeshDefaults).toEqual(p.weldedMeshDefaults);
+    expect(roundTrip(q)).toEqual(q);
+    expect(p).toEqual(before);
+  });
+
+  it('redefinir apenas a região mantém o vínculo da camada e os critérios padrão', () => {
+    const explicitLayer = layerId('DESENHO');
+    const { p } = launched(undefined, criteria({ layerId: explicitLayer }));
+    const q = previewWeldedMeshUpdate(p, 'tela-1', {
+      region: region(rect(0, 0, 3000, 2450)),
+    }).project;
+    expect(q.weldedMeshes![0].layerId).toBe(explicitLayer);
+    expect(q.weldedMeshes![0].criteria).toEqual(p.weldedMeshes![0].criteria);
+    expect(q.weldedMeshDefaults).toEqual(p.weldedMeshDefaults);
+  });
+
+  it('critérios programáticos sem a propriedade layerId preservam a camada atual', () => {
+    const explicitLayer = layerId('DESENHO');
+    const { p } = launched(undefined, criteria({ layerId: explicitLayer }));
+    const q = previewWeldedMeshUpdate(p, 'tela-1', {
+      criteria: criteria({ mark: 'TS2' }),
+    }).project;
+    expect(q.weldedMeshes![0].layerId).toBe(explicitLayer);
+    expect(q.weldedMeshes![0].criteria.mark).toBe('TS2');
+    expect(q.weldedMeshDefaults).toEqual(p.weldedMeshDefaults);
+  });
+
   it('mover desloca região e âncora; girar soma à orientação sem mudar os quantitativos', () => {
     const { p } = launched(
       rect(0, 0, 6000, 4750),

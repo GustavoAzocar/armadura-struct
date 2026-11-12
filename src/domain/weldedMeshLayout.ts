@@ -230,10 +230,23 @@ export function planWeldedMeshLayout(
   // Do último painel que começa até o início da região ao primeiro que termina
   // depois do fim dela. Com sobreposição, um painel antes do canto ainda encosta
   // na região, mas é redundante: o painel do canto já cobre aquele trecho.
-  const iLo = Math.floor((uMin + EPS - ua) / stepU),
-    iHi = Math.ceil((uMax - EPS - L - ua) / stepU),
-    jLo = Math.floor((vMin + EPS - va) / stepV),
-    jHi = Math.ceil((vMax - EPS - W - va) / stepV);
+  const range = (
+    min: number,
+    max: number,
+    anchor: number,
+    extent: number,
+    step: number,
+    reverse: boolean,
+  ) => {
+    const lo = Math.floor((min + EPS - anchor) / step),
+      hi = Math.ceil((max - EPS - extent - anchor) / step);
+    // Se a região cabe na sobreposição, os limites podem se cruzar: vários
+    // painéis da grade cobrem tudo sozinhos. Escolhe só um, pelo canto inicial,
+    // mantendo a âncora (inclusive quando explícita), nunca um intervalo vazio.
+    return reverse ? [Math.min(lo, hi), hi] : [lo, Math.max(lo, hi)];
+  };
+  const [iLo, iHi] = range(uMin, uMax, ua, L, stepU, right),
+    [jLo, jHi] = range(vMin, vMax, va, W, stepV, top);
   const cells = (iHi - iLo + 1) * (jHi - jLo + 1);
   if (cells > LAYOUT_MAX_PANELS)
     return {
