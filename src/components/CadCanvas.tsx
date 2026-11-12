@@ -155,6 +155,9 @@ type Props = {
   previewLines?: Primitive[];
   dimensionPresentation?: import('../domain/maskDimensions').DimensionPresentation;
   previewBase?: Point;
+  /** Explicit command base; null disables relations for projected/vertex edits. */
+  snapBase?: Point | null;
+  snapContext?: string;
   mirrorAxis?: { base: Point; end: Point };
   onContextRequest: (ids: string[], point: Point, screen: Point) => void;
   commandActive?: boolean;
@@ -745,16 +748,29 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     [snapSources, linework],
   );
   const snapModes = props.snapModes ?? defaultSnapModes;
+  const snapBase =
+    props.snapBase === null ? undefined : (props.snapBase ?? draft.at(-1));
   useEffect(() => {
     setSnapPoint(null);
     setSnapLimited(false);
-  }, [snap, snapModes, snapIndex, tool, view, size]);
+  }, [
+    snap,
+    snapModes,
+    snapIndex,
+    tool,
+    view,
+    size,
+    snapBase?.x,
+    snapBase?.y,
+    props.snapContext,
+  ]);
   const snapAt = (raw: Point) => {
     const result = resolveObjectSnap(snapIndex, raw, {
       enabled: snap,
       modes: snapModes,
       tolerance: 10 / view.s,
       extra: props.extraSnapPoints,
+      base: snapBase,
     });
     let target = result.candidate;
     let p = target?.point ?? raw;

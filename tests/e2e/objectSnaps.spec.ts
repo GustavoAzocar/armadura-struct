@@ -358,3 +358,83 @@ test('ORTO conserva precedência e suprime marcador quando afasta o ponto captur
   expect(applied.x).toBeCloseTo(1500, 4);
   expect(applied.y).toBeCloseTo(400, 4);
 });
+
+test('perpendicular e tangente usam a base do comando e coincidem na prévia/clique em dois zooms', async ({
+  page,
+}) => {
+  const project = fixture();
+  await load(page, project);
+  const cases: { mode: SnapMode; base: Point; target: Point }[] = [
+    {
+      mode: 'perpendicular',
+      base: { x: 400, y: 300 },
+      target: { x: 400, y: 0 },
+    },
+    { mode: 'tangent', base: { x: 1700, y: 200 }, target: { x: 1700, y: 0 } },
+    { mode: 'tangent', base: { x: 1700, y: 200 }, target: { x: 1500, y: 200 } },
+    {
+      mode: 'perpendicular',
+      base: maskPoint({ x: 400, y: 300 }, project.masks[1]),
+      target: maskPoint({ x: 400, y: 0 }, project.masks[1]),
+    },
+  ];
+  for (const zoom of [1, 2]) {
+    if (zoom === 2)
+      await page
+        .getByRole('button', { name: 'Aproximar', exact: true })
+        .click();
+    for (const c of cases) {
+      await modes(page, [c.mode]);
+      await command(page, 'L');
+      await hover(page, c.target);
+      await expect(page.getByTestId('snap-marker')).toHaveCount(0);
+      await command(page, `${c.base.x},${c.base.y}`);
+      const at = await hover(page, c.target);
+      await marker(page, c.mode, c.target);
+      const endpoint = await page
+        .getByTestId('transform-preview')
+        .locator('path')
+        .first()
+        .evaluate((el) => {
+          const p = (el as SVGPathElement).getPointAtLength(
+            (el as SVGPathElement).getTotalLength(),
+          );
+          return { x: p.x, y: p.y };
+        });
+      expect(endpoint.x).toBeCloseTo(c.target.x, 3);
+      expect(endpoint.y).toBeCloseTo(c.target.y, 3);
+      if (zoom === 1)
+        await page.screenshot({ path: `docs/object-snaps-${c.mode}.png` });
+      await page.mouse.click(at.x, at.y);
+      await page.keyboard.press('Escape');
+      const saved = await save(page),
+        mask = saved.masks.find((m) => m.id === 'snaps-native')!;
+      const applied = maskPoint(mask.primitives.at(-1)!.points.at(-1)!, mask);
+      expect(applied.x).toBeCloseTo(c.target.x, 5);
+      expect(applied.y).toBeCloseTo(c.target.y, 5);
+      await command(page, 'U');
+    }
+  }
+});
+
+test('Esc e troca de comando removem a base contextual de perpendicular/tangente', async ({
+  page,
+}) => {
+  await load(page);
+  await modes(page, ['perpendicular', 'tangent']);
+  await command(page, 'L');
+  await command(page, '1700,200');
+  await hover(page, { x: 1700, y: 0 });
+  await marker(page, 'tangent', { x: 1700, y: 0 });
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('snap-marker')).toHaveCount(0);
+  await command(page, 'L');
+  await hover(page, { x: 1700, y: 0 });
+  await expect(page.getByTestId('snap-marker')).toHaveCount(0);
+  await command(page, '1700,200');
+  await hover(page, { x: 1700, y: 0 });
+  await marker(page, 'tangent', { x: 1700, y: 0 });
+  await command(page, 'C');
+  await hover(page, { x: 1700, y: 0 });
+  await expect(page.getByTestId('snap-marker')).toHaveCount(0);
+});

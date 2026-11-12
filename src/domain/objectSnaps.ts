@@ -1,5 +1,5 @@
 import type { Mask, Point, Primitive } from './types';
-import { add, sub, mul, distance } from './geometry';
+import { add, sub, mul, distance, dot } from './geometry';
 import {
   curveIntersections,
   nearestCurve,
@@ -22,6 +22,8 @@ export const snapModeLabels = {
   nearest: 'Ponto mais próximo',
   insertion: 'Inserção',
   node: 'Nó',
+  perpendicular: 'Perpendicular',
+  tangent: 'Tangente',
 } as const;
 export type SnapMode = keyof typeof snapModeLabels;
 export type SnapModes = Record<SnapMode, boolean>;
@@ -35,6 +37,8 @@ export const defaultSnapModes: Readonly<SnapModes> = Object.freeze({
   nearest: false,
   insertion: false,
   node: false,
+  perpendicular: false,
+  tangent: false,
 });
 export type SnapSource = {
   id: string;
@@ -235,6 +239,47 @@ export function createSnapIndex(
   }
   return { points: tree(points), curves: tree(curves) };
 }
+export function perpendicularPoints(c: CadCurve, base: Point): Point[] {
+  if (!finite(base)) return [];
+  if (c.kind === 'round') {
+    const v = sub(base, c.center),
+      d = Math.hypot(v.x, v.y);
+    if (d <= EPS) return []; // Infinitely many radial directions at the centre.
+    return [
+      add(c.center, mul(v, c.radius / d)),
+      add(c.center, mul(v, -c.radius / d)),
+    ].filter(
+      (p) => distance(p, base) > EPS && roundParameter(c, p) !== undefined,
+    );
+  }
+  const points: Point[] = [];
+  for (let i = 0; i < c.lengths.length - 1; i++) {
+    const a = c.points[i],
+      b = c.points[(i + 1) % c.points.length],
+      u = sub(b, a),
+      len = distance(a, b);
+    const t = dot(sub(base, a), u) / (len * len);
+    if (len < EPS || t < -EPS / len || t > 1 + EPS / len) continue;
+    const p = add(a, mul(u, Math.max(0, Math.min(1, t))));
+    if (finite(p) && distance(p, base) > EPS) points.push(p);
+  }
+  return points;
+}
+export function tangentPoints(c: CadCurve, base: Point): Point[] {
+  if (c.kind !== 'round' || !finite(base)) return [];
+  const v = sub(base, c.center),
+    d = Math.hypot(v.x, v.y);
+  if (d <= c.radius + EPS) return []; // Interior or zero-length tangent at the base.
+  const square = d * d,
+    foot = add(c.center, mul(v, (c.radius * c.radius) / square));
+  const off = mul(
+    { x: -v.y, y: v.x },
+    (c.radius * Math.sqrt((d - c.radius) * (d + c.radius))) / square,
+  );
+  return [add(foot, off), sub(foot, off)].filter(
+    (p) => finite(p) && roundParameter(c, p) !== undefined,
+  );
+}
 export function resolveObjectSnap(
   index: SnapIndex,
   raw: Point,
@@ -243,6 +288,7 @@ export function resolveObjectSnap(
     modes: Readonly<SnapModes>;
     tolerance: number;
     extra?: Point[];
+    base?: Point;
     stats?: SnapQueryStats;
   },
 ): { candidate?: SnapCandidate; limited: boolean } {
@@ -288,7 +334,12 @@ export function resolveObjectSnap(
     if (p.mode !== 'extra' && modes[p.mode]) accept(p);
   }
   const near: CurveEntry[] = [];
-  if (modes.intersection || modes.nearest) {
+  const base = options.base && finite(options.base) ? options.base : undefined;
+  if (
+    modes.intersection ||
+    modes.nearest ||
+    (base && (modes.perpendicular || modes.tangent))
+  ) {
     query(index.curves, box, near);
     for (let i = near.length - 1; i >= 0; i--) {
       if (stats) stats.curves++;
@@ -297,6 +348,27 @@ export function resolveObjectSnap(
     }
     near.sort((a, b) => a.order - b.order);
   }
+  if (base)
+    for (const c of near) {
+      if (modes.perpendicular)
+        perpendicularPoints(c.curve, base).forEach((point, i) =>
+          accept({
+            point,
+            mode: 'perpendicular',
+            sourceId: c.id,
+            order: 1e8 + 2 * c.order + i,
+          }),
+        );
+      if (modes.tangent)
+        tangentPoints(c.curve, base).forEach((point, i) =>
+          accept({
+            point,
+            mode: 'tangent',
+            sourceId: c.id,
+            order: 2e8 + 2 * c.order + i,
+          }),
+        );
+    }
   if (modes.intersection) {
     const discrete = best,
       discreteDistance = bestDistance;

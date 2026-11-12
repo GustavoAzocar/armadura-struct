@@ -5,6 +5,8 @@ import {
   maskSnapSource,
   resolveObjectSnap,
   closedCurveCentroid,
+  perpendicularPoints,
+  tangentPoints,
   type SnapModes,
   type SnapSource,
 } from '../src/domain/objectSnaps';
@@ -23,6 +25,132 @@ const modes = (...active: (keyof SnapModes)[]): SnapModes =>
 const line = (id: string, a: Point, b: Point): SnapSource => ({
   id,
   curve: pathCurve([a, b], false),
+});
+
+describe('relações com ponto-base · #164', () => {
+  it('perpendicular no segmento finito (0,0)–(10,0), sem prolongamento implícito', () => {
+    const c = pathCurve(
+      [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+      ],
+      false,
+    );
+    expect(perpendicularPoints(c, { x: 4, y: 3 })).toEqual([{ x: 4, y: 0 }]);
+    expect(perpendicularPoints(c, { x: 11, y: 3 })).toEqual([]);
+    expect(perpendicularPoints(c, { x: 4, y: 0 })).toEqual([]);
+  });
+  it('perpendicular radial respeita a varredura e não escolhe direção arbitrária no centro', () => {
+    const c = roundCurve({ x: 0, y: 0 }, 5, 0, TAU, true);
+    expect(perpendicularPoints(c, { x: 10, y: 0 })).toEqual([
+      { x: 5, y: 0 },
+      { x: -5, y: 0 },
+    ]);
+    expect(perpendicularPoints(c, { x: 0, y: 0 })).toEqual([]);
+    expect(
+      perpendicularPoints(roundCurve({ x: 0, y: 0 }, 5, 0, Math.PI / 2), {
+        x: 10,
+        y: 0,
+      }),
+    ).toEqual([{ x: 5, y: 0 }]);
+  });
+  it('duas tangências do círculo R5 a partir de (5,5), com escolha pelo cursor', () => {
+    const c = roundCurve({ x: 0, y: 0 }, 5, 0, TAU, true);
+    const points = tangentPoints(c, { x: 5, y: 5 });
+    expect(points).toHaveLength(2);
+    expectPoint(points[0], { x: 0, y: 5 });
+    expectPoint(points[1], { x: 5, y: 0 });
+    const index = createSnapIndex([{ id: 'circle', curve: c }]);
+    for (const point of [
+      { x: 0, y: 5 },
+      { x: 5, y: 0 },
+    ])
+      expectPoint(
+        resolveObjectSnap(index, point, {
+          enabled: true,
+          modes: modes('tangent'),
+          tolerance: 1,
+          base: { x: 5, y: 5 },
+        }).candidate?.point,
+        point,
+      );
+  });
+  it('arco que contém uma tangência não oferece a outra; base interior ou sobre a curva não produz tangente nula', () => {
+    const arc = roundCurve({ x: 0, y: 0 }, 5, -0.2, 0.4);
+    expect(tangentPoints(arc, { x: 5, y: 5 })).toHaveLength(1);
+    expectPoint(tangentPoints(arc, { x: 5, y: 5 })[0], { x: 5, y: 0 });
+    expect(tangentPoints(arc, { x: 1, y: 0 })).toEqual([]);
+    expect(tangentPoints(arc, { x: 5, y: 0 })).toEqual([]);
+    expect(
+      tangentPoints(
+        pathCurve(
+          [
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+          ],
+          false,
+        ),
+        { x: 5, y: 5 },
+      ),
+    ).toEqual([]);
+  });
+  it('sem base não oferece relações e o desempate é determinístico', () => {
+    const index = createSnapIndex([
+      { id: 'circle', curve: roundCurve({ x: 0, y: 0 }, 5, 0, TAU, true) },
+    ]);
+    const options = {
+      enabled: true,
+      modes: modes('perpendicular', 'tangent'),
+      tolerance: 10,
+    };
+    expect(
+      resolveObjectSnap(index, { x: 5, y: 0 }, options).candidate,
+    ).toBeUndefined();
+    const initial = resolveObjectSnap(
+      index,
+      { x: 2.5, y: 2.5 },
+      { ...options, base: { x: 5, y: 5 } },
+    );
+    for (let i = 0; i < 10; i++)
+      expect(
+        resolveObjectSnap(
+          index,
+          { x: 2.5, y: 2.5 },
+          { ...options, base: { x: 5, y: 5 } },
+        ),
+      ).toEqual(initial);
+  });
+  it('perpendicular em máscara importada girada e escalada usa a base real do modelo', () => {
+    const mask = {
+      ...newNativeMask('DXF'),
+      format: 'DXF' as const,
+      origin: { x: 100, y: -40 },
+      rotation: 37,
+      scale: 3,
+    };
+    const source = maskSnapSource(
+      mask,
+      {
+        layer: 'DESENHO',
+        points: [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+        ],
+      },
+      0,
+    );
+    const foot = maskPoint({ x: 4, y: 0 }, mask),
+      base = maskPoint({ x: 4, y: 3 }, mask);
+    expectPoint(
+      resolveObjectSnap(createSnapIndex([source]), foot, {
+        enabled: true,
+        modes: modes('perpendicular'),
+        tolerance: 0.1,
+        base,
+      }).candidate?.point,
+      foot,
+    );
+  });
 });
 const snap = (
   sources: SnapSource[],

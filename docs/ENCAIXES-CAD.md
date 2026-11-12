@@ -28,7 +28,19 @@ As máscaras têm origem, escala e rotação aplicadas uma única vez. Centros, 
 
 O DXF/DWG pode conter apenas cadeias amostradas após a normalização. Nesses casos não há centro, quadrante ou outra informação analítica reconstruída. Blocos expandidos não recebem âncoras inventadas. Não houve alteração no importador nem migração do arquivo de projeto.
 
-### Cena densa
+## Perpendicular e tangente — #164
+
+Ative **Perpendicular** ou **Tangente**, inicie um comando que peça pontos e escolha primeiro sua base. Aproximar o cursor da referência oferece a relação válida mais próxima. Sem base não há candidato desses modos. No círculo, o cursor distingue as duas tangências possíveis; em um arco só participam as soluções dentro da varredura. Uma base interior ou sobre a curva não gera uma tangente de comprimento nulo.
+
+A perpendicular de um segmento precisa cair dentro dele; o modo não prolonga a referência. Em curvas circulares, usa a direção radial válida, sem escolher uma direção arbitrária se a base coincidir com o centro. Tangência exige círculo ou arco analítico, inclusive quando o desenho local analítico pertence a uma máscara importada.
+
+A base vem dos pontos efetivos do comando: desenho de linhas/polilinhas/barras, medição/cotagem e etapas de dois pontos já encaminhadas ao canvas, como calibração e manipulação de máscaras. Transformações fornecem a base escolhida explicitamente. Edições de vértices/comprimentos que projetam a entrada não usam essas novas relações; suas capturas anteriores permanecem. Esc, troca ou reinício de comando descartam a base contextual. ORTO mantém a mesma precedência.
+
+![Tangência com ponto-base no CAD](object-snaps-tangent.png)
+
+![Perpendicular em referência transformada](object-snaps-perpendicular.png)
+
+## Cena densa
 
 Os índices espaciais são preparados quando a cena muda e reutilizados durante movimento do cursor e navegação. A busca de interseções considera somente as curvas junto da abertura de captura. Em uma abertura excepcionalmente saturada, o limite de 250 mil comparações interrompe a busca de interseções e informa para aproximar o zoom; um vencedor parcial dessa busca não é mostrado como se fosse definitivo. Os outros modos continuam disponíveis.
 
