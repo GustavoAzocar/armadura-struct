@@ -43,6 +43,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -94,6 +95,16 @@ import type {
   Tool,
 } from '../domain/types';
 import { symbolRenderMasks } from '../domain/symbolRender';
+import { useFramePublisher } from './useFramePublisher';
+import CadPreview from './CadPreview';
+import { flushSync } from 'react-dom';
+import { modelPoint, panCamera, zoomCamera } from '../lib/cadNavigation';
+import {
+  cadDiagnosticNow,
+  recordCadWork,
+  measureCadWork,
+  setCadDiagnosticScene,
+} from '../lib/cadDiagnostics';
 import {
   createSnapIndex,
   defaultSnapModes,
@@ -112,6 +123,20 @@ import {
   type SnapAcquisition,
 } from '../domain/objectSnapGuides';
 export type Camera = { x: number; y: number; s: number };
+type Pan = { screen: Point; view: Camera };
+type Marquee = { start: Point; end: Point };
+type Grip = { id: string; index: number; point: Point };
+type SnapFeedback = {
+  candidate: SnapCandidate | null;
+  limited: boolean;
+  acquired: SnapAcquisition;
+};
+type PointerFeedback = {
+  point: Point;
+  raw: Point;
+  snap: SnapFeedback;
+  started?: number;
+};
 export type CadState = {
   view: Camera;
   overview: { projectId: string; view: Camera } | null;
@@ -159,6 +184,8 @@ type Props = {
   onNativePick?: (maskId: string, entityId: string) => void;
   extraSnapPoints?: Point[];
   previewLines?: Primitive[];
+  /** Preview geometry is retained in its original pose during whole-mask move. */
+  previewTranslation?: Point;
   dimensionPresentation?: import('../domain/maskDimensions').DimensionPresentation;
   previewBase?: Point;
   /** Explicit command base; null disables relations for projected/vertex edits. */
@@ -212,6 +239,19 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       ),
     [source, props.isolatedDetailId, props.layerContext],
   );
+  useEffect(
+    () =>
+      setCadDiagnosticScene({
+        bars: source.bars.length,
+        representations: source.details.length,
+        masks: source.masks.length,
+        maskPrimitives: source.masks.reduce(
+          (n, m) => n + m.primitives.length,
+          0,
+        ),
+      }),
+    [source],
+  );
   const capturable = useMemo(
     () =>
       visibilityProjection(project, props.layerContext ?? 'model', 'capture'),
@@ -262,23 +302,25 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const host = useRef<HTMLDivElement>(null),
     svg = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 900, h: 600 });
-  const [view, setView] = useState(
+  const [view, setRenderedView] = useState(
     props.initialState?.view ?? { x: 2800, y: -300, s: 0.12 },
   );
+  // Logical input advances immediately; React receives only the latest frame.
+  const camera = useRef(view);
+  const cameraFrame = useFramePublisher(setRenderedView);
+  const setView = (next: Camera | ((previous: Camera) => Camera)) => {
+    camera.current = typeof next === 'function' ? next(camera.current) : next;
+    cameraFrame.push(camera.current);
+  };
   const [cursor, setCursor] = useState<Point | null>(null);
   const [snapPoint, setSnapPoint] = useState<SnapCandidate | null>(null);
   const [snapLimited, setSnapLimited] = useState(false);
-  const [drag, setDrag] = useState<{ screen: Point; view: typeof view } | null>(
-    null,
-  );
-  const [marquee, setMarquee] = useState<{ start: Point; end: Point } | null>(
-    null,
-  );
-  const [grip, setGrip] = useState<{
-    id: string;
-    index: number;
-    point: Point;
-  } | null>(null);
+  const [drag, setDrag] = useState<Pan | null>(null);
+  const [marquee, setMarquee] = useState<Marquee | null>(null);
+  const [grip, setGrip] = useState<Grip | null>(null);
+  const panInput = useRef<Pan | null>(null);
+  const marqueeInput = useRef<Marquee | null>(null);
+  const gripInput = useRef<Grip | null>(null);
   const space = useRef(false);
   useEffect(() => {
     if (!host.current) return;
@@ -490,23 +532,19 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       }),
     [project.details, barDefinitions, barGeometries],
   );
-  const allPoints = useMemo(
+  const staticPoints = useMemo(
     () => [
       ...projectPoints(project),
       ...ghosts.flatMap(primitiveBounds),
-      ...(props.previewLines ?? []).flatMap(primitiveBounds),
       ...representationPoints,
       ...annotations.flatMap((a) => a.items.flatMap(primitiveBounds)),
       ...drawn.flatMap((m) => m.items.flatMap(primitiveBounds)),
     ],
-    [
-      project,
-      drawn,
-      annotations,
-      representationPoints,
-      ghosts,
-      props.previewLines,
-    ],
+    [project, drawn, annotations, representationPoints, ghosts],
+  );
+  const previewPoints = useMemo(
+    () => (props.previewLines ?? []).flatMap(primitiveBounds),
+    [props.previewLines],
   );
   const groupBoxes = useMemo(() => {
     if (props.isolatedDetailId) return [];
@@ -579,7 +617,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     props.isolatedDetailId,
   ]);
   const fit = () => {
-    const b = bounds(allPoints);
+    const b = bounds([
+      ...staticPoints,
+      ...previewPoints.map((p) =>
+        props.previewTranslation ? add(p, props.previewTranslation) : p,
+      ),
+    ]);
     const s = Math.max(
       0.00001,
       Math.min(
@@ -596,7 +639,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   };
   useImperativeHandle(ref, () => ({
     fit,
-    getState: () => ({ view, overview: overview.current }),
+    getState: () => ({ view: camera.current, overview: overview.current }),
     zoom: (f) =>
       setView((v) => ({ ...v, s: Math.max(0.000001, Math.min(20, v.s * f)) })),
   }));
@@ -609,7 +652,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     )
       fit();
   }, [project.masks.length, size.w === 900]); // fit after a new reference, not after every edit
-  useEffect(() => {
+  useLayoutEffect(() => {
+    panInput.current = null;
+    gripInput.current = null;
+    marqueeInput.current = null;
     setGrip(null);
     setDrag(null);
     setMarquee(null);
@@ -619,7 +665,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     }
     firstScopeEffect.current = false;
     if (props.isolatedDetailId) {
-      if (!overview.current) overview.current = { projectId: project.id, view };
+      if (!overview.current)
+        overview.current = { projectId: project.id, view: camera.current };
       fit();
     } else if (overview.current) {
       if (overview.current.projectId === project.id)
@@ -631,10 +678,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     x: (p.x - view.x) * view.s + size.w / 2,
     y: (view.y - p.y) * view.s + size.h / 2,
   });
-  const fromScreen = (p: Point) => ({
-    x: (p.x - size.w / 2) / view.s + view.x,
-    y: view.y - (p.y - size.h / 2) / view.s,
-  });
+  const fromScreen = (p: Point) => modelPoint(camera.current, size, p);
   const eventScreen = (e: { clientX: number; clientY: number }) => {
     const rect = host.current!.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -764,7 +808,66 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     (!!props.nativeDrawing || ['bar', 'polyline'].includes(tool) || !!snapBase);
   const acquiredRef = useRef<SnapAcquisition>({});
   const [acquired, setAcquired] = useState<SnapAcquisition>({});
-  useEffect(() => {
+  const publishSnap = (feedback: SnapFeedback) => {
+    setSnapPoint(feedback.candidate);
+    setSnapLimited(feedback.limited);
+    setAcquired((old) =>
+      old.extension?.id === feedback.acquired.extension?.id &&
+      old.extension?.end === feedback.acquired.extension?.end &&
+      old.parallel?.id === feedback.acquired.parallel?.id
+        ? old
+        : feedback.acquired,
+    );
+  };
+  const snapFeedback = useRef<SnapFeedback>({
+    candidate: null,
+    limited: false,
+    acquired: {},
+  });
+  const feedbackFrame = useFramePublisher<PointerFeedback>((feedback) => {
+    if (feedback.started !== undefined)
+      recordCadWork('pointer.feedback', performance.now() - feedback.started);
+    setCursor(feedback.point);
+    publishSnap(feedback.snap);
+    setMarquee(marqueeInput.current);
+    setGrip(gripInput.current);
+    measureCadWork('cursor.consumer', () => props.onCursor(feedback.point));
+    if (props.maskSidePick)
+      props.onMaskEntityHover?.(undefined, feedback.raw, 3 / camera.current.s);
+    if (props.maskEditing?.stage === 'targets') {
+      const state = props.maskEditing;
+      const hit = hitMaskCadEntity(
+        state.entities,
+        feedback.raw,
+        10 / camera.current.s,
+        (entity) =>
+          entity.mask.id === state.targetMaskId &&
+          (!state.selectedTarget || state.selectedTarget === entity.ref.key),
+      );
+      props.onMaskEntityHover?.(hit?.ref, feedback.raw);
+    }
+  });
+  useLayoutEffect(() => {
+    // A queued frame belongs to this immutable scene and command, never the next.
+    feedbackFrame.cancel();
+    panInput.current = null;
+    gripInput.current = null;
+    marqueeInput.current = null;
+    setDrag(null);
+    setGrip(null);
+    setMarquee(null);
+    return () => feedbackFrame.cancel();
+  }, [
+    source,
+    tool,
+    props.layerContext,
+    props.snapContext,
+    props.maskSidePick,
+    props.maskEditing?.stage,
+    props.maskEditing?.targetMaskId,
+  ]);
+  useLayoutEffect(() => {
+    feedbackFrame.cancel();
     acquiredRef.current = {};
     setAcquired({});
   }, [
@@ -777,6 +880,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     props.snapContext,
     props.snapLinear,
     guideActive,
+    ortho,
   ]);
   useEffect(() => {
     setSnapPoint(null);
@@ -792,54 +896,53 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     snapBase?.y,
     props.snapContext,
   ]);
-  const snapAt = (raw: Point) => {
-    const guideOptions = {
-      enabled: snap,
-      active: guideActive,
-      modes: snapModes,
-      tolerance: 10 / view.s,
-      base: snapBase,
-      linear: !!props.snapLinear,
-    };
-    const next = acquireSnapGuides(
-      snapIndex,
-      raw,
-      acquiredRef.current,
-      guideOptions,
-    );
-    if (
-      next.extension?.id !== acquiredRef.current.extension?.id ||
-      next.extension?.end !== acquiredRef.current.extension?.end ||
-      next.parallel?.id !== acquiredRef.current.parallel?.id
-    ) {
+  const snapAt = (raw: Point, immediate = true) =>
+    measureCadWork('snap', () => {
+      const guideOptions = {
+        enabled: snap,
+        active: guideActive,
+        modes: snapModes,
+        tolerance: 10 / camera.current.s,
+        base: snapBase,
+        linear: !!props.snapLinear,
+      };
+      const next = acquireSnapGuides(
+        snapIndex,
+        raw,
+        acquiredRef.current,
+        guideOptions,
+      );
+      // Acquisition consumes every input, even when presentation is coalesced.
       acquiredRef.current = next;
-      setAcquired(next);
-    }
-    const result = resolveObjectSnap(snapIndex, raw, {
-      enabled: snap,
-      modes: snapModes,
-      tolerance: 10 / view.s,
-      extra: props.extraSnapPoints,
-      base: snapBase,
-      guides: snapGuideCandidates(snapIndex, next, raw, guideOptions),
+      const result = resolveObjectSnap(snapIndex, raw, {
+        enabled: snap,
+        modes: snapModes,
+        tolerance: 10 / camera.current.s,
+        extra: props.extraSnapPoints,
+        base: snapBase,
+        guides: snapGuideCandidates(snapIndex, next, raw, guideOptions),
+      });
+      let target = result.candidate;
+      let p = target?.point ?? raw;
+      if (ortho && draft.length) {
+        const a = draft.at(-1)!;
+        p =
+          Math.abs(p.x - a.x) >= Math.abs(p.y - a.y)
+            ? { x: p.x, y: a.y }
+            : { x: a.x, y: p.y };
+        if (target && distance(p, target.point) > 0.001) target = undefined;
+      }
+      snapFeedback.current = {
+        candidate: target ?? null,
+        limited: result.limited,
+        acquired: next,
+      };
+      if (immediate) publishSnap(snapFeedback.current);
+      return p;
     });
-    let target = result.candidate;
-    let p = target?.point ?? raw;
-    if (ortho && draft.length) {
-      const a = draft.at(-1)!;
-      p =
-        Math.abs(p.x - a.x) >= Math.abs(p.y - a.y)
-          ? { x: p.x, y: a.y }
-          : { x: a.x, y: p.y };
-      if (target && distance(p, target.point) > 0.001) target = undefined;
-    }
-    setSnapPoint(target ?? null);
-    setSnapLimited(result.limited);
-    return p;
-  };
   const hitAt = (p: Point) => {
     let hit: string | undefined,
-      best = 9 / view.s;
+      best = 9 / camera.current.s;
     for (const b of capturable.bars) {
       const origins =
         b.distribution?.render === 'bars' ? distributionOrigins(b) : [b.origin];
@@ -891,7 +994,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     ]) {
       for (const item of object.items) {
         if ('text' in item && item.text) {
-          if (distance(p, item.points[0]) < 14 / view.s) {
+          if (distance(p, item.points[0]) < 14 / camera.current.s) {
             hit = object.id;
             best = 0;
           }
@@ -921,10 +1024,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     if (!hit) {
       const box = groupBoxes.find(
         (b) =>
-          p.x >= b.x - 12 / view.s &&
-          p.x <= b.right + 12 / view.s &&
-          p.y >= b.y - 12 / view.s &&
-          p.y <= b.top + 24 / view.s,
+          p.x >= b.x - 12 / camera.current.s &&
+          p.x <= b.right + 12 / camera.current.s &&
+          p.y >= b.y - 12 / camera.current.s &&
+          p.y <= b.top + 24 / camera.current.s,
       );
       if (box)
         hit = Object.keys(source.hierarchy.objectDetails).find(
@@ -961,15 +1064,24 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   };
   const down = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button !== 0 && e.button !== 1) return;
-    const screen = eventScreen(e),
-      p = snapAt(fromScreen(screen));
+    const panning = e.button === 1 || tool === 'pan' || space.current;
+    if (panning) feedbackFrame.cancel();
+    else feedbackFrame.flush();
+    cameraFrame.flush();
+    const screen = eventScreen(e);
     svg.current?.setPointerCapture(e.pointerId);
-    if (e.button === 1 || tool === 'pan' || space.current) {
-      setDrag({ screen, view });
+    if (panning) {
+      panInput.current = { screen, view: camera.current };
+      setDrag(panInput.current);
       return;
     }
+    const p = snapAt(fromScreen(screen));
     if (props.maskSidePick) {
-      props.onMaskEntityPick?.(undefined, fromScreen(screen), 3 / view.s);
+      props.onMaskEntityPick?.(
+        undefined,
+        fromScreen(screen),
+        3 / camera.current.s,
+      );
       return;
     }
     if (props.maskEditing) {
@@ -978,13 +1090,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       const hit = hitMaskCadEntity(
         state.entities,
         at,
-        10 / view.s,
+        10 / camera.current.s,
         (e) =>
           state.stage === 'limits' ||
           (e.mask.id === state.targetMaskId &&
             (!state.selectedTarget || state.selectedTarget === e.ref.key)),
       );
-      props.onMaskEntityPick?.(hit?.ref, at, 3 / view.s);
+      props.onMaskEntityPick?.(hit?.ref, at, 3 / camera.current.s);
       return;
     }
     if (tool === 'select') {
@@ -996,8 +1108,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           individual(b.id),
       ))
         for (let i = 0; i < b.points.length; i++)
-          if (distance(world(b.points[i], b), p) < 9 / view.s) {
-            setGrip({ id: b.id, index: i, point: p });
+          if (distance(world(b.points[i], b), p) < 9 / camera.current.s) {
+            gripInput.current = { id: b.id, index: i, point: p };
+            setGrip(gripInput.current);
             return;
           }
       for (const m of masks.filter(
@@ -1021,10 +1134,16 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
             item.id &&
             item.native &&
             (item.native.kind === 'text'
-              ? insideTextBox(p, paperPrimitiveBounds(item), 4 / view.s)
+              ? insideTextBox(
+                  p,
+                  paperPrimitiveBounds(item),
+                  4 / camera.current.s,
+                )
               : points.some(
                   (v, i) =>
-                    i && distance(p, nearest(p, points[i - 1], v)) < 9 / view.s,
+                    i &&
+                    distance(p, nearest(p, points[i - 1], v)) <
+                      9 / camera.current.s,
                 ))
           ) {
             props.onNativePick?.(m.mask.id, item.id);
@@ -1046,7 +1165,8 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         );
       } else {
         if (!e.shiftKey) setSelected([]);
-        setMarquee({ start: p, end: p });
+        marqueeInput.current = { start: p, end: p };
+        setMarquee(marqueeInput.current);
       }
     } else if (tool === 'follow') {
       if (props.followInteraction?.mode === 'side') {
@@ -1054,7 +1174,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         onPoint(fromScreen(screen));
         return;
       }
-      let best = 12 / view.s,
+      let best = 12 / camera.current.s,
         hit: FollowEdge | undefined;
       for (const edge of props.followInteraction?.available ?? []) {
         const d = distance(
@@ -1068,7 +1188,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       }
       if (hit) props.onFollowEdge?.(hit.key);
     } else if (tool === 'convert') {
-      let best = 16 / view.s,
+      let best = 16 / camera.current.s,
         hit: Primitive | undefined,
         polylineId: string | undefined;
       for (const m of masks)
@@ -1111,53 +1231,50 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       if (hit) props.onPrimitive(hit, polylineId);
     } else onPoint(p);
   };
-  const move = (e: React.PointerEvent<SVGSVGElement>) => {
-    const screen = eventScreen(e);
-    if (drag) {
-      setView({
-        ...drag.view,
-        x: drag.view.x - (screen.x - drag.screen.x) / view.s,
-        y: drag.view.y + (screen.y - drag.screen.y) / view.s,
+  const move = (e: React.PointerEvent<SVGSVGElement>) =>
+    measureCadWork('pointer.handler', () => {
+      const started = cadDiagnosticNow();
+      const screen = eventScreen(e);
+      const pan = panInput.current;
+      if (pan) {
+        setView(panCamera(pan.view, pan.screen, screen));
+        return;
+      }
+      const raw = fromScreen(screen);
+      const p = props.maskSidePick ? raw : snapAt(raw, false);
+      if (marqueeInput.current)
+        marqueeInput.current = { ...marqueeInput.current, end: p };
+      if (gripInput.current)
+        gripInput.current = { ...gripInput.current, point: p };
+      feedbackFrame.push({
+        point: p,
+        raw,
+        snap: props.maskSidePick
+          ? { candidate: null, limited: false, acquired: acquiredRef.current }
+          : snapFeedback.current,
+        started,
       });
-      return;
-    }
-    const p = props.maskSidePick
-      ? fromScreen(screen)
-      : snapAt(fromScreen(screen));
-    setCursor(p);
-    props.onCursor(p);
-    if (props.maskSidePick) props.onMaskEntityHover?.(undefined, p, 3 / view.s);
-    if (props.maskEditing?.stage === 'targets') {
-      const at = fromScreen(screen),
-        state = props.maskEditing;
-      const hit = hitMaskCadEntity(
-        state.entities,
-        at,
-        10 / view.s,
-        (e) =>
-          e.mask.id === state.targetMaskId &&
-          (!state.selectedTarget || state.selectedTarget === e.ref.key),
-      );
-      props.onMaskEntityHover?.(hit?.ref, at);
-    }
-    if (marquee) setMarquee({ ...marquee, end: p });
-    if (grip) setGrip({ ...grip, point: p });
-  };
+    });
   const up = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (svg.current?.hasPointerCapture(e.pointerId))
-      svg.current.releasePointerCapture(e.pointerId);
+    // Read the release itself, rather than whichever move React last rendered.
+    if (panInput.current || gripInput.current || marqueeInput.current) move(e);
+    cameraFrame.flush();
+    feedbackFrame.flush();
+    const grip = gripInput.current;
+    const marquee = marqueeInput.current;
     if (grip) {
-      const b = capturable.bars.find((b) => b.id === grip.id)!;
-      props.onBarChange(b.id, {
-        points: b.points.map((p, i) =>
-          i === grip.index ? local(grip.point, b) : p,
-        ),
-      });
+      const b = capturable.bars.find((b) => b.id === grip.id);
+      if (b)
+        props.onBarChange(b.id, {
+          points: b.points.map((p, i) =>
+            i === grip.index ? local(grip.point, b) : p,
+          ),
+        });
       setGrip(null);
     }
     if (marquee) {
       const box = bounds([marquee.start, marquee.end]);
-      if (box.width + box.height > 5 / view.s) {
+      if (box.width + box.height > 5 / camera.current.s) {
         const inside = (p: Point) =>
           p.x >= box.x &&
           p.x <= box.x + box.width &&
@@ -1196,8 +1313,44 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       }
       setMarquee(null);
     }
+    panInput.current = null;
+    gripInput.current = null;
+    marqueeInput.current = null;
     setDrag(null);
+    if (svg.current?.hasPointerCapture(e.pointerId))
+      svg.current.releasePointerCapture(e.pointerId);
   };
+  const cancelInput = () => {
+    feedbackFrame.cancel();
+    // Camera changes are navigation, not a project edit. Keep their latest pose.
+    cameraFrame.flush();
+    panInput.current = null;
+    gripInput.current = null;
+    marqueeInput.current = null;
+    setDrag(null);
+    setGrip(null);
+    setMarquee(null);
+  };
+  useLayoutEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') cancelInput();
+      else if (
+        event.key === 'Enter' &&
+        !modalIsOpen() &&
+        !textComposition(event)
+      )
+        flushSync(() => {
+          feedbackFrame.flush();
+          cameraFrame.flush();
+        });
+    };
+    window.addEventListener('blur', cancelInput);
+    window.addEventListener('keydown', key, true);
+    return () => {
+      window.removeEventListener('blur', cancelInput);
+      window.removeEventListener('keydown', key, true);
+    };
+  });
   const stroke = 1 / view.s;
   const groupLabelSize = 11 / view.s; // Navigation overlay only; excluded from output.
   const renderBar = (
@@ -1587,13 +1740,12 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           const detail = groupedDetailForObject(source, lastHit.current);
           if (detail) props.onEditDetail(detail.id);
         }}
-        onPointerCancel={() => {
-          setDrag(null);
-          setGrip(null);
-          setMarquee(null);
-        }}
+        onPointerCancel={cancelInput}
+        onLostPointerCapture={cancelInput}
         onContextMenu={(e) => {
           e.preventDefault();
+          feedbackFrame.flush();
+          cameraFrame.flush();
           if (
             props.commandActive ||
             !['select', 'pan'].includes(tool) ||
@@ -1618,16 +1770,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           props.onContextRequest(ids, point, { x: e.clientX, y: e.clientY });
         }}
         onWheel={(e) => {
-          const p = fromScreen(eventScreen(e));
-          const f = Math.exp(-e.deltaY * 0.0015);
-          setView((v) => {
-            const s = Math.max(0.000001, Math.min(20, v.s * f));
-            return {
-              s,
-              x: p.x - ((p.x - v.x) * v.s) / s,
-              y: p.y - ((p.y - v.y) * v.s) / s,
-            };
-          });
+          feedbackFrame.cancel();
+          const screen = eventScreen(e);
+          setView(zoomCamera(camera.current, size, screen, e.deltaY));
+          if (panInput.current)
+            panInput.current = { screen, view: camera.current };
         }}
       >
         <defs>
@@ -1720,20 +1867,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           {props.maskCadOverlay && (
             <g pointerEvents="none">
               <g data-testid="mask-cad-limits">
-                {renderPrimitives(
-                  props.maskCadOverlay.limits.map((p) => ({
-                    ...p,
-                    resolvedStyle: p.resolvedStyle
-                      ? {
-                          ...p.resolvedStyle,
-                          color: '#c084fc',
-                          fill: 'none' as const,
-                        }
-                      : undefined,
-                  })),
-                  '#c084fc',
-                  true,
-                )}
+                <CadPreview
+                  lines={props.maskCadOverlay.limits}
+                  stroke={stroke}
+                  active
+                />
               </g>
               <g data-testid="mask-cad-preview">
                 {renderPrimitives(
@@ -1775,19 +1913,16 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               pointerEvents="none"
               opacity="0.85"
             >
-              {renderPrimitives(
-                props.previewLines.map((p) => ({
-                  ...p,
-                  resolvedStyle: p.resolvedStyle
-                    ? {
-                        ...p.resolvedStyle,
-                        color: '#c084fc',
-                        fill: 'none' as const,
-                      }
-                    : undefined,
-                })),
-                '#c084fc',
-              )}
+              <g
+                transform={
+                  props.previewTranslation
+                    ? `translate(${props.previewTranslation.x} ${props.previewTranslation.y})`
+                    : undefined
+                }
+                data-testid="preview-pose"
+              >
+                <CadPreview lines={props.previewLines} stroke={stroke} />
+              </g>
               {props.previewBase && (
                 <circle
                   cx={props.previewBase.x}

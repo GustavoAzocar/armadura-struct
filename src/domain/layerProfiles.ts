@@ -220,14 +220,45 @@ function sameValue(a: unknown, b: unknown): boolean {
     keys.every((k) => sameValue(x[k], y[k]))
   );
 }
+/** Transaction-local indexes; no cache can outlive its project or layer context. */
+function objectStateLookup(p: Project, key: string) {
+  const roles = new Map<string, string>();
+  for (const o of [...p.masks, ...(p.symbolInstances ?? [])])
+    roles.set(o.id, 'MASCARA');
+  for (const o of p.annotations)
+    roles.set(
+      o.id,
+      o.kind.startsWith('dimension')
+        ? 'COTAS'
+        : o.kind.startsWith('section')
+          ? 'CORTES'
+          : 'CHAMADAS',
+    );
+  for (const o of p.details) roles.set(o.id, 'REBATIMENTOS');
+  for (const o of [...p.bars, ...(p.weldedMeshes ?? [])])
+    roles.set(o.id, 'ARMADURAS');
+  const layers = new Set(p.layers.map((l) => l.id));
+  return (o: LayerBinding & { id: string }) => {
+    const implicit = layerId(roles.get(o.id) ?? 'DESENHO');
+    return layerState(
+      p,
+      key,
+      o.layerId ?? (layers.has(implicit) ? implicit : p.layers[0].id),
+    );
+  };
+}
 export function assertLayerEdit(before: Project, after: Project, key: string) {
   if (before.id !== after.id) return;
   const changedSymbols = changedSymbolGeometry(before, after);
+  const oldState = objectStateLookup(before, key);
+  const newState = objectStateLookup(after, key);
   const old = layerObjects(before),
-    current = new Map(layerObjects(after).map((o) => [o.id, o]));
+    objects = layerObjects(after),
+    oldIds = new Set(old.map((o) => o.id)),
+    current = new Map(objects.map((o) => [o.id, o]));
   for (const o of old) {
     if (
-      !objectState(before, key, o).editable &&
+      !oldState(o).editable &&
       (!sameValue(o, current.get(o.id)) ||
         ('definitionId' in o && changedSymbols.has(o.definitionId)))
     )
@@ -247,7 +278,7 @@ export function assertLayerEdit(before: Project, after: Project, key: string) {
     throw new Error(
       'Layer protegido: habilite Editar antes de alterar seu estilo.',
     );
-  for (const o of layerObjects(after))
-    if (!old.some((x) => x.id === o.id) && !objectState(after, key, o).editable)
+  for (const o of objects)
+    if (!oldIds.has(o.id) && !newState(o).editable)
       throw new Error('Não é possível criar objetos em layer protegido.');
 }

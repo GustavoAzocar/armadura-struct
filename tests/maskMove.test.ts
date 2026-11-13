@@ -5,12 +5,14 @@ import {
   previewMaskManipulation,
   applyMaskManipulation,
   previewWholeMaskMove,
+  prepareWholeMaskMovePreview,
   applyWholeMaskMove,
 } from '../src/domain/maskManipulation';
 import { nativePrimitive, validateNativeMask } from '../src/domain/nativeMasks';
 import { maskPoint, parseDxf } from '../src/cad/import';
 import { decodeProject, schedule } from '../src/domain/model';
 import { setLayerState } from '../src/domain/layerProfiles';
+import { stylePrimitive } from '../src/domain/layers';
 import {
   captureMaskReference,
   dimensionReferenceIssue,
@@ -77,6 +79,45 @@ const dimension = (p: Project): Annotation => {
   return a;
 };
 describe('Mover entidades e máscara inteira', () => {
+  it('prepared preview agrees with the exact translation at every target; commit revalidates protection', () => {
+    const p = maskManipFixture(),
+      context = ctx(p),
+      id = p.masks[0].id;
+    const before = JSON.stringify(p);
+    const preview = prepareWholeMaskMovePreview(p, id, context);
+    for (const delta of [
+      { x: 0, y: 0 },
+      { x: 250, y: -50 },
+      { x: -19.123456789, y: 700 },
+    ]) {
+      const prepared = preview(delta),
+        exact = previewWholeMaskMove(p, id, context, delta);
+      expect(prepared).toEqual(exact);
+      expect(prepared.result.primitives).toBe(p.masks[0].primitives);
+      expect(applyWholeMaskMove(p, prepared, context)).toEqual(
+        applyWholeMaskMove(p, exact, context),
+      );
+    }
+    expect(JSON.stringify(p)).toBe(before);
+    expect(() => preview({ x: Infinity, y: 0 })).toThrow(/finito/);
+    expect(() => preview({ x: 1e9, y: 1e9 })).toThrow(/limites/);
+    const plan = preview({ x: 250, y: -50 });
+    const layer = stylePrimitive(
+      p,
+      p.masks[0],
+      p.masks[0].primitives[0],
+    ).layerId!;
+    const locked = setLayerState(p, 'model', layer, { editable: false });
+    expect(() => applyWholeMaskMove(locked, plan, context)).toThrow(
+      /projeto mudou/,
+    );
+    expect(() => prepareWholeMaskMovePreview(locked, id, context)).toThrow(
+      /bloqueado/,
+    );
+    expect(() =>
+      applyWholeMaskMove(p, plan, { ...context, key: 'other' }),
+    ).toThrow(/contexto/);
+  });
   it('duas entidades de (100,100) a (350,50): Δ=(250,−50); terceira entidade, aço, RA/CSV e outras máscaras intactos', () => {
     const p = maskManipFixture();
     p.masks[0].primitives[0].style = { color: '#123456', lineWidth: 0.5 };
