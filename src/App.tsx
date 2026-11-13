@@ -10544,6 +10544,7 @@ export default function App() {
               <LinkedProjectFiles
                 key={`${p.id}:${folderEpoch}`}
                 project={p}
+                editingBlocked={!!isolatedDetailId}
                 captureContext={() => {
                   const assertCurrent = recentContext();
                   return () => {
@@ -10553,6 +10554,12 @@ export default function App() {
                   };
                 }}
                 onLink={(path) => {
+                  if (isolationRef.current) {
+                    notify(
+                      'Conclua a edição isolada antes de alterar os vínculos.',
+                    );
+                    return;
+                  }
                   const current = historyRef.current.present;
                   const next = linkProjectFile(current, path);
                   if (next === current) {
@@ -10562,6 +10569,12 @@ export default function App() {
                   }
                 }}
                 onUnlink={(path) => {
+                  if (isolationRef.current) {
+                    notify(
+                      'Conclua a edição isolada antes de alterar os vínculos.',
+                    );
+                    return;
+                  }
                   if (historyRef.current.present !== p) return;
                   commit((current) => ({
                     ...current,

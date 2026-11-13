@@ -36,6 +36,8 @@ A associação é local e vale somente na sessão autorizada. Handles, tokens e 
 
 Na barra de estado, abra **Arquivos do projeto → Vincular arquivo** e selecione um arquivo dentro da pasta autorizada. O painel mostra o nome, o tipo e a pasta relativa de cada vínculo. Ele consulta somente a lista gravada no documento, mesmo quando a raiz tem muitos arquivos. **Desvincular** remove a referência do projeto. Vincular e desvincular participam do histórico e do salvamento automático.
 
+Durante a edição isolada de um detalhamento ou desenho, os vínculos globais ficam disponíveis para consulta, mas **Vincular arquivo** e **Desvincular** permanecem bloqueados. Conclua a edição para alterá-los; o histórico também respeita esse limite.
+
 - **Abrir** usa o leitor de projetos para arquivos `.armstruct.json` e confirma a substituição se houver alterações pendentes. A ação vale para o documento selecionado no painel. Formatos diferentes podem constar da lista para referência.
 - **Localizar no sistema** pede ao gerenciador de arquivos que selecione o item no Windows ou no Linux com suporte a `org.freedesktop.FileManager1` e `gdbus`. O aplicativo verifica a pasta e rejeita redirecionamentos por links no desktop.
 - No navegador com seletores compatíveis, **Abrir** pede uma seleção explícita do arquivo indicado. A API do navegador verifica a relação entre os dois seletores e controla o acesso a links simbólicos no sistema. Em outros navegadores e em cópias abertas sem pasta, ficam disponíveis os vínculos gravados para consulta. A localização pelo gerenciador de arquivos é exclusiva do desktop.

@@ -5,6 +5,7 @@ import { projectFolderFiles } from '../lib/projectFolder';
 
 type Props = {
   project: Project;
+  editingBlocked?: boolean;
   captureContext: () => () => void;
   onLink: (path: string) => void;
   onUnlink: (path: string) => void;
@@ -13,6 +14,7 @@ type Props = {
 
 export default function LinkedProjectFiles({
   project,
+  editingBlocked = false,
   captureContext,
   onLink,
   onUnlink,
@@ -90,6 +92,9 @@ export default function LinkedProjectFiles({
   return (
     <section className="linked-project-files" aria-label="Arquivos vinculados">
       <strong>Arquivos vinculados</strong>
+      {editingBlocked && (
+        <span>Conclua a edição isolada antes de alterar os vínculos.</span>
+      )}
       {!files && (
         <span>
           O acesso aos vínculos exige uma pasta autorizada e um seletor
@@ -147,7 +152,7 @@ export default function LinkedProjectFiles({
                     </button>
                   )}
                   <button
-                    disabled={busy}
+                    disabled={busy || editingBlocked}
                     aria-label={`Desvincular ${name}`}
                     onClick={() => {
                       setNotice('');
@@ -164,7 +169,7 @@ export default function LinkedProjectFiles({
       )}
       {files && (
         <button
-          disabled={!enabled}
+          disabled={!enabled || editingBlocked}
           onClick={() =>
             void run(async (check) => {
               const path = await files.choose();

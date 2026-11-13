@@ -251,6 +251,81 @@ test('descarta seletor atrasado após fechar e abre somente o arquivo vinculado 
     'Detalhe vinculado',
   );
 });
+test('edição isolada bloqueia alterações dos vínculos globais até concluir o detalhe', async ({
+  page,
+}) => {
+  const path = 'Refs/Detalhe.armstruct.json';
+  await create(page, 'Obra isolada', 'A');
+  for (const value of ['B', '0,0', '1500,0', '']) await command(page, value);
+  await page.keyboard.press('Escape');
+  await page.evaluate((path) => {
+    const f = (window as unknown as { folderMock: DirectoryMock }).folderMock;
+    f.roots.A.files.set(path, '{}');
+    f.selectedFile = { folder: 'A', path };
+  }, path);
+  await files(page);
+  const panel = page.getByRole('region', { name: 'Arquivos vinculados' });
+  const link = panel.getByRole('button', { name: 'Vincular arquivo' });
+  const unlink = panel.getByRole('button', {
+    name: 'Desvincular Detalhe.armstruct.json',
+  });
+  await link.click();
+  await expect(unlink).toBeEnabled();
+  await expect
+    .poll(async () => decodeProject((await raw(page))!).linkedFiles)
+    .toEqual([path]);
+  await expect(page.locator('.save-status')).toHaveText(
+    'Salvo na pasta do projeto',
+  );
+  const before = await raw(page);
+  const detail = decodeProject(before!).hierarchy.details[0];
+  await page.locator('.folder-menu > summary').press('Escape');
+  await page.getByRole('tab', { name: 'Projeto', exact: true }).click();
+  await page
+    .getByRole('button', {
+      name: `Abrir edição isolada de ${detail.name}`,
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole('region', { name: 'Edição isolada' }),
+  ).toBeVisible();
+  await files(page);
+  await expect(link).toBeDisabled();
+  await expect(unlink).toBeDisabled();
+  await expect(
+    page
+      .locator('.quick-tools')
+      .getByRole('button', { name: 'Desfazer', exact: true }),
+  ).toBeDisabled();
+  await expect(
+    panel.getByText('Conclua a edição isolada antes de alterar os vínculos.'),
+  ).toBeVisible();
+  expect(await raw(page)).toBe(before);
+  await page.locator('.folder-menu > summary').press('Escape');
+  await page
+    .getByRole('button', { name: 'Concluir edição', exact: true })
+    .click();
+  await files(page);
+  await expect(link).toBeEnabled();
+  await expect(unlink).toBeEnabled();
+  await unlink.click();
+  await expect(unlink).toHaveCount(0);
+  await expect
+    .poll(async () => decodeProject((await raw(page))!).linkedFiles)
+    .toEqual([]);
+  await page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Desfazer', exact: true })
+    .click();
+  await expect(unlink).toBeEnabled();
+  await page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Refazer', exact: true })
+    .click();
+  await expect(unlink).toHaveCount(0);
+});
+
 test('escolha é rascunho, cancelar mantém arquivos/projeto e criar salva no local mostrado', async ({
   page,
 }) => {
