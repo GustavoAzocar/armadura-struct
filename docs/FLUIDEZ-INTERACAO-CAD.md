@@ -8,6 +8,8 @@ Esta implementação reduz o trabalho repetido de entrada e prévias. A validaç
 
 `CadCanvas` mantém a câmera lógica mais recente em uma ref. Cada entrada de roda integra seu delta com a âncora daquele evento; pan usa a posição absoluta em relação à origem do gesto. A apresentação é publicada no máximo uma vez por frame de animação. `getState()` retorna a câmera lógica, inclusive antes da publicação, para preservar a navegação ao trocar de documento.
 
+Entrada/saída de isolamento e reenquadramento automático são decididos na mesma transição. Ao entrar, o overview captura inclusive a última câmera lógica ainda não publicada. Ao sair, restaurar esse overview tem prioridade sobre a mudança da contagem de máscaras visíveis. A primeira medição do `ResizeObserver` é explícita; alternar Foco ou redimensionar depois preserva a navegação.
+
 A posição de grip/janela também avança imediatamente. A soltura é resolvida pelas suas próprias coordenadas, atualiza o ponto final e publica o trabalho pendente antes de confirmar. Não depende de React já ter desenhado o último movimento. Um clique continua resolvendo seu snap atual.
 
 A aquisição de guias e a consulta de snaps continuam consumindo cada evento de movimento entregue ao aplicativo. Apenas a publicação de cursor, marcador, alças, janela e notificações de prévia ao componente pai é agrupada. Hover de entidades é resolvido na publicação com o contexto atual; o clique faz sua própria consulta exata.
@@ -101,6 +103,7 @@ O checkout de referência precisa das dependências instaladas. O script pode me
 - `npm run check`: 1.173 testes de domínio/importação/infraestrutura e seis de distribuição aprovados; plugin de exemplo válido.
 - Novas regressões unitárias: rajadas de entrada, flush de confirmação, cancelamento entre gerações, zoom com âncoras distintas, coordenadas finais, cache de prévia versus resultado exato, proteção no commit, agrupamento sem perda de precisão/textos e diagnóstico limitado/desligado por padrão.
 - `tests/e2e/cadInputFrames.spec.ts`: rajada de pan seguida por soltura diferente do último movimento; grip confirmado antes do próximo frame com undo/redo; Esc impedindo edição atrasada. Incluído na etapa prioritária do CI e na suíte completa.
+- `tests/e2e/detailEditing.spec.ts`: restauração do overview com máscaras reaparecendo, zoom ainda pendente, Foco e redimensionamento. A asserção original de centro/escala permanece; três cenários de isolamento são repetidos cinco vezes na etapa inicial do CI antes da suíte completa.
 - Os cenários existentes de snaps, máscaras, seleção, histórico, persistência e exportação permanecem na suíte.
 
 O Chromium local não inicia por uma restrição de sockets do ambiente (`Operation not permitted`); os E2E e o benchmark de navegador ficam para o CI. Não há WebKitGTK 4.1, GPU física nem sessão gráfica disponíveis nesta execução. Builds/testes do desktop Linux/Windows e sensações de uso não são declarados validados.

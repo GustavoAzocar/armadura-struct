@@ -302,6 +302,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const host = useRef<HTMLDivElement>(null),
     svg = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 900, h: 600 });
+  const [hasMeasuredSize, setHasMeasuredSize] = useState(false);
   const [view, setRenderedView] = useState(
     props.initialState?.view ?? { x: 2800, y: -300, s: 0.12 },
   );
@@ -324,9 +325,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const space = useRef(false);
   useEffect(() => {
     if (!host.current) return;
-    const ro = new ResizeObserver(([entry]) =>
-      setSize({ w: entry.contentRect.width, h: entry.contentRect.height }),
-    );
+    const ro = new ResizeObserver(([entry]) => {
+      setSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      if (entry.contentRect.width > 0 && entry.contentRect.height > 0)
+        setHasMeasuredSize(true);
+    });
     ro.observe(host.current);
     const down = (e: KeyboardEvent) => {
       if (
@@ -644,36 +647,68 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       setView((v) => ({ ...v, s: Math.max(0.000001, Math.min(20, v.s * f)) })),
   }));
   const initialMaskCount = useRef(project.masks.length);
-  const firstScopeEffect = useRef(true);
-  useEffect(() => {
+  const cameraContext = useRef<{
+    projectId: string;
+    detailId?: string;
+    masks: number;
+    measured: boolean;
+  } | null>(null);
+  useLayoutEffect(() => {
+    const previous = cameraContext.current;
+    const scopeChanged =
+      !previous ||
+      previous.projectId !== project.id ||
+      previous.detailId !== props.isolatedDetailId;
+    const autoFitChanged =
+      !previous ||
+      previous.projectId !== project.id ||
+      previous.masks !== project.masks.length ||
+      (!previous.measured && hasMeasuredSize);
+    cameraContext.current = {
+      projectId: project.id,
+      detailId: props.isolatedDetailId,
+      masks: project.masks.length,
+      measured: hasMeasuredSize,
+    };
+
+    // Scope and mask-count changes belong to one camera transition. A passive
+    // auto-fit must never overwrite the saved overview after leaving isolation.
+    if (scopeChanged) {
+      panInput.current = null;
+      gripInput.current = null;
+      marqueeInput.current = null;
+      setGrip(null);
+      setDrag(null);
+      setMarquee(null);
+      if (!previous && props.initialState) return;
+      if (props.isolatedDetailId) {
+        if (!overview.current || overview.current.projectId !== project.id)
+          overview.current = { projectId: project.id, view: camera.current };
+        if (hasMeasuredSize) fit();
+        return;
+      }
+      const saved = overview.current;
+      overview.current = null;
+      if (saved?.projectId === project.id) {
+        setView(saved.view);
+        return;
+      }
+    }
+    // The first measurement can equal the 900 px placeholder. Later resizes
+    // (including Focus) preserve navigation rather than implicitly fitting it.
     if (
+      hasMeasuredSize &&
+      autoFitChanged &&
       size.w > 0 &&
       (!props.initialState || project.masks.length !== initialMaskCount.current)
     )
       fit();
-  }, [project.masks.length, size.w === 900]); // fit after a new reference, not after every edit
-  useLayoutEffect(() => {
-    panInput.current = null;
-    gripInput.current = null;
-    marqueeInput.current = null;
-    setGrip(null);
-    setDrag(null);
-    setMarquee(null);
-    if (firstScopeEffect.current && props.initialState) {
-      firstScopeEffect.current = false;
-      return;
-    }
-    firstScopeEffect.current = false;
-    if (props.isolatedDetailId) {
-      if (!overview.current)
-        overview.current = { projectId: project.id, view: camera.current };
-      fit();
-    } else if (overview.current) {
-      if (overview.current.projectId === project.id)
-        setView(overview.current.view);
-      overview.current = null;
-    }
-  }, [props.isolatedDetailId, project.id]);
+  }, [
+    props.isolatedDetailId,
+    project.id,
+    project.masks.length,
+    hasMeasuredSize,
+  ]);
   const scr = (p: Point) => ({
     x: (p.x - view.x) * view.s + size.w / 2,
     y: (view.y - p.y) * view.s + size.h / 2,

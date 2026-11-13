@@ -256,6 +256,92 @@ test('tree isolation protects history, file replacement and foreign objects, and
   ).toBe(false);
 });
 
+for (const focus of [false, true]) {
+  test(`overview restoration preserves pending zoom and mask visibility${focus ? ' after Focus and resize' : ''}`, async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await seedLegacyDemo(page);
+    await selectBar(page, 'N1');
+    await groupSelection(page, 'Montagem');
+    const before = await save(page);
+    await tree(page);
+    await camera(page);
+    const canvas = page.getByTestId('cad-canvas');
+    await expect(canvas.locator('[data-mask-id]')).toHaveCount(
+      before.masks.length,
+    );
+    await expect(
+      page.getByRole('button', {
+        name: 'Abrir edição isolada de Montagem',
+        exact: true,
+      }),
+    ).toBeVisible();
+
+    // Wheel and entry share one task: the logical camera has advanced but its
+    // SVG frame has not. Isolation must save that latest logical camera.
+    const requested = await canvas.evaluate((svg) => {
+      const group = svg.querySelector('g[transform]') as SVGGElement;
+      const matrix = group.transform.baseVal.consolidate()!.matrix;
+      const box = svg.getBoundingClientRect();
+      const old = {
+        x: (box.width / 2 - matrix.e) / matrix.a,
+        y: (matrix.f - box.height / 2) / matrix.a,
+        scale: matrix.a,
+      };
+      const scale = Math.min(20, old.scale * Math.exp(180 * 0.0015));
+      const expected = {
+        x: old.x + 73 / old.scale - 73 / scale,
+        y: old.y + 47 / old.scale - 47 / scale,
+        scale,
+      };
+      svg.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          deltaY: -180,
+          clientX: box.left + box.width / 2 + 73,
+          clientY: box.top + box.height / 2 - 47,
+        }),
+      );
+      const unpublished = group.transform.baseVal.consolidate()!.matrix.a;
+      document
+        .querySelector<HTMLButtonElement>(
+          '[aria-label="Abrir edição isolada de Montagem"]',
+        )!
+        .click();
+      return { ...expected, unpublished, previous: old.scale };
+    });
+    expect(requested.unpublished).toBe(requested.previous);
+    await expect(
+      page.getByRole('region', { name: 'Edição isolada' }),
+    ).toBeVisible();
+    await expect(canvas.locator('[data-mask-id]')).toHaveCount(0);
+
+    if (focus) {
+      await page.keyboard.press('Control+0');
+      await expect(page.locator('.app-shell')).toHaveClass(/focus-mode/);
+      await page.setViewportSize({ width: 1400, height: 850 });
+    }
+    await page
+      .getByRole('button', { name: 'Concluir edição', exact: true })
+      .click();
+    await expect(canvas.locator('[data-mask-id]')).toHaveCount(
+      before.masks.length,
+    );
+    for (let i = 0; i < 2; i++) {
+      const restored = await camera(page);
+      expect(Math.abs(restored.x - requested.x) * requested.scale).toBeLessThan(
+        0.001,
+      );
+      expect(Math.abs(restored.y - requested.y) * requested.scale).toBeLessThan(
+        0.001,
+      );
+      expect(restored.scale).toBeCloseTo(requested.scale, 5);
+    }
+    expect(await save(page)).toEqual(before);
+  });
+}
+
 test('moving a selected group translates every owned geometry and keeps the physical quantities', async ({
   page,
 }) => {
