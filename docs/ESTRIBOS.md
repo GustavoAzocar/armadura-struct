@@ -29,6 +29,8 @@ A confirmação gera uma única operação atômica. Desfazer remove seção e f
 
 Estribos antigos preservam seus vértices, ganchos e comprimentos originais. Aplicar explicitamente os novos critérios a uma posição legada converte sua seção e mostra aviso e prévia antes da aplicação. Os controles legados de largura/altura/gancho continuam disponíveis para essas peças.
 
+Selecione a faixa e, em **Propriedades → Distribuição vinculada → Representação**, escolha **Faixa sem traços individuais**. A linha, os conectores e a legenda da faixa continuam visíveis no CAD, nas pranchas e nas exportações PDF/DXF. Para recuperar as marcas, escolha **Faixa por traços**. A escolha vale para a posição selecionada e preserva o espaçamento e a relação de aço. O arquivo do projeto registra essa opção no formato `armadurastruct/37`.
+
 ## Persistência, intercâmbio e exportação
 
 O formato nativo passa a **armadurastruct/25** e o pacote de detalhamento a **openstruct.detail/16**. Não há caminhos externos ou novos arquivos obrigatórios. `decodeProject` preserva perfil, aparência, faixa e critérios; versões anteriores continuam abrindo e não recebem perfis automaticamente. Campos novos em versões antigas são rejeitados. O intercâmbio converte comprimentos de perfis/ganchos/faixas em mm/cm/m e mantém fatores × bitola sem escalá-los.

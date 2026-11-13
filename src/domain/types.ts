@@ -81,7 +81,7 @@ export type Bar = LayerBinding & {
   distribution?: {
     start?: Point;
     end: Point;
-    render?: 'ticks' | 'bars';
+    render?: 'ticks' | 'bars' | 'band';
     annotationOffset?: number;
     insets?: { start: number; end: number };
   };
@@ -326,7 +326,7 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/33';
+  schema: 'armadurastruct/33' | 'armadurastruct/37';
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;

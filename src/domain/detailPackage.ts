@@ -1,5 +1,5 @@
 import { scaleBeamClampProfile, scaleBeamClampView } from './beamClampSchema';
-import { scaleStirrupProfile } from './stirrupSchema';
+import { hasDistributionBand, scaleStirrupProfile } from './stirrupSchema';
 import { scaleHelixDisplay, scaleHelixProfile } from './helixSchema';
 import { scaleDimensionReferences } from './maskDimensions';
 import { nativePrimitive } from './nativeMasks';
@@ -18,6 +18,7 @@ import {
   hasFreeTextData,
   hasBeamClampData,
   hasHelixData,
+  DISTRIBUTION_BAND_SCHEMA,
 } from './model';
 import { contentObjects } from './hierarchy';
 import { detailOrigin, objectOrigin } from './detailTransfer';
@@ -27,6 +28,7 @@ import type { Bar, Point, Project } from './types';
 import type { WeldedMeshLaunch } from './weldedMeshLaunch';
 
 export const DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/22' as const;
+export const BAND_DETAIL_PACKAGE_SCHEMA = 'openstruct.detail/24' as const;
 const id = z.string().min(1).max(200);
 const named = (max = 100) =>
   z.object({ id, name: z.string().trim().min(1).max(max) });
@@ -54,7 +56,8 @@ export const detailPackageSchema = z
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
-      'openstruct.detail/22',
+      DETAIL_PACKAGE_SCHEMA,
+      BAND_DETAIL_PACKAGE_SCHEMA,
     ]),
     layers: z.array(drawingLayerSchema).min(1).max(2000).optional(),
     fabricationPositions: z
@@ -280,7 +283,19 @@ function scaleContent(value: DetailPackage, k: number): DetailPackage {
 }
 
 /** Validate the complete closed reference graph before opening the AS-08 comparison. */
-export function detailPackageProject(value: DetailPackage): Project {
+export function detailPackageProject(input: DetailPackage): Project {
+  const bandVersion = input.schema === BAND_DETAIL_PACKAGE_SCHEMA;
+  if (
+    !bandVersion &&
+    (hasDistributionBand(input.objects.bars) ||
+      hasDistributionBand(input.dependencies))
+  )
+    throw new Error(
+      `Faixas sem traços individuais exigem pacote ${BAND_DETAIL_PACKAGE_SCHEMA}.`,
+    );
+  const value = bandVersion
+    ? { ...input, schema: DETAIL_PACKAGE_SCHEMA }
+    : input;
   if (
     !['openstruct.detail/21', 'openstruct.detail/22'].includes(value.schema) &&
     value.objects.annotations.some(
@@ -737,7 +752,7 @@ export function detailPackageProject(value: DetailPackage): Project {
   }
   return decodeProject(
     JSON.stringify({
-      schema: 'armadurastruct/33',
+      schema: bandVersion ? DISTRIBUTION_BAND_SCHEMA : 'armadurastruct/33',
       layers: pack.layers ?? defaultLayers(),
       fabricationPositions: pack.fabricationPositions ?? [],
       id: c.project.id,
@@ -793,26 +808,32 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/20',
       'openstruct.detail/21',
       DETAIL_PACKAGE_SCHEMA,
+      BAND_DETAIL_PACKAGE_SCHEMA,
     ].includes(input?.schema)
   )
     throw new Error(
-      `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA}.`,
+      `Versão de pacote não suportada. Use ${DETAIL_PACKAGE_SCHEMA} ou ${BAND_DETAIL_PACKAGE_SCHEMA}.`,
     );
   if (
-    input?.schema !== 'openstruct.detail/22' &&
+    input?.schema !== DETAIL_PACKAGE_SCHEMA &&
+    input?.schema !== BAND_DETAIL_PACKAGE_SCHEMA &&
     hasHelixData({
       bars: [...(input?.objects?.bars ?? []), ...(input?.dependencies ?? [])],
     })
   )
     throw new Error('Estribos helicoidais exigem pacote openstruct.detail/22.');
   const pack = detailPackageSchema.parse(input);
+  const compatibleSchema =
+    pack.schema === BAND_DETAIL_PACKAGE_SCHEMA
+      ? DETAIL_PACKAGE_SCHEMA
+      : pack.schema;
   if (
     ![
       'openstruct.detail/19',
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
-    ].includes(pack.schema) &&
+    ].includes(compatibleSchema) &&
     hasBeamClampData({
       bars: [...pack.objects.bars, ...pack.dependencies],
       details: pack.objects.details,
@@ -828,7 +849,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
-    ].includes(pack.schema) &&
+    ].includes(compatibleSchema) &&
     [...pack.objects.bars, ...pack.dependencies].some(
       (b) =>
         b.stirrupProfile ||
@@ -858,7 +879,7 @@ export function readDetailPackage(raw: unknown): {
       'openstruct.detail/20',
       'openstruct.detail/21',
       'openstruct.detail/22',
-    ].includes(pack.schema) &&
+    ].includes(compatibleSchema) &&
     !pack.layers
   )
     throw new Error('Pacote v8 sem catálogo de layers.');
@@ -913,7 +934,10 @@ export function createDetailPackage(
     (b) => refs.has(b.id) && !owned.has(b.id),
   );
   const mm: DetailPackage = {
-    schema: DETAIL_PACKAGE_SCHEMA,
+    schema:
+      hasDistributionBand(objects.bars) || hasDistributionBand(dependencies)
+        ? BAND_DETAIL_PACKAGE_SCHEMA
+        : DETAIL_PACKAGE_SCHEMA,
     layers: project.layers,
     fabricationPositions: fabricationPositions(project)
       .map((g) => ({
