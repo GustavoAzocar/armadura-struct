@@ -1,5 +1,9 @@
 import { isTauri, invoke } from '@tauri-apps/api/core';
 import { decodeProject } from '../domain/model';
+import {
+  isLinkedProjectDocument,
+  projectFilePath,
+} from '../domain/linkedProjectFiles';
 import type { Project } from '../domain/types';
 export const PROJECT_FILE = 'save-v1/projeto.armstruct.json';
 export const RESERVED_EXPORTS = [
@@ -20,11 +24,19 @@ type DH = {
   getDirectoryHandle(n: string, o?: { create: boolean }): Promise<DH>;
   getFileHandle(n: string, o?: { create: boolean }): Promise<FH>;
   queryPermission?(o: { mode: string }): Promise<PermissionState>;
+  resolve?(file: FH): Promise<string[] | null>;
+};
+type FolderFiles = {
+  checkAccess: () => Promise<void>;
+  choose: () => Promise<string | null>;
+  open: (path: string) => Promise<File | null>;
+  reveal?: (path: string) => Promise<void>;
 };
 export type ProjectFolder = {
   label: string;
   read: () => Promise<string | undefined>;
   write: (data: string, expected: string | undefined) => Promise<void>;
+  files?: FolderFiles;
 };
 export const folderAvailable = () =>
   isTauri() ||
@@ -33,6 +45,51 @@ export const folderAvailable = () =>
     typeof navigator.locks?.request === 'function');
 const missing = (e: unknown) =>
   e instanceof DOMException && e.name === 'NotFoundError';
+const canceled = (e: unknown) =>
+  e instanceof DOMException && e.name === 'AbortError';
+
+function webFolderFiles(
+  root: DH,
+  checkAccess: () => Promise<void>,
+): FolderFiles | undefined {
+  const pick = (
+    window as unknown as {
+      showOpenFilePicker?: (options: { startIn: DH }) => Promise<FH[]>;
+    }
+  ).showOpenFilePicker;
+  if (!pick || !root.resolve) return;
+  const resolve = root.resolve.bind(root);
+  const choose = async () => {
+    let file: FH;
+    try {
+      [file] = await pick.call(window, { startIn: root });
+    } catch (e) {
+      if (canceled(e)) return null;
+      throw e;
+    }
+    if (!file) return null;
+    await checkAccess();
+    const parts = await resolve(file);
+    if (!parts) throw Error('Selecione um arquivo dentro da pasta autorizada.');
+    return { path: projectFilePath(parts.join('/')), file };
+  };
+  return {
+    checkAccess,
+    choose: async () => (await choose())?.path ?? null,
+    open: async (path) => {
+      if (!isLinkedProjectDocument(projectFilePath(path)))
+        throw Error('Formato sem suporte para abrir como projeto.');
+      // A stored path cannot substitute for a file chosen in the browser.
+      const entry = await choose();
+      if (!entry) return null;
+      if (entry.path !== path)
+        throw Error('Selecione o arquivo vinculado indicado no painel.');
+      const file = await entry.file.getFile();
+      await checkAccess();
+      return file;
+    },
+  };
+}
 export function managedNameConflict(actual: string, expected: string) {
   const normalized = actual.normalize('NFC').replace(/[. ]+$/, '');
   return (
@@ -54,6 +111,7 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
       'project_folder_choose',
     );
     if (!choice) return null;
+    const { token } = choice;
     return {
       label: choice.label,
       read: () =>
@@ -66,6 +124,24 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
           data,
           expected: expected ?? null,
         }),
+      files: {
+        checkAccess: () => invoke('project_folder_check', { token }),
+        choose: () => invoke('project_folder_choose_file', { token }),
+        open: async (path) => {
+          if (!isLinkedProjectDocument(projectFilePath(path)))
+            throw Error('Formato sem suporte para abrir como projeto.');
+          const text = await invoke<string>('project_folder_read_file', {
+            token,
+            relative: path,
+          });
+          return new File([text], path.split('/').at(-1)!);
+        },
+        reveal: (path) =>
+          invoke('project_folder_reveal_file', {
+            token,
+            relative: projectFilePath(path),
+          }),
+      },
     };
   }
   const picker = (
@@ -81,10 +157,10 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
   try {
     root = await picker.call(window, { mode: 'readwrite' });
   } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') return null;
+    if (canceled(e)) return null;
     throw e;
   }
-  const read = async () => {
+  const checkAccess = async () => {
     if (
       root.queryPermission &&
       (await root.queryPermission({ mode: 'readwrite' })) !== 'granted'
@@ -92,6 +168,9 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
       throw Error(
         'Acesso à pasta perdido; use Localizar/associar pasta para reautorizar.',
       );
+  };
+  const read = async () => {
+    await checkAccess();
     await checkNames(root, 'save-v1');
     let dir: DH;
     try {
@@ -114,6 +193,7 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
   return {
     label: root.name,
     read,
+    files: webFolderFiles(root, checkAccess),
     write: async (data, expected) => {
       const work = async () => {
         const old = await read();
@@ -170,6 +250,7 @@ export function inheritProjectFolder(
   if (b) bindings.set(complete, b);
 }
 export const projectFolderLabel = (p: Project) => bindings.get(p)?.folder.label;
+export const projectFolderFiles = (p: Project) => bindings.get(p)?.folder.files;
 export function attachProjectFolder(
   p: Project,
   folder: ProjectFolder,

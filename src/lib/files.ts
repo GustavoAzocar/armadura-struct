@@ -1,4 +1,4 @@
-import { detachProject, rememberFolder } from './projectFolder';
+import { rememberFolder } from './projectFolder';
 import { isTauri } from '@tauri-apps/api/core';
 import type { Mask, Project } from '../domain/types';
 import { decodeProject } from '../domain/model';
@@ -74,11 +74,9 @@ export async function readProjectFile(
 ): Promise<Project> {
   if (file.size > 100 * 1024 * 1024)
     throw new Error('Use um projeto de até 100 MB.');
-  return detachProject(
-    decodeProject(await file.text(), {
-      allowOrphanReferences: forDetailTransfer,
-    }),
-  );
+  return decodeProject(await file.text(), {
+    allowOrphanReferences: forDetailTransfer,
+  });
 }
 /** Packages and complete projects converge on the same AS-08 comparison. */
 export async function readDetailSourceFile(

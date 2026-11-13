@@ -54,6 +54,7 @@ import {
 import { geometry, vertices, world } from './geometry';
 import { nominalWeight } from './steel';
 import { uid, type Bar, type Project, type ScheduleRow } from './types';
+import { decodeLinkedProjectFiles } from './linkedProjectFiles';
 import {
   completeOwnership,
   initialHierarchy,
@@ -555,7 +556,12 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const helixVersion = input?.schema === 'armadurastruct/33';
+  const linkedFileVersion = input?.schema === 'armadurastruct/34';
+  if (!linkedFileVersion && input?.linkedFiles !== undefined)
+    throw new Error('Arquivos vinculados exigem formato 34.');
+  const linkedFiles = decodeLinkedProjectFiles(input?.linkedFiles);
+  const helixVersion =
+    linkedFileVersion || input?.schema === 'armadurastruct/33';
   if (!helixVersion && hasHelixData(input))
     throw new Error(
       'Estribos helicoidais exigem formato 33. Atualize o aplicativo para abrir este arquivo.',
@@ -904,7 +910,8 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/33',
+    schema: linkedFileVersion ? 'armadurastruct/34' : 'armadurastruct/33',
+    ...(linkedFiles === undefined ? {} : { linkedFiles }),
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
