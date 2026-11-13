@@ -140,10 +140,13 @@ export function beamClampGeometry(b: Bar, bodyOnly = false): Geometry {
   );
   if (!Number.isFinite(length) || !(length > 0))
     errors.push('Comprimento inválido para o grampo de viga.');
+  const vertices = beamClampVertices(b);
   return {
     segments,
     length,
-    vertices: beamClampVertices(b),
+    vertices,
+    theoreticalVertices: vertices,
+    hookSegments: { start: start.length, end: end.length },
     errors: [...new Set(errors)],
   };
 }

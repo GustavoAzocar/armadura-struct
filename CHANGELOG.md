@@ -2,6 +2,7 @@
 
 ## Não lançado
 
+- Arquivos vinculados ao projeto e convenções de cotagem por armadura/rebatimento integrados (#171, #172, #190). O formato nativo /35 preserva ambos e lê as duas variantes de desenvolvimento /34. Vincular/desvincular respeita a edição isolada e o histórico; salvar, reabrir e recuperar mantém os vínculos e as convenções. O intercâmbio de cotagem usa o pacote /23.
 - Enquadrar, restaurar a câmera e usar botões de zoom publicam a posição imediatamente, evitando que um clique seguinte use um texto ou objeto ainda desenhado na posição anterior. Wheel e pan continuam agrupados por frame (#175).
 - Restauração da câmera ao concluir edição isolada: centro e zoom salvos têm prioridade sobre o reenquadramento disparado pelo retorno das máscaras, inclusive em Foco e após redimensionar. Preserva também zoom lógico pendente antes da entrada no isolamento (#175).
 - Fluidez da interação CAD (#175): câmera e prévias publicadas por frame, confirmação de alças pela posição da soltura, cancelamento de trabalho pendente e zoom com âncora preservada em rajadas. Prévia de mover máscara reutiliza geometria vetorial e verificação inicial por sessão, com validação completa ao aplicar; paths temporários agrupados sem arredondar coordenadas. Proteções de layers usam índices locais e há diagnóstico optativo em memória. [Medições, limites e teste nativo](docs/FLUIDEZ-INTERACAO-CAD.md).

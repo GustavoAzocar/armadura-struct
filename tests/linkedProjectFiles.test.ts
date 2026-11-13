@@ -22,12 +22,12 @@ describe('vínculos de arquivos', () => {
     expect(() => projectFilePath(path)).toThrow();
   });
 
-  it('preserva o documento, evita duplicação e conserva o vínculo no formato 34', () => {
+  it('preserva o documento, evita duplicação e conserva o vínculo no formato atual', () => {
     const before = emptyProject();
     const after = linkProjectFile(before, 'Referências/Planta.armstruct.json');
     expect(after).toEqual({
       ...before,
-      schema: 'armadurastruct/34',
+      schema: 'armadurastruct/35',
       linkedFiles: ['Referências/Planta.armstruct.json'],
     });
     expect(linkProjectFile(after, 'referências/planta.armstruct.json')).toBe(
@@ -38,7 +38,7 @@ describe('vínculos de arquivos', () => {
     );
     expect(decodeProject(JSON.stringify(before)).linkedFiles).toBeUndefined();
     expect(() =>
-      decodeProject(JSON.stringify({ ...after, schema: before.schema })),
+      decodeProject(JSON.stringify({ ...after, schema: 'armadurastruct/33' })),
     ).toThrow('formato 34');
     expect(() =>
       decodeProject(JSON.stringify({ ...after, linkedFiles: ['a', 'A'] })),

@@ -108,6 +108,8 @@ export function stirrupGeometry(b: Bar, bodyOnly = false): Geometry {
     r = (b.mandrel + b.diameter) / 2;
   let body: Segment[] = [],
     errors: string[] = [];
+  let theoreticalVertices: Point[] | undefined;
+  let hookSegments: Geometry['hookSegments'];
   if (b.kind !== 'stirrup')
     errors.push('Perfil de estribo exige família estribo.');
   if (b.width > 100000 || b.height > 100000)
@@ -120,6 +122,7 @@ export function stirrupGeometry(b: Bar, bodyOnly = false): Geometry {
     const g = columnClampGeometry(b, bodyOnly);
     body = g.segments;
     errors.push(...g.errors);
+    hookSegments = g.hookSegments;
   } else if (p.shape === 'circle') {
     const radius = w / 2;
     if (!(radius >= r))
@@ -190,6 +193,7 @@ export function stirrupGeometry(b: Bar, bodyOnly = false): Geometry {
       points = points.map((q) => add(q, { x: inset, y: inset }));
     const g = geometryFromPoints(points, r);
     body = g.segments;
+    theoreticalVertices = g.theoreticalVertices;
     errors.push(...g.errors);
   }
   let segments = body;
@@ -207,9 +211,11 @@ export function stirrupGeometry(b: Bar, bodyOnly = false): Geometry {
       b,
     );
     segments = [...start.reverse().map(reverse), ...body, ...end];
+    hookSegments = { start: start.length, end: end.length };
   }
   if (b.stirrupMirrored) {
     const flip = (q: Point) => ({ x: q.x, y: -q.y });
+    theoreticalVertices = theoreticalVertices?.map(flip);
     segments = segments.map((s) =>
       s.type === 'line'
         ? { ...s, a: flip(s.a), b: flip(s.b) }
@@ -236,6 +242,8 @@ export function stirrupGeometry(b: Bar, bodyOnly = false): Geometry {
     length,
     errors: [...new Set(errors)],
     vertices: sampled(segments),
+    theoreticalVertices,
+    hookSegments,
   };
 }
 export const displayedBarGeometry = (b: Bar) =>
@@ -434,6 +442,9 @@ function columnClampGeometry(b: Bar, bodyOnly: boolean): Geometry {
     segments,
     vertices: sampled(segments),
     errors,
+    hookSegments: bodyOnly
+      ? undefined
+      : { start: start.length, end: end.length },
     length: segments.reduce(
       (sum, seg) =>
         sum +

@@ -78,7 +78,7 @@ describe('AS-67: persistência, intercâmbio e quantitativos físicos', () => {
   it('salva critérios, peça e duas vistas, contando 54 grampos completos e 79,6093801 m', () => {
     const p = fixture(),
       q = decodeProject(JSON.stringify(p));
-    expect(q.schema).toBe('armadurastruct/33');
+    expect(q.schema).toBe('armadurastruct/35');
     expect(q.beamClampDefaults).toEqual(p.beamClampDefaults);
     expect(q.bars[0].beamClamp).toEqual(p.bars[0].beamClamp);
     expect(q.details).toEqual(p.details);
@@ -111,7 +111,7 @@ describe('AS-67: persistência, intercâmbio e quantitativos físicos', () => {
         ...packOptions,
         unit,
       });
-      expect(pack.schema).toBe('openstruct.detail/22');
+      expect(pack.schema).toBe('openstruct.detail/23');
       const scale = unit === 'mm' ? 1 : unit === 'cm' ? 10 : 1000;
       expect(pack.objects.bars[0].beamClamp!.longitudinal).toBeCloseTo(
         600 / scale,

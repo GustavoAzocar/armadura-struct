@@ -66,7 +66,14 @@ export function geometry(bar: Bar): Geometry {
   if (bar.kind === 'beam-clamp') return beamClampGeometry(bar);
   if (bar.kind === 'helix') return helixGeometry(bar);
   if (bar.stirrupProfile) return stirrupGeometry(bar);
-  return geometryFromPoints(vertices(bar), (bar.mandrel + bar.diameter) / 2);
+  const result = geometryFromPoints(
+    vertices(bar),
+    (bar.mandrel + bar.diameter) / 2,
+  );
+  // In the legacy stirrup, each hook comprises an end leg and the bend
+  // replacing its side of the closing corner.
+  if (bar.kind === 'stirrup') result.hookSegments = { start: 2, end: 2 };
+  return result;
 }
 export function geometryFromPoints(pts: Point[], r: number): Geometry {
   const errors: string[] = [];
@@ -121,7 +128,13 @@ export function geometryFromPoints(pts: Point[], r: number): Geometry {
       length += r * Math.abs(c.angle);
     }
   }
-  return { segments, length, errors: [...new Set(errors)], vertices: pts };
+  return {
+    segments,
+    length,
+    errors: [...new Set(errors)],
+    vertices: pts,
+    theoreticalVertices: pts,
+  };
 }
 export function sampled(segments: Segment[], step = Math.PI / 24): Point[] {
   const out: Point[] = [];
