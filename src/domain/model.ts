@@ -207,6 +207,9 @@ export const quantitySourceSchema = z.union([
     })
     .strict(),
 ]);
+export const barDimensionConventionSchema = z
+  .enum(['axis', 'external'])
+  .optional();
 export const armatureDataSchema = {
   multiplier: z.number().int().min(1).max(10000).default(1),
   quantitySource: quantitySourceSchema.default({ kind: 'manual' }),
@@ -221,6 +224,7 @@ const barSchema = z
     ...layerBindingShape,
     ...armatureDataSchema,
     manufacturing: manufacturingSchema.optional(),
+    dimensionConvention: barDimensionConventionSchema,
     id: z.string(),
     mark: z.string().min(1).max(40),
     element: z.string().max(100),
@@ -441,6 +445,7 @@ const schema = z.object({
         scale: number.positive().max(10000).optional(),
         label: representationLabelSchema.optional(),
         showDimensions: z.boolean().optional(),
+        dimensionConvention: barDimensionConventionSchema,
         beamClampView: beamClampViewSchema.optional(),
         identification: z
           .enum(['legacy', 'primary', 'mark', 'none'])
@@ -519,6 +524,20 @@ export function hasHelixData(input: unknown): boolean {
     )
   );
 }
+/** Automatic cotation convention requires native format 34 or exchange 23. */
+export function hasBarDimensionConvention(input: unknown): boolean {
+  type Cotated = { dimensionConvention?: unknown } | null;
+  const value = input as {
+    bars?: Cotated[];
+    details?: Cotated[];
+    scheduleLock?: { bars?: Cotated[] };
+  } | null;
+  return [value?.bars, value?.details, value?.scheduleLock?.bars].some(
+    (items) =>
+      Array.isArray(items) &&
+      items.some((item) => item?.dimensionConvention !== undefined),
+  );
+}
 /** Parametric physical/view data that older formats cannot safely interpret. */
 export function hasBeamClampData(input: unknown): boolean {
   const value = input as {
@@ -556,12 +575,18 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const linkedFileVersion = input?.schema === 'armadurastruct/34';
+  // Both independent PRs wrote /34. Accept either legacy payload, then save
+  // their combined data as /35 so either older reader rejects it explicitly.
+  const combinedVersion = input?.schema === 'armadurastruct/35';
+  const linkedFileVersion =
+    combinedVersion || input?.schema === 'armadurastruct/34';
   if (!linkedFileVersion && input?.linkedFiles !== undefined)
-    throw new Error('Arquivos vinculados exigem formato 34.');
+    throw new Error('Arquivos vinculados exigem formato 34 ou posterior.');
   const linkedFiles = decodeLinkedProjectFiles(input?.linkedFiles);
-  const helixVersion =
-    linkedFileVersion || input?.schema === 'armadurastruct/33';
+  const cotationVersion = linkedFileVersion;
+  if (!cotationVersion && hasBarDimensionConvention(input))
+    throw new Error('Convenção de cotagem exige formato 34 ou posterior.');
+  const helixVersion = cotationVersion || input?.schema === 'armadurastruct/33';
   if (!helixVersion && hasHelixData(input))
     throw new Error(
       'Estribos helicoidais exigem formato 33. Atualize o aplicativo para abrir este arquivo.',
@@ -910,7 +935,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: linkedFileVersion ? 'armadurastruct/34' : 'armadurastruct/33',
+    schema: 'armadurastruct/35',
     ...(linkedFiles === undefined ? {} : { linkedFiles }),
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
@@ -1180,7 +1205,7 @@ export const emptyProject = (): Project => {
     polylines: [],
   };
   return {
-    schema: 'armadurastruct/33',
+    schema: 'armadurastruct/35',
     layers: defaultLayers(),
     sheets: [initialSheet(`${id}:sheet`)],
     id,

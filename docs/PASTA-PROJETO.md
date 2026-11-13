@@ -43,7 +43,7 @@ Durante a edição isolada de um detalhamento ou desenho, os vínculos globais f
 - No navegador com seletores compatíveis, **Abrir** pede uma seleção explícita do arquivo indicado. A API do navegador verifica a relação entre os dois seletores e controla o acesso a links simbólicos no sistema. Em outros navegadores e em cópias abertas sem pasta, ficam disponíveis os vínculos gravados para consulta. A localização pelo gerenciador de arquivos é exclusiva do desktop.
 - Se o acesso for perdido, use **Localizar/associar pasta**. Um arquivo ausente pode ser reposto na localização indicada ou desvinculado.
 
-O primeiro vínculo grava o formato nativo `armadurastruct/34`. Projetos anteriores abrem com a lista vazia e conservam o formato atual até vincular um arquivo. O documento guarda apenas caminhos relativos. A seleção da pasta continua necessária para conceder acesso e os arquivos administrados em `save-v1` ficam reservados ao salvamento.
+O projeto é salvo no formato nativo `armadurastruct/35`, que reúne arquivos vinculados e convenções de cotagem. Arquivos anteriores abrem sem vínculos quando não os possuem. As duas variantes de desenvolvimento do formato 34 (vínculos ou cotagem) são lidas preservando seus dados e passam ao formato 35 ao salvar. Leitores anteriores recusam o formato 35, evitando descartar silenciosamente um dos campos. O documento guarda apenas caminhos relativos. A seleção da pasta continua necessária para conceder acesso e os arquivos administrados em `save-v1` ficam reservados ao salvamento.
 
 ## Desktop Linux/Windows
 

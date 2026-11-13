@@ -44,7 +44,7 @@ export function linkProjectFile(project: Project, path: string): Project {
     return project;
   return {
     ...project,
-    schema: 'armadurastruct/34',
+    schema: 'armadurastruct/35',
     linkedFiles: decodeLinkedProjectFiles([...paths, validated]),
   };
 }

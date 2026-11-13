@@ -1,4 +1,6 @@
 import DimensionPresentationFields from './DimensionPresentationFields';
+import { BarCutMemory } from './BarCutMemory';
+import { barDimensions } from '../domain/barDimensions';
 import { dimensionReferenceIssue } from '../domain/maskDimensions';
 import LayerInspector from './LayerInspector';
 import WeldedMeshInspector from './WeldedMeshInspector';
@@ -54,6 +56,7 @@ import type {
   Annotation,
   DraftPolyline,
   Bar,
+  BarDimensionConvention,
   Mask,
   Project,
 } from '../domain/types';
@@ -224,6 +227,44 @@ function Section({
     </section>
   );
 }
+function BarDimensionField({
+  bar,
+  value,
+  onChange,
+}: {
+  bar: Bar;
+  value?: BarDimensionConvention;
+  onChange: (value: BarDimensionConvention | undefined) => void;
+}) {
+  const diagnostic =
+    value === 'external' ? barDimensions(bar).diagnostic : undefined;
+  return (
+    <>
+      <label className="field">
+        <span>Convenção de cotagem</span>
+        <select
+          value={value ?? ''}
+          onChange={(e) => {
+            const choice = e.target.value;
+            onChange(
+              choice === 'axis' || choice === 'external' ? choice : undefined,
+            );
+          }}
+        >
+          <option value="">Padrão do desenho</option>
+          <option value="axis">Pelo eixo</option>
+          <option value="external">Externa</option>
+        </select>
+      </label>
+      {diagnostic && (
+        <p className="field-help" role="status">
+          {diagnostic}
+        </p>
+      )}
+    </>
+  );
+}
+
 export function Inspector({
   bar,
   mask,
@@ -343,6 +384,16 @@ export function Inspector({
                 <span>{g!.errors.join(' ')}</span>
               </div>
             )}
+            <Section title="Cotagem e corte">
+              <BarDimensionField
+                bar={bar}
+                value={bar.dimensionConvention}
+                onChange={(dimensionConvention) =>
+                  onBar({ dimensionConvention })
+                }
+              />
+              <BarCutMemory key={bar.id} bar={bar} />
+            </Section>
             <Section title="Identificação">
               <TextField
                 label="Posição"
@@ -2057,6 +2108,18 @@ export function RepresentationInspector({
           ID {d.id} · armadura {d.barId}. Transformações gráficas não alteram
           comprimentos ou aço.
         </p>
+        {bar && (
+          <Section title="Cotagem e corte">
+            <BarDimensionField
+              bar={bar}
+              value={d.dimensionConvention}
+              onChange={(dimensionConvention) =>
+                onChange({ dimensionConvention })
+              }
+            />
+            <BarCutMemory key={d.id} bar={bar} />
+          </Section>
+        )}
         <NumberField
           label="X da inserção"
           value={d.origin.x}

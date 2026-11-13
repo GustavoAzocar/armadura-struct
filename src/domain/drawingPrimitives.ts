@@ -1,4 +1,5 @@
 import { symbolInstances, symbolRenderMasks } from './symbolRender';
+import { barConventionLabels } from './barDimensionLabels';
 import { stirrupPrimitives, stirrupDimensionLabels } from './stirrupGeometry';
 import {
   beamClampPrimitives,
@@ -85,7 +86,13 @@ export function physicalBarTextPrimitives(
         'IDENTIFICACAO',
       ),
     );
-  if (b.stirrupProfile && b.stirrupDisplay?.dimensions !== false) {
+  const convention =
+    b.stirrupDisplay?.dimensions !== false
+      ? barConventionLabels(b, b.dimensionConvention, { paperHeight })
+      : undefined;
+  if (convention) {
+    for (const d of convention) out.push(text(d.text, d.at, 'COTAS', 'center'));
+  } else if (b.stirrupProfile && b.stirrupDisplay?.dimensions !== false) {
     for (const d of stirrupDimensionLabels(b))
       out.push(text(d.text, d.at, 'COTAS', 'center'));
   }
@@ -94,7 +101,7 @@ export function physicalBarTextPrimitives(
     for (const dimension of beamClampDimensionLabels(b))
       out.push(text(dimension.text, dimension.at, 'COTAS', dimension.align));
   }
-  if (b.kind === 'stirrup' && !b.stirrupProfile)
+  if (b.kind === 'stirrup' && !b.stirrupProfile && !convention)
     out.push(
       text(
         format(b.width / 10),
