@@ -415,7 +415,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
   );
 });
 
-const PaperLines = memo(function PaperLines({
+export const PaperLines = memo(function PaperLines({
   lines,
 }: {
   lines: PaperPrimitive[];

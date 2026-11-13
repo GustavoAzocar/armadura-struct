@@ -144,6 +144,9 @@ describe('máscaras CAD', () => {
       -50,
     );
     expect(m.primitives[1].points.some((p) => p.x > 9.9)).toBe(true);
+    expect(m.warnings.join()).toContain(
+      '2 entidade(s) com curvas aproximadas por segmentos',
+    );
   });
   it('omite paper space e planos inclinados com aviso', () => {
     const m = normalizeCad(
@@ -159,6 +162,9 @@ describe('máscaras CAD', () => {
     );
     expect(m.primitives).toHaveLength(1);
     expect(m.warnings.join()).toContain('plano 3D');
+    expect(m.warnings.join()).toContain(
+      '1 ocorrência(s): entidade em espaço de papel',
+    );
   });
   it('rejeita arquivos sem geometria ou DXF binário com orientação clara', () => {
     expect(() => normalizeCad({ entities: [] }, 'vazio.dxf', 'DXF')).toThrow(
@@ -181,7 +187,7 @@ it('DWG MTEXT honors vertical direction, attachment and multiline table headings
           rotation: 0,
           attachmentPoint: 8,
           textHeight: 2,
-          text: 'C.UNIT\\P(cm)',
+          text: '{\\C1;C.UNIT}\\P(cm)',
         },
       ],
     },
@@ -196,4 +202,7 @@ it('DWG MTEXT honors vertical direction, attachment and multiline table headings
   ).toBe(true);
   expect(m.primitives[0].points[0].x).toBeCloseTo(7.4);
   expect(m.primitives[1].points[0].x).toBeCloseTo(10);
+  expect(m.warnings.join()).toContain(
+    '1 entidade(s) de texto com formatação CAD removida',
+  );
 });

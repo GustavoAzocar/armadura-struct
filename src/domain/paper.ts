@@ -11,6 +11,7 @@ import { bounds, rotate } from './geometry';
 import { detailEditorView } from './detailEditing';
 import { drawingPrimitives } from './drawingPrimitives';
 import { sheetSize, validateSheetLayout } from './paperFormat';
+import { sheetTemplateDecorations } from './sheetTemplates';
 
 export type PaperRect = { x: number; y: number; width: number; height: number };
 import type { PaperPrimitive } from './paperText';
@@ -69,6 +70,7 @@ function rectPoints(r: PaperRect) {
   ];
 }
 export function usefulArea(sheet: Sheet): PaperRect {
+  if (sheet.paperTemplate) return sheet.paperTemplate.useful;
   const size = sheetSize(sheet),
     m = sheet.margins;
   return {
@@ -79,6 +81,7 @@ export function usefulArea(sheet: Sheet): PaperRect {
   };
 }
 export function sealArea(sheet: Sheet): PaperRect | undefined {
+  if (sheet.paperTemplate) return sheet.paperTemplate.seal;
   if (!sheet.seal.enabled) return;
   const u = usefulArea(sheet);
   return {
@@ -311,10 +314,10 @@ export function composeSheet(
     useful = usefulArea(sheet),
     seal = sealArea(sheet),
     issues: PaperIssue[] = [];
-  const decorations: PaperPrimitive[] = [
-    { layer: 'MARGEM', points: rectPoints(useful), closed: true },
-  ];
-  if (seal) {
+  const decorations: PaperPrimitive[] = sheet.paperTemplate
+    ? sheetTemplateDecorations(sheet.paperTemplate)
+    : [{ layer: 'MARGEM', points: rectPoints(useful), closed: true }];
+  if (seal && !sheet.paperTemplate) {
     if (!contained(rectPoints(seal), useful))
       issues.push({
         code: 'seal-overflow',
@@ -474,14 +477,18 @@ export function composeSheet(
     issues,
   };
 }
-export function assertPaperExportable(project: Project, ids: string[]) {
+export function assertPaperExportable(
+  project: Project,
+  ids: string[],
+  format: 'PDF' | 'DXF' = 'PDF',
+) {
   if (!ids.length)
     throw new Error('Crie uma folha para exportar a composição.');
   const sheets = ids.map((id) => composeSheet(project, id));
   const invalid = sheets.filter((s) => s.issues.length);
   if (invalid.length)
     throw new Error(
-      `PDF não exportado: ${invalid.map((s) => `${s.sheet.name}: ${s.issues.map((i) => i.message).join(' ')}`).join(' / ')}`,
+      `${format} não exportado: ${invalid.map((s) => `${s.sheet.name}: ${s.issues.map((i) => i.message).join(' ')}`).join(' / ')}`,
     );
   return sheets;
 }

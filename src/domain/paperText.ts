@@ -1,5 +1,7 @@
 import type { Point, Primitive } from './types';
 import { rotate } from './geometry';
+import { jsPDF } from 'jspdf';
+import { resolveTextFont } from './textStyle';
 export type PaperPrimitive = Primitive & {
   textAlign?: 'left' | 'center' | 'right';
 };
@@ -63,7 +65,9 @@ export function wrapPaperText(value: string, height: number, width: number) {
 export function paperPrimitiveBounds(p: PaperPrimitive): Point[] {
   if (!p.text || !p.points.length) return p.points;
   const h = p.textHeight ?? 2.5,
-    w = paperTextWidth(p.text, h),
+    w = p.textFont
+      ? outputTextWidth(p.text, h, p.textFont)
+      : paperTextWidth(p.text, h),
     anchor = p.points[0];
   const align =
     p.textAlign ??
@@ -78,4 +82,16 @@ export function paperPrimitiveBounds(p: PaperPrimitive): Point[] {
     const q = rotate(v, p.textRotation ?? 0);
     return { x: anchor.x + q.x, y: anchor.y + q.y };
   });
+}
+
+let measurePdf: jsPDF | undefined;
+function outputTextWidth(
+  text: string,
+  height: number,
+  font: NonNullable<Primitive['textFont']>,
+) {
+  measurePdf ??= new jsPDF();
+  const resolved = resolveTextFont(font);
+  measurePdf.setFont(resolved.pdf, resolved.pdfStyle);
+  return measurePdf.getStringUnitWidth(text) * height;
 }

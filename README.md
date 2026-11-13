@@ -125,7 +125,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 6. Em **Pranchas**, crie folhas, coloque desenhos e abra suas vistas com duplo clique para editar. Duplicar folhas/vistas reutiliza os dados de aço.
 7. Salve o projeto e exporte os desenhos e quantitativos.
 
-Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composição em escala](docs/AS-05.md) e os [contratos da atualização seletiva](docs/AS-08.md).
+Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composição em escala](docs/AS-05.md), o [guia de modelos de margem e selo](docs/AS-12.md) e os [contratos da atualização seletiva](docs/AS-08.md).
 
 ## Convenções e limites desta versão
 

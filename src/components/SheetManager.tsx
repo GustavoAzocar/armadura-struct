@@ -19,6 +19,7 @@ import {
 import { NumberField, TextField } from './Panels';
 import { SheetPaperFields, ViewPaperFields } from './PaperFields';
 import { composeSheet } from '../domain/paper';
+import { detachSheetTemplate } from '../domain/sheetTemplates';
 
 type Props = {
   project: Project;
@@ -31,6 +32,8 @@ type Props = {
   onOpenDrawing: (id: string) => void;
   locked: boolean;
   onExportAll: () => void;
+  onExportDxf: (ids?: string[]) => void;
+  onOpenTemplates: () => void;
 };
 export default function SheetManager({
   project: p,
@@ -42,6 +45,8 @@ export default function SheetManager({
   onOpenDrawing,
   locked,
   onExportAll,
+  onExportDxf,
+  onOpenTemplates,
   onInsertSchedule,
 }: Props) {
   const [newName, setNewName] = useState('');
@@ -76,6 +81,13 @@ export default function SheetManager({
             para consultar o projeto.
           </p>
         )}
+        <button
+          type="button"
+          onClick={onOpenTemplates}
+          disabled={locked || !p.sheets.length}
+        >
+          Modelos de margem e selo
+        </button>
         <form
           className="sheet-create"
           onSubmit={(e) => {
@@ -144,6 +156,7 @@ export default function SheetManager({
               <select
                 aria-label="Formato da folha"
                 value={sheet.format}
+                disabled={!!sheet.paperTemplate}
                 onChange={(e) =>
                   onChange((p) =>
                     updateSheet(p, sheet.id, {
@@ -164,6 +177,7 @@ export default function SheetManager({
               <select
                 aria-label="Orientação da folha"
                 value={sheet.orientation}
+                disabled={!!sheet.paperTemplate}
                 onChange={(e) =>
                   onChange((p) =>
                     updateSheet(p, sheet.id, {
@@ -176,7 +190,32 @@ export default function SheetManager({
                 <option value="portrait">Retrato</option>
               </select>
             </label>
-            <SheetPaperFields sheet={sheet} onChange={onChange} />
+            {sheet.paperTemplate ? (
+              <div className="field-help">
+                <p>
+                  Modelo aplicado: {sheet.paperTemplate.name} · revisão{' '}
+                  {sheet.paperTemplate.revision}
+                </p>
+                <button
+                  type="button"
+                  disabled={locked}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'Remover o modelo desta folha e voltar ao selo básico?',
+                      )
+                    )
+                      onChange((project) =>
+                        detachSheetTemplate(project, sheet.id),
+                      );
+                  }}
+                >
+                  Voltar ao selo básico
+                </button>
+              </div>
+            ) : (
+              <SheetPaperFields sheet={sheet} onChange={onChange} />
+            )}
             <TextField
               label="Revisão da folha"
               maxLength={40}
@@ -486,7 +525,7 @@ export default function SheetManager({
             <b>
               {composition.issues.length
                 ? `${composition.issues.length} problema(s) de composição`
-                : 'Composição válida para PDF'}
+                : 'Composição válida'}
             </b>
             {composition.issues.map((issue, i) => (
               <button
@@ -508,6 +547,18 @@ export default function SheetManager({
           disabled={!p.sheets.length}
         >
           Exportar todas as folhas em PDF
+        </button>
+        {sheet && (
+          <button type="button" onClick={() => onExportDxf([sheet.id])}>
+            Exportar folha ativa em DXF
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => onExportDxf()}
+          disabled={!p.sheets.length}
+        >
+          Exportar todas as folhas em DXF
         </button>
         <h3>Desenhos não colocados ({unplaced.length})</h3>
         <div className="unplaced-drawings">

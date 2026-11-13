@@ -61,4 +61,28 @@ export function validateSheetLayout(sheet: Sheet) {
     sheet.margins.top + sheet.margins.bottom >= size.height
   )
     throw new Error('As margens precisam deixar uma área útil positiva.');
+  const template = sheet.paperTemplate;
+  if (template) {
+    const applied = sheetSize(template);
+    const { useful, seal } = template;
+    const geometry = [
+      size.width - applied.width,
+      size.height - applied.height,
+      sheet.margins.left - useful.x,
+      sheet.margins.bottom - useful.y,
+      size.width - sheet.margins.right - useful.x - useful.width,
+      size.height - sheet.margins.top - useful.y - useful.height,
+      sheet.seal.width - (seal?.width ?? sheet.seal.width),
+      sheet.seal.height - (seal?.height ?? sheet.seal.height),
+    ];
+    if (
+      sheet.format !== template.format ||
+      sheet.orientation !== template.orientation ||
+      sheet.seal.enabled !== Boolean(seal) ||
+      geometry.some((n) => Math.abs(n) > 1e-7)
+    )
+      throw new Error(
+        'O papel, as margens e a reserva do selo devem corresponder ao modelo aplicado.',
+      );
+  }
 }

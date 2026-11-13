@@ -63,6 +63,12 @@ import {
 import { initialSheet, placeDrawing } from './sheets';
 import { fitPlacement } from './paper';
 import { validateSheetLayout } from './paperFormat';
+import {
+  SHEET_TEMPLATE_PROJECT_SCHEMA,
+  sheetTemplateSchema,
+  validateSheetTemplate,
+  validateSheetTemplateCatalog,
+} from './sheetTemplates';
 const number = z.number().finite();
 const point = z.object({ x: number, y: number });
 const identity = z.string().min(1).max(200);
@@ -307,11 +313,13 @@ const schema = z.object({
   numbering: numberingPolicySchema.optional(),
   symbols: z.array(symbolDefinitionSchema).max(500).optional(),
   symbolInstances: z.array(symbolInstanceSchema).max(10000).optional(),
+  sheetTemplates: z.array(sheetTemplateSchema).max(1000).optional(),
   sheets: z
     .array(
       z.object({
         ...named,
         steelSchedule: sheetSteelScheduleSchema.optional(),
+        paperTemplate: sheetTemplateSchema.optional(),
         format: z.enum(['A0', 'A1', 'A2', 'A3', 'A4', 'custom']),
         customSize: z
           .object({
@@ -555,7 +563,18 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const helixVersion = input?.schema === 'armadurastruct/33';
+  const templateVersion = input?.schema === SHEET_TEMPLATE_PROJECT_SCHEMA;
+  if (
+    !templateVersion &&
+    (input?.sheetTemplates !== undefined ||
+      (Array.isArray(input?.sheets) &&
+        input.sheets.some(
+          (sheet: Partial<import('./types').Sheet> | null) =>
+            sheet?.paperTemplate !== undefined,
+        )))
+  )
+    throw new Error('Modelos de prancha exigem formato 36.');
+  const helixVersion = templateVersion || input?.schema === 'armadurastruct/33';
   if (!helixVersion && hasHelixData(input))
     throw new Error(
       'Estribos helicoidais exigem formato 33. Atualize o aplicativo para abrir este arquivo.',
@@ -904,7 +923,9 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/33',
+    schema: templateVersion
+      ? SHEET_TEMPLATE_PROJECT_SCHEMA
+      : 'armadurastruct/33',
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
       ? parsed.sheets!.map((s) => ({
@@ -951,7 +972,11 @@ export function decodeProject(
         `Estribo ${b.mark}: ${geometry(b).errors.join(' ') || 'família inválida'}`,
       );
   }
-  for (const sheet of p.sheets) validateSheetLayout(sheet);
+  if (p.sheetTemplates) validateSheetTemplateCatalog(p.sheetTemplates);
+  for (const sheet of p.sheets) {
+    if (sheet.paperTemplate) validateSheetTemplate(sheet.paperTemplate);
+    validateSheetLayout(sheet);
+  }
   const ids = p.bars.map((b) => b.id);
   if (new Set(ids).size !== ids.length)
     throw new Error('IDs de armadura duplicados.');

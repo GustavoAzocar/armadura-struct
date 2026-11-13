@@ -342,6 +342,9 @@ const CadInterpretDialog = lazy(
 );
 const VisibilityDialog = lazy(() => import('./components/VisibilityDialog'));
 const PlotDialog = lazy(() => import('./components/PlotDialog'));
+const SheetTemplateDialog = lazy(
+  () => import('./components/SheetTemplateDialog'),
+);
 const CsvExportDialog = lazy(() => import('./components/CsvExportDialog'));
 const LayerManager = lazy(() => import('./components/LayerManager'));
 const ArmatureCloneDialog = lazy(
@@ -609,6 +612,11 @@ export default function App() {
     projectId: string;
   } | null>(null);
   const [plotOpen, setPlotOpen] = useState(false);
+  const [sheetTemplateSession, setSheetTemplateSession] = useState<{
+    projectId: string;
+    documentKey: string;
+    sheetId?: string;
+  } | null>(null);
   const [csvExportOpen, setCsvExportOpen] = useState(false);
   const [alignmentRequest, setAlignmentRequest] =
     useState<AlignmentSession | null>(null);
@@ -713,6 +721,14 @@ export default function App() {
   const activeSheet = documentKey.startsWith('sheet:')
     ? p.sheets.find((s) => s.id === documentKey.slice(6))
     : undefined;
+  useEffect(() => {
+    if (
+      sheetTemplateSession &&
+      (sheetTemplateSession.projectId !== p.id ||
+        sheetTemplateSession.documentKey !== documentKey)
+    )
+      setSheetTemplateSession(null);
+  }, [sheetTemplateSession, p.id, documentKey]);
   const activeDrawing = documentKey.startsWith('drawing:')
     ? p.hierarchy.drawings.find((d) => d.id === documentKey.slice(8))
     : undefined;
@@ -6634,6 +6650,36 @@ export default function App() {
       );
     }
   };
+  const exportPaperDxf = async (ids?: string[]) => {
+    const current = historyRef.current.present;
+    fileOperations.current++;
+    try {
+      const { toSheetDxf } = await import('./lib/exports');
+      const data = toSheetDxf(current, ids);
+      if (historyRef.current.present !== current) return;
+      if (
+        !window.confirm(
+          'O DXF organiza as pranchas lado a lado em milímetros de papel. O programa CAD pode substituir fontes ausentes e alterar o encaixe do texto. Confira o arquivo no programa de destino. Exportar as pranchas?',
+        )
+      )
+        return;
+      const saved = await saveFile(
+        `${safeName(current.name)}-pranchas.dxf`,
+        data,
+        'application/dxf',
+        'dxf',
+      );
+      if (saved) notify('DXF de pranchas exportado em milímetros de papel.');
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível exportar o DXF das pranchas.',
+      );
+    } finally {
+      fileOperations.current--;
+    }
+  };
   const onDetailFile = async (file: File, request = detailRequest.current) => {
     if (!request) return;
     setBusy(`Lendo origem: ${file.name}…`);
@@ -7767,6 +7813,7 @@ export default function App() {
     savedBaseline.current = historyRef.current.present;
     stirrupCriteria.current = undefined;
     weldedMeshCriteria.current = undefined;
+    setSheetTemplateSession(null);
     select([]);
     setTool('select');
     setTimeout(() => canvas()?.fit(), 50);
@@ -10122,6 +10169,14 @@ export default function App() {
                 }}
                 onChange={commitLayout}
                 onExportAll={() => exportPaper()}
+                onExportDxf={exportPaperDxf}
+                onOpenTemplates={() =>
+                  setSheetTemplateSession({
+                    projectId: p.id,
+                    documentKey,
+                    sheetId: activeSheet?.id,
+                  })
+                }
                 onOpenSheet={(id) => {
                   switchDocument(`sheet:${id}`);
                   setSidebarTab('sheets');
@@ -10857,6 +10912,27 @@ export default function App() {
           />
         </Suspense>
       )}
+      {sheetTemplateSession?.projectId === p.id &&
+        sheetTemplateSession.documentKey === documentKey &&
+        !isolatedDetailId && (
+          <Suspense
+            fallback={
+              <div className="busy-overlay">Abrindo modelos de prancha…</div>
+            }
+          >
+            <SheetTemplateDialog
+              project={p}
+              initialSheetId={sheetTemplateSession.sheetId}
+              onClose={() => setSheetTemplateSession(null)}
+              onCommit={(next) => {
+                if (historyRef.current.present !== p || isolationRef.current)
+                  return false;
+                if (next === p) return true;
+                return commitLayout(() => next);
+              }}
+            />
+          </Suspense>
+        )}
       {plotOpen && (
         <Suspense
           fallback={<div className="busy-overlay">Abrindo plotagem…</div>}
@@ -11239,6 +11315,7 @@ export default function App() {
                 const next = decodeProject(raw);
                 attachProjectFolder(next, folder, raw);
                 if (!commit(() => next)) return false;
+                setSheetTemplateSession(null);
                 savedBaseline.current = historyRef.current.present;
                 rememberRecent({
                   kind: 'folder',
