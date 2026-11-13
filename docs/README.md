@@ -2,7 +2,7 @@
 
 Índice dos guias por área. Para começar, leia o [Guia de uso](GUIA.md) e os [atalhos de teclado](ATALHOS.md). Os guias `AS-NN` levam o número da tarefa que os originou; o assunto está ao lado.
 
-A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON Schema](openstruct-detail-v23.schema.json)); faixas sem traços usam o projeto `/37` e o pacote `/24` ([JSON Schema](openstruct-detail-v24.schema.json)). O formato 36 permanece reservado à contribuição paralela #191. Guias de entregas anteriores podem citar contratos históricos; confira os formatos atuais no código e nas [regras de contribuição](CONTRIBUTING.md#alterações-de-formato).
+A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON Schema](openstruct-detail-v23.schema.json)); faixas sem traços usam o projeto `/37` e o pacote `/24` ([JSON Schema](openstruct-detail-v24.schema.json)). Modelos de margem e selo usam o projeto `/38`, reunindo os recursos; o formato experimental 36 é migrado para 38. Guias de entregas anteriores podem citar contratos históricos; confira os formatos atuais no código e nas [regras de contribuição](CONTRIBUTING.md#alterações-de-formato).
 
 ## Projeto e organização
 
@@ -66,6 +66,7 @@ A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON 
 
 - [AS-04 · Gerenciador de pranchas e abas](AS-04.md)
 - [AS-05 · Composição de folhas em escala](AS-05.md)
+- [Modelos reutilizáveis de margem e selo](MARGENS-E-SELOS.md)
 - [Quadro de aço vinculado à prancha](QUADRO-NA-PRANCHA.md)
 - [CSV da relação do aço por escopo](CSV-POR-ESCOPO.md)
 

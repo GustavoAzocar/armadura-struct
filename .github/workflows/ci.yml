@@ -33,6 +33,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: sheet-template-evidence
+          if-no-files-found: ignore
+          path: |
+            docs/sheet-template-*.png
+            docs/sheet-template-output.pdf
+            docs/sheet-template-output.dxf
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: product-update-evidence
           if-no-files-found: ignore
           path: docs/updates-*.png

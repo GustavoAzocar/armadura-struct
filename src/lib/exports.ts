@@ -6,7 +6,7 @@ import {
 } from '../domain/plotting';
 import { stylePrimitive } from '../domain/layers';
 import { validateLayers, dashArray } from '../domain/layers';
-import type { Primitive } from '../domain/types';
+import type { DrawingLayer, Primitive } from '../domain/types';
 import { quantitySourceLabel } from '../domain/detailQuantities';
 import { jsPDF } from 'jspdf';
 import { csvField } from './csv';
@@ -120,11 +120,16 @@ function meshCsvRows(p: Project): unknown[][] {
 }
 export { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
 import type { Point, Project, TextFont } from '../domain/types';
-import { resolveTextFont, type ResolvedTextFont } from '../domain/textStyle';
+import {
+  DEFAULT_TEXT_FONT,
+  resolveTextFont,
+  type ResolvedTextFont,
+} from '../domain/textStyle';
 import {
   assertPaperExportable,
   paperInk,
   paperLineWidth,
+  type PaperComposition,
 } from '../domain/paper';
 export function assertExportable(p: Project) {
   validateLayers(p);
@@ -149,10 +154,6 @@ export function assertExportable(p: Project) {
 /** UTF-8 DXF 2007: native and reference layers, ByLayer and explicit overrides. */
 export function toDxf(p: Project): string {
   assertExportable(p);
-  const out: (string | number)[] = [],
-    put = (...pairs: (string | number)[]) => out.push(...pairs);
-  const clean = (s: string) =>
-    s.replace(/[\r\n\x00-\x1f]/g, ' ').replace(/Ø/g, '%%c');
   const raw = exportLines(p);
   const box = bounds(raw.flatMap((l) => l.points));
   const scheduleLayer =
@@ -191,21 +192,36 @@ export function toDxf(p: Project): string {
       'dxf',
     )[0]?.resolvedStyle,
   }));
-  const weights = [
-    0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106,
-    120, 140, 158, 200, 211,
-  ];
+  return writeDxf(lines, plottedLayers, 'model');
+}
+
+const dxfLineWeights = [
+  0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106,
+  120, 140, 158, 200, 211,
+];
+function assertDxfLineWidth(width: number, context = '') {
+  const hundredths = width * 100;
+  const weight = Math.round(hundredths);
+  if (!dxfLineWeights.includes(weight) || Math.abs(hundredths - weight) > 1e-7)
+    throw new Error(
+      `${context}Espessura ${width} mm não suportada no DXF. Use uma pena CAD, como 0,18 / 0,25 / 0,35 / 0,50 / 0,70 mm.`,
+    );
+}
+
+function writeDxf(
+  lines: Primitive[],
+  plottedLayers: DrawingLayer[],
+  space: 'model' | 'paper',
+): string {
+  const out: (string | number)[] = [],
+    put = (...pairs: (string | number)[]) => out.push(...pairs);
+  const clean = (s: string) =>
+    s.replace(/[\r\n\x00-\x1f]/g, ' ').replace(/Ø/g, '%%c');
   for (const s of [
     ...plottedLayers.filter((l) => l.plot?.include !== false),
     ...lines.map((l) => l.resolvedStyle).filter((s) => s !== undefined),
   ])
-    if (
-      !weights.includes(Math.round(s.lineWidth * 100)) ||
-      Math.abs(s.lineWidth * 100 - Math.round(s.lineWidth * 100)) > 1e-7
-    )
-      throw new Error(
-        `Espessura ${s.lineWidth} mm não suportada no DXF. Use uma pena CAD, como 0,18 / 0,25 / 0,35 / 0,50 / 0,70 mm.`,
-      );
+    assertDxfLineWidth(s.lineWidth);
   const types: { name: string; pattern: number[] }[] = [];
   const typeName = (t: { name: string; pattern: number[] }) => {
     const same = types.find(
@@ -287,7 +303,7 @@ export function toDxf(p: Project): string {
     );
     for (const n of t.pattern) put(49, n, 74, 0);
   }
-  put(0, 'ENDTAB', 0, 'TABLE', 2, 'LAYER', 5, '11', 70, p.layers.length);
+  put(0, 'ENDTAB', 0, 'TABLE', 2, 'LAYER', 5, '11', 70, plottedLayers.length);
   for (const l of plottedLayers)
     put(
       0,
@@ -351,9 +367,11 @@ export function toDxf(p: Project): string {
     put(0, 'ENDTAB');
   }
   put(0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
+  const layerById = new Map(plottedLayers.map((layer) => [layer.id, layer]));
   const common = (item: Primitive) => {
     const style = item.resolvedStyle!;
-    const layer = plottedLayers.find((l) => l.id === item.layerId);
+    const layer =
+      item.layerId === undefined ? undefined : layerById.get(item.layerId);
     put(100, 'AcDbEntity', 8, clean(item.layer));
     if (style.color !== layer?.color)
       put(420, parseInt(style.color.slice(1), 16));
@@ -388,7 +406,7 @@ export function toDxf(p: Project): string {
         40,
         item.textHeight ?? 40,
         1,
-        clean(item.text),
+        space === 'model' ? clean(item.text) : item.text,
         50,
         item.textRotation ?? 0,
         ...(item.textFont
@@ -414,6 +432,7 @@ export function toDxf(p: Project): string {
       continue;
     }
     if (
+      space === 'model' &&
       item.native?.kind === 'arc' &&
       ['ARMADURAS', 'REBATIMENTOS'].includes(item.role ?? item.layer)
     ) {
@@ -495,6 +514,112 @@ export function toDxf(p: Project): string {
   put(0, 'ENDSEC', 0, 'EOF');
   return out.join('\r\n') + '\r\n';
 }
+
+function paperPrimitives(page: PaperComposition): Primitive[] {
+  return [
+    ...page.decorations,
+    ...page.views.flatMap((view) => view.lines),
+    ...(page.schedule?.lines ?? []),
+  ];
+}
+
+const sheetDxfGap = 20;
+/** One drawing in paper mm, ordered left to right, with separate layers per sheet. */
+export function toSheetDxf(
+  p: Project,
+  sheetIds = p.sheets.map((sheet) => sheet.id),
+): string {
+  assertExportable(p);
+  const selected = new Set(sheetIds);
+  const ordered = p.sheets.filter((sheet) => selected.has(sheet.id));
+  if (ordered.length !== selected.size)
+    throw new Error('Uma folha selecionada para o DXF não existe no projeto.');
+  const pages = assertPaperExportable(
+    p,
+    ordered.map((sheet) => sheet.id),
+    'DXF',
+  );
+  const layers: DrawingLayer[] = [];
+  const lines: Primitive[] = [];
+  let offset = 0;
+  for (const [index, page] of pages.entries()) {
+    const prefix = `PRANCHA_${String(index + 1).padStart(3, '0')}`;
+    const paper: DrawingLayer = {
+      id: `${prefix}_PAPEL`,
+      name: `${prefix}_PAPEL`,
+      color: '#8992a4',
+      lineType: { name: 'CONTINUOUS', pattern: [] },
+      lineScale: 1,
+      lineWidth: 0.13,
+      fill: 'none',
+      fillColor: '#8992a4',
+      plot: { include: false },
+    };
+    layers.push(paper);
+    lines.push({
+      layer: paper.name,
+      layerId: paper.id,
+      points: [
+        { x: offset, y: 0 },
+        { x: offset + page.size.width, y: 0 },
+        { x: offset + page.size.width, y: page.size.height },
+        { x: offset, y: page.size.height },
+      ],
+      resolvedStyle: paper,
+      closed: true,
+    });
+    const pageLayers = new Map<string, DrawingLayer>();
+    const names = new Set([paper.name]);
+    for (const item of paperPrimitives(page)) {
+      const style = item.resolvedStyle!;
+      assertDxfLineWidth(
+        style.lineWidth,
+        `${page.sheet.name} · ${item.layer}: `,
+      );
+      // TEXT is a single line. Reject reserved formatting codes rather than
+      // allowing a CAD reader to reinterpret literal document text.
+      if (item.text && /[\x00-\x1f\x7f]|%%|\\U\+[\dA-F]{4}/iu.test(item.text))
+        throw new Error(
+          `${page.sheet.name} · ${item.layer}: texto não suportado no DXF de folhas. Use texto em uma linha e o símbolo Ø para diâmetro.`,
+        );
+      let layer = pageLayers.get(item.layer);
+      if (!layer) {
+        const suffix =
+          item.layer
+            .normalize('NFD')
+            .replace(/\p{Mark}/gu, '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9_-]+/g, '_')
+            .slice(0, 100) || 'CONTEUDO';
+        const base = `${prefix}_${suffix}`;
+        let name = base,
+          sequence = 2;
+        while (names.has(name)) name = `${base}_${sequence++}`;
+        names.add(name);
+        layer = { ...style, id: name, name };
+        pageLayers.set(item.layer, layer);
+        layers.push(layer);
+      }
+      const textFont = resolveTextFont(item.textFont);
+      lines.push({
+        ...item,
+        layer: layer.name,
+        layerId: layer.id,
+        role: item.role ?? item.layer,
+        points: item.points.map(({ x, y }) => ({ x: x + offset, y })),
+        textFont:
+          item.text && textFont.pdfSubstituted
+            ? { ...textFont.requested, family: DEFAULT_TEXT_FONT.family }
+            : (item.textFont ?? DEFAULT_TEXT_FONT),
+      });
+    }
+    offset += page.size.width + sheetDxfGap;
+  }
+  // The paper composition owns the plotted points. Its attached native arc
+  // metadata is still in model coordinates and cannot be written as a DXF ARC.
+  return writeDxf(lines, layers, 'paper');
+}
+
 export function toCsv(p: Project) {
   assertExportable(p);
   const safe = csvField;
@@ -893,11 +1018,7 @@ export function toSheetPdf(
     if (index)
       doc.addPage([page.size.width, page.size.height], page.sheet.orientation);
     doc.setFont('helvetica', 'normal');
-    for (const line of [
-      ...page.decorations,
-      ...page.views.flatMap((v) => v.lines),
-      ...(page.schedule?.lines ?? []),
-    ]) {
+    for (const line of paperPrimitives(page)) {
       doc.setDrawColor(line.resolvedStyle?.color ?? paperInk(line.layer));
       doc.setTextColor(line.resolvedStyle?.color ?? paperInk(line.layer));
       doc.setLineWidth(

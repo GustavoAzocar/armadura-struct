@@ -83,7 +83,7 @@ Um recurso visível ao usuário normalmente inclui:
 
 ## Alterações de formato
 
-O arquivo do projeto (`Project.schema`, hoje `armadurastruct/35` ou `/37`) e o pacote de intercâmbio (`DETAIL_PACKAGE_SCHEMA` = `openstruct.detail/23`; `BAND_DETAIL_PACKAGE_SCHEMA` = `/24`) são contratos persistidos. O formato 37 é adotado ao usar faixa sem traços; pacotes com essa apresentação usam 24. Confira os literais em `src/domain/types.ts` e `src/domain/detailPackage.ts` antes de documentar ou propor uma versão. Regras observadas no código e no histórico:
+O arquivo do projeto (`Project.schema`, hoje `armadurastruct/35`, `/37` ou `/38`) e o pacote de intercâmbio (`DETAIL_PACKAGE_SCHEMA` = `openstruct.detail/23`; `BAND_DETAIL_PACKAGE_SCHEMA` = `/24`) são contratos persistidos. O formato 37 é adotado ao usar faixa sem traços; modelos de prancha usam 38 e preservam os demais recursos. O formato experimental 36 é lido e migrado para 38. Pacotes com faixas sem traços usam 24; modelos de prancha não fazem parte desses pacotes. Confira os literais em `src/domain/types.ts` e `src/domain/detailPackage.ts` antes de documentar ou propor uma versão. Regras observadas no código e no histórico:
 
 - **Não suba o formato** se o dado novo puder ser lido por versões anteriores sem perda. Suba quando um arquivo novo, aberto por um aplicativo antigo, seria interpretado errado.
 - `decodeProject` (`src/domain/model.ts`) deve continuar abrindo todos os formatos anteriores e **recusar** dados novos em arquivos de formato antigo, com mensagem do tipo "exigem formato NN".

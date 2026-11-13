@@ -1,0 +1,259 @@
+.sheet-template-dialog.modal {
+  width: min(1080px, calc(100vw - 28px));
+  max-height: min(840px, calc(100dvh - 32px));
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--text);
+}
+
+.sheet-template-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-template-dialog::backdrop {
+  background: #0d1c3980;
+  backdrop-filter: blur(3px);
+}
+
+.sheet-template-dialog > header,
+.sheet-template-dialog > footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--panel);
+}
+
+.sheet-template-dialog > header {
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet-template-dialog > footer {
+  border-top: 1px solid var(--border);
+}
+
+.sheet-template-dialog > footer p {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.sheet-template-dialog > footer .template-buttons {
+  margin-left: auto;
+}
+
+.sheet-template-dialog h2,
+.sheet-template-dialog h3,
+.sheet-template-dialog p {
+  margin: 0;
+}
+
+.sheet-template-dialog h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.sheet-template-dialog h3 {
+  font-size: 14px;
+}
+
+.sheet-template-dialog header button {
+  font-size: 20px;
+  line-height: 1;
+  width: 34px;
+  height: 34px;
+}
+
+.template-dialog-scroll {
+  overflow: auto;
+  padding: 16px 18px;
+}
+
+.template-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(290px, 4fr) minmax(0, 5fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.template-editor-controls,
+.template-preview-column,
+.template-application {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  align-content: start;
+}
+
+.sheet-template-dialog fieldset {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  justify-items: stretch;
+}
+
+.sheet-template-dialog legend {
+  padding-inline: 5px;
+  font-weight: 600;
+}
+
+.sheet-template-dialog button:not(.primary) {
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #fff;
+}
+
+.sheet-template-dialog button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.template-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.template-field {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.template-field input,
+.template-field select {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 7px;
+}
+
+.template-field input[type='color'] {
+  padding: 3px;
+}
+
+.template-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.35;
+}
+
+.template-check input {
+  flex-shrink: 0;
+}
+
+.template-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.template-hint {
+  color: #526079;
+  line-height: 1.45;
+}
+
+.template-alert {
+  color: #8a3416;
+  line-height: 1.45;
+}
+
+.template-impact,
+.template-calibration ul {
+  margin: 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+
+.template-impact > li + li {
+  margin-top: 5px;
+}
+
+.template-vertices {
+  display: grid;
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.template-vertex {
+  display: grid;
+  gap: 4px;
+}
+
+.sheet-template-preview {
+  display: block;
+  width: 100%;
+  height: clamp(160px, 37vh, 350px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #f3f5f9;
+}
+
+.sheet-template-preview.picking {
+  cursor: crosshair;
+}
+
+.sheet-template-paper {
+  fill: white;
+  stroke: #a1aabc;
+  stroke-width: 0.5;
+}
+
+.sheet-template-region rect {
+  fill: none;
+  stroke: #00786a;
+  stroke-dasharray: 5 3;
+  stroke-width: 1;
+}
+
+.sheet-template-region text {
+  fill: #00786a;
+}
+
+.sheet-template-region.seal rect {
+  stroke: #975321;
+}
+
+.sheet-template-region.seal text {
+  fill: #975321;
+}
+
+.sheet-template-region.field rect {
+  stroke: #3448d1;
+}
+
+.sheet-template-region.field text {
+  fill: #3448d1;
+}
+
+.sheet-template-marker {
+  fill: #3448d1;
+}
+
+.sheet-template-marker circle {
+  stroke: white;
+  stroke-width: 1.5;
+}
+
+@media (max-width: 760px) {
+  .template-editor-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 761px) and (min-height: 800px) {
+  .sheet-template-dialog .editor-preview {
+    position: sticky;
+    top: 0;
+  }
+}
