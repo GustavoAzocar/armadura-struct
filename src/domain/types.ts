@@ -326,7 +326,9 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/33';
+  schema: 'armadurastruct/33' | 'armadurastruct/34';
+  /** Relative file names for display. The session's folder binding grants access. */
+  linkedFiles?: string[];
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;

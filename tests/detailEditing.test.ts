@@ -18,6 +18,7 @@ import {
   toggleDetailSelection,
 } from '../src/domain/detailEditing';
 import { exportLines, toCsv } from '../src/lib/exports';
+import { linkProjectFile } from '../src/domain/linkedProjectFiles';
 
 function fixture() {
   const p = demoProject();
@@ -198,6 +199,34 @@ describe('isolated editing writes and history', () => {
       next.scheduleLock = { at: 'now', bars: structuredClone(next.bars) };
     expect(() => assertDetailEdit(p, next, id)).toThrow(/edição isolada/);
     expect(canEditDetailChange(p, next, id)).toBe(false);
+  });
+
+  it('protects global file links and their history while permitting unchanged links in owned edits', () => {
+    const { p, id } = grouped();
+    const linked = linkProjectFile(p, 'Refs/Detalhe.armstruct.json');
+    const removed = { ...linked, linkedFiles: [] };
+    for (const [before, after] of [
+      [p, linked],
+      [linked, p],
+      [linked, removed],
+      [removed, linked],
+    ]) {
+      expect(() => assertDetailEdit(before, after, id)).toThrow(
+        /edição isolada/,
+      );
+      expect(canEditDetailChange(before, after, id)).toBe(false);
+      expect(canEditDetailChange(before, after)).toBe(true);
+    }
+    const owned = {
+      ...linked,
+      bars: linked.bars.map((b, i) => (i ? b : { ...b, quantity: 10 })),
+    };
+    expect(() => assertDetailEdit(linked, owned, id)).not.toThrow();
+    expect(canEditDetailChange(linked, owned, id)).toBe(true);
+    expect(canEditDetailChange(owned, linked, id)).toBe(true);
+    expect(decodeProject(JSON.stringify(owned)).linkedFiles).toEqual(
+      linked.linkedFiles,
+    );
   });
 
   it('permits undo/redo of owned edits and keeps the history boundary protected until leaving isolation', () => {

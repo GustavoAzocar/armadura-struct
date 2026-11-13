@@ -3935,6 +3935,34 @@ button.hierarchy-drawing {
 .folder-actions span {
   overflow-wrap: anywhere;
 }
+.linked-project-files {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.linked-project-file-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(240px, 33vh);
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.linked-project-file-list li {
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.linked-project-file-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 
 .hierarchy-row {
   min-height: 28px;

@@ -91,8 +91,11 @@ import {
   createProjectInFolder,
   attachProjectFolder,
   pickProjectFolder,
+  detachProject,
   PROJECT_FILE,
 } from './lib/projectFolder';
+import LinkedProjectFiles from './components/LinkedProjectFiles';
+import { linkProjectFile } from './domain/linkedProjectFiles';
 import RecentProjects from './components/RecentProjects';
 import { captureRecentContext } from './lib/recentProjectSafety';
 import {
@@ -946,6 +949,8 @@ export default function App() {
     [busy, setBusy] = useState(''),
     [saveState, setSaveState] = useState('Verificando recuperação local…');
   const [folderEpoch, setFolderEpoch] = useState(0);
+  const [folderMenuOpen, setFolderMenuOpen] = useState(false);
+  const folderMenu = useRef<HTMLDetailsElement>(null);
   const [updateRequest, setUpdateRequest] = useState(0);
   const [updateModal, setUpdateModal] = useState(false);
   const [pluginView, setPluginView] = useState<PluginView | null>(null);
@@ -7936,7 +7941,7 @@ export default function App() {
         assertCurrent?.();
         if (guard && !(await guard())) return false;
         assertCurrent?.();
-        if (!commit(() => next)) return false;
+        if (!commit(() => detachProject(next))) return false;
         afterProjectReplaced();
         rememberRecent({
           kind: 'file',
@@ -10488,7 +10493,9 @@ export default function App() {
       </div>
       <footer className="statusbar">
         <details
+          ref={folderMenu}
           className="folder-menu"
+          onToggle={(e) => setFolderMenuOpen(e.currentTarget.open)}
           onKeyDown={(e) => {
             e.stopPropagation();
             if (e.key === 'Escape') {
@@ -10559,6 +10566,63 @@ export default function App() {
                   ? 'Local anterior (reautorize): ' + folderHint(p)
                   : 'Sem pasta autorizada nesta sessão'}
             </span>
+            {folderMenuOpen && (
+              <LinkedProjectFiles
+                key={`${p.id}:${folderEpoch}`}
+                project={p}
+                editingBlocked={!!isolatedDetailId}
+                captureContext={() => {
+                  const assertCurrent = recentContext();
+                  return () => {
+                    if (!folderMenu.current?.open)
+                      throw Error('Painel fechado.');
+                    assertCurrent();
+                  };
+                }}
+                onLink={(path) => {
+                  if (isolationRef.current) {
+                    notify(
+                      'Conclua a edição isolada antes de alterar os vínculos.',
+                    );
+                    return;
+                  }
+                  const current = historyRef.current.present;
+                  const next = linkProjectFile(current, path);
+                  if (next === current) {
+                    notify('Arquivo já vinculado.');
+                  } else if (commit(() => next)) {
+                    notify('Arquivo vinculado.');
+                  }
+                }}
+                onUnlink={(path) => {
+                  if (isolationRef.current) {
+                    notify(
+                      'Conclua a edição isolada antes de alterar os vínculos.',
+                    );
+                    return;
+                  }
+                  if (historyRef.current.present !== p) return;
+                  commit((current) => ({
+                    ...current,
+                    linkedFiles: current.linkedFiles?.filter(
+                      (file) => file !== path,
+                    ),
+                  }));
+                }}
+                onOpen={async (file, assertCurrent) => {
+                  if (isolationRef.current)
+                    throw Error(
+                      'Conclua a edição isolada antes de abrir outro projeto.',
+                    );
+                  const opened = await onProjectFile(
+                    file,
+                    confirmReplace,
+                    assertCurrent,
+                  );
+                  if (typeof opened === 'string') throw Error(opened);
+                }}
+              />
+            )}
           </div>
         </details>
 

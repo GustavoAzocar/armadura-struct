@@ -1,7 +1,12 @@
 //! Folder contract v1. Tokens originate only from the native directory picker.
 use cap_std::{ambient_authority, fs::{Dir, OpenOptions}};
 use same_file::Handle;
-use std::{collections::HashMap, io::Write, path::PathBuf, sync::{Mutex, atomic::{AtomicU64, Ordering}}};
+use std::{
+    collections::HashMap,
+    io::{Read, Write},
+    path::{Path, PathBuf},
+    sync::{atomic::{AtomicU64, Ordering}, Mutex},
+};
 use tauri_plugin_dialog::DialogExt;
 
 const MAIN: &str = "projeto.armstruct.json";
@@ -142,6 +147,209 @@ pub async fn project_folder_write(w: tauri::WebviewWindow, state: tauri::State<'
     location(path, root)?;
     write(root, &data, expected.as_deref())
 }
+
+fn with_folder<T>(
+    state: &Folders,
+    token: &str,
+    action: impl FnOnce(&PathBuf, &Dir) -> Result<T, String>,
+) -> Result<T, String> {
+    let map = state.0.lock().map_err(msg)?;
+    let (path, root) = map.get(token).ok_or("Selecione novamente a pasta")?;
+    location(path, root)?;
+    action(path, root)
+}
+
+fn folder_handle(state: &Folders, token: &str) -> Result<(PathBuf, Dir), String> {
+    with_folder(state, token, |path, root| {
+        Ok((path.clone(), root.try_clone().map_err(msg)?))
+    })
+}
+
+fn linked_file(root: &Dir, relative: &str) -> Result<PathBuf, String> {
+    let mut path = PathBuf::new();
+    // Validate the entire input before any filesystem access.
+    for (index, part) in relative.split('/').enumerate() {
+        let stem = part.split('.').next().unwrap_or("").to_ascii_lowercase();
+        let device = matches!(stem.as_str(), "con" | "prn" | "aux" | "nul" | "conin$" | "conout$")
+            || ["com", "lpt"].iter().any(|prefix| {
+                stem.strip_prefix(*prefix).is_some_and(|suffix| {
+                    matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³")
+                })
+            });
+        if part.is_empty()
+            || part.ends_with('.')
+            || part.ends_with(' ')
+            || device
+            || part.chars().any(|c| {
+                c.is_control() || matches!(c, '<' | '>' | ':' | '"' | '\\' | '|' | '?' | '*')
+            })
+            || (index == 0 && part.to_uppercase() == "SAVE-V1")
+        {
+            return Err("Use um arquivo dentro da pasta do projeto, fora de save-v1.".into());
+        }
+        path.push(part);
+    }
+    let mut prefix = PathBuf::new();
+    for part in path.components() {
+        prefix.push(part);
+        let metadata = root.symlink_metadata(&prefix).map_err(|e| {
+            format!("Arquivo vinculado indisponível: {e}")
+        })?;
+        if metadata.is_symlink() || root.canonicalize(&prefix).map_err(msg)? != prefix {
+            return Err("Links simbólicos e redirecionamentos não são aceitos.".into());
+        }
+        if prefix == path && !metadata.is_file() {
+            return Err("O vínculo deve apontar para um arquivo regular.".into());
+        }
+    }
+    Ok(path)
+}
+
+fn read_linked_project(root: &Dir, relative: &str) -> Result<String, String> {
+    if !relative.to_ascii_lowercase().ends_with(".armstruct.json") {
+        return Err("Formato sem suporte para abrir como projeto.".into());
+    }
+    let path = linked_file(root, relative)?;
+    let file = root.open(&path).map_err(msg)?;
+    let metadata = file.metadata().map_err(msg)?;
+    if !metadata.is_file() {
+        return Err("O vínculo deve apontar para um arquivo regular.".into());
+    }
+    const LIMIT: u64 = 100 * 1024 * 1024;
+    if metadata.len() > LIMIT {
+        return Err("Use um projeto de até 100 MB.".into());
+    }
+    let mut text = String::new();
+    file.take(LIMIT + 1).read_to_string(&mut text).map_err(msg)?;
+    if text.len() as u64 > LIMIT {
+        return Err("Use um projeto de até 100 MB.".into());
+    }
+    Ok(text)
+}
+
+#[tauri::command]
+pub async fn project_folder_check(
+    w: tauri::WebviewWindow,
+    state: tauri::State<'_, Folders>,
+    token: String,
+) -> Result<(), String> {
+    guard(&w)?;
+    with_folder(&state, &token, |_, _| Ok(()))
+}
+
+#[tauri::command]
+pub async fn project_folder_choose_file(
+    app: tauri::AppHandle,
+    w: tauri::WebviewWindow,
+    state: tauri::State<'_, Folders>,
+    token: String,
+) -> Result<Option<String>, String> {
+    guard(&w)?;
+    let start = with_folder(&state, &token, |path, _| Ok(path.clone()))?;
+    let picker = app.dialog().file()
+        .set_title("Vincular arquivo da pasta do projeto")
+        .set_directory(dunce::simplified(&start))
+        .set_parent(&w);
+    let selected = tauri::async_runtime::spawn_blocking(move || picker.blocking_pick_file())
+        .await
+        .map_err(msg)?;
+    let Some(path) = selected else { return Ok(None) };
+    let path = path.into_path().map_err(msg)?;
+    with_folder(&state, &token, |start, root| {
+        let relative = dunce::simplified(&path)
+            .strip_prefix(dunce::simplified(start))
+            .map_err(|_| "Selecione um arquivo dentro da pasta autorizada.")?;
+        let parts = relative.components().map(|part| match part {
+            std::path::Component::Normal(name) => name.to_str().ok_or("Nome de arquivo inválido."),
+            _ => Err("Caminho de arquivo vinculado inválido."),
+        }).collect::<Result<Vec<_>, _>>()?;
+        let relative = parts.join("/");
+        linked_file(root, &relative)?;
+        Ok(Some(relative))
+    })
+}
+
+#[tauri::command]
+pub async fn project_folder_read_file(
+    w: tauri::WebviewWindow,
+    state: tauri::State<'_, Folders>,
+    token: String,
+    relative: String,
+) -> Result<String, String> {
+    guard(&w)?;
+    let (path, root) = folder_handle(&state, &token)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        location(&path, &root)?;
+        let content = read_linked_project(&root, &relative)?;
+        location(&path, &root)?;
+        Ok(content)
+    })
+    .await
+    .map_err(msg)?
+}
+
+#[cfg(target_os = "windows")]
+fn reveal_file(path: &Path) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    let windows = std::env::var_os("SystemRoot").ok_or("Windows indisponível.")?;
+    let mut argument = std::ffi::OsString::from("/select,\"");
+    argument.push(dunce::simplified(path));
+    argument.push("\"");
+    std::process::Command::new(PathBuf::from(windows).join("explorer.exe"))
+        .raw_arg(argument)
+        .spawn()
+        .map_err(msg)?;
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn reveal_file(path: &Path) -> Result<(), String> {
+    let uri = tauri::Url::from_file_path(path).map_err(|_| "Caminho inválido.")?;
+    let files = serde_json::to_string(&[uri.as_str()]).map_err(msg)?;
+    let status = std::process::Command::new("gdbus")
+        .args([
+            "call",
+            "--session",
+            "--dest",
+            "org.freedesktop.FileManager1",
+            "--object-path",
+            "/org/freedesktop/FileManager1",
+            "--method",
+            "org.freedesktop.FileManager1.ShowItems",
+            &files,
+            "''",
+        ])
+        .output()
+        .map_err(msg)?
+        .status;
+    if !status.success() {
+        return Err("Gerenciador de arquivos indisponível nesta sessão.".into());
+    }
+    Ok(())
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+fn reveal_file(_: &Path) -> Result<(), String> {
+    Err("Localizar no sistema não está disponível nesta plataforma.".into())
+}
+
+#[tauri::command]
+pub async fn project_folder_reveal_file(
+    w: tauri::WebviewWindow,
+    state: tauri::State<'_, Folders>,
+    token: String,
+    relative: String,
+) -> Result<(), String> {
+    guard(&w)?;
+    let (path, root) = folder_handle(&state, &token)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let file = linked_file(&root, &relative)?;
+        location(&path, &root)?;
+        reveal_file(&path.join(file))
+    })
+    .await
+    .map_err(msg)?
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,6 +360,37 @@ mod tests {
         std::fs::create_dir(&p).unwrap();
         let d = Dir::open_ambient_dir(&p, ambient_authority()).unwrap();
         (p, d)
+    }
+    #[test]
+    fn linked_project_files_require_relative_regular_files() {
+        let (p, d) = temp();
+        d.create_dir("referencias").unwrap();
+        d.write("referencias/A.armstruct.json", A).unwrap();
+        assert_eq!(read_linked_project(&d, "referencias/A.armstruct.json").unwrap(), A);
+        for invalid in ["../externo", "/externo", "C:/externo", "referencias", "save-v1/a", "CON.txt", "referencias/A.armstruct.json:outro", "ausente.txt"] {
+            assert!(linked_file(&d, invalid).is_err(), "{invalid}");
+        }
+        d.write("referencias/notas.txt", "referência").unwrap();
+        assert!(linked_file(&d, "referencias/notas.txt").is_ok());
+        assert!(read_linked_project(&d, "referencias/notas.txt").is_err());
+        drop(d);
+        std::fs::remove_dir_all(p).unwrap();
+    }
+    #[cfg(unix)]
+    #[test]
+    fn linked_files_reject_symlinks_and_redirected_directories() {
+        let (p, d) = temp();
+        let (outside, other) = temp();
+        other.write("A.armstruct.json", A).unwrap();
+        d.write("A.armstruct.json", A).unwrap();
+        std::os::unix::fs::symlink("A.armstruct.json", p.join("interno.armstruct.json")).unwrap();
+        std::os::unix::fs::symlink(&outside, p.join("externo")).unwrap();
+        assert!(read_linked_project(&d, "interno.armstruct.json").is_err());
+        assert!(read_linked_project(&d, "externo/A.armstruct.json").is_err());
+        drop(d);
+        drop(other);
+        std::fs::remove_dir_all(p).unwrap();
+        std::fs::remove_dir_all(outside).unwrap();
     }
     #[test]
     fn controlled_directory() {
