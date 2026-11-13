@@ -290,19 +290,22 @@ for (const focus of [false, true]) {
         scale: matrix.a,
       };
       const scale = Math.min(20, old.scale * Math.exp(180 * 0.0015));
+      const wheel = new WheelEvent('wheel', {
+        bubbles: true,
+        deltaY: -180,
+        clientX: box.left + box.width / 2 + 73,
+        clientY: box.top + box.height / 2 - 47,
+      });
+      // WheelEvent construction can quantize fractional client coordinates.
+      // Compare against the anchor actually delivered to the application's math.
+      const dx = wheel.clientX - box.left - box.width / 2;
+      const dy = box.top + box.height / 2 - wheel.clientY;
       const expected = {
-        x: old.x + 73 / old.scale - 73 / scale,
-        y: old.y + 47 / old.scale - 47 / scale,
+        x: old.x + dx / old.scale - dx / scale,
+        y: old.y + dy / old.scale - dy / scale,
         scale,
       };
-      svg.dispatchEvent(
-        new WheelEvent('wheel', {
-          bubbles: true,
-          deltaY: -180,
-          clientX: box.left + box.width / 2 + 73,
-          clientY: box.top + box.height / 2 - 47,
-        }),
-      );
+      svg.dispatchEvent(wheel);
       const unpublished = group.transform.baseVal.consolidate()!.matrix.a;
       document
         .querySelector<HTMLButtonElement>(
