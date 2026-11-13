@@ -123,6 +123,8 @@ export function normalizeCad(
   const blocks: Record<string, Raw> = { ...db.blocks };
   for (const b of db.tables?.BLOCK_RECORD?.entries ?? []) blocks[b.name] = b;
   let visited = 0;
+  let curves = 0;
+  let simplifiedTexts = 0;
   const missing = (type: string) => {
     omitted[type] = (omitted[type] ?? 0) + 1;
   };
@@ -148,7 +150,10 @@ export function normalizeCad(
         throw new Error(
           'O desenho excede o limite de 100 mil entidades expandidas desta versão.',
         );
-      if (e.inPaperSpace || e.isInPaperSpace) continue;
+      if (e.inPaperSpace || e.isInPaperSpace) {
+        missing('entidade em espaço de papel');
+        continue;
+      }
       const type = String(e.type),
         layer = e.layer && e.layer !== '0' ? String(e.layer) : parentLayer;
       const ownStyle = cadOverrides(
@@ -173,6 +178,8 @@ export function normalizeCad(
       let textHeight: number | undefined;
       let textRotation: number | undefined;
       let textAlign: Primitive['textAlign'];
+      let simplifiedCurve = false;
+      let simplifiedText = false;
       const normal = e.extrusionDirection ?? {
         x: e.extrusionDirectionX ?? 0,
         y: e.extrusionDirectionY ?? 0,
@@ -222,13 +229,18 @@ export function normalizeCad(
         ['LWPOLYLINE', 'POLYLINE', 'POLYLINE2D', 'POLYLINE3D'].includes(type)
       ) {
         closed = !!(e.shape || (e.flag ?? 0) & 1);
-        points = polyline(e.vertices ?? [], closed);
+        const vertices: Raw[] = e.vertices ?? [];
+        points = polyline(vertices, closed);
+        simplifiedCurve = vertices.some(
+          (v, i) => v.bulge && (i < vertices.length - 1 || closed),
+        );
       } else if (type === 'ARC' || type === 'CIRCLE') {
         const start = type === 'CIRCLE' ? 0 : e.startAngle;
         let span = type === 'CIRCLE' ? Math.PI * 2 : e.endAngle - start;
         while (span <= 0) span += Math.PI * 2;
         points = arc(e.center, e.radius, start, span);
         closed = type === 'CIRCLE';
+        simplifiedCurve = true;
       } else if (type === 'ELLIPSE') {
         const major = e.majorAxisEndPoint;
         const n = 96;
@@ -241,13 +253,15 @@ export function normalizeCad(
             y: major.y * Math.cos(t) + major.x * e.axisRatio * Math.sin(t),
           });
         });
+        simplifiedCurve = true;
       } else if (['TEXT', 'MTEXT', 'ATTRIB', 'ATTDEF'].includes(type)) {
         points = [e.startPoint ?? e.position ?? e.insertionPoint];
-        text = String(e.text ?? '')
-          .replace(/\\P/g, '\n')
+        const decoded = String(e.text ?? '').replace(/\\P/g, '\n');
+        const plain = decoded
           .replace(/\\[A-Za-z][^;]*;/g, '')
-          .replace(/[{}]/g, '')
-          .replace(/%%c/gi, 'Ø');
+          .replace(/[{}]/g, '');
+        text = plain.replace(/%%c/gi, 'Ø');
+        simplifiedText = plain !== decoded;
         textHeight = e.textHeight ?? e.height ?? 2.5;
         textRotation =
           (e.rotation ?? 0) * (format === 'DWG' ? 180 / Math.PI : 1);
@@ -290,6 +304,8 @@ export function normalizeCad(
         missing(`${type} inválida`);
         continue;
       }
+      if (simplifiedCurve) curves++;
+      if (simplifiedText) simplifiedTexts++;
       if (
         points.some(
           (p) => Math.abs((p as Point & { z?: number }).z ?? 0) > 0.001,
@@ -355,6 +371,14 @@ export function normalizeCad(
   for (const [type, count] of Object.entries(omitted))
     warnings.push(
       `${count} ocorrência(s): ${type} — representação omitida ou simplificada.`,
+    );
+  if (curves)
+    warnings.push(
+      `${curves} entidade(s) com curvas aproximadas por segmentos. Confira os contornos e logotipos na prévia.`,
+    );
+  if (simplifiedTexts)
+    warnings.push(
+      `${simplifiedTexts} entidade(s) de texto com formatação CAD removida. Confira o conteúdo e a apresentação na prévia.`,
     );
   if (!primitives.length)
     throw new Error(

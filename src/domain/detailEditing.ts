@@ -175,6 +175,7 @@ export function assertDetailEdit(
     'notes',
     'drawing',
     'sheets',
+    'sheetTemplates',
     'scheduleLock',
     'layers',
     'linkedFiles',

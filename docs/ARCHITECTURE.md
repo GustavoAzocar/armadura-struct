@@ -67,14 +67,14 @@ Lógica sem dependência de React. Principais blocos:
 | Edição                                      | `editing.ts`, `detailRepetition.ts`, `detailTransfer.ts`, `maskManipulation.ts`, `maskOffset.ts`             |
 | CAD e máscaras                              | `drafting.ts`, `maskCad*.ts`, `maskDrawing.ts`, `nativeMasks.ts`, `objectSnaps.ts`, `symbols.ts`             |
 | Layers, visibilidade, plotagem              | `layers.ts`, `layerProfiles.ts`, `visibility.ts`, `plotting.ts`                                              |
-| Prancha e saída gráfica                     | `paper*.ts`, `sheets.ts`, `drawingPrimitives.ts`                                                             |
+| Prancha e saída gráfica                     | `paper*.ts`, `sheets.ts`, `sheetTemplates.ts`, `drawingPrimitives.ts`                                        |
 | Intercâmbio                                 | `detailPackage.ts` (`openstruct.detail/NN`), `rebarApi.ts`                                                   |
 
 Pontos de projeto que atravessam vários arquivos:
 
-- **Formato versionado.** `Project.schema` está em `types.ts` (na master desta revisão, `armadurastruct/35` ou `/37` ao adotar faixas sem traços); leitura/validação e migração em `decodeProject`. Dado de recurso novo em arquivo de formato antigo é recusado. Veja [CONTRIBUTING](CONTRIBUTING.md#alterações-de-formato).
+- **Formato versionado.** `Project.schema` está em `types.ts` (na master desta revisão, `armadurastruct/35`, `/37` ao adotar faixas sem traços ou `/38` para modelos de prancha); leitura/validação e migração em `decodeProject`. Dado de recurso novo em arquivo de formato antigo é recusado. Veja [CONTRIBUTING](CONTRIBUTING.md#alterações-de-formato).
 - **Primitivas de desenho compartilhadas.** `drawingPrimitives.ts` gera a geometria que canvas, PDF de pranchas e DXF consomem; evita três implementações divergentes.
-- **Compatibilidade de formato.** As duas variantes de desenvolvimento de `armadurastruct/34` são migradas para 35 sem perder `linkedFiles` ou convenções de cotagem. Pacotes sem faixas sem traços usam `openstruct.detail/23` ([JSON Schema v23](openstruct-detail-v23.schema.json)); com essa apresentação usam `/24` ([JSON Schema v24](openstruct-detail-v24.schema.json)), e o projeto usa `/37`. O formato `/36` permanece reservado à contribuição paralela #191. Os contratos de versões anteriores permanecem publicados.
+- **Compatibilidade de formato.** As duas variantes de desenvolvimento de `armadurastruct/34` são migradas para 35 sem perder `linkedFiles` ou convenções de cotagem. Pacotes sem faixas sem traços usam `openstruct.detail/23` ([JSON Schema v23](openstruct-detail-v23.schema.json)); com essa apresentação usam `/24` ([JSON Schema v24](openstruct-detail-v24.schema.json)), e o projeto usa `/37` ou `/38` quando também possui modelos de prancha. O formato experimental `/36` é migrado para `/38`, que reúne modelos de prancha, vínculos, cotagem e faixas sem traços. Os contratos de versões anteriores permanecem publicados.
 - **API de armaduras.** `rebarApi.ts` (`REBAR_API_VERSION = '1.0'`) executa lotes de comandos validados sobre o `Project`, sem React nem DOM, e é a base do exemplo de plugin e dos scripts em `scripts/examples/`.
 - **Relação de aço.** `schedule(project)` (`model.ts`) calcula o quadro. Com `scheduleLock` o quadro vem da fotografia guardada, não do cálculo ao vivo.
 
