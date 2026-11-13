@@ -57,6 +57,28 @@ function model(): SheetTemplate {
 }
 
 describe('AS-12 – modelos em milímetros de papel', () => {
+  it('preserva a revisão importada e incrementa somente as edições locais seguintes', () => {
+    const initial = emptyProject();
+    const imported = decodeSheetTemplate(
+      encodeSheetTemplate({ ...model(), revision: 7 }),
+    );
+    const saved = saveSheetTemplate(initial, imported);
+    expect(saved.sheetTemplates?.[0].revision).toBe(7);
+    const applied = applySheetTemplate(saved, imported.id, [
+      initial.sheets[0].id,
+    ]);
+    expect(applied.sheets[0].paperTemplate?.revision).toBe(7);
+    const edited = saveSheetTemplate(applied, {
+      ...imported,
+      name: 'Revisão local',
+    });
+    expect(edited.sheetTemplates?.[0].revision).toBe(8);
+    expect(edited.sheets[0].paperTemplate?.revision).toBe(7);
+    const copy = duplicateSheetTemplate(imported, 'Cópia independente');
+    expect(copy.id).not.toBe(imported.id);
+    expect(copy.revision).toBe(1);
+  });
+
   it('calibra o mesmo segmento importado em mm, cm ou m com origem não nula', () => {
     const result = [
       [4, 1],

@@ -23,6 +23,8 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - name: Sheet templates, persistence and paper exports
+        run: npx playwright test tests/e2e/sheetTemplates.spec.ts
       - name: CAD camera transitions and text editing
         run: npx playwright test tests/e2e/detailEditing.spec.ts tests/e2e/cadInputFrames.spec.ts tests/e2e/freeText.spec.ts --grep "tree isolation|overview restoration|camera buttons|altura acompanha" --repeat-each=5
       - name: CAD context menus after import

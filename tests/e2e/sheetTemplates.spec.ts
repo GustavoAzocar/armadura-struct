@@ -245,6 +245,7 @@ test('edita a tipografia importada, reabre o projeto e exporta a mesma prancha e
   const project = emptyProject();
   const template = templateFromSheet(project.sheets[0]);
   template.name = 'Modelo vetorial de teste';
+  template.revision = 7;
   template.geometry = [
     {
       layer: 'MARGEM',
@@ -298,6 +299,8 @@ test('edita a tipografia importada, reabre o projeto e exporta a mesma prancha e
   await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
   const saved = await saveProject(page);
   expect(saved.schema).toBe('armadurastruct/38');
+  expect(saved.sheetTemplates?.[0].revision).toBe(7);
+  expect(saved.sheets[0].paperTemplate?.revision).toBe(7);
 
   const reopened = await browser.newPage({
     baseURL: testInfo.project.use.baseURL,

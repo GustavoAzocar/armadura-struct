@@ -258,7 +258,7 @@ export function saveSheetTemplate(
   const existing = list.find((t) => t.id === draft.id);
   const next = validateSheetTemplate({
     ...draft,
-    revision: existing?.revision ?? 1,
+    revision: existing?.revision ?? draft.revision,
   });
   if (
     list.some((t) => t.id !== next.id && nameKey(t.name) === nameKey(next.name))
