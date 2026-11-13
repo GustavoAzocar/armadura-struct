@@ -7,6 +7,7 @@ import {
   stirrupProfileSchema,
   stirrupDisplaySchema,
   distributionShape,
+  canHideStirrupTicks,
 } from './stirrupSchema';
 import {
   HELIX_LIMITS,
@@ -42,6 +43,7 @@ import {
   nextMark,
   scheduleChanged,
   createScheduleLock,
+  withDistributionBandVersion,
 } from './model';
 import {
   completeOwnership,
@@ -1049,12 +1051,16 @@ function perform(
     next = renumber(p, c.options);
     touched.push(...p.bars.map((b) => b.id));
   } else if (c.type === 'distribution.set') {
-    const b = barById(p, c.barId),
-      length = distance(c.distribution.start ?? b.origin, c.distribution.end);
-    const quantity =
-      c.count.mode === 'spacing'
-        ? quantityForSpacing(length, c.count.spacing, c.count.fit)
-        : c.count.quantity;
+    const b = barById(p, c.barId);
+    const previous = b.distribution;
+    const updated = c.distribution;
+    if (updated.render === 'band' && !canHideStirrupTicks(b))
+      fail(
+        'INVALID_DISTRIBUTION',
+        'A faixa sem traços individuais está disponível para estribos.',
+        'distribution.render',
+        b.id,
+      );
     const quantitySource =
       c.count.mode === 'manual'
         ? { kind: 'manual' as const }
@@ -1066,12 +1072,31 @@ function perform(
               ...(c.count.fit ? { fit: c.count.fit } : {}),
             }
           : { kind: 'distribution' as const, mode: 'quantity' as const };
+    const presentationOnly =
+      previous &&
+      (previous.render === 'band' || updated.render === 'band') &&
+      same(previous.start, updated.start) &&
+      same(previous.end, updated.end) &&
+      same(previous.insets, updated.insets) &&
+      previous.annotationOffset === updated.annotationOffset &&
+      same(b.quantitySource, quantitySource) &&
+      (c.count.mode === 'spacing' || c.count.quantity === b.quantity);
+    const quantity = presentationOnly
+      ? b.quantity
+      : c.count.mode === 'spacing'
+        ? quantityForSpacing(
+            distance(updated.start ?? b.origin, updated.end),
+            c.count.spacing,
+            c.count.fit,
+          )
+        : c.count.quantity;
     next = replace(p, {
       ...b,
       quantity,
-      quantitySource,
-      distribution: c.distribution,
+      quantitySource: presentationOnly ? b.quantitySource : quantitySource,
+      distribution: updated,
     });
+    if (updated.render === 'band') next = withDistributionBandVersion(next);
     touched.push(b.id);
   } else if (c.type === 'distribution.remove') {
     const b = barById(p, c.barId);

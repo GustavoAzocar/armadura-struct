@@ -36,6 +36,14 @@ docs: uso, limites e capturas da biblioteca de símbolos
 chore: preparar ArmaduraStruct 0.6.1 com notas de publicação
 ```
 
+### Revisão antes de mesclar
+
+1. Confira a necessidade, o escopo e os critérios da issue.
+2. Revise a lógica dos caminhos alterados: validação de entradas, unidades, estado/histórico, isolamento, geometria e efeitos sobre o aço. CI verde é evidência de execução dos testes, não substitui a revisão do código.
+3. Verifique compatibilidade de arquivos, schemas públicos e consumidores compartilhados; considere as versões reservadas por PRs paralelas.
+4. Teste regressões pertinentes com resultados conferíveis, invariância física/quantitativa e arquivos exportados reais. Para interface, confira o fluxo e as capturas; registre limites de validação.
+5. Corrija problemas antes do merge, atualize descrição/documentação e valide o commit final com a CI. Preserve a autoria e encerre somente as issues cujos critérios foram atendidos. Ao concluir, sugira a próxima revisão.
+
 ## Verificações
 
 | Verificação                  | Comando                                                               |
@@ -75,7 +83,7 @@ Um recurso visível ao usuário normalmente inclui:
 
 ## Alterações de formato
 
-O arquivo do projeto (`Project.schema`, hoje `armadurastruct/35`) e o pacote de intercâmbio (`DETAIL_PACKAGE_SCHEMA`, hoje `openstruct.detail/23`) são contratos persistidos. Confira os literais em `src/domain/types.ts` e `src/domain/detailPackage.ts` antes de documentar ou propor uma versão. Regras observadas no código e no histórico:
+O arquivo do projeto (`Project.schema`, hoje `armadurastruct/35` ou `/37`) e o pacote de intercâmbio (`DETAIL_PACKAGE_SCHEMA` = `openstruct.detail/23`; `BAND_DETAIL_PACKAGE_SCHEMA` = `/24`) são contratos persistidos. O formato 37 é adotado ao usar faixa sem traços; pacotes com essa apresentação usam 24. Confira os literais em `src/domain/types.ts` e `src/domain/detailPackage.ts` antes de documentar ou propor uma versão. Regras observadas no código e no histórico:
 
 - **Não suba o formato** se o dado novo puder ser lido por versões anteriores sem perda. Suba quando um arquivo novo, aberto por um aplicativo antigo, seria interpretado errado.
 - `decodeProject` (`src/domain/model.ts`) deve continuar abrindo todos os formatos anteriores e **recusar** dados novos em arquivos de formato antigo, com mensagem do tipo "exigem formato NN".

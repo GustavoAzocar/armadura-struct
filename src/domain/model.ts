@@ -15,6 +15,8 @@ import {
   stirrupDisplaySchema,
   stirrupCriteriaSchema,
   distributionShape,
+  canHideStirrupTicks,
+  hasDistributionBand,
 } from './stirrupSchema';
 import {
   dimensionPresentationSchema,
@@ -64,6 +66,21 @@ import {
 import { initialSheet, placeDrawing } from './sheets';
 import { fitPlacement } from './paper';
 import { validateSheetLayout } from './paperFormat';
+
+export const DISTRIBUTION_BAND_SCHEMA = 'armadurastruct/37' as const;
+
+export function withDistributionBandVersion(project: Project): Project {
+  if (
+    project.schema === DISTRIBUTION_BAND_SCHEMA ||
+    !(
+      hasDistributionBand(project.bars) ||
+      hasDistributionBand(project.scheduleLock?.bars)
+    )
+  )
+    return project;
+  return { ...project, schema: DISTRIBUTION_BAND_SCHEMA };
+}
+
 const number = z.number().finite();
 const point = z.object({ x: number, y: number });
 const identity = z.string().min(1).max(200);
@@ -269,7 +286,11 @@ const barSchema = z
           b.quantitySource.kind === 'manual'
         : !b.helix && !b.helixDisplay,
     'Parâmetros helicoidais exigem a família própria Estribo helicoidal, uma peça contínua sem faixa de distribuição.',
-  );
+  )
+  .refine((b) => b.distribution?.render !== 'band' || canHideStirrupTicks(b), {
+    path: ['distribution', 'render'],
+    message: 'A faixa sem traços individuais está disponível para estribos.',
+  });
 export const representationLabelSchema = z
   .object({
     origin: point,
@@ -575,9 +596,16 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
+  const bandVersion = input?.schema === DISTRIBUTION_BAND_SCHEMA;
+  if (
+    !bandVersion &&
+    (hasDistributionBand(input?.bars) ||
+      hasDistributionBand(input?.scheduleLock?.bars))
+  )
+    throw new Error('Faixas sem traços individuais exigem formato 37.');
   // Both independent PRs wrote /34. Accept either legacy payload, then save
   // their combined data as /35 so either older reader rejects it explicitly.
-  const combinedVersion = input?.schema === 'armadurastruct/35';
+  const combinedVersion = bandVersion || input?.schema === 'armadurastruct/35';
   const linkedFileVersion =
     combinedVersion || input?.schema === 'armadurastruct/34';
   if (!linkedFileVersion && input?.linkedFiles !== undefined)
@@ -935,7 +963,7 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: 'armadurastruct/35',
+    schema: bandVersion ? DISTRIBUTION_BAND_SCHEMA : 'armadurastruct/35',
     ...(linkedFiles === undefined ? {} : { linkedFiles }),
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4

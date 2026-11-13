@@ -29,9 +29,19 @@ A confirmação gera uma única operação atômica. Desfazer remove seção e f
 
 Estribos antigos preservam seus vértices, ganchos e comprimentos originais. Aplicar explicitamente os novos critérios a uma posição legada converte sua seção e mostra aviso e prévia antes da aplicação. Os controles legados de largura/altura/gancho continuam disponíveis para essas peças.
 
+## Faixa sem traços individuais
+
+Selecione a faixa e, em **Propriedades → Distribuição vinculada → Representação**, escolha **Faixa sem traços individuais**. A linha, os conectores e a legenda da faixa continuam visíveis no CAD, nas pranchas e nas exportações PDF/DXF. Para recuperar as marcas, escolha **Faixa por traços**. A escolha vale para a posição selecionada e preserva o espaçamento, os afastamentos, os pontos físicos, o comprimento, o peso e a relação de aço. A seleção pela linha e o histórico continuam disponíveis.
+
+O controle vale para estribos, inclusive legados; não habilita esse modo para barras livres, grampos S/C ou de viga nem hélices. Estribos unitários permanecem seções sem faixa; criar ou importar uma distribuição continua exigindo duas peças. O quadro bloqueado, os multiplicadores e a repetição do detalhamento são preservados.
+
 ## Persistência, intercâmbio e exportação
 
-O formato nativo passa a **armadurastruct/25** e o pacote de detalhamento a **openstruct.detail/16**. Não há caminhos externos ou novos arquivos obrigatórios. `decodeProject` preserva perfil, aparência, faixa e critérios; versões anteriores continuam abrindo e não recebem perfis automaticamente. Campos novos em versões antigas são rejeitados. O intercâmbio converte comprimentos de perfis/ganchos/faixas em mm/cm/m e mantém fatores × bitola sem escalá-los.
+A entrega original dos critérios introduziu os formatos nativo 25 e de intercâmbio 16. Na master atual, projetos sem a nova apresentação mantêm `armadurastruct/35` e pacotes sem ela mantêm `openstruct.detail/23`. Ao adotar a faixa sem traços, o projeto usa `armadurastruct/37`; um pacote que transporte a opção, inclusive como dependência externa, usa `openstruct.detail/24` ([JSON Schema público](openstruct-detail-v24.schema.json)).
+
+O leitor aceita projetos 1–35 e 37 e pacotes 1–24. O formato 36 está reservado à contribuição paralela #191 e não é aceito por esta integração. Dados `band` em arquivos/pacotes antigos são recusados; projetos antigos mantêm a apresentação anterior. Voltar aos traços não reduz um projeto 37 para 35. Mantenha uma cópia antes de salvar em uma versão nova. O formato 37 preserva os arquivos vinculados e as convenções de cotagem; o pacote não concede acesso à pasta original. O intercâmbio converte comprimentos de perfis/ganchos/faixas em mm/cm/m e mantém fatores × bitola sem escalá-los.
+
+O E2E de estribos gera as capturas comparativas `stirrup-band-ticks.png` e `stirrup-band-hidden.png`, disponíveis no artefato `stirrup-launch-evidence` da CI.
 
 Círculos e dobras são arcos analíticos para comprimento e assinatura de fabricação. O DXF emite entidades ARC para esses novos perfis, incluindo representações rotacionadas/escaladas/espelhadas. Canvas usa arcos SVG. A cadeia gráfica compartilhada de PDF/prancha aproxima arcos com erro radial máximo de **0,05 mm do modelo**; essa aproximação nunca participa de comprimento, quantidade ou peso. Exportações existentes, máscara externa e barras de outras posições não são modificadas pelo lançamento.
 

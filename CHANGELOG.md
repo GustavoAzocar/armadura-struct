@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Faixa de estribos sem traços individuais (#176): opção por posição nas propriedades, com linha, conectores, legenda e captura preservados. Aço físico, multiplicadores, repetição e RA/CSV não mudam; CAD, prancha, PDF e DXF usam as mesmas primitivas. Estribos unitários permanecem seções sem faixa; toda distribuição continua exigindo duas peças. O modo usa o formato nativo /37 e o pacote /24 ([JSON Schema v24](docs/openstruct-detail-v24.schema.json)); /36 fica reservado à contribuição paralela #191. Projetos e pacotes sem o recurso conservam /35 e /23. [Uso e compatibilidade](docs/ESTRIBOS.md).
+
 - Documentação de desenvolvimento: instruções para agentes, mapa de arquitetura, guia de contribuição e índice por assunto, conferidos com os formatos nativo /35 e de intercâmbio /23 da master.
 - Arquivos vinculados ao projeto e convenções de cotagem por armadura/rebatimento integrados (#171, #172, #190). O formato nativo /35 preserva ambos e lê as duas variantes de desenvolvimento /34. Vincular/desvincular respeita a edição isolada e o histórico; salvar, reabrir e recuperar mantém os vínculos e as convenções. O intercâmbio de cotagem usa o pacote /23.
 - Enquadrar, restaurar a câmera e usar botões de zoom publicam a posição imediatamente, evitando que um clique seguinte use um texto ou objeto ainda desenhado na posição anterior. Wheel e pan continuam agrupados por frame (#175).

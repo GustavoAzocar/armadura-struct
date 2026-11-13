@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Bar } from './types';
 const n = z.number().finite();
 const point = z
   .object({ x: n.min(-1e8).max(1e8), y: n.min(-1e8).max(1e8) })
@@ -56,13 +57,23 @@ export const stirrupDisplaySchema = z
 export const distributionShape = {
   start: point.optional(),
   end: point,
-  render: z.enum(['ticks', 'bars']).optional(),
+  render: z.enum(['ticks', 'bars', 'band']).optional(),
   annotationOffset: n.min(-1e8).max(1e8).optional(),
   insets: z
     .object({ start: n.nonnegative(), end: n.nonnegative() })
     .strict()
     .optional(),
 };
+export function canHideStirrupTicks(bar: Pick<Bar, 'kind' | 'stirrupProfile'>) {
+  const shape = bar.stirrupProfile?.shape;
+  return bar.kind === 'stirrup' && shape !== 'clamp-s' && shape !== 'clamp-c';
+}
+
+export function hasDistributionBand(bars: unknown) {
+  return (
+    Array.isArray(bars) && bars.some((b) => b?.distribution?.render === 'band')
+  );
+}
 export const stirrupCriteriaSchema = z
   .object({
     profile: stirrupProfileSchema,

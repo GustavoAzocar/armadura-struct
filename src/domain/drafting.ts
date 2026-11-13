@@ -1,5 +1,6 @@
 import { formatTurns, helixMetrics } from './helix';
 import { stirrupPrimitives } from './stirrupGeometry';
+import { canHideStirrupTicks } from './stirrupSchema';
 import { beamClampPrimitives } from './beamClampViews';
 import { dimensionReferenceIssue } from './maskDimensions';
 import { formatDimensionCaption } from './dimensionPresentation';
@@ -293,6 +294,7 @@ export function distributionPrimitives(
   project?: Project,
 ): Primitive[] {
   if (!b.distribution) return [];
+  const hideTicks = b.distribution.render === 'band' && canHideStirrupTicks(b);
   const start = distributionStart(b),
     physicalEnd = b.distribution.end,
     u = unit(sub(physicalEnd, start)),
@@ -302,7 +304,6 @@ export function distributionPrimitives(
   const shift = mul(n, b.distribution.annotationOffset ?? 0),
     graphicStart = add(start, shift),
     graphicEnd = add(end, shift);
-  const pts = distributionOrigins(b).map((p) => add(p, shift));
   const result = [
     ...(b.distribution.annotationOffset
       ? [
@@ -311,13 +312,17 @@ export function distributionPrimitives(
         ]
       : []),
     line([graphicStart, graphicEnd], 'DISTRIBUICAO'),
-    ...pts.map((p) =>
-      line([sub(p, mul(n, h / 2)), add(p, mul(n, h / 2))], 'DISTRIBUICAO'),
-    ),
   ];
+  if (!hideTicks) {
+    const halfTick = mul(n, h / 2);
+    for (const origin of distributionOrigins(b)) {
+      const p = add(origin, shift);
+      result.push(line([sub(p, halfTick), add(p, halfTick)], 'DISTRIBUICAO'));
+    }
+  }
   result.push(
     text(
-      `${quantityLabel(project, b)} ${b.mark}${b.stirrupProfile || b.beamClamp ? ` Ø${format(b.diameter, 1)}` : ''} c/${format(distributionStep(b) / 10, 1)}${b.stirrupProfile || b.beamClamp ? ' cm' : ''}${b.quantity > 200 ? ' (vista abreviada)' : ''}`,
+      `${quantityLabel(project, b)} ${b.mark}${b.stirrupProfile || b.beamClamp ? ` Ø${format(b.diameter, 1)}` : ''} c/${format(distributionStep(b) / 10, 1)}${b.stirrupProfile || b.beamClamp ? ' cm' : ''}${!hideTicks && b.quantity > 200 ? ' (vista abreviada)' : ''}`,
       add(mul(add(graphicStart, graphicEnd), 0.5), mul(n, h * 1.3)),
       h,
       angleOf(u),

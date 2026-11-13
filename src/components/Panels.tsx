@@ -28,6 +28,7 @@ import {
   quantityExpression,
 } from '../domain/detailQuantities';
 import { annotationError, dimensionValueMm } from '../domain/drafting';
+import { canHideStirrupTicks } from '../domain/stirrupSchema';
 import HierarchyNavigator from './HierarchyNavigator';
 import { toggleDetailSelection } from '../domain/detailEditing';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -875,12 +876,17 @@ export function Inspector({
                       onBar({
                         distribution: {
                           ...bar.distribution!,
-                          render: e.target.value as 'ticks' | 'bars',
+                          render: e.target.value as NonNullable<
+                            Bar['distribution']
+                          >['render'],
                         },
                       })
                     }
                   >
                     <option value="ticks">Faixa por traços</option>
+                    {canHideStirrupTicks(bar) && (
+                      <option value="band">Faixa sem traços individuais</option>
+                    )}
                     <option value="bars">Geometria repetida</option>
                   </select>
                 </label>

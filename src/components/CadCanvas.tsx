@@ -1,5 +1,6 @@
 import { modalIsOpen, textComposition } from '../domain/shortcuts';
 import { displayedBarGeometry } from '../domain/stirrupGeometry';
+import { canHideStirrupTicks } from '../domain/stirrupSchema';
 import { beamClampViewPoints } from '../domain/beamClampViews';
 import {
   helixOutline,
@@ -523,6 +524,29 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         })),
     [project.bars, source],
   );
+  const capturableBands = useMemo(() => {
+    const ids = new Set(capturable.bars.map((bar) => bar.id));
+    return distributions.flatMap(({ bar, items }) =>
+      bar.distribution?.render === 'band' &&
+      canHideStirrupTicks(bar) &&
+      ids.has(bar.id)
+        ? [
+            {
+              id: bar.id,
+              items: items.filter(
+                (item) =>
+                  !item.layerId ||
+                  layerState(
+                    source,
+                    props.layerContext ?? 'model',
+                    item.layerId,
+                  ).capture,
+              ),
+            },
+          ]
+        : [],
+    );
+  }, [capturable.bars, distributions, props.layerContext, source]);
   const representationPoints = useMemo(
     () =>
       project.details.flatMap((d) => {
@@ -1028,6 +1052,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
               .capture,
         )
         .map((a) => ({ id: a.annotation.id, items: a.items })),
+      ...capturableBands,
       // Tela: qualquer linha dela (peças, fios) ou a identificação.
       ...meshes
         .filter(({ launch }) =>
