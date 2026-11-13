@@ -8,51 +8,44 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 
 [![Validação e build](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml/badge.svg)](https://github.com/ricardocorsini/armadura-struct/actions/workflows/ci.yml)
 
-**Versão 0.6.0 — infraestrutura aberta de plugins, instalação online/offline e inventário persistente.** Aplicação desktop Tauri para Linux e Windows, também executável no navegador para desenvolvimento. Os arquivos e os cálculos são processados localmente.
+**Versão 0.6.1 — telas soldadas, estribo helicoidal, grampos de pilar e de viga, novos encaixes CAD e infraestrutura aberta de plugins.** Aplicação desktop Tauri para Linux e Windows, também executável no navegador para desenvolvimento. Os arquivos e os cálculos são processados localmente.
+
+Esta documentação acompanha a `master`. Recursos ainda não publicados estão em [Não lançado](CHANGELOG.md#não-lançado).
 
 ## Recursos
 
+- [Estribos pela seção e pela faixa](docs/ESTRIBOS.md): critérios e lançamento com formatos retangular, circular e livre, cobrimento, ganchos e espaçamento.
+- [Estribo helicoidal](docs/ESTRIBO-HELICOIDAL.md): passo, extremos e comprimento desenvolvido analítico.
+- [Grampos de pilar S/C](docs/GRAMPOS-PILAR.md) por centros longitudinais e [grampos de viga em U](docs/GRAMPOS_VIGA.md) com critérios, lançamento e vistas vinculadas.
+- [Telas soldadas](docs/TELAS-SOLDADAS.md): critérios, lançamento por contorno, pontos ou clique, edição e quadros.
+- [Encaixes CAD 2D](docs/ENCAIXES-CAD.md): centro, quadrante, interseção, perpendicular, tangente, extensão e paralelo, com F3 e ORTO.
+- [Menu Armaduras compacto](docs/MENU-ARMADURAS.md): comandos em duas linhas com ícones técnicos e parâmetros de criação em bloco próprio.
 - [Plugins](docs/plugins/USER-GUIDE.md): aba dedicada, inspeção de `.osplugin`, confirmação de registro desativado, catálogo configurável e inventário desktop. [Contrato e guia para desenvolvedores](docs/plugins/DEVELOPERS.md). Execução de terceiros e loja pública são etapas futuras.
-
 - [Projetos e documentos recentes](docs/PROJETOS-RECENTES.md): histórico local no menu Arquivo, sem autosave nem acesso permanente; reabrir pede nova seleção e respeita alterações não salvas.
-
 - [Copiar propriedades gráficas](docs/COPIAR-PROPRIEDADES.md): fonte, atributos compatíveis, destinos e prévia, com ByLayer ou aparência resolvida e histórico atômico.
-
 - [Offset de entidades de máscaras](docs/MASCARAS-OFFSET.md): distância explícita ou por dois pontos, seleção e lado físico, prévia, repetições e contornos com remanescentes, sem gerar aço.
-
 - [Medir e cotar máscaras](docs/MASCARAS-MEDIR-COTAR.md): consulta com ΔX/ΔY e cotas estáticas com posição, unidades e diagnóstico de referência, pelos comandos de Desenho existentes.
+- [Convenções de cotagem de armaduras](docs/CONVENCOES-COTAGEM-ARMADURAS.md): escolha pelo eixo ou externa por armadura/rebatimento e memória das parcelas do comprimento de corte, preservando a geometria e os quantitativos.
 - [Medir contorno de máscaras](docs/MASCARAS-MEDIR-CONTORNO.md): comprimento de caminhos abertos e perímetro/área de contornos fechados em mm do modelo, com arcos/círculos analíticos, avisos de geometria inválida e sem alterar o projeto.
 - [Biblioteca de símbolos CAD](docs/SIMBOLOS.md): definições e instâncias reutilizáveis a partir de entidades da máscara ativa, catálogo nativo importável/exportável, sem catálogo implícito e sem tocar no aço (formato 27).
 - [Mover entidades e máscaras](docs/MASCARAS-MOVER.md): entidades selecionadas ou máscara inteira pela origem, ponto base e destino com prévia, snap e coordenadas, em uma operação desfazível sem alterar aço.
 - [Espelhar entidades de máscaras](docs/MASCARAS-ESPELHAR.md): eixo por dois pontos, prévia e escolha explícita sobre os originais, reutilizando Manipular.
 - [Rotacionar máscaras](docs/MASCARAS-ROTACIONAR.md): seleção de entidades ou máscara inteira, base comum, ângulo direto ou por referência, prévia e histórico.
 - [Copiar e Apagar entidades de máscaras](docs/MASCARAS-COPIAR-APAGAR.md): seleção acumulada no CAD, base comum e múltiplos destinos, prévia, histórico e proteções, sem alterar aço.
-
 - [Ajustar escala da máscara por dois pontos](docs/ESCALA-MASCARA.md): P1 fixo, distância real em mm/cm/m e decimal pt-BR, confirmação imediata, proteções e histórico sem alterar aço.
-
 - [Importação de máscaras em lote e associação](docs/MASCARAS-LOTE.md): preparação local de vários DXF/DWG, destinos por arquivo, hierarquia em rascunho, falhas explícitas e aplicação atômica; reassociação ou cópia independente sem mover aço.
-
 - [Configurações CAD](docs/CONFIGURACOES-CAD.md): padrões documentais de textos, armaduras, cotas, máscaras e linhas, com rascunho e atributos materializados somente nas próximas criações.
-
 - [Comprimentos, ângulos e extensão de barras](docs/AS-26.md): dimensões por trecho, ponta fixa/estratégia explícitas e ESTENDER por incremento, comprimento final ou clique projetado, com prévia e histórico.
-
 - [Fluidez do CAD e medições reproduzíveis](docs/DESEMPENHO-CAD.md): reutilização de apresentação e formatação, controle de captura por máscara e benchmark de navegação/edição.
 - [Interação CAD por frame](docs/FLUIDEZ-INTERACAO-CAD.md): prévias vetoriais reutilizáveis, confirmação precisa da última entrada e diagnóstico local optativo, com roteiro para validar no Linux.
-
 - [Textos proporcionais durante o zoom](docs/TEXTOS-E-ZOOM.md), compartilhando alturas e posições entre modelo, representações e exportação, com altura de papel por vista preservada.
-
 - [Máscara ativa e acesso global](docs/MASCARA-ATIVA.md): seletor pesquisável por nome/origem/contexto, criação sem aço, seleção independente e desenho local nas referências DXF/DWG.
-
 - [Máscaras nativas CAD](docs/MASCARAS-NATIVAS.md): linha, retângulo, círculo e polilinha editáveis, sem gerar aço, com controle compartilhado de referências importadas.
-
 - [Organização por pavimento → grupo → detalhamento](docs/ORGANIZACAO-PROJETO.md): Térreo → Vigas → V1/V2, Pilares → P1; abertura direta pelo detalhamento e nomes sugeridos. [Novo projeto](docs/NOVO-PROJETO.md) mantém prévia editável, criação rápida, rascunho isolado e substituição explícita do projeto atual.
-
 - [Quadro de aço vinculado à prancha](docs/QUADRO-NA-PRANCHA.md), com prévia no cursor, inserção por clique, quantitativos por folha e resumo de peso configurável, em PDF vetorial.
 - [CSV da relação do aço por escopo](docs/CSV-POR-ESCOPO.md): projeto, pranchas ou elementos, quadro e/ou resumo, arquivos separados ou consolidados (ZIP), total físico pela união dos IDs e acréscimo explícito por escopo, sem alterar o projeto.
-
 - [Alinhamento por bordas, centros e referência](docs/AS-23.md) de objetos, conjuntos e vistas, com afastamento uniforme, escolha do conjunto fixo, prévia e histórico.
 - [Inserção, continuação e remoção de vértices](docs/AS-25.md) de barras/polilinhas existentes, com prévia, validação de dobras e atualização de inserções e quantitativos.
-
 - Hierarquia por pavimento, elemento estrutural e detalhamento composto, com IDs estáveis, pesquisa, transferência de objetos e expansão persistente da árvore.
 - Gerenciador de pranchas com folhas A0–A4, orientação, revisão, notas, ordenação, duplicação de layout e vistas vinculadas; abas de folhas e desenhos com navegação independente.
 - Inserção e atualização seletiva de detalhamentos por JSON, comparação antes/depois, identificação pela origem, mapeamento de posições, reassociação de vínculos e preservação das vistas.
@@ -60,7 +53,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Ocultação e isolamento por objeto em cada desenho/vista, realce dos ocultos, recuperação seletiva e controle do PDF, preservando layers e quantitativos. [Uso](docs/AS-22.md).
 - Estilos de impressão independentes do CAD, por layer/objeto, com penas e tracejados em mm no papel, presets colorido/monocromático/cinza e prévia. [Uso e limites PDF/DXF](docs/AS-21.md).
 - Máscaras → Ferramentas: **Ajustar (Aparar / Trim)** e **Estender (Extend)**, seleção de limites, prévia, cortes sucessivos e arcos analíticos, sem alterar aço. [Fluxo, precisão e limites](docs/MASCARAS-AJUSTAR-ESTENDER.md).
-- Pacotes abertos `openstruct.detail/14` (`.osdetail.json`), com leitura de v1–13, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas e vínculos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md).
+- Pacotes abertos `openstruct.detail/23` (`.osdetail.json`), com leitura de v1–22, para intercâmbio de um detalhamento, unidades, origem, repetição, posições de fabricação, propriedades físicas, convenções de cotagem e vínculos entre objetos; reimportação propõe atualizar. [Contrato e exemplos para produtores OpenStruct](docs/AS-09.md), [JSON Schema atual](docs/openstruct-detail-v23.schema.json).
 - [Renumeração espacial](docs/AS-55.md), com prévia, prefixo, início, escopo, reservas e preservações, usando posições de fabricação estáveis.
 - [Composição da quantidade e montagem](docs/AS-56.md): peças por grupo × multiplicador da armadura × repetições do detalhe, origem manual/por faixa, descrição fatorada, observação, indicação de nervura e lance.
 - [Posições de fabricação](docs/AS-54.md): agrupamento assistido de barras equivalentes, prévia, representante, contribuições rastreáveis no quadro e separação automática da ocorrência alterada; sem fundir elementos ou duplicar aço.
@@ -88,9 +81,11 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - Quadro com posição, elemento, aço, bitola, quantidade, comprimento unitário/total e peso teórico.
 - Projeto `.armstruct.json` com máscaras incorporadas, recuperação automática local e exportação DXF, PDF vetorial das folhas e CSV.
 
+Índice completo dos guias: [docs/README.md](docs/README.md).
+
 ## Executar
 
-Requer **Node.js 22 LTS**, npm e, para desktop, Rust estável e os [pré-requisitos do Tauri 2](https://v2.tauri.app/start/prerequisites/).
+Requer **Node.js 22.12 ou superior**, npm e, para desktop, Rust estável e os [pré-requisitos do Tauri 2](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
 git clone https://github.com/ricardocorsini/armadura-struct.git
@@ -142,8 +137,8 @@ Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composi
 - Distribuições com mais de 200 peças mostram uma vista abreviada com marcas nas posições reais. A quantidade e o espaçamento informados permanecem exatos. A exportação de estribos completos aceita até 2.000 peças por faixa; acima disso, use a representação por traços. Não há otimização de corte nem percentual automático de perdas.
 - O traspasse é inserido manualmente e acrescentado ao comprimento total das duas peças; não é dimensionado a partir do concreto ou da aderência. A divisão deve ocorrer inteiramente em uma perna reta, fora das dobras.
 - Cotas/cortes são anotações gráficas, sem geração automática de seções de concreto. O vínculo atualiza a identificação da barra; os pontos da anotação são posicionados pelo usuário.
-- Projetos nos formatos 1–22 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo é `armadurastruct/23`, com composição da quantidade, dados de montagem, posições de fabricação e repetição por detalhamento, contexto da RA bloqueada, origens, composição, vínculos validados e perfis de layers por desenho/vista. Aplicativos antigos não abrem esse formato; mantenha cópias dos originais. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
-- Com [pasta autorizada](docs/PASTA-PROJETO.md), Salvar e o automático atualizam `save-v1/projeto.armstruct.json`. A recuperação local continua complementar; sem API de pasta, use download manual. **Salvar cópia independente** conserva o destino principal.
+- Projetos nos formatos 1–34 são migrados ao abrir, preservando objetos, coordenadas, IDs, rebatimentos e quantitativos. O formato salvo na master é `armadurastruct/35`, que reúne os arquivos vinculados e as convenções de cotagem das duas variantes de desenvolvimento do formato 34; cada recurso informa a versão no seu guia e no [CHANGELOG](CHANGELOG.md). Aplicativos antigos não abrem formatos mais novos; mantenha cópias dos originais. A quantidade armazenada na barra é a base por grupo; o quadro aplica o multiplicador da armadura e a repetição do detalhe uma única vez.
+- Com [pasta autorizada](docs/PASTA-PROJETO.md), Salvar e o automático atualizam `save-v1/projeto.armstruct.json`. O painel Arquivos do projeto lista os vínculos explícitos por caminhos relativos e permite abrir formatos compatíveis ou localizar o item conforme a plataforma. Vincular/desvincular respeita a edição isolada. A recuperação local continua complementar; sem API de pasta, use download manual. **Salvar cópia independente** conserva o destino principal.
 
 ## Verificar e compilar
 
@@ -173,11 +168,11 @@ Os testes cobrem comprimentos analíticos de dobras, estribos, pesos, offsets, v
 | Desktop             | Tauri 2, diálogos nativos e acesso a arquivos selecionados            |
 | Persistência        | JSON versionado + IndexedDB                                           |
 
-`src/domain` concentra geometria e quantitativos; `src/cad` normaliza as máscaras; `src/components` contém o editor; `src/lib` cuida de arquivos/exportações. O modelo pode evoluir para bibliotecas de peças, formas especiais e integração com ConsoloStruct/MolaStruct sem depender do renderizador.
+`src/domain` concentra geometria e quantitativos; `src/cad` normaliza as máscaras; `src/components` contém o editor; `src/lib` cuida de arquivos/exportações. O modelo pode evoluir para bibliotecas de peças, formas especiais e integração com ConsoloStruct/MolaStruct sem depender do renderizador. Mapa dos módulos, estado/histórico e persistência: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Contribuir
 
-Abra uma issue descrevendo o caso de uso e, para problemas geométricos, inclua dimensões e resultado esperado. Para importação, anexe somente arquivos que você pode compartilhar. Antes de enviar um PR, execute formatação, verificações e testes. Alterações de comprimento ou quantitativos devem incluir uma referência analítica reproduzível.
+Abra uma issue descrevendo o caso de uso e, para problemas geométricos, inclua dimensões e resultado esperado. Para importação, anexe somente arquivos que você pode compartilhar. Antes de enviar um PR, execute formatação, verificações e testes. Alterações de comprimento ou quantitativos devem incluir uma referência analítica reproduzível. Fluxo de PR, verificações, testes e alterações de formato: [CONTRIBUTING.md](docs/CONTRIBUTING.md). Agentes de programação seguem também o [AGENTS.md](AGENTS.md).
 
 Antes do commit, confira `git var GIT_AUTHOR_IDENT`: nome e email devem corresponder ao contribuidor, com email associado à sua conta do GitHub ou o endereço privado `noreply` fornecido pelo GitHub. Ferramentas de assistência não devem substituir essa identidade. Em trabalho conjunto, use trailers `Co-authored-by` com os emails vinculados às contas dos participantes. Abrir o PR com uma conta não corrige automaticamente a autoria dos commits enviados.
 
@@ -185,7 +180,9 @@ Antes do commit, confira `git var GIT_AUTHOR_IDENT`: nome e email devem correspo
 
 - [NR-racond](https://github.com/NR-racond): medição de comprimento, perímetro e área de contornos de máscaras, implementada no [PR #109](https://github.com/ricardocorsini/armadura-struct/pull/109). Este registro corrige o crédito da contribuição, cujo commit original foi enviado com a identidade da ferramenta de assistência, preservando o histórico publicado.
 
-Próximas etapas: testes com desenhos reais do escritório, refinamento de comandos CAD, composição de pranchas, biblioteca de detalhes e ferramentas adicionais de edição geométrica.
+## Próximas etapas
+
+Testes com desenhos reais do escritório, refinamento de comandos CAD, composição de pranchas, biblioteca de detalhes e ferramentas adicionais de edição geométrica.
 
 ## Licença
 
@@ -193,17 +190,8 @@ GPL-3.0-or-later. Consulte [LICENSE](LICENSE) e [THIRD_PARTY_NOTICES.md](THIRD_P
 
 ## Instalação pelo Launcher
 
-Instale pelo [Struct Launcher](https://openstruct.com.br/launcher). Os pacotes assinados de Windows e Linux ficam no [hub de distribuição](https://github.com/ricardocorsini/openstruct-catalog/releases/tag/armadurastruct-v0.5.0). O código permanece neste repositório, sob a tag correspondente. Consulte [o fluxo de publicação](docs/RELEASES.md) e [a atualização dentro do aplicativo](docs/ATUALIZACOES.md).
+Instale pelo [Struct Launcher](https://openstruct.com.br/launcher). Os pacotes assinados de Windows e Linux ficam no [hub de distribuição](https://github.com/ricardocorsini/openstruct-catalog/releases) (tags `armadurastruct-vVERSÃO`). O código permanece neste repositório, sob a tag correspondente. Consulte [o fluxo de publicação](docs/RELEASES.md) e [a atualização dentro do aplicativo](docs/ATUALIZACOES.md).
 
 ## Identidade
 
 Hefesto trabalhando uma armadura, em gravura preta e marfim sobre fundo âmbar. Os formatos utilizados pelo aplicativo estão em `public/brand` e `src-tauri/icons`.
-
-[Critérios e lançamento de estribos pela seção e faixa](docs/ESTRIBOS.md).
-
-[Grampos de pilar S/C por centros longitudinais](docs/GRAMPOS-PILAR.md).
-[Critérios, lançamento e vistas vinculadas de grampos de viga em U](docs/GRAMPOS_VIGA.md).
-[Telas soldadas: critérios, lançamento por contorno, pontos ou clique, edição e quadros](docs/TELAS-SOLDADAS.md).
-
-[Organização compacta do menu Armaduras](docs/MENU-ARMADURAS.md).
-[Estribo helicoidal: passo, extremos e comprimento desenvolvido](docs/ESTRIBO-HELICOIDAL.md).
