@@ -22,6 +22,7 @@
     "check": "tsc -b && vitest run && node --test scripts/distribution/request-release.test.mjs && node scripts/plugins.mjs validate examples/plugins/straight-bar.osplugin",
     "test:e2e": "playwright test",
     "perf:cad": "node scripts/cad-benchmark.mjs",
+    "perf:interaction": "node scripts/cad-interaction-benchmark.mjs",
     "example:rebar": "node scripts/examples/rebar-api.mjs",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
