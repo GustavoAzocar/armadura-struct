@@ -273,13 +273,16 @@ test('edita a tipografia importada, reabre o projeto e exporta a mesma prancha e
       buffer: Buffer.from(encodeSheetTemplate(template)),
     });
   await dialog
-    .getByLabel('Elemento gráfico', { exact: true })
+    .getByRole('combobox', { name: 'Elemento gráfico', exact: true })
     .selectOption('1');
   await dialog
-    .getByLabel('Fonte do texto importado', { exact: true })
+    .getByRole('combobox', { name: 'Fonte do texto importado', exact: true })
     .selectOption('mono');
   await dialog
-    .getByLabel('Alinhamento do texto importado', { exact: true })
+    .getByRole('combobox', {
+      name: 'Alinhamento do texto importado',
+      exact: true,
+    })
     .selectOption('right');
   await dialog
     .getByLabel('Rotação do texto importado', { exact: true })
