@@ -16,6 +16,7 @@ const knownBarFields = new Set([
   'mark',
   'element',
   'kind',
+  'dimensionConvention',
   'stirrupMirrored',
   'stirrupProfile',
   'stirrupDisplay',

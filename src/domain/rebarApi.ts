@@ -34,6 +34,7 @@ import {
 import { barQuantities, validateBarQuantity } from './detailQuantities';
 import { z } from 'zod';
 import {
+  barDimensionConventionSchema,
   detailContentSchema,
   representationLabelSchema,
   manufacturingSchema,
@@ -156,6 +157,7 @@ const point = z.object({ x: number, y: number }).strict();
 const id = z.string().min(1).max(200);
 const common = {
   ...layerBindingShape,
+  dimensionConvention: barDimensionConventionSchema,
   multiplier: z.number().int().min(1).max(10000).optional(),
   quantitySource: quantitySourceSchema.optional(),
   quantityDisplay: z.enum(['factored', 'total']).optional(),
@@ -400,6 +402,7 @@ const commandSchema = z.discriminatedUnion('type', [
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
       showDimensions: z.boolean().optional(),
+      dimensionConvention: barDimensionConventionSchema,
       beamClampView: beamClampViewSchema.optional(),
       identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id: id.optional(),
@@ -417,6 +420,7 @@ const commandSchema = z.discriminatedUnion('type', [
       scale: number.positive().max(10000).optional(),
       label: representationLabelSchema.optional(),
       showDimensions: z.boolean().optional(),
+      dimensionConvention: barDimensionConventionSchema,
       beamClampView: beamClampViewSchema.optional(),
       identification: z.enum(['legacy', 'primary', 'mark', 'none']).optional(),
       id,
@@ -863,13 +867,19 @@ function perform(
         'patch.kind',
         c.id,
       );
-    next = replace(p, {
+    const updated = {
       ...b,
       ...defined(c.patch),
       ...(c.patch.color !== undefined
         ? { style: { ...b.style, color: c.patch.color, ...c.patch.style } }
         : {}),
-    });
+    };
+    if (
+      Object.hasOwn(c.patch, 'dimensionConvention') &&
+      !c.patch.dimensionConvention
+    )
+      delete updated.dimensionConvention;
+    next = replace(p, updated);
     touched.push(c.id);
   } else if (c.type === 'bar.delete') {
     barById(p, c.id);
@@ -1124,6 +1134,7 @@ function perform(
               identification: c.identification,
               label: c.label,
               showDimensions: c.showDimensions,
+              dimensionConvention: c.dimensionConvention,
               beamClampView: c.beamClampView,
             }),
           },
@@ -1143,28 +1154,31 @@ function perform(
       if (c.barId) barById(p, c.barId);
       next = {
         ...p,
-        details: p.details.map((old) =>
-          old.id === c.id
-            ? {
-                ...r,
-                ...defined({
-                  drafting: c.drafting,
-                  layerId: c.layerId,
-                  style: c.style,
-                  plot: c.plot,
-                  rotation: c.rotation,
-                  mirrored: c.mirrored,
-                  scale: c.scale,
-                  identification: c.identification,
-                  label: c.label,
-                  showDimensions: c.showDimensions,
-                  beamClampView: c.beamClampView,
-                }),
-                ...(c.origin ? { origin: c.origin } : {}),
-                ...(c.barId ? { barId: c.barId } : {}),
-              }
-            : old,
-        ),
+        details: p.details.map((old) => {
+          if (old.id !== c.id) return old;
+          const updated = {
+            ...r,
+            ...defined({
+              drafting: c.drafting,
+              layerId: c.layerId,
+              style: c.style,
+              plot: c.plot,
+              rotation: c.rotation,
+              mirrored: c.mirrored,
+              scale: c.scale,
+              identification: c.identification,
+              label: c.label,
+              showDimensions: c.showDimensions,
+              dimensionConvention: c.dimensionConvention,
+              beamClampView: c.beamClampView,
+            }),
+            ...(c.origin ? { origin: c.origin } : {}),
+            ...(c.barId ? { barId: c.barId } : {}),
+          };
+          if (Object.hasOwn(c, 'dimensionConvention') && !c.dimensionConvention)
+            delete updated.dimensionConvention;
+          return updated;
+        }),
       };
     }
     touched.push(c.id);
@@ -1428,6 +1442,7 @@ export function rebarDefinition(bar: Bar): RebarDefinition {
     style: bar.style,
     plot: bar.plot,
     manufacturing: bar.manufacturing,
+    dimensionConvention: bar.dimensionConvention,
     mark: bar.mark,
     element: bar.element,
     origin: bar.origin,

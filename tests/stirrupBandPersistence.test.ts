@@ -11,6 +11,7 @@ import {
   completeOwnership,
   createHierarchyNode,
 } from '../src/domain/hierarchy';
+import { linkProjectFile } from '../src/domain/linkedProjectFiles';
 import {
   createScheduleLock,
   decodeProject,
@@ -19,7 +20,7 @@ import {
 } from '../src/domain/model';
 import { criteriaBar, withStirrupRange } from '../src/domain/stirrups';
 import { defaultStirrupCriteria } from '../src/domain/stirrupSchema';
-import type { Bar } from '../src/domain/types';
+import type { Bar, Project } from '../src/domain/types';
 
 const producer = { app: 'ArmaduraStruct', version: '0.6.1' };
 
@@ -43,15 +44,40 @@ function projectWithRange(render: NonNullable<Bar['distribution']>['render']) {
   });
 }
 
+function withCotation(base: Project) {
+  const [bar] = base.bars;
+  return completeOwnership({
+    ...base,
+    bars: [{ ...bar, dimensionConvention: 'external' }],
+    details: [
+      {
+        id: 'rebatimento',
+        barId: bar.id,
+        origin: { x: 0, y: 0 },
+        dimensionConvention: 'axis',
+      },
+    ],
+  });
+}
+
 describe('persistência da faixa sem traços individuais', () => {
-  it('mantém a escolha e a fotografia da RA ao reabrir o projeto', () => {
-    const base = projectWithRange('band');
-    const project = withDistributionBandVersion({
-      ...base,
-      scheduleLock: createScheduleLock(base),
-    });
+  it('mantém faixa, vínculos, cotagem e fotografia da RA ao reabrir', () => {
+    const base = withCotation(projectWithRange('band'));
+    const path = 'Referências/Planta.pdf';
+    const project = linkProjectFile(
+      withDistributionBandVersion({
+        ...base,
+        scheduleLock: createScheduleLock(base),
+      }),
+      path,
+    );
+    expect(project.schema).toBe('armadurastruct/37');
     const reopened = decodeProject(JSON.stringify(project));
     expect(reopened.schema).toBe('armadurastruct/37');
+    expect(reopened.linkedFiles).toEqual([path]);
+    expect(reopened.bars[0].dimensionConvention).toBe('external');
+    expect(reopened.details[0].dimensionConvention).toBe('axis');
+    expect(reopened.scheduleLock?.bars[0].dimensionConvention).toBe('external');
     expect(reopened.bars[0].distribution).toEqual(base.bars[0].distribution);
     expect(reopened.scheduleLock?.bars[0].distribution).toEqual(
       base.bars[0].distribution,
@@ -82,17 +108,22 @@ describe('persistência da faixa sem traços individuais', () => {
           producer,
         },
       );
-      expect(pack.schema).toBe('openstruct.detail/22');
-      expect(readDetailPackage(pack).project.bars[0].distribution?.render).toBe(
-        render,
-      );
+      expect(pack.schema).toBe('openstruct.detail/23');
+      for (const schema of ['openstruct.detail/22', pack.schema]) {
+        expect(
+          readDetailPackage({ ...pack, schema }).project.bars[0].distribution
+            ?.render,
+        ).toBe(render);
+      }
     },
   );
 
   it.each(['mm', 'cm', 'm'] as const)(
     'transporta a faixa sem traços para outro projeto (%s)',
     (unit) => {
-      const project = withDistributionBandVersion(projectWithRange('band'));
+      const project = withDistributionBandVersion(
+        withCotation(projectWithRange('band')),
+      );
       const sourceDetailId = project.hierarchy.details[0].id;
       const pack = createDetailPackage(project, sourceDetailId, {
         producer,
@@ -100,15 +131,17 @@ describe('persistência da faixa sem traços individuais', () => {
       });
       expect(pack.schema).toBe('openstruct.detail/24');
       expect(() =>
-        readDetailPackage({ ...pack, schema: 'openstruct.detail/22' }),
+        readDetailPackage({ ...pack, schema: 'openstruct.detail/23' }),
       ).toThrow(/openstruct\.detail\/24/);
       const { package: read, project: source } = readDetailPackage(
         JSON.stringify(pack),
       );
       expect(read.schema).toBe('openstruct.detail/24');
       expect(source.bars[0].distribution).toEqual(project.bars[0].distribution);
+      expect(source.bars[0].dimensionConvention).toBe('external');
+      expect(source.details[0].dimensionConvention).toBe('axis');
 
-      const target = emptyProject();
+      const target = linkProjectFile(emptyProject(), 'Referências/Destino.pdf');
       const plan = previewDetailTransfer(target, source, {
         mode: 'insert',
         sourceDetailId,
@@ -117,6 +150,9 @@ describe('persistência da faixa sem traços individuais', () => {
       expect(plan.issues).toEqual([]);
       const inserted = applyDetailTransfer(target, plan);
       expect(inserted.schema).toBe('armadurastruct/37');
+      expect(inserted.linkedFiles).toEqual(target.linkedFiles);
+      expect(inserted.bars[0].dimensionConvention).toBe('external');
+      expect(inserted.details[0].dimensionConvention).toBe('axis');
       expect(inserted.bars[0].distribution).toEqual(
         project.bars[0].distribution,
       );
@@ -127,7 +163,9 @@ describe('persistência da faixa sem traços individuais', () => {
   );
 
   it('versiona o pacote quando a faixa viaja como dependência', () => {
-    const base = withDistributionBandVersion(projectWithRange('band'));
+    const base = withDistributionBandVersion(
+      withCotation(projectWithRange('band')),
+    );
     const sourceDetailId = base.hierarchy.details[0].id;
     const external = createHierarchyNode(
       base,
@@ -138,7 +176,6 @@ describe('persistência da faixa sem traços individuais', () => {
     const bar = base.bars[0];
     const project = completeOwnership({
       ...external.project,
-      details: [{ id: 'rebatimento', barId: bar.id, origin: { x: 0, y: 0 } }],
       hierarchy: {
         ...external.project.hierarchy,
         objectDetails: {
@@ -152,8 +189,9 @@ describe('persistência da faixa sem traços individuais', () => {
     expect(pack.schema).toBe('openstruct.detail/24');
     expect(pack.objects.bars).toEqual([]);
     expect(pack.dependencies[0].distribution?.render).toBe('band');
+    expect(pack.dependencies[0].dimensionConvention).toBe('external');
     expect(() =>
-      readDetailPackage({ ...pack, schema: 'openstruct.detail/22' }),
+      readDetailPackage({ ...pack, schema: 'openstruct.detail/23' }),
     ).toThrow(/openstruct\.detail\/24/);
     const { project: source } = readDetailPackage(pack);
     const target = emptyProject();
@@ -166,5 +204,7 @@ describe('persistência da faixa sem traços individuais', () => {
     expect(plan.issues).toEqual([]);
     expect(plan.project?.schema).toBe('armadurastruct/37');
     expect(plan.project?.bars[0].distribution).toEqual(bar.distribution);
+    expect(plan.project?.bars[0].dimensionConvention).toBe('external');
+    expect(plan.project?.details[0].dimensionConvention).toBe('axis');
   });
 });

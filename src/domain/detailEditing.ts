@@ -177,6 +177,7 @@ export function assertDetailEdit(
     'sheets',
     'scheduleLock',
     'layers',
+    'linkedFiles',
   ] as const)
     if (!same(before[field], after[field])) fail();
   for (const field of ['floors', 'elements', 'placements'] as const)

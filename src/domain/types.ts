@@ -40,11 +40,14 @@ export type DrawingLayer = DrawingStyle & {
   plot?: PlotStyle;
 };
 export type Point = { x: number; y: number };
+export type BarDimensionConvention = 'axis' | 'external';
 export type Bar = LayerBinding & {
   id: string;
   mark: string;
   element: string;
   kind: 'free' | 'stirrup' | 'beam-clamp' | 'helix';
+  /** Optional convention for automatic labels on the physical bar drawing. */
+  dimensionConvention?: BarDimensionConvention;
   /** Continuous circular helix; one physical piece, never a series of rings. */
   helix?: import('./helixSchema').HelixProfile;
   helixDisplay?: import('./helixSchema').HelixDisplay;
@@ -133,6 +136,8 @@ export type BarRepresentation = LayerBinding & {
     omitPrefix?: string;
   };
   showDimensions?: boolean;
+  /** Automatic labels are independent of the source bar and other views. */
+  dimensionConvention?: BarDimensionConvention;
 };
 export type Detail = BarRepresentation;
 export type Floor = { id: string; name: string };
@@ -326,7 +331,9 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/33' | 'armadurastruct/37';
+  schema: 'armadurastruct/35' | 'armadurastruct/37';
+  /** Relative file names for display. The session's folder binding grants access. */
+  linkedFiles?: string[];
   symbols?: SymbolDefinition[];
   symbolInstances?: SymbolInstance[];
   stirrupDefaults?: import('./stirrupSchema').StirrupCriteria;
@@ -401,6 +408,10 @@ export type Geometry = {
   length: number;
   errors: string[];
   vertices: Point[];
+  /** Theoretical corners of the planar chain before its bends are trimmed. */
+  theoreticalVertices?: Point[];
+  /** Counts of physical segments at each end, in traversal order. */
+  hookSegments?: { start: number; end: number };
 };
 export type ScheduleContribution = {
   barId: string;

@@ -3,6 +3,7 @@ import {
   stirrupDimensionLabels,
   displayedBarGeometry,
 } from './stirrupGeometry';
+import { barConventionLabels } from './barDimensionLabels';
 import { geometry, sampled, rotate, format } from './geometry';
 import {
   beamClampPrimitives,
@@ -198,14 +199,22 @@ export function representationPrimitives(
     }
     return out;
   }
+  if (d.showDimensions === false || b.stirrupDisplay?.dimensions === false)
+    return out;
+  const convention = barConventionLabels(b, d.dimensionConvention, {
+    representation: true,
+  });
+  if (convention) {
+    for (const v of convention) out.push(text(v.text, v.at, 'COTAS'));
+    return out;
+  }
   if (b.stirrupProfile) {
-    if (d.showDimensions !== false && b.stirrupDisplay?.dimensions !== false)
-      for (const v of stirrupDimensionLabels(b))
-        out.push(text(v.text, v.at, 'COTAS'));
+    for (const v of stirrupDimensionLabels(b))
+      out.push(text(v.text, v.at, 'COTAS'));
     return out;
   }
   const v = geometry(b).vertices;
-  for (let i = 0; d.showDimensions !== false && i < v.length - 1; i++) {
+  for (let i = 0; i < v.length - 1; i++) {
     if (b.kind === 'stirrup' && ![3, 4].includes(i)) continue;
     const a = v[i],
       c = v[i + 1];
