@@ -2,6 +2,7 @@
 
 ## Não lançado
 
+- Arquivo → Projeto → Fechar projeto (#173): volta a uma tela inicial **Sem projeto aberto** sem encerrar o aplicativo, com Novo, Abrir e Recentes. Alterações não salvas pedem Salvar e fechar, Fechar sem salvar ou Cancelar, reaproveitando as proteções de Projetos recentes (download no navegador não conta como gravação). Reiniciar após fechar mantém a tela inicial; a recuperação do último trabalho continua quando o aplicativo é encerrado com projeto aberto. Nenhum arquivo, pasta, backup ou recente é apagado; formato do projeto inalterado. [Uso e limites](docs/FECHAR-PROJETO.md).
 - Documentação de desenvolvimento: instruções para agentes, mapa de arquitetura, guia de contribuição e índice por assunto, conferidos com os formatos nativo /35 e de intercâmbio /23 da master.
 - Arquivos vinculados ao projeto e convenções de cotagem por armadura/rebatimento integrados (#171, #172, #190). O formato nativo /35 preserva ambos e lê as duas variantes de desenvolvimento /34. Vincular/desvincular respeita a edição isolada e o histórico; salvar, reabrir e recuperar mantém os vínculos e as convenções. O intercâmbio de cotagem usa o pacote /23.
 - Enquadrar, restaurar a câmera e usar botões de zoom publicam a posição imediatamente, evitando que um clique seguinte use um texto ou objeto ainda desenhado na posição anterior. Wheel e pan continuam agrupados por frame (#175).

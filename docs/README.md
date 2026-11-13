@@ -12,6 +12,7 @@ A master desta revisão salva projetos em `armadurastruct/35` e pacotes em `open
 - [Metadados documentais de cada desenho](METADADOS-DESENHO.md)
 - [Pasta do projeto e arquivos vinculados](PASTA-PROJETO.md)
 - [Projetos e documentos recentes](PROJETOS-RECENTES.md)
+- [Fechar projeto e tela inicial](FECHAR-PROJETO.md)
 - [AS-03 · Repetição de detalhamentos e quantitativos](AS-03.md)
 
 ## Armaduras
