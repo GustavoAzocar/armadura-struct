@@ -2,7 +2,7 @@
 
 Índice dos guias por área. Para começar, leia o [Guia de uso](GUIA.md) e os [atalhos de teclado](ATALHOS.md). Os guias `AS-NN` levam o número da tarefa que os originou; o assunto está ao lado.
 
-A master desta revisão salva projetos em `armadurastruct/35` e pacotes em `openstruct.detail/23` ([JSON Schema](openstruct-detail-v23.schema.json)). Guias de entregas anteriores podem citar contratos históricos; confira os formatos atuais no código e nas [regras de contribuição](CONTRIBUTING.md#alterações-de-formato).
+A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON Schema](openstruct-detail-v23.schema.json)); faixas sem traços usam o projeto `/37` e o pacote `/24` ([JSON Schema](openstruct-detail-v24.schema.json)). O formato 36 permanece reservado à contribuição paralela #191. Guias de entregas anteriores podem citar contratos históricos; confira os formatos atuais no código e nas [regras de contribuição](CONTRIBUTING.md#alterações-de-formato).
 
 ## Projeto e organização
 

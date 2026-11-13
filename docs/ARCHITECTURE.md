@@ -72,9 +72,9 @@ Lógica sem dependência de React. Principais blocos:
 
 Pontos de projeto que atravessam vários arquivos:
 
-- **Formato versionado.** `Project.schema` é um literal em `types.ts` (na master desta revisão, `armadurastruct/35`); leitura/validação e migração em `decodeProject`. Dado de recurso novo em arquivo de formato antigo é recusado. Veja [CONTRIBUTING](CONTRIBUTING.md#alterações-de-formato).
+- **Formato versionado.** `Project.schema` está em `types.ts` (na master desta revisão, `armadurastruct/35` ou `/37` ao adotar faixas sem traços); leitura/validação e migração em `decodeProject`. Dado de recurso novo em arquivo de formato antigo é recusado. Veja [CONTRIBUTING](CONTRIBUTING.md#alterações-de-formato).
 - **Primitivas de desenho compartilhadas.** `drawingPrimitives.ts` gera a geometria que canvas, PDF de pranchas e DXF consomem; evita três implementações divergentes.
-- **Compatibilidade de formato.** As duas variantes de desenvolvimento de `armadurastruct/34` são migradas para 35 sem perder `linkedFiles` ou convenções de cotagem. O pacote atual é `openstruct.detail/23`, com contrato em [JSON Schema v23](openstruct-detail-v23.schema.json); os contratos de versões anteriores permanecem publicados.
+- **Compatibilidade de formato.** As duas variantes de desenvolvimento de `armadurastruct/34` são migradas para 35 sem perder `linkedFiles` ou convenções de cotagem. Pacotes sem faixas sem traços usam `openstruct.detail/23` ([JSON Schema v23](openstruct-detail-v23.schema.json)); com essa apresentação usam `/24` ([JSON Schema v24](openstruct-detail-v24.schema.json)), e o projeto usa `/37`. O formato `/36` permanece reservado à contribuição paralela #191. Os contratos de versões anteriores permanecem publicados.
 - **API de armaduras.** `rebarApi.ts` (`REBAR_API_VERSION = '1.0'`) executa lotes de comandos validados sobre o `Project`, sem React nem DOM, e é a base do exemplo de plugin e dos scripts em `scripts/examples/`.
 - **Relação de aço.** `schedule(project)` (`model.ts`) calcula o quadro. Com `scheduleLock` o quadro vem da fotografia guardada, não do cálculo ao vivo.
 
@@ -116,7 +116,7 @@ A CSP está duplicada em `tauri.conf.json` e no `preview` de `vite.config.ts`; m
 | Projeto                        | `.armstruct.json` (download, arquivo ou `save-v1/projeto.armstruct.json` na pasta autorizada) | Um JSON `Project` com máscaras incorporadas                             |
 | Recuperação automática         | IndexedDB (`projects`, chave `current`)                                                       | Grava o mesmo JSON; volta por `decodeProject`                           |
 | Preferências de UI             | `localStorage`                                                                                | Câmera/abas por projeto, recentes (`armadurastruct.recent.v1`), atalhos |
-| Intercâmbio de um detalhamento | `.osdetail.json` (`openstruct.detail/23`)                                                     | Exemplos em `docs/examples`                                             |
+| Intercâmbio de um detalhamento | `.osdetail.json` (`openstruct.detail/23` ou `/24`)                                            | Exemplos em `docs/examples`                                             |
 | Plugins instalados             | Diretório de dados do Tauri                                                                   | Gerido pelo crate Rust                                                  |
 
 ## Build, testes e entrega

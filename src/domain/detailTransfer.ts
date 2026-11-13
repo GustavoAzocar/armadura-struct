@@ -36,6 +36,7 @@ import {
   schedule,
   scheduleChanged,
   createScheduleLock,
+  withDistributionBandVersion,
 } from './model';
 import { barCaption } from './drafting';
 import { alignPlacement, composeSheet } from './paper';
@@ -954,7 +955,9 @@ export function previewDetailTransfer(
       }
     }
     if (plan.issues.length === 0)
-      plan.project = decodeProject(JSON.stringify(next));
+      plan.project = decodeProject(
+        JSON.stringify(withDistributionBandVersion(next)),
+      );
   } catch (error) {
     plan.issues.push(
       error instanceof Error

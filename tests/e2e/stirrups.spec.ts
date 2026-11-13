@@ -125,6 +125,104 @@ test('critérios, seção, faixa e identificação formam uma posição atômica
   expect(errors).toEqual([]);
 });
 
+test('oculta os traços de uma faixa existente, preserva sua identificação e permite selecioná-la pela linha', async ({
+  page,
+}, testInfo) => {
+  await fresh(page);
+  await command(page, 'E');
+  const criteria = page.getByRole('dialog', { name: 'Critérios do estribo' });
+  await criteria.getByLabel('Bitola do estribo (mm)').fill('8');
+  await criteria
+    .getByRole('button', { name: 'Distribuição', exact: true })
+    .click();
+  await criteria.getByLabel('Espaçamento solicitado (mm)').fill('200');
+  await criteria.getByLabel('Afastamento da primeira face (mm)').fill('50');
+  await criteria.getByLabel('Afastamento da segunda face (mm)').fill('75');
+  await criteria
+    .getByRole('button', { name: 'Usar critérios e lançar' })
+    .click();
+  for (const value of ['1500,-500', '0,0', '1100,0', '0,-300'])
+    await command(page, value);
+  await panel(page)
+    .getByRole('button', { name: 'Confirmar lançamento' })
+    .click();
+  await page
+    .getByRole('button', { name: 'Ajustar à tela', exact: true })
+    .click();
+
+  const canvas = page.getByTestId('cad-canvas');
+  const band = canvas.getByTestId('cad-distribution');
+  const lines = band.locator('path');
+  const caption = band.locator('text');
+  const render = page.getByRole('combobox', { name: 'Representação da faixa' });
+  const undo = page.getByRole('button', { name: 'Desfazer', exact: true });
+  const redo = page.getByRole('button', { name: 'Refazer', exact: true });
+  await expect(render).toHaveValue('ticks');
+  await expect(lines).toHaveCount(9);
+  await expect(caption).toHaveText('6 N1 Ø8,0 c/19,5 cm');
+  const before = await save(page);
+  const remaining = await lines.evaluateAll((paths) =>
+    paths.slice(0, 3).map((path) => path.getAttribute('d')),
+  );
+  const title = (await caption.textContent())!;
+
+  await canvas.screenshot({ path: 'docs/stirrup-band-ticks.png' });
+  await testInfo.attach('faixa-com-tracos', {
+    path: 'docs/stirrup-band-ticks.png',
+    contentType: 'image/png',
+  });
+  await render.selectOption('band');
+  await expect(lines).toHaveCount(3);
+  expect(
+    await lines.evaluateAll((paths) =>
+      paths.map((path) => path.getAttribute('d')),
+    ),
+  ).toEqual(remaining);
+  await expect(caption).toHaveText(title);
+  await canvas.screenshot({ path: 'docs/stirrup-band-hidden.png' });
+  await testInfo.attach('faixa-sem-tracos', {
+    path: 'docs/stirrup-band-hidden.png',
+    contentType: 'image/png',
+  });
+
+  const after = await save(page);
+  expect(after.schema).toBe('armadurastruct/37');
+  expect(after.bars).toEqual([
+    {
+      ...before.bars[0],
+      distribution: { ...before.bars[0].distribution, render: 'band' },
+    },
+  ]);
+  await undo.click();
+  await expect(lines).toHaveCount(9);
+  await redo.click();
+  await expect(lines).toHaveCount(3);
+
+  await canvas.click({ position: { x: 45, y: 45 } });
+  await expect(render).toHaveCount(0);
+  const midpoint = await lines.last().evaluate((element) => {
+    const path = element as unknown as SVGPathElement;
+    const mid = path.getPointAtLength(path.getTotalLength() / 2);
+    const point = new DOMPoint(mid.x, mid.y).matrixTransform(
+      path.getScreenCTM()!,
+    );
+    return { x: point.x, y: point.y };
+  });
+  await page.mouse.click(midpoint.x, midpoint.y);
+  await expect(render).toHaveValue('band');
+
+  await fresh(page);
+  await expect(page.getByTestId('cad-distribution')).toHaveCount(0);
+  await page.getByTestId('project-input').setInputFiles({
+    name: 'faixa.armstruct.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(after)),
+  });
+  await expect(lines).toHaveCount(3);
+  await expect(caption).toHaveText(title);
+  expect((await save(page)).bars).toEqual(after.bars);
+});
+
 test('Esc em cada etapa, repetição, faixa inválida e troca de contexto não deixam aço parcial', async ({
   page,
 }) => {

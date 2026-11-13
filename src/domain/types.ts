@@ -84,7 +84,7 @@ export type Bar = LayerBinding & {
   distribution?: {
     start?: Point;
     end: Point;
-    render?: 'ticks' | 'bars';
+    render?: 'ticks' | 'bars' | 'band';
     annotationOffset?: number;
     insets?: { start: number; end: number };
   };
@@ -331,7 +331,7 @@ export type SymbolInstance = LayerBinding & {
   scale: number;
 };
 export type Project = {
-  schema: 'armadurastruct/35';
+  schema: 'armadurastruct/35' | 'armadurastruct/37';
   /** Relative file names for display. The session's folder binding grants access. */
   linkedFiles?: string[];
   symbols?: SymbolDefinition[];
