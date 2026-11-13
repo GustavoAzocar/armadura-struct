@@ -313,6 +313,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     camera.current = typeof next === 'function' ? next(camera.current) : next;
     cameraFrame.push(camera.current);
   };
+  const commitView = (next: Camera | ((previous: Camera) => Camera)) => {
+    setView(next);
+    // Discrete navigation must be visible before the next point can be picked.
+    cameraFrame.flush();
+  };
   const [cursor, setCursor] = useState<Point | null>(null);
   const [snapPoint, setSnapPoint] = useState<SnapCandidate | null>(null);
   const [snapLimited, setSnapLimited] = useState(false);
@@ -634,7 +639,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         Math.max(80, size.h - 120) / Math.max(b.height, 500),
       ),
     );
-    setView({
+    commitView({
       x: b.x + b.width / 2,
       y: b.y + b.height / 2,
       s,
@@ -644,7 +649,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     fit,
     getState: () => ({ view: camera.current, overview: overview.current }),
     zoom: (f) =>
-      setView((v) => ({ ...v, s: Math.max(0.000001, Math.min(20, v.s * f)) })),
+      commitView((v) => ({
+        ...v,
+        s: Math.max(0.000001, Math.min(20, v.s * f)),
+      })),
   }));
   const initialMaskCount = useRef(project.masks.length);
   const cameraContext = useRef<{
@@ -690,7 +698,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       const saved = overview.current;
       overview.current = null;
       if (saved?.projectId === project.id) {
-        setView(saved.view);
+        commitView(saved.view);
         return;
       }
     }
@@ -2183,7 +2191,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         <button
           title="Afastar"
           aria-label="Afastar"
-          onClick={() => setView((v) => ({ ...v, s: v.s / 1.3 }))}
+          onClick={() => commitView((v) => ({ ...v, s: v.s / 1.3 }))}
         >
           <Minus size={15} />
         </button>
@@ -2197,7 +2205,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         <button
           title="Aproximar"
           aria-label="Aproximar"
-          onClick={() => setView((v) => ({ ...v, s: v.s * 1.3 }))}
+          onClick={() => commitView((v) => ({ ...v, s: v.s * 1.3 }))}
         >
           <Plus size={15} />
         </button>

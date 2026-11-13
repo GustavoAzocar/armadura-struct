@@ -117,6 +117,67 @@ async function burst(page: Page, button: number, cancel = false) {
     { button, cancel },
   );
 }
+test('camera buttons publish fitting and zoom before the next animation frame', async ({
+  page,
+}) => {
+  await open(page);
+  const before = await save(page),
+    fitted = await camera(page);
+  const canvas = page.getByTestId('cad-canvas');
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, -300);
+  await expect
+    .poll(async () => (await camera(page)).a)
+    .toBeGreaterThan(fitted.a * 1.2);
+
+  const clickBeforeFrame = (label: string) =>
+    canvas.evaluate(async (svg, label) => {
+      const button = [
+        ...svg.parentElement!.querySelectorAll<HTMLButtonElement>(
+          '.canvas-tools button',
+        ),
+      ].find((button) => button.getAttribute('aria-label') === label)!;
+      if (label === 'Ajustar à tela') {
+        const box = svg.getBoundingClientRect();
+        svg.dispatchEvent(
+          new WheelEvent('wheel', {
+            bubbles: true,
+            deltaY: -120,
+            clientX: box.left + box.width / 2,
+            clientY: box.top + box.height / 2,
+          }),
+        );
+      }
+      button.click();
+      // React's discrete event commits in a microtask; no animation frame has
+      // run here. A camera still waiting on rAF would retain the old matrix.
+      await Promise.resolve();
+      const m = (
+        svg.querySelector('g[transform]') as SVGGElement
+      ).getScreenCTM()!;
+      return { a: m.a, e: m.e, f: m.f };
+    }, label);
+
+  const restored = await clickBeforeFrame('Ajustar à tela');
+  expect(restored.a).toBeCloseTo(fitted.a, 5);
+  expect(restored.e).toBeCloseTo(fitted.e, 5);
+  expect(restored.f).toBeCloseTo(fitted.f, 5);
+  expect((await clickBeforeFrame('Aproximar')).a).toBeCloseTo(
+    fitted.a * 1.3,
+    5,
+  );
+  expect((await clickBeforeFrame('Afastar')).a).toBeCloseTo(fitted.a, 5);
+  // A canceled callback must not overwrite the discrete command afterwards.
+  await canvas.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  expect((await camera(page)).a).toBeCloseTo(fitted.a, 5);
+  expect(await save(page)).toEqual(before);
+});
 test('pan burst commits its final release camera without changing the project', async ({
   page,
 }) => {

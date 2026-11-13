@@ -23,8 +23,8 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: CAD isolation camera restoration
-        run: npx playwright test tests/e2e/detailEditing.spec.ts --grep "tree isolation|overview restoration" --repeat-each=5
+      - name: CAD camera transitions and text editing
+        run: npx playwright test tests/e2e/detailEditing.spec.ts tests/e2e/cadInputFrames.spec.ts tests/e2e/freeText.spec.ts --grep "tree isolation|overview restoration|camera buttons|altura acompanha" --repeat-each=5
       - name: CAD context menus after import
         run: npx playwright test tests/e2e/alignment-vertices.spec.ts tests/e2e/transforms.spec.ts --grep "menu e cliques|menu contextual seleciona" --repeat-each=5
       - name: Startup, CAD performance and UI contracts

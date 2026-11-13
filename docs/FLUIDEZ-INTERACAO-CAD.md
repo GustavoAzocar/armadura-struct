@@ -6,7 +6,9 @@ Esta implementação reduz o trabalho repetido de entrada e prévias. A validaç
 
 ### Entrada e câmera
 
-`CadCanvas` mantém a câmera lógica mais recente em uma ref. Cada entrada de roda integra seu delta com a âncora daquele evento; pan usa a posição absoluta em relação à origem do gesto. A apresentação é publicada no máximo uma vez por frame de animação. `getState()` retorna a câmera lógica, inclusive antes da publicação, para preservar a navegação ao trocar de documento.
+`CadCanvas` mantém a câmera lógica mais recente em uma ref. Cada entrada de roda integra seu delta com a âncora daquele evento; pan usa a posição absoluta em relação à origem do gesto. Durante esses gestos, a apresentação é publicada no máximo uma vez por frame de animação. `getState()` retorna a câmera lógica, inclusive antes da publicação, para preservar a navegação ao trocar de documento.
+
+Comandos discretos de enquadramento, restauração e botões de zoom publicam a câmera imediatamente e descartam o frame anterior pendente. Assim, o desenho já corresponde à câmera do próximo clique, inclusive ao editar texto após Enquadrar. A publicação é compatível com transições de layout e não força `flushSync` dentro de efeitos.
 
 Entrada/saída de isolamento e reenquadramento automático são decididos na mesma transição. Ao entrar, o overview captura inclusive a última câmera lógica ainda não publicada. Ao sair, restaurar esse overview tem prioridade sobre a mudança da contagem de máscaras visíveis. A primeira medição do `ResizeObserver` é explícita; alternar Foco ou redimensionar depois preserva a navegação.
 
@@ -102,7 +104,8 @@ O checkout de referência precisa das dependências instaladas. O script pode me
 
 - `npm run check`: 1.173 testes de domínio/importação/infraestrutura e seis de distribuição aprovados; plugin de exemplo válido.
 - Novas regressões unitárias: rajadas de entrada, flush de confirmação, cancelamento entre gerações, zoom com âncoras distintas, coordenadas finais, cache de prévia versus resultado exato, proteção no commit, agrupamento sem perda de precisão/textos e diagnóstico limitado/desligado por padrão.
-- `tests/e2e/cadInputFrames.spec.ts`: rajada de pan seguida por soltura diferente do último movimento; grip confirmado antes do próximo frame com undo/redo; Esc impedindo edição atrasada. Incluído na etapa prioritária do CI e na suíte completa.
+- `tests/e2e/cadInputFrames.spec.ts`: rajada de pan seguida por soltura diferente do último movimento; grip confirmado antes do próximo frame com undo/redo; Esc impedindo edição atrasada; enquadramento e botões de zoom publicados antes do próximo frame. Incluído na etapa prioritária do CI e na suíte completa.
+- O cenário existente de edição de texto após Enquadrar permanece sem esperas adicionais. Junto aos três cenários de isolamento e à regressão dos botões, ele é repetido cinco vezes na etapa inicial do CI (25 execuções).
 - `tests/e2e/detailEditing.spec.ts`: restauração do overview com máscaras reaparecendo, zoom ainda pendente, Foco e redimensionamento. A asserção original de centro/escala permanece; três cenários de isolamento são repetidos cinco vezes na etapa inicial do CI antes da suíte completa.
 - Os cenários existentes de snaps, máscaras, seleção, histórico, persistência e exportação permanecem na suíte.
 

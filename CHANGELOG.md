@@ -2,6 +2,7 @@
 
 ## Não lançado
 
+- Enquadrar, restaurar a câmera e usar botões de zoom publicam a posição imediatamente, evitando que um clique seguinte use um texto ou objeto ainda desenhado na posição anterior. Wheel e pan continuam agrupados por frame (#175).
 - Restauração da câmera ao concluir edição isolada: centro e zoom salvos têm prioridade sobre o reenquadramento disparado pelo retorno das máscaras, inclusive em Foco e após redimensionar. Preserva também zoom lógico pendente antes da entrada no isolamento (#175).
 - Fluidez da interação CAD (#175): câmera e prévias publicadas por frame, confirmação de alças pela posição da soltura, cancelamento de trabalho pendente e zoom com âncora preservada em rajadas. Prévia de mover máscara reutiliza geometria vetorial e verificação inicial por sessão, com validação completa ao aplicar; paths temporários agrupados sem arredondar coordenadas. Proteções de layers usam índices locais e há diagnóstico optativo em memória. [Medições, limites e teste nativo](docs/FLUIDEZ-INTERACAO-CAD.md).
 - Guias de encaixe Extensão e Paralelo (#165, conclusão da #162): aquisição temporária de referência capturável, continuação de segmento/arco analítico e paralela pela base do novo trecho linear. Referência realçada, guia tracejada, prévia e clique coincidentes. Esc, F3, troca de comando e indisponibilidade limpam a aquisição sem alterar o desenho; ORTO mantém precedência. [Uso e limites](docs/ENCAIXES-CAD.md).
