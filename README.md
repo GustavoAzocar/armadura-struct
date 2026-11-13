@@ -37,6 +37,7 @@ CAD 2D de armaduras do ecossistema [OpenStruct](https://openstruct.com.br), com 
 - [Comprimentos, ângulos e extensão de barras](docs/AS-26.md): dimensões por trecho, ponta fixa/estratégia explícitas e ESTENDER por incremento, comprimento final ou clique projetado, com prévia e histórico.
 
 - [Fluidez do CAD e medições reproduzíveis](docs/DESEMPENHO-CAD.md): reutilização de apresentação e formatação, controle de captura por máscara e benchmark de navegação/edição.
+- [Interação CAD por frame](docs/FLUIDEZ-INTERACAO-CAD.md): prévias vetoriais reutilizáveis, confirmação precisa da última entrada e diagnóstico local optativo, com roteiro para validar no Linux.
 
 - [Textos proporcionais durante o zoom](docs/TEXTOS-E-ZOOM.md), compartilhando alturas e posições entre modelo, representações e exportação, com altura de papel por vista preservada.
 

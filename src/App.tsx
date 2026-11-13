@@ -148,6 +148,7 @@ import {
   previewMaskManipulation,
   applyMaskManipulation,
   previewWholeMaskMove,
+  prepareWholeMaskMovePreview,
   applyWholeMaskMove,
   type MaskManipMode,
   type MaskManipPlan,
@@ -286,6 +287,7 @@ import {
   MAX_ROTATION_ANGLE,
 } from './domain/transforms';
 import { drawingPrimitives } from './domain/drawingPrimitives';
+import { installCadDiagnostics, measureCadWork } from './lib/cadDiagnostics';
 import { objectState, layerState } from './domain/layerProfiles';
 import {
   assertVisibilityEdit,
@@ -590,6 +592,7 @@ function writeUiPreference(key: string, value: string) {
   }
 }
 export default function App() {
+  useEffect(() => installCadDiagnostics(), []);
   const [history, setHistory] = useState<History>(() => ({
     past: [],
     present: emptyProject(),
@@ -2348,11 +2351,13 @@ export default function App() {
         );
       if (!t)
         return { lines: undefined, error: '', shared: info.shared.length };
-      const next = transformSelection(p, transformRequest.ids, t, {
-        associated: transformRequest.associated,
-        layerContext: documentKey,
-        scopeDetailId: isolatedDetailId,
-      });
+      const next = measureCadWork('preview.selectionTransform', () =>
+        transformSelection(p, transformRequest.ids, t, {
+          associated: transformRequest.associated,
+          layerContext: documentKey,
+          scopeDetailId: isolatedDetailId,
+        }),
+      );
       const ids = new Set(info.ids);
       const view = {
         ...next,
@@ -2364,7 +2369,9 @@ export default function App() {
         weldedMeshes: (next.weldedMeshes ?? []).filter((o) => ids.has(o.id)),
       };
       return {
-        lines: drawingPrimitives(view, next),
+        lines: measureCadWork('preview.selectionPrimitives', () =>
+          drawingPrimitives(view, next),
+        ),
         error: '',
         shared: info.shared.length,
       };
@@ -3480,6 +3487,26 @@ export default function App() {
   };
   const wholeMove = (s: MaskManipSession | null) =>
     s?.mode === 'move' && s.scope === 'mask';
+  const wholeMovePreview = useMemo(() => {
+    if (maskManip?.mode !== 'move' || maskManip.scope !== 'mask') return {};
+    try {
+      return {
+        at: prepareWholeMaskMovePreview(
+          maskManip.project,
+          maskManip.maskId,
+          maskManip.context,
+        ),
+      };
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  }, [
+    maskManip?.project,
+    maskManip?.maskId,
+    maskManip?.mode,
+    maskManip?.scope,
+    maskManip?.context,
+  ]);
   const manipPreview = useMemo<{
     plan?: MaskManipPlan;
     whole?: WholeMaskMovePlan;
@@ -3489,17 +3516,16 @@ export default function App() {
       return {};
     try {
       const t = manipTransform(maskManip);
-      if (wholeMove(maskManip))
+      if (wholeMove(maskManip)) {
+        if (wholeMovePreview.error) throw new Error(wholeMovePreview.error);
         return t?.kind === 'translate'
           ? {
-              whole: previewWholeMaskMove(
-                maskManip.project,
-                maskManip.maskId,
-                maskManip.context,
-                t.delta,
+              whole: measureCadWork('preview.maskMove', () =>
+                wholeMovePreview.at!(t.delta),
               ),
             }
           : {};
+      }
       return t
         ? {
             plan: previewMaskManipulation(
@@ -3518,7 +3544,7 @@ export default function App() {
     } catch (e) {
       return { error: (e as Error).message };
     }
-  }, [maskManip, manipEntities]);
+  }, [maskManip, manipEntities, wholeMovePreview]);
   const manipReach = useMemo(() => {
     const m = maskManip?.project.masks.find((m) => m.id === maskManip.maskId);
     return m
@@ -3550,9 +3576,8 @@ export default function App() {
       }
     return { x0, y0, x1, y1 };
   }, [manipReach]);
-  const manipLines = useMemo(() => {
-    if (manipPreview.whole && manipReach) {
-      const d = manipPreview.whole.delta;
+  const wholeMoveLines = useMemo(() => {
+    if (manipReach) {
       if (manipReachExtent) {
         const { x0, y0, x1, y1 } = manipReachExtent;
         return [
@@ -3560,19 +3585,19 @@ export default function App() {
             layer: manipReach[0].layer,
             closed: true,
             points: [
-              { x: x0 + d.x, y: y0 + d.y },
-              { x: x1 + d.x, y: y0 + d.y },
-              { x: x1 + d.x, y: y1 + d.y },
-              { x: x0 + d.x, y: y1 + d.y },
+              { x: x0, y: y0 },
+              { x: x1, y: y0 },
+              { x: x1, y: y1 },
+              { x: x0, y: y1 },
             ],
           },
         ];
       }
-      return manipReach.map((v) => ({
-        ...v,
-        points: v.points.map((a) => ({ x: a.x + d.x, y: a.y + d.y })),
-      }));
+      return manipReach;
     }
+  }, [manipReach, manipReachExtent]);
+  const manipLines = useMemo(() => {
+    if (manipPreview.whole) return wholeMoveLines;
     return manipPreview.plan
       ? maskPrimitives({
           ...manipPreview.plan.mask,
@@ -3580,7 +3605,7 @@ export default function App() {
           primitives: manipPreview.plan.result,
         })
       : undefined;
-  }, [manipPreview, manipReach, manipReachExtent]);
+  }, [manipPreview, wholeMoveLines]);
   const manipOverlay = useMemo(
     () =>
       maskManip && manipReach
@@ -9336,6 +9361,7 @@ export default function App() {
                     ? vertexPreview.points
                     : undefined
                 }
+                previewTranslation={manipPreview.whole?.delta}
                 mirrorAxis={
                   maskManip?.mode === 'mirror' &&
                   maskManip.base &&

@@ -417,12 +417,6 @@ export function previewWholeMaskMove(
   delta: Point,
 ): WholeMaskMovePlan {
   const mask = maskEditTarget(p, maskId, context);
-  if (
-    ![delta.x, delta.y].every((n) => Number.isFinite(n) && Math.abs(n) <= 1e9)
-  )
-    throw new Error(
-      'Informe um deslocamento finito dentro dos limites do modelo.',
-    );
   let hidden = 0;
   for (const q of mask.primitives) {
     const s = layerState(p, context.key, stylePrimitive(p, mask, q).layerId!);
@@ -432,6 +426,33 @@ export function previewWholeMaskMove(
       );
     if (!s.visible || mask.layers[q.layer] === false) hidden++;
   }
+  return wholeMaskMovePlan(p, mask, context, delta, hidden);
+}
+
+/** Only presentation may reuse eligibility. applyWholeMaskMove revalidates fully. */
+export function prepareWholeMaskMovePreview(
+  p: Project,
+  maskId: string,
+  context: MaskDrawingContext,
+) {
+  const initial = previewWholeMaskMove(p, maskId, context, { x: 0, y: 0 });
+  return (delta: Point) =>
+    wholeMaskMovePlan(p, initial.mask, initial.context, delta, initial.hidden);
+}
+
+function wholeMaskMovePlan(
+  p: Project,
+  mask: Mask,
+  context: MaskDrawingContext,
+  delta: Point,
+  hidden: number,
+): WholeMaskMovePlan {
+  if (
+    ![delta.x, delta.y].every((n) => Number.isFinite(n) && Math.abs(n) <= 1e9)
+  )
+    throw new Error(
+      'Informe um deslocamento finito dentro dos limites do modelo.',
+    );
   const origin = { x: mask.origin.x + delta.x, y: mask.origin.y + delta.y };
   const result = { ...mask, origin };
   // Pure translation shifts the model extent by exactly delta; the extent of
