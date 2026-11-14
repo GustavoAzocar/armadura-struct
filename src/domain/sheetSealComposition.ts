@@ -1,6 +1,10 @@
 import { rotate } from './geometry';
 import { paperPrimitiveBounds, type PaperPrimitive } from './paperText';
-import { sealBindingForField, resolveSealField } from './sealFields';
+import {
+  sealBindingForField,
+  resolveSealField,
+  type ResolvedSealField,
+} from './sealFields';
 import type {
   ProjectSealProperties,
   SheetSealBinding,
@@ -30,6 +34,14 @@ export type SheetSealContent = {
   project?: ProjectSealProperties;
   sheet?: SheetSealProperties;
   bindings?: readonly SheetSealBinding[];
+};
+
+export type ComposedSealField = {
+  id: string;
+  label: string;
+  text: string;
+  source?: ResolvedSealField['source'];
+  inherited?: true;
 };
 
 function layoutField(
@@ -97,6 +109,7 @@ export function composeTemplateSeal(
 ) {
   const issues: PaperIssue[] = [];
   const notices: PaperIssue[] = [];
+  const fields: ComposedSealField[] = [];
   let data = tableData;
   const decorations = sheetTemplateDecorations(template, (field) => {
     const binding = sealBindingForField(
@@ -172,6 +185,13 @@ export function composeTemplateSeal(
           ')';
       }
     }
+    fields.push({
+      id: field.id,
+      label: field.label,
+      text,
+      source: resolved.source,
+      inherited: resolved.inherited,
+    });
     if (
       text
         .split('\n')
@@ -201,5 +221,5 @@ export function composeTemplateSeal(
     }
     return lines;
   });
-  return { decorations, issues, notices };
+  return { decorations, issues, notices, fields };
 }

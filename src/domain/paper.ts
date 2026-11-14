@@ -1,6 +1,7 @@
 import { sheetScheduleGeometry } from './sheetSchedule';
 import {
   composeTemplateSeal,
+  type ComposedSealField,
   type SheetSealContent,
 } from './sheetSealComposition';
 import { plotPrimitives } from './plotting';
@@ -48,6 +49,7 @@ export type PaperComposition = {
   views: PaperView[];
   issues: PaperIssue[];
   notices: PaperIssue[];
+  sealFields?: ComposedSealField[];
 };
 export const paperInk = (layer: string) =>
   layer === 'MASCARA' ? '#8992a4' : layer === 'SELO' ? '#3448d1' : '#263044';
@@ -504,6 +506,7 @@ export function composeSheet(
     schedule,
     issues,
     notices: sealComposition?.notices ?? [],
+    sealFields: sealComposition?.fields,
   };
 }
 export function assertPaperExportable(

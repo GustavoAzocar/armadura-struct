@@ -1,5 +1,5 @@
 import { setSheetSchedule } from '../domain/sheetSchedule';
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Copy, Plus, ArrowUp, ArrowDown, X, ExternalLink } from 'lucide-react';
 import type { Project, SheetFormat } from '../domain/types';
 import { detailPath } from '../domain/hierarchy';
@@ -20,6 +20,8 @@ import { NumberField, TextField } from './Panels';
 import { SheetPaperFields, ViewPaperFields } from './PaperFields';
 import { composeSheet } from '../domain/paper';
 import { detachSheetTemplate } from '../domain/sheetTemplates';
+
+const SheetSealDraftDialog = lazy(() => import('./SheetSealDraftDialog'));
 
 type Props = {
   project: Project;
@@ -50,6 +52,7 @@ export default function SheetManager({
   onInsertSchedule,
 }: Props) {
   const [newName, setNewName] = useState('');
+  const [sealDraftOpen, setSealDraftOpen] = useState(false);
   const sheet = p.sheets.find((s) => s.id === sheetId);
   const views = p.hierarchy.placements.filter((v) => v.sheetId === sheetId);
   const view = views.find((v) => v.id === selectedView);
@@ -88,6 +91,28 @@ export default function SheetManager({
         >
           Modelos de margem e selo
         </button>
+        {sheet && (
+          <button
+            type="button"
+            disabled={locked}
+            onClick={() => setSealDraftOpen(true)}
+          >
+            Prévia de dados do selo
+          </button>
+        )}
+        {sealDraftOpen && sheet && !locked && (
+          <Suspense
+            fallback={
+              <div className="busy-overlay">Abrindo prévia do selo…</div>
+            }
+          >
+            <SheetSealDraftDialog
+              project={p}
+              initialSheetId={sheet.id}
+              onClose={() => setSealDraftOpen(false)}
+            />
+          </Suspense>
+        )}
         <form
           className="sheet-create"
           onSubmit={(e) => {
