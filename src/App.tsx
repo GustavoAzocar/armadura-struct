@@ -97,6 +97,10 @@ import {
 import LinkedProjectFiles from './components/LinkedProjectFiles';
 import { linkProjectFile } from './domain/linkedProjectFiles';
 import RecentProjects from './components/RecentProjects';
+import CloseProjectDialog, {
+  type CloseProjectGuard,
+} from './components/CloseProjectDialog';
+import StartScreen from './components/StartScreen';
 import { captureRecentContext } from './lib/recentProjectSafety';
 import {
   readRecents,
@@ -451,7 +455,9 @@ import {
   pickNativeFile,
   nativePathOf,
   saveFileAt,
-  restore,
+  closeRecovery,
+  recoveryEpoch,
+  restoreSession,
   safeName,
   saveFile,
 } from './lib/files';
@@ -541,6 +547,15 @@ const prompts: Record<Tool, string> = {
     'Selecione uma ou várias arestas da fôrma, escolha o lado por clique e confirme com Enter.',
   measure: 'Indique dois pontos para medir a distância.',
 };
+/** Comandos disponíveis na tela inicial, sem projeto aberto. */
+const startScreenCommands = new Set<Action>([
+  'new',
+  'open',
+  'recent',
+  'shortcuts',
+  'help',
+  'check-updates',
+]);
 const commandsDuringOperation = new Set<Action>([
   'select',
   'pan',
@@ -597,7 +612,12 @@ function writeUiPreference(key: string, value: string) {
     // These interface settings can still be used for the current session.
   }
 }
-export default function App() {
+export default function App({
+  onProjectClosed,
+}: {
+  /** Chamado depois que o fechamento foi persistido; remonta o editor sem projeto. */
+  onProjectClosed?: () => void;
+} = {}) {
   useEffect(() => installCadDiagnostics(), []);
   const [history, setHistory] = useState<History>(() => ({
     past: [],
@@ -605,6 +625,19 @@ export default function App() {
     future: [],
   }));
   const p = history.present;
+  /** Sessão de recuperação desta montagem; gravações de sessões fechadas são recusadas. */
+  const recoverySession = useRef(recoveryEpoch()).current;
+  /**
+   * "Sem projeto aberto": o `present` é só um marcador vazio, nunca salvo nem
+   * recuperado. Abrir ou criar um projeto substitui o marcador e encerra o estado.
+   */
+  const [noProject, setNoProject] = useState(false);
+  const noProjectRef = useRef(false);
+  noProjectRef.current = noProject;
+  const noProjectBase = useRef<Project | undefined>(undefined);
+  /** Fechamento confirmado: nenhuma gravação automática pode começar depois disto. */
+  const closingProject = useRef(false);
+  const [closeGuard, setCloseGuard] = useState<CloseProjectGuard | null>(null);
   const [detailTransfer, setDetailTransfer] = useState<{
     source: Project;
     fileName: string;
@@ -998,6 +1031,13 @@ export default function App() {
     void import('@tauri-apps/api/window')
       .then(async ({ getCurrentWindow }) => {
         const stop = await getCurrentWindow().onCloseRequested((e) => {
+          if (closingProject.current && closeRequest.current) {
+            e.preventDefault();
+            notify(
+              'Aguarde o fechamento do projeto antes de encerrar o aplicativo.',
+            );
+            return;
+          }
           if (updateInstallGuard.current) {
             e.preventDefault();
             notify(
@@ -1028,7 +1068,10 @@ export default function App() {
         setFolderEpoch((n) => n + 1);
     };
     const leaving = (e: BeforeUnloadEvent) => {
-      if (hasPendingFolderWrites()) {
+      if (
+        hasPendingFolderWrites() ||
+        (closingProject.current && closeRequest.current)
+      ) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -1362,8 +1405,17 @@ export default function App() {
   }, [toast]);
   useEffect(() => {
     let alive = true;
-    restore()
-      .then(async (raw) => {
+    restoreSession()
+      .then(async (start) => {
+        if (!alive) return;
+        if (start.closed) {
+          // Fechamento explícito anterior: não reabrir nada sozinho.
+          noProjectBase.current = historyRef.current.present;
+          savedBaseline.current = historyRef.current.present;
+          setNoProject(true);
+          return;
+        }
+        const raw = start.raw;
         if (raw && alive) {
           const project = decodeProject(raw);
           setHistory({ past: [], present: project, future: [] });
@@ -1389,15 +1441,35 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!ready || recoveryBlocked.current === p.id) return;
+    if (!noProject || p === noProjectBase.current) return;
+    // Um projeto aberto/criado a partir da tela inicial começa um histórico
+    // próprio: Desfazer não volta ao marcador "sem projeto".
+    noProjectBase.current = undefined;
+    const fresh = { past: [], present: p, future: [] };
+    historyRef.current = fresh;
+    setHistory(fresh);
+    setNoProject(false);
+  }, [noProject, p]);
+  useEffect(() => {
+    if (
+      !ready ||
+      noProject ||
+      closingProject.current ||
+      recoveryBlocked.current === p.id
+    )
+      return;
     let alive = true;
     setSaveState('Gravando recuperação…');
     const timer = setTimeout(async () => {
+      if (closingProject.current) return;
       // Enqueue the disk snapshot before awaiting recovery. A late IndexedDB operation
       // must never enqueue an older snapshot after a newer manual save.
       const disk = projectFolderLabel(p) ? saveProjectFolder(p) : undefined;
       if (disk && alive) setSaveState('Gravando na pasta…');
-      const [local, file] = await Promise.allSettled([autosave(p), disk]);
+      const [local, file] = await Promise.allSettled([
+        autosave(p, recoverySession),
+        disk,
+      ]);
       if (!alive) return;
       if (disk && file.status === 'rejected') {
         setSaveState('Acesso perdido/falha na pasta — alterações em memória');
@@ -1423,10 +1495,12 @@ export default function App() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [p, ready, folderEpoch]);
+  }, [p, ready, folderEpoch, noProject]);
   const commit = useCallback(
     (change: (current: Project) => Project) => {
       try {
+        if (closeRequest.current || closingProject.current)
+          throw new Error('Aguarde o fechamento do projeto.');
         const h = historyRef.current;
         const next = change(h.present);
         const scope = isolationRef.current;
@@ -7719,6 +7793,7 @@ export default function App() {
         setRecentOpen(true);
       }
       if (a === 'save') await saveCurrent(p);
+      if (a === 'close-project') await closeProject();
       if (a === 'delete') {
         if (
           !commit((current) => {
@@ -7800,6 +7875,15 @@ export default function App() {
     }
   };
   const action = async (a: Action) => {
+    if (closeRequest.current || closingProject.current) {
+      notify('Aguarde o fechamento do projeto.');
+      return;
+    }
+    if (noProjectRef.current && !startScreenCommands.has(a)) {
+      // Nunca operar sobre o marcador vazio de "sem projeto aberto".
+      notify('Abra ou crie um projeto para usar este comando.');
+      return;
+    }
     if (!commandsDuringOperation.has(a)) setSnapCommand((n) => n + 1);
     if (a === 'shortcuts') {
       setShortcutsOpen(true);
@@ -7926,6 +8010,21 @@ export default function App() {
       );
       return Promise.resolve(false);
     }
+    return resolveUnsaved(setRecentGuard, (reason) =>
+      setRecentNotice(
+        `Não foi possível salvar o projeto atual (${reason}). Nada foi substituído.`,
+      ),
+    );
+  };
+  /**
+   * Salvar/Descartar/Cancelar para o `present` atual, compartilhado por Abrir
+   * recente e Fechar projeto. Resolve true para prosseguir e false para manter
+   * o projeto. Um download solicitado no navegador nunca conta como gravação.
+   */
+  const resolveUnsaved = (
+    show: (guard: CloseProjectGuard | null) => void,
+    reportSaveError: (reason: string) => void,
+  ): Promise<boolean> => {
     if (historyRef.current.present === savedBaseline.current)
       return Promise.resolve(true);
     const base = historyRef.current.present;
@@ -7934,7 +8033,7 @@ export default function App() {
         saving = false;
       const finish = (allowed: boolean) => {
         settled = true;
-        setRecentGuard(null);
+        show(null);
         resolve(allowed);
       };
       const choose = async (c: 'save' | 'discard' | 'cancel') => {
@@ -7942,13 +8041,13 @@ export default function App() {
         if (historyRef.current.present !== base) return finish(false);
         if (c !== 'save') return finish(c === 'discard');
         saving = true;
-        setRecentGuard(null);
+        show(null);
         try {
           const result = await saveCurrent(base);
           if (historyRef.current.present !== base) return finish(false);
           if (result !== 'download') return finish(result === 'saved');
           // Pedir um download não comprova que o usuário salvou a cópia.
-          setRecentGuard({
+          show({
             reasons: [
               'Download solicitado. O navegador não confirma se a cópia foi salva. Confira o arquivo antes de continuar; cancelar mantém o projeto atual com suas alterações.',
             ],
@@ -7956,19 +8055,109 @@ export default function App() {
             choose,
           });
         } catch (e) {
-          setRecentNotice(
-            `Não foi possível salvar o projeto atual (${e instanceof Error ? e.message : 'falha'}). Nada foi substituído.`,
-          );
+          reportSaveError(e instanceof Error ? e.message : 'falha');
           finish(false);
         } finally {
           saving = false;
         }
       };
-      setRecentGuard({
+      show({
         reasons: ['O projeto atual tem alterações não salvas.'],
         choose,
       });
     });
+  };
+  /** Comandos, sessões e diálogos ligados ao projeto que impedem trocá-lo ou fechá-lo. */
+  const projectWorkPending = () =>
+    !!(
+      draft.length ||
+      (tool !== 'select' && tool !== 'pan') ||
+      operationActive ||
+      stirrupDialog ||
+      beamClampDialog ||
+      helixDialog ||
+      weldedMeshDialog ||
+      cloneRequest ||
+      maskBatch ||
+      detailTransfer ||
+      cadInterpretation ||
+      drawingProperties ||
+      sheetTemplateSession ||
+      modal === 'new'
+    );
+  const closeBlockedReason = () => {
+    if (!ready) return 'Aguarde a recuperação do projeto antes de fechá-lo.';
+    if (updateInstallGuard.current)
+      return 'Aguarde o salvamento e a confirmação da atualização antes de fechar o projeto.';
+    if (hasPendingFolderWrites() || fileOperations.current || busy)
+      return 'Gravação ou operação de arquivo em andamento. Aguarde o resultado antes de fechar o projeto.';
+    if (isolationRef.current)
+      return 'Conclua a edição isolada antes de fechar o projeto.';
+    if (projectWorkPending() || modalIsOpen())
+      return 'Conclua ou cancele o comando em andamento antes de fechar o projeto.';
+  };
+  const closeRequest = useRef(false);
+  /**
+   * Fechar projeto: resolve alterações não salvas, registra "nenhum projeto
+   * ativo" na recuperação local e só então descarta a sessão do editor. Nenhum
+   * arquivo, pasta, backup ou histórico de recentes é apagado.
+   */
+  const closeProject = async () => {
+    if (closeRequest.current) return;
+    if (noProjectRef.current) {
+      notify('Nenhum projeto aberto.');
+      return;
+    }
+    const blocked = closeBlockedReason();
+    if (blocked) {
+      notify(blocked);
+      return;
+    }
+    closeRequest.current = true;
+    setBusy('Fechando projeto…');
+    const base = historyRef.current.present;
+    try {
+      const proceed = await resolveUnsaved(setCloseGuard, (reason) =>
+        notify(
+          `Não foi possível salvar o projeto (${reason}). O projeto continua aberto.`,
+        ),
+      );
+      if (!proceed) return;
+      if (historyRef.current.present !== base) {
+        notify(
+          'O projeto mudou durante a confirmação. Ele continua aberto; tente fechar novamente.',
+        );
+        return;
+      }
+      if (hasPendingFolderWrites() || fileOperations.current) {
+        notify(
+          'Gravação em andamento. Aguarde o resultado antes de fechar o projeto.',
+        );
+        return;
+      }
+      // A partir daqui nenhum autosave (recuperação ou pasta) pode começar.
+      closingProject.current = true;
+      setBusy('Fechando projeto…');
+      try {
+        await closeRecovery(base.id);
+      } catch (e) {
+        closingProject.current = false;
+        setBusy('');
+        setFolderEpoch((n) => n + 1);
+        notify(
+          `Não foi possível registrar o fechamento (${e instanceof Error ? e.message : 'falha na recuperação local'}). O projeto continua aberto; tente novamente ou salve uma cópia.`,
+        );
+        return;
+      }
+      // A persistência terminou. A montagem antiga continua inativa, mas uma
+      // navegação intencional (fallback sem ProjectSession) já pode prosseguir.
+      closeRequest.current = false;
+      if (onProjectClosed) onProjectClosed();
+      else window.location.reload();
+    } finally {
+      closeRequest.current = false;
+      setBusy('');
+    }
   };
   const recentContext = () =>
     captureRecentContext(
@@ -8014,7 +8203,9 @@ export default function App() {
       setRecentNotice(
         typeof result === 'string'
           ? `${result}. O projeto atual foi mantido; selecione o arquivo novamente ou remova este item.`
-          : 'Abertura cancelada; o projeto atual foi mantido.',
+          : noProjectRef.current
+            ? 'Abertura cancelada; nenhum projeto foi aberto.'
+            : 'Abertura cancelada; o projeto atual foi mantido.',
       );
   };
   const reopenFolder = async (
@@ -8310,6 +8501,10 @@ export default function App() {
     );
   };
   const handleShortcut = useEffectEvent((e: KeyboardEvent) => {
+    if (closingProject.current || (closeRequest.current && !closeGuard)) {
+      e.preventDefault();
+      return;
+    }
     if (e.defaultPrevented || textComposition(e) || shortcutsOpen) return;
     if (snapModesOpen) {
       if (
@@ -8340,7 +8535,7 @@ export default function App() {
         e.preventDefault();
       return;
     }
-    if (recentOpen) {
+    if (recentOpen || closeGuard) {
       if (
         (e.ctrlKey || e.metaKey) &&
         ['s', 'o', 'z', 'y'].includes(e.key.toLowerCase())
@@ -8382,6 +8577,18 @@ export default function App() {
         e.preventDefault();
         setModal(null);
       }
+      return;
+    }
+    if (noProjectRef.current) {
+      // Sem projeto: só comandos que não operam sobre um documento.
+      if (modalIsOpen() || typing) return;
+      const key = eventKey(e);
+      const command = key ? shortcutMaps[workScope].keys.get(key) : undefined;
+      if (!command) return;
+      e.preventDefault();
+      if (e.repeat) return;
+      if (startScreenCommands.has(command)) void action(command);
+      else notify('Abra ou crie um projeto para usar este comando.');
       return;
     }
     if (modalIsOpen()) return;
@@ -8542,7 +8749,7 @@ export default function App() {
   }, []);
   return (
     <div
-      className={`app-shell ${focus ? 'focus-mode' : ''}`}
+      className={`app-shell ${focus ? 'focus-mode' : ''} ${noProject ? 'no-project' : ''}`}
       onKeyDownCapture={(event) => {
         if (
           event.repeat &&
@@ -8737,6 +8944,7 @@ export default function App() {
           <button
             aria-label="Salvar projeto"
             title={commandTitle('save')}
+            disabled={noProject}
             onClick={(event) => {
               if (operationActive) event.currentTarget.blur();
               void action('save');
@@ -8748,7 +8956,7 @@ export default function App() {
           <button
             aria-label="Desfazer"
             title={commandTitle('undo')}
-            disabled={!canUndo}
+            disabled={noProject || !canUndo}
             onClick={() => action('undo')}
           >
             <Undo2 size={15} />
@@ -8756,13 +8964,17 @@ export default function App() {
           <button
             aria-label="Refazer"
             title={commandTitle('redo')}
-            disabled={!canRedo}
+            disabled={noProject || !canRedo}
             onClick={() => action('redo')}
           >
             <Redo2 size={15} />
           </button>
         </div>
-        <span className="window-project">{p.name}</span>
+        <span
+          className={`window-project ${noProject ? 'window-no-project' : ''}`}
+        >
+          {noProject ? 'Sem projeto aberto' : p.name}
+        </span>
         <div className="titlebar-right">
           <span className="openstruct-wordmark">OPENSTRUCT</span>
           <i />
@@ -8788,6 +9000,14 @@ export default function App() {
           </button>
         </div>
       </header>
+      {noProject && (
+        <StartScreen
+          recentCount={recents.length}
+          onNew={() => void action('new')}
+          onOpen={() => void action('open')}
+          onRecent={() => void action('recent')}
+        />
+      )}
       <Ribbon
         tab={ribbonTab}
         setTab={setTab}
@@ -11292,6 +11512,7 @@ export default function App() {
             if (
               fileOperations.current ||
               hasPendingFolderWrites() ||
+              closeRequest.current ||
               busy ||
               !ready ||
               draft.length ||
@@ -11340,11 +11561,20 @@ export default function App() {
               );
           }
           assertIdle();
-          await autosave(base);
+          // Sem projeto aberto não há recuperação a gravar: a marca de
+          // fechamento continua valendo após a atualização.
+          if (!noProjectRef.current) await autosave(base, recoverySession);
           assertIdle();
           return assertIdle;
         }}
       />
+      {closeGuard && (
+        <CloseProjectDialog
+          projectName={p.name}
+          folderLabel={projectFolderLabel(p)}
+          guard={closeGuard}
+        />
+      )}
       {recentOpen && (
         <RecentProjects
           entries={recents}

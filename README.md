@@ -22,6 +22,7 @@ Esta documentação acompanha a `master`. Recursos ainda não publicados estão 
 - [Menu Armaduras compacto](docs/MENU-ARMADURAS.md): comandos em duas linhas com ícones técnicos e parâmetros de criação em bloco próprio.
 - [Plugins](docs/plugins/USER-GUIDE.md): aba dedicada, inspeção de `.osplugin`, confirmação de registro desativado, catálogo configurável e inventário desktop. [Contrato e guia para desenvolvedores](docs/plugins/DEVELOPERS.md). Execução de terceiros e loja pública são etapas futuras.
 - [Projetos e documentos recentes](docs/PROJETOS-RECENTES.md): histórico local no menu Arquivo, sem autosave nem acesso permanente; reabrir pede nova seleção e respeita alterações não salvas.
+- [Fechar projeto](docs/FECHAR-PROJETO.md): volta à tela inicial sem encerrar o aplicativo, protege alterações não salvas e não reabre sozinho o projeto fechado ao reiniciar.
 - [Copiar propriedades gráficas](docs/COPIAR-PROPRIEDADES.md): fonte, atributos compatíveis, destinos e prévia, com ByLayer ou aparência resolvida e histórico atômico.
 - [Offset de entidades de máscaras](docs/MASCARAS-OFFSET.md): distância explícita ou por dois pontos, seleção e lado físico, prévia, repetições e contornos com remanescentes, sem gerar aço.
 - [Medir e cotar máscaras](docs/MASCARAS-MEDIR-COTAR.md): consulta com ΔX/ΔY e cotas estáticas com posição, unidades e diagnóstico de referência, pelos comandos de Desenho existentes.

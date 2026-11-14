@@ -13,6 +13,7 @@ import {
   FileText,
   FlipHorizontal2,
   FolderOpen,
+  FolderX,
   History,
   Grid2X2,
   Hand,
@@ -310,6 +311,7 @@ export default function Ribbon({
           item('open', 'Abrir projeto', FolderOpen),
           item('recent', 'Projetos recentes', History),
           item('save', 'Salvar projeto', Save),
+          item('close-project', 'Fechar projeto', FolderX),
         ],
       },
       {
