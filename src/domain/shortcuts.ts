@@ -31,6 +31,7 @@ export type Action =
   | 'new'
   | 'open'
   | 'recent'
+  | 'close-project'
   | 'check-updates'
   | 'plugins-store'
   | 'plugins-offline'
@@ -151,6 +152,16 @@ export const shortcutCatalog: Record<Action, Command> = {
   open: command('Abrir projeto', general, global([], ['Mod+O']), isolated),
   recent: command('Projetos recentes', general, {}, isolated),
   save: command('Salvar projeto', general, global([], ['Mod+S'])),
+  'close-project': command(
+    'Fechar projeto',
+    general,
+    {},
+    {
+      ...isolated,
+      description:
+        'Fecha o projeto atual e volta à tela inicial sem encerrar o aplicativo.',
+    },
+  ),
   'cad-settings': command('Configurações CAD', general),
   shortcuts: command('Atalhos de teclado', general),
   help: command('Guia de uso', general),
