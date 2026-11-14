@@ -132,18 +132,42 @@ export function setSheetSchedule(
     ),
   };
 }
-const number = (n: number, digits = 1) =>
+export const formatSheetScheduleNumber = (n: number, digits = 1) =>
   n.toLocaleString('pt-BR', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
     useGrouping: false,
   });
+export const formatSheetSchedulePercent = (percent: number) =>
+  percent.toLocaleString('pt-BR', {
+    maximumFractionDigits: 10,
+    useGrouping: false,
+  });
+
+export function sheetSteelMass(
+  summary: readonly Pick<SteelSummaryRow, 'steel' | 'weight'>[],
+  allowancePercent: number,
+) {
+  const factor = 1 + allowancePercent / 100;
+  const bySteel = new Map<string, number>();
+  for (const row of summary) {
+    bySteel.set(row.steel, (bySteel.get(row.steel) ?? 0) + row.weight * factor);
+  }
+  return {
+    allowancePercent,
+    factor,
+    bySteel,
+    totalKg: [...bySteel.values()].reduce((sum, weight) => sum + weight, 0),
+  };
+}
+
 /** Vector table at its upper-left insertion point, already in real paper mm. */
 export function sheetScheduleGeometry(
   p: Project,
   sheetId: string,
   input: SheetSteelSchedule,
 ) {
+  const number = formatSheetScheduleNumber;
   const options = sheetSteelScheduleSchema.parse(input),
     data = sheetScheduleData(p, sheetId),
     h = options.textHeight,
@@ -284,7 +308,11 @@ export function sheetScheduleGeometry(
   y -= h * 3.5;
   text('RESUMO DO AÇO', width / 2, y, 'center');
   y -= h * 2;
-  const factor = 1 + options.allowancePercent / 100;
+  const { factor, bySteel } = sheetSteelMass(
+    data.summary,
+    options.allowancePercent,
+  );
+  const percent = formatSheetSchedulePercent(options.allowancePercent);
   const summary = data.summary.map((s) => [
     s.steel,
     number(s.diameter),
@@ -296,22 +324,13 @@ export function sheetScheduleGeometry(
   );
   grid(
     summaryWidths,
-    [
-      'AÇO',
-      'DIAM',
-      'C.TOTAL',
-      `PESO + ${options.allowancePercent.toLocaleString('pt-BR', { maximumFractionDigits: 10, useGrouping: false })}%`,
-    ],
+    ['AÇO', 'DIAM', 'C.TOTAL', `PESO + ${percent}%`],
     ['', '(mm)', '(m)', '(kg)'],
     summary,
     true,
   );
-  const totals = new Map<string, number>();
-  data.summary.forEach((s) =>
-    totals.set(s.steel, (totals.get(s.steel) ?? 0) + s.weight * factor),
-  );
   y -= h * 1.5;
-  const totalRows = [...totals].map(([steel, weight]) => [
+  const totalRows = [...bySteel].map(([steel, weight]) => [
     steel,
     number(weight),
   ]);
@@ -320,11 +339,7 @@ export function sheetScheduleGeometry(
   );
   grid(totalWidths, ['PESO TOTAL', ''], ['(kg)', ''], totalRows, false);
   y -= h * 1.5;
-  text(
-    `Acréscimo de ${options.allowancePercent.toLocaleString('pt-BR', { maximumFractionDigits: 10, useGrouping: false })}% apenas no peso.`,
-    0,
-    y,
-  );
+  text(`Acréscimo de ${percent}% apenas no peso.`, 0, y);
   y -= h;
   // Telas soldadas: quadro à parte, só quando a prancha tem telas.
   const meshes = weldedMeshSchedule(p, {

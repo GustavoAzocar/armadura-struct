@@ -1,4 +1,8 @@
 import { sheetScheduleGeometry } from './sheetSchedule';
+import {
+  composeTemplateSeal,
+  type SheetSealContent,
+} from './sheetSealComposition';
 import { plotPrimitives } from './plotting';
 import {
   visibilityProjection,
@@ -10,7 +14,8 @@ import type { Point, Project, Sheet, SheetPlacement } from './types';
 import { bounds, rotate } from './geometry';
 import { detailEditorView } from './detailEditing';
 import { drawingPrimitives } from './drawingPrimitives';
-import { sheetSize, validateSheetLayout } from './paperFormat';
+import { scaleLabel, sheetSize, validateSheetLayout } from './paperFormat';
+export { scaleLabel } from './paperFormat';
 import {
   sheetTemplateDecorations,
   validateSheetTemplate,
@@ -19,7 +24,12 @@ import {
 export type PaperRect = { x: number; y: number; width: number; height: number };
 import type { PaperPrimitive } from './paperText';
 export type { PaperPrimitive } from './paperText';
-export type PaperIssue = { code: string; message: string; viewId?: string };
+export type PaperIssue = {
+  code: string;
+  message: string;
+  viewId?: string;
+  fieldId?: string;
+};
 export type PaperView = {
   placement: SheetPlacement;
   lines: PaperPrimitive[];
@@ -37,6 +47,7 @@ export type PaperComposition = {
   schedule?: ReturnType<typeof sheetScheduleGeometry>;
   views: PaperView[];
   issues: PaperIssue[];
+  notices: PaperIssue[];
 };
 export const paperInk = (layer: string) =>
   layer === 'MASCARA' ? '#8992a4' : layer === 'SELO' ? '#3448d1' : '#263044';
@@ -94,8 +105,6 @@ export function sealArea(sheet: Sheet): PaperRect | undefined {
     height: sheet.seal.height,
   };
 }
-export const scaleLabel = (n: number) =>
-  `1:${Number(n.toFixed(4)).toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false })}`;
 function sourceLines(project: Project, view: SheetPlacement, review = false) {
   const drawing = project.hierarchy.drawings.find(
     (d) => d.id === view.drawingId,
@@ -309,6 +318,7 @@ export function composeSheet(
   project: Project,
   sheetId: string,
   reviewHidden = false,
+  sealContent?: SheetSealContent,
 ): PaperComposition {
   const sheet = project.sheets.find((s) => s.id === sheetId);
   if (!sheet) throw new Error('Folha inexistente.');
@@ -318,9 +328,26 @@ export function composeSheet(
     useful = usefulArea(sheet),
     seal = sealArea(sheet),
     issues: PaperIssue[] = [];
-  const decorations: PaperPrimitive[] = sheet.paperTemplate
-    ? sheetTemplateDecorations(sheet.paperTemplate)
-    : [{ layer: 'MARGEM', points: rectPoints(useful), closed: true }];
+  const schedule = sheet.steelSchedule
+    ? sheetScheduleGeometry(project, sheetId, sheet.steelSchedule)
+    : undefined;
+  const template = sheet.paperTemplate;
+  const sealComposition =
+    template && sealContent?.templateId === template.id
+      ? composeTemplateSeal(
+          project,
+          sheet,
+          template,
+          sealContent,
+          schedule?.data,
+        )
+      : undefined;
+  const decorations: PaperPrimitive[] =
+    sealComposition?.decorations ??
+    (template
+      ? sheetTemplateDecorations(template)
+      : [{ layer: 'MARGEM', points: rectPoints(useful), closed: true }]);
+  if (sealComposition) issues.push(...sealComposition.issues);
   if (seal && !sheet.paperTemplate) {
     if (!contained(rectPoints(seal), useful))
       issues.push({
@@ -453,9 +480,6 @@ export function composeSheet(
         frame,
       };
     });
-  const schedule = sheet.steelSchedule
-    ? sheetScheduleGeometry(project, sheetId, sheet.steelSchedule)
-    : undefined;
   if (schedule) {
     issues.push(...sheetScheduleIssues(sheet, schedule));
     schedule.lines = plotPrimitives(project, schedule.lines, 'paper', 'paper');
@@ -479,16 +503,20 @@ export function composeSheet(
     views,
     schedule,
     issues,
+    notices: sealComposition?.notices ?? [],
   };
 }
 export function assertPaperExportable(
   project: Project,
   ids: string[],
   format: 'PDF' | 'DXF' = 'PDF',
+  sealContents?: ReadonlyMap<string, SheetSealContent>,
 ) {
   if (!ids.length)
     throw new Error('Crie uma folha para exportar a composição.');
-  const sheets = ids.map((id) => composeSheet(project, id));
+  const sheets = ids.map((id) =>
+    composeSheet(project, id, false, sealContents?.get(id)),
+  );
   const invalid = sheets.filter((s) => s.issues.length);
   if (invalid.length)
     throw new Error(

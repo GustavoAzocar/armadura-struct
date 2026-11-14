@@ -68,7 +68,7 @@ export type SheetTemplate = Omit<
   geometry: PaperPrimitive[];
 };
 
-function paperContains(box: PaperRect, p: Point) {
+export function paperContains(box: PaperRect, p: Point) {
   const tolerance = 1e-7;
   return (
     p.x >= box.x - tolerance &&
@@ -96,11 +96,15 @@ export function paperRectFromPoints(a: Point, b: Point): PaperRect {
   });
 }
 
-function fieldPrimitive(field: SheetTemplateField): PaperPrimitive {
+export function fieldPrimitive(
+  field: SheetTemplateField,
+  text = documentText(field.text),
+  origin = field.origin,
+): PaperPrimitive {
   return {
     layer: 'SELO',
-    points: [field.origin],
-    text: documentText(field.text),
+    points: [origin],
+    text,
     textHeight: field.height,
     textAlign: field.align,
     textRotation: field.rotation,
@@ -214,6 +218,7 @@ export function templateFromSheet(sheet: Sheet): SheetTemplate {
 
 export function sheetTemplateDecorations(
   template: SheetTemplate,
+  resolveField?: (field: SheetTemplateField) => PaperPrimitive[] | undefined,
 ): PaperPrimitive[] {
   const { useful, seal, fields, geometry } = template;
   const borders: PaperPrimitive[] = geometry.length
@@ -227,7 +232,10 @@ export function sheetTemplateDecorations(
   return [
     ...borders,
     ...geometry.map(templatePrimitive),
-    ...fields.filter((f) => f.text.length > 0).map(fieldPrimitive),
+    ...fields.flatMap(
+      (field) =>
+        resolveField?.(field) ?? (field.text ? [fieldPrimitive(field)] : []),
+    ),
   ];
 }
 

@@ -1,5 +1,8 @@
 import type { Sheet, SheetFormat } from './types';
 
+export const scaleLabel = (n: number) =>
+  `1:${Number(n.toFixed(4)).toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false })}`;
+
 export const paper: Record<Exclude<SheetFormat, 'custom'>, [number, number]> = {
   A0: [841, 1189],
   A1: [594, 841],

@@ -4,6 +4,7 @@ import {
   isValidDrawingDate,
 } from './drawingMetadata';
 import type { Project, Sheet } from './types';
+import { scaleLabel } from './paperFormat';
 import type {
   ProjectSealProperties,
   SealFieldSource,
@@ -231,7 +232,7 @@ function aggregateValue(
     const scales = [...new Set(placements.map((view) => view.scale))].sort(
       (a, b) => a - b,
     );
-    return value(scales.map((scale) => '1:' + scale).join(' / '));
+    return value([...new Set(scales.map(scaleLabel))].join(' / '));
   }
 
   const drawingIds = new Set(placements.map((view) => view.drawingId));
