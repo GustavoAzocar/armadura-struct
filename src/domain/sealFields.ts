@@ -4,12 +4,19 @@ import {
   isValidDrawingDate,
 } from './drawingMetadata';
 import type { Project, Sheet } from './types';
-
-export type SealFieldSource =
-  | { kind: 'project' }
-  | { kind: 'sheet' }
-  | { kind: 'drawing'; drawingId: string }
-  | { kind: 'aggregate' };
+import type {
+  ProjectSealProperties,
+  SealFieldSource,
+  SheetSealBinding,
+  SheetSealProperties,
+  SheetSealValue,
+  TemplateSealBinding,
+} from './sealFieldSchema';
+export type {
+  ProjectSealProperties,
+  SealFieldSource,
+  SheetSealProperties,
+} from './sealFieldSchema';
 
 type AutomaticSourceKind = Exclude<SealFieldSource['kind'], 'drawing'>;
 
@@ -53,20 +60,6 @@ export const sealFieldCatalog = {
 
 export type SealFieldId = keyof typeof sealFieldCatalog;
 type ProjectPropertyField = keyof typeof projectProperties;
-type ProjectProperty = (typeof projectProperties)[ProjectPropertyField];
-type InheritableProperty = ProjectProperty | 'author' | 'date';
-type SheetSealValue = { mode: 'inherit' } | { mode: 'local'; value: string };
-
-export type ProjectSealProperties = Partial<
-  Record<ProjectProperty | 'date', string>
->;
-export type SheetSealProperties = Partial<
-  Record<InheritableProperty, SheetSealValue>
-> & {
-  /** Local revision continues to use the existing sheet properties. */
-  revision?: 'inherit';
-};
-
 type SealFieldData = {
   project?: ProjectSealProperties;
   sheet?: SheetSealProperties;
@@ -78,6 +71,31 @@ export type SealFieldBinding = {
   /** Absence uses the automatic source. An empty string is an explicit override. */
   manualText?: string;
 };
+
+/** A portable field acquires its drawing and manual overrides only in a sheet. */
+export function sealBindingForField(
+  templateId: string,
+  field: { id: string; sealBinding?: TemplateSealBinding },
+  bindings: readonly SheetSealBinding[] = [],
+): SealFieldBinding | undefined {
+  const definition = field.sealBinding;
+  if (!definition) return undefined;
+
+  const local = bindings.find(
+    (binding) =>
+      binding.templateId === templateId && binding.fieldId === field.id,
+  );
+  const source =
+    local?.source ??
+    (definition.source ? { kind: definition.source } : undefined);
+  return {
+    field: definition.field,
+    ...(source === undefined ? {} : { source }),
+    ...(local?.manualText === undefined
+      ? {}
+      : { manualText: local.manualText }),
+  };
+}
 
 type SealFieldDiagnostic =
   | 'unknown-field'
