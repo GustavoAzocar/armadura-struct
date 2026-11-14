@@ -35,6 +35,8 @@ O mesmo frontend roda no navegador (`npm run dev`, E2E, `vite preview`) e no des
 
 ### Estado e histórico (`src/App.tsx`)
 
+- `main.tsx` monta `ProjectSession`: fechar explicitamente remonta o editor e descarta sessões, histórico e timers. `App` mantém o estado sem projeto com ações de documento indisponíveis; criar/abrir usa o fluxo existente e inicia histórico independente do marcador.
+
 - Um único `Project` imutável por documento. O estado é `History = { past, present, future }` em `useState`, espelhado em `historyRef` para callbacks.
 - `commit(change)` é o ponto único de escrita: recebe `Project -> Project`, valida (visibilidade, layers, `validateRebarChange`, isolamento de detalhamento via `assertDetailEdit`), completa a posse hierárquica (`completeOwnership`) e empilha no histórico (até 40 passos).
 - Operações compostas (lançar estribo, aplicar lote, inserir símbolo) usam **uma** chamada a `commit`, para um único Desfazer.
@@ -82,7 +84,7 @@ Pontos de projeto que atravessam vários arquivos:
 
 ### `src/lib`
 
-- `files.ts`: abrir/salvar, importação de máscara (`importMask` via worker), recuperação automática em IndexedDB (`autosave`/`restore`), preferências de documento.
+- `files.ts`: abrir/salvar, importação de máscara (`importMask` via worker), recuperação automática em IndexedDB (`autosave`/`restoreSession`/`closeRecovery`, com fila e época em `recoverySession.ts`), preferências de documento.
 - `projectFolder.ts`: pasta de projeto autorizada (`save-v1/projeto.armstruct.json`), com ponte Tauri ou File System Access, e operações sobre vínculos explícitos. `Project.linkedFiles` guarda caminhos relativos; a autorização de acesso permanece na sessão. Consultar vínculos é permitido na edição isolada, mas vincular/desvincular e o histórico respeitam o guard de `src/domain/detailEditing.ts`.
 - `exports.ts`: DXF, CSV, PDF vetorial; `scopedCsv.ts`: CSV por escopo.
 - `recentProjects.ts`, `shortcutPreferences.ts`, `appUpdates.ts`, `plugins.ts`: preferências locais e pontes (`invoke`) para os comandos nativos.
@@ -111,13 +113,13 @@ A CSP está duplicada em `tauri.conf.json` e no `preview` de `vite.config.ts`; m
 
 ## Persistência
 
-| Dado                           | Onde                                                                                          | Observação                                                              |
-| ------------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Projeto                        | `.armstruct.json` (download, arquivo ou `save-v1/projeto.armstruct.json` na pasta autorizada) | Um JSON `Project` com máscaras incorporadas                             |
-| Recuperação automática         | IndexedDB (`projects`, chave `current`)                                                       | Grava o mesmo JSON; volta por `decodeProject`                           |
-| Preferências de UI             | `localStorage`                                                                                | Câmera/abas por projeto, recentes (`armadurastruct.recent.v1`), atalhos |
-| Intercâmbio de um detalhamento | `.osdetail.json` (`openstruct.detail/23` ou `/24`)                                            | Exemplos em `docs/examples`                                             |
-| Plugins instalados             | Diretório de dados do Tauri                                                                   | Gerido pelo crate Rust                                                  |
+| Dado                           | Onde                                                                                          | Observação                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Projeto                        | `.armstruct.json` (download, arquivo ou `save-v1/projeto.armstruct.json` na pasta autorizada) | Um JSON `Project` com máscaras incorporadas                                                     |
+| Recuperação automática         | IndexedDB (`projects`, chaves `current` e `closed`)                                           | Grava o mesmo JSON; marca de fechamento impede reabertura automática; volta por `decodeProject` |
+| Preferências de UI             | `localStorage`                                                                                | Câmera/abas por projeto, recentes (`armadurastruct.recent.v1`), atalhos                         |
+| Intercâmbio de um detalhamento | `.osdetail.json` (`openstruct.detail/23` ou `/24`)                                            | Exemplos em `docs/examples`                                                                     |
+| Plugins instalados             | Diretório de dados do Tauri                                                                   | Gerido pelo crate Rust                                                                          |
 
 ## Build, testes e entrega
 

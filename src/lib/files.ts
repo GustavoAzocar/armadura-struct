@@ -3,6 +3,7 @@ import { isTauri } from '@tauri-apps/api/core';
 import type { Mask, Project } from '../domain/types';
 import { decodeProject } from '../domain/model';
 import type { CadState } from '../components/CadCanvas';
+import { createRecoverySession, type RecoveryBackend } from './recoverySession';
 
 export type DocumentWorkspace = {
   active: string;
@@ -280,39 +281,54 @@ function database(): Promise<IDBDatabase> {
     req.onerror = () => reject(req.error);
   });
 }
-let recoveryQueue: Promise<unknown> = Promise.resolve();
-export function autosave(p: Project) {
-  const task = recoveryQueue.catch(() => {}).then(() => writeRecovery(p));
-  recoveryQueue = task;
-  return task;
+const indexedDbRecovery: RecoveryBackend = {
+  async read(keys) {
+    const db = await database();
+    try {
+      return await new Promise((resolve, reject) => {
+        const store = db.transaction('projects').objectStore('projects');
+        const values: Record<string, string | undefined> = {};
+        let pending = keys.length;
+        if (!pending) resolve(values);
+        for (const key of keys) {
+          const req = store.get(key);
+          req.onsuccess = () => {
+            values[key] = req.result;
+            if (--pending === 0) resolve(values);
+          };
+          req.onerror = () => reject(req.error);
+        }
+      });
+    } finally {
+      db.close();
+    }
+  },
+  async write(change) {
+    const db = await database();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction('projects', 'readwrite');
+        const store = tx.objectStore('projects');
+        for (const [key, value] of Object.entries(change.put ?? {}))
+          store.put(value, key);
+        for (const key of change.remove ?? []) store.delete(key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } finally {
+      db.close();
+    }
+  },
+};
+const recovery = createRecoverySession(indexedDbRecovery);
+/** Sessão de recuperação atual; passe-a a `autosave` para não reativar um projeto fechado. */
+export const recoveryEpoch = () => recovery.epoch();
+export function autosave(p: Project, session?: number) {
+  if (session === undefined || session === recovery.epoch()) rememberFolder(p);
+  return recovery.save(JSON.stringify(p), session);
 }
-async function writeRecovery(p: Project) {
-  rememberFolder(p);
-  const db = await database();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction('projects', 'readwrite');
-      tx.objectStore('projects').put(JSON.stringify(p), 'current');
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
-  } finally {
-    db.close();
-  }
-}
-export async function restore(): Promise<string | undefined> {
-  const db = await database();
-  try {
-    return await new Promise((resolve, reject) => {
-      const req = db
-        .transaction('projects')
-        .objectStore('projects')
-        .get('current');
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  } finally {
-    db.close();
-  }
-}
+/** Grava a intenção de "nenhum projeto ativo" após as gravações pendentes. */
+export const closeRecovery = (projectId: string) => recovery.close(projectId);
+/** Estado da inicialização: projeto fechado explicitamente ou cópia recuperável. */
+export const restoreSession = () => recovery.start();
