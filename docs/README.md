@@ -67,6 +67,7 @@ A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON 
 - [AS-04 · Gerenciador de pranchas e abas](AS-04.md)
 - [AS-05 · Composição de folhas em escala](AS-05.md)
 - [Modelos reutilizáveis de margem e selo](MARGENS-E-SELOS.md)
+- [Prévia de dados do selo](PREVIA-DE-DADOS-DO-SELO.md)
 - [Quadro de aço vinculado à prancha](QUADRO-NA-PRANCHA.md)
 - [CSV da relação do aço por escopo](CSV-POR-ESCOPO.md)
 

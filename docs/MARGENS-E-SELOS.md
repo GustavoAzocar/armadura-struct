@@ -40,6 +40,6 @@ O formato `armadurastruct/38` guarda o catálogo e as revisões incorporadas jun
 
 Projetos sem modelos não recebem um catálogo arbitrário. Modelos em arquivos 35 ou 37 são recusados; a composição exige 38. O catálogo da biblioteca usa o contrato próprio `armadurastruct.sheet-template/1`. Pacotes de detalhamento continuam em `openstruct.detail/23` ou `/24`, conforme o conteúdo da armadura; não transportam modelos globais de prancha nem concedem acesso à pasta de origem.
 
-Os campos desta entrega são estáticos. Preenchimento automático, precedência de valores e edição em lote pertencem à AS-13. A interface bloqueia edição de modelos durante a edição isolada de um detalhamento, e a guarda central protege o catálogo global.
+O modelo aplicado guarda os textos estáticos. Para conferir o preenchimento automático em várias folhas, use a janela **Prévia de dados do selo**, que mantém as entradas durante a conferência. Durante a edição isolada de um detalhamento, o aplicativo protege o catálogo global e bloqueia a edição de modelos. [Fluxo da prévia](PREVIA-DE-DADOS-DO-SELO.md)
 
 Os E2E geram as capturas de aplicação, calibração e folha e os arquivos reais `sheet-template-output.pdf` e `sheet-template-output.dxf`, disponíveis no artefato `sheet-template-evidence` da CI. Os testes verificam milímetros de papel e preservação das escalas. O build e os testes automatizados desktop não substituem o ensaio manual no Linux/Windows nem a abertura do DXF em outro CAD.

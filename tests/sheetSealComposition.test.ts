@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { completeOwnership } from '../src/domain/hierarchy';
+import { setDetailRepetition } from '../src/domain/detailRepetition';
+import { groupFabrication } from '../src/domain/fabrication';
+import {
+  completeOwnership,
+  createHierarchyNode,
+  moveObjectsToDetail,
+} from '../src/domain/hierarchy';
 import {
   createScheduleLock,
   emptyProject,
@@ -223,6 +229,74 @@ describe('AS-13 · composição do selo em memória', () => {
         fieldId: field.id,
       }),
     );
+  });
+
+  it('pesa uma posição compartilhada por folha sem multiplicar a RA global pelas vistas', () => {
+    const base = completeOwnership({
+      ...emptyProject(),
+      bars: [
+        {
+          ...newBar('N1'),
+          id: 'barra-a',
+          diameter: 10,
+          quantity: 2,
+          multiplier: 3,
+        },
+        { ...newBar('N2'), id: 'barra-b', diameter: 10, quantity: 2 },
+      ],
+    });
+    const a = base.hierarchy.drawings[0];
+    const detail = createHierarchyNode(
+      base,
+      'detail',
+      'Detalhamento complementar',
+      base.hierarchy.elements[0].id,
+    );
+    const b = detail.project.hierarchy.drawings.find(
+      (drawing) => drawing.detailId === detail.id,
+    )!;
+    const moved = moveObjectsToDetail(detail.project, ['barra-b'], detail.id);
+    const shared = groupFabrication(moved, ['barra-a', 'barra-b'], 'barra-a');
+    const repeated = setDetailRepetition(shared, a.detailId, {
+      factor: 2,
+      elements: [],
+    });
+    const global = schedule(repeated);
+    const unitWeight = (Math.PI * 0.01 ** 2 * 7850) / 4;
+    expect(global).toHaveLength(1);
+    expect(global[0].quantity).toBe(2 * 3 * 2 + 2);
+    expect(global[0].weight).toBeCloseTo(14 * unitWeight, 10);
+
+    const firstId = repeated.sheets[0].id;
+    const second = createSheet(repeated, 'Folha complementar');
+    const aOnFirst = placeDrawing(second.project, firstId, a.id);
+    const aOnSecond = placeDrawing(aOnFirst.project, second.id, a.id);
+    const bOnSecond = placeDrawing(aOnSecond.project, second.id, b.id);
+    const duplicate = duplicatePlacement(bOnSecond.project, aOnFirst.id);
+    const project = duplicatePlacement(duplicate.project, aOnSecond.id).project;
+    const first = withSeal(project, firstId);
+    const both = withSeal(first.p, second.id);
+
+    const displayedWeight = (quantity: number) =>
+      (quantity * unitWeight).toLocaleString('pt-BR', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+        useGrouping: false,
+      });
+    for (const [sheetId, draft, quantity] of [
+      [firstId, first.draft('@PESO_ACO'), 12],
+      [second.id, both.draft('@PESO_ACO'), 14],
+    ] as const) {
+      const page = composeSheet(both.p, sheetId, false, draft);
+      expect(page.sealFields?.[0]?.text).toBe(
+        'Barras da folha: ' + displayedWeight(quantity) + ' kg (líquido, 0%)',
+      );
+      expect(page.issues.some((issue) => issue.fieldId === field.id)).toBe(
+        false,
+      );
+    }
+    expect(schedule(both.p)).toEqual(global);
+    expect(toCsv(both.p)).toBe(toCsv(repeated));
   });
 
   it('usa o peso físico da folha com ou sem quadro e mantém a barreira da RA', () => {

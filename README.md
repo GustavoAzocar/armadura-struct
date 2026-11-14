@@ -118,7 +118,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 3. Use **Barra livre**, **Estribo** ou **Seguir fôrma**. As coordenadas e propriedades geométricas são em **mm**.
 4. Selecione a posição para editar aço, bitola, quantidade e geometria. Ajuste o mandril e os ganchos para o projeto.
 5. Crie rebatimentos, faixas, cotas e chamadas. O quadro é atualizado a cada alteração, a menos que esteja bloqueado para conferência.
-6. Em **Pranchas**, crie folhas, coloque desenhos e abra suas vistas com duplo clique para editar. Duplicar folhas/vistas reutiliza os dados de aço.
+6. Em **Pranchas**, crie folhas, coloque desenhos e abra suas vistas com duplo clique para editar. Duplicar folhas/vistas reutiliza os dados de aço. Com um modelo aplicado, use a [prévia de dados do selo](docs/PREVIA-DE-DADOS-DO-SELO.md) para conferir vínculos e valores em várias folhas.
 7. Salve o projeto e exporte os desenhos e quantitativos.
 
 Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composição em escala](docs/AS-05.md), o [guia de modelos de margem e selo](docs/MARGENS-E-SELOS.md) e os [contratos da atualização seletiva](docs/AS-08.md).
