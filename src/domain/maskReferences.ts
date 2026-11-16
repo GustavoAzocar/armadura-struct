@@ -76,13 +76,21 @@ export function reconcileMaskReferences(p: Project): Project {
       const items = s.items.filter((i) =>
         p.masks.some((m) => m.id === i.maskId),
       );
+      const currentVisible = items.some(
+        (i) => i.maskId === s.currentMaskId && i.visible,
+      );
+      // Não reescreva registros de outros detalhes: a guarda de isolamento
+      // compara a fotografia persistida, inclusive após abrir o projeto.
+      if (
+        items.length === s.items.length &&
+        (!s.currentMaskId || currentVisible)
+      )
+        return [id, s];
       return [
         id,
         {
+          ...(currentVisible ? { currentMaskId: s.currentMaskId } : {}),
           items,
-          ...(items.some((i) => i.maskId === s.currentMaskId && i.visible)
-            ? { currentMaskId: s.currentMaskId }
-            : {}),
         },
       ];
     });

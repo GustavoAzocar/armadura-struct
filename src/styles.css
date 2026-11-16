@@ -5788,3 +5788,24 @@ button.hierarchy-drawing {
   flex: 1;
   min-width: 180px;
 }
+
+/* O painel flutuante ocupa o canvas, abaixo dos seletores e avisos. */
+.cad-command-surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.detail-mask-selector .mask-selector {
+  flex: 0 1 450px;
+}
+.detail-mask-selector input[type='search'] {
+  flex: 0 1 100px;
+  min-width: 75px;
+  max-width: 120px;
+}
+.detail-mask-selector select {
+  flex: 1 1 220px;
+}

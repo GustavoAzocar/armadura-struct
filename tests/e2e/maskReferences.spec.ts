@@ -270,6 +270,7 @@ test('alinha com escala e rotação, prévia cancelável, histórico, encaixe no
   p.maskReferences![a].items[0].origin = v(800, -300);
   p.maskReferences![b].items[0].origin = v(1200, -800);
   await load(page, p);
+  const loaded = await save(page);
   await page.getByRole('tab', { name: 'Máscaras', exact: true }).click();
   await command(page, 'MASCARAS');
   const d = page.getByRole('dialog', {
@@ -325,7 +326,7 @@ test('alinha com escala e rotação, prévia cancelável, histórico, encaixe no
   );
   expect(q.maskReferences![b]).toEqual(p.maskReferences![b]);
   expect(q.bars).toEqual(p.bars);
-  expect(q.masks).toEqual(p.masks);
+  expect(q.masks).toEqual(loaded.masks);
   await command(page, 'U');
   expect((await save(page)).maskReferences).toEqual(p.maskReferences);
   await command(page, 'REDO');

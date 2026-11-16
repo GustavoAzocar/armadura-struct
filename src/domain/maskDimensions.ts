@@ -86,7 +86,8 @@ export function captureMaskReference(
 ): MaskDimensionReference | undefined {
   const all = maskCadEntities(p, ctx).filter(
     (e) =>
-      e.mask.id === maskId &&
+      ((p.maskReferences?.[ctx.detailId] && !ctx.editingMaskId) ||
+        e.mask.id === maskId) &&
       layerState(
         p,
         ctx.key,
@@ -115,7 +116,7 @@ export function dimensionReferenceIssue(
   for (const r of a.maskReferences ?? []) {
     const owner = p.hierarchy.objectDetails[a.id];
     const m = p.maskReferences?.[owner]
-      ? referenceMask(p, owner, r.maskId)
+      ? referenceMask(p, owner, r.maskId, true)
       : p.masks.find((m) => m.id === r.maskId);
     const q =
       m &&

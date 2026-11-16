@@ -1,3 +1,8 @@
+import {
+  captureMaskReference,
+  dimensionReferenceIssue,
+} from '../src/domain/maskDimensions';
+import type { Annotation } from '../src/domain/types';
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
@@ -177,6 +182,28 @@ describe('máscaras independentes e referências por detalhamento (#213)', () =>
     ]);
     expect(followEdges(q, ctx).map((e) => e.maskId)).toEqual([mb]);
     expect(maskCadEntities(q, ctx).every((e) => !e.editable)).toBe(true);
+    const captured = captureMaskReference(q, ctx, ma, v(0, 0), 0);
+    expect(captured?.maskId).toBe(mb);
+    const annotation: Annotation = {
+      id: 'cota-compartilhada',
+      kind: 'dimension-aligned',
+      points: [v(0, 0), v(500, 0), v(250, 100)],
+      maskReferences: [captured!],
+      label: '50',
+      textHeight: 25,
+      color: '#abcdef',
+    };
+    const dimensioned = completeOwnership(
+      { ...q, annotations: [annotation] },
+      a,
+    );
+    expect(dimensionReferenceIssue(dimensioned, annotation)).toBeUndefined();
+    expect(
+      dimensionReferenceIssue(
+        setMaskReference(dimensioned, a, mb, 'hide'),
+        annotation,
+      ),
+    ).toBeUndefined();
     expect(
       referenceMasks(q, { ...ctx, scopeDetailId: 'outro-detalhamento' }),
     ).toEqual([]);
@@ -264,6 +291,11 @@ describe('máscaras independentes e referências por detalhamento (#213)', () =>
     expect(() =>
       assertDetailEdit(base, setMaskReference(base, a, id, 'hide'), a),
     ).not.toThrow();
+    const reopened = decodeProject(JSON.stringify(base));
+    const after = completeOwnership(setMaskReference(reopened, a, id, 'hide'));
+    expect(after.maskReferences![b]).toBe(reopened.maskReferences![b]);
+    expect(() => assertDetailEdit(reopened, after, a)).not.toThrow();
+    expect(canEditDetailChange(after, reopened, a)).toBe(true);
   });
   it('preserva arquivos antigos e recusa dados novos sob cabeçalho anterior e referências inválidas', () => {
     const {

@@ -26,6 +26,8 @@ A configuração pertence ao detalhamento ativo. A mesma máscara pode aparecer 
 
 Trocar/ligar/desligar referências passa pelo histórico, mas preserva os pontos confirmados e os critérios dos lançamentos: Barra livre, estribo, grampo, hélice, tela e Seguir fôrma. Apenas essa transação de apresentação atualiza a base imutável dos comandos em curso. As demais alterações do documento continuam sujeitas às guardas anteriores de cancelamento.
 
+A captura das referências de cotagem acompanha as máscaras visíveis, sem trocar o destino de edição CAD; ocultar uma referência não invalida uma cota estática cuja geometria permanece igual.
+
 O canvas reconstrói o índice de encaixes e limpa encaixes, guias, seleções transitórias e realces da cena anterior. Os candidatos de Seguir fôrma, contorno e modo Clique da tela consultam as referências visíveis e suas posições locais. Trechos e contornos já confirmados permanecem dados estáticos da prévia; candidatos da referência oculta deixam de ser oferecidos. Mostrar uma referência não libera sua geometria para edição na aba Armaduras.
 
 ## Selecionar origem e alinhar
