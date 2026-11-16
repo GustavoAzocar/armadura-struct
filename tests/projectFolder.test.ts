@@ -17,7 +17,13 @@ import {
   folderHint,
   PROJECT_FILE,
   attachProjectFolder,
+  projectFolderRecovery,
 } from '../src/lib/projectFolder';
+import {
+  listFolderRecoveryCopies,
+  makeRecoveryCopy,
+  saveFolderRecoveryCopy,
+} from '../src/lib/periodicRecovery';
 import {
   installDirectoryMock,
   type DirectoryMock,
@@ -42,6 +48,35 @@ async function folder() {
   return (await pickProjectFolder())!;
 }
 describe('contrato da pasta e snapshots', () => {
+  it('publica cópias na área separada e preserva inventário e projeto principal numa falha', async () => {
+    const original = project();
+    const root = await folder();
+    await createProjectInFolder(original, root);
+    const adapter = projectFolderRecovery(original)!;
+    const oldMain = fs.roots.A.files.get(PROJECT_FILE);
+    fs.roots.A.files.set('alheio.txt', 'preservar');
+    const copy = (revision: number) =>
+      makeRecoveryCopy(
+        { ...original, name: 'Revisão ' + revision },
+        revision,
+        'copia-' + revision,
+      );
+    await saveFolderRecoveryCopy(adapter, copy(1));
+    await saveFolderRecoveryCopy(adapter, copy(2));
+    await saveFolderRecoveryCopy(adapter, copy(3));
+    const oldArchive = fs.roots.A.files.get('recovery-v1/copies.json');
+    fs.error = 'QuotaExceededError';
+    await expect(saveFolderRecoveryCopy(adapter, copy(4))).rejects.toThrow();
+    fs.error = '';
+    expect(fs.roots.A.files.get('recovery-v1/copies.json')).toBe(oldArchive);
+    await saveFolderRecoveryCopy(adapter, copy(4));
+    expect(
+      (await listFolderRecoveryCopies(adapter)).map(({ id }) => id),
+    ).toEqual(['copia-4', 'copia-3', 'copia-2']);
+    expect(fs.roots.A.files.get(PROJECT_FILE)).toBe(oldMain);
+    expect(fs.roots.A.files.get('alheio.txt')).toBe('preservar');
+  });
+
   it('reautoriza uma sessão com edições pendentes apenas se o disco ainda corresponde ao baseline', async () => {
     const p = project(),
       root = await folder();

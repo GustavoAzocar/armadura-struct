@@ -37,6 +37,10 @@ export type ProjectFolder = {
   read: () => Promise<string | undefined>;
   write: (data: string, expected: string | undefined) => Promise<void>;
   files?: FolderFiles;
+  recovery?: {
+    read: () => Promise<string | undefined>;
+    write: (data: string, expected: string | undefined) => Promise<boolean>;
+  };
 };
 export const folderAvailable = () =>
   isTauri() ||
@@ -142,6 +146,18 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
             relative: projectFilePath(path),
           }),
       },
+      recovery: {
+        read: () =>
+          invoke<string | null>('project_folder_recovery_read', { token }).then(
+            (value) => value ?? undefined,
+          ),
+        write: (data, expected) =>
+          invoke('project_folder_recovery_write', {
+            token,
+            data,
+            expected: expected ?? null,
+          }),
+      },
     };
   }
   const picker = (
@@ -190,10 +206,74 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
         throw Error(`Diretório save-v1 ocupado por ${n}; escolha outra pasta.`);
     }
   };
+  const recoveryDirectory = async (create: boolean) => {
+    await checkAccess();
+    await checkNames(root, 'recovery-v1');
+    try {
+      return await root.getDirectoryHandle('recovery-v1', { create });
+    } catch (e) {
+      if (!missing(e)) throw e;
+    }
+  };
+  const readCopies = async () => {
+    const directory = await recoveryDirectory(false);
+    if (!directory) return;
+    await checkNames(directory, 'copies.json');
+    try {
+      const handle = await directory.getFileHandle('copies.json');
+      return await (await handle.getFile()).text();
+    } catch (e) {
+      if (!missing(e)) throw e;
+    }
+  };
   return {
     label: root.name,
     read,
     files: webFolderFiles(root, checkAccess),
+    recovery: {
+      read: readCopies,
+      write: async (data, expected) =>
+        await navigator.locks.request(
+          'armstruct-project-folder-write-v1',
+          async () => {
+            const primary = await read();
+            if (
+              primary === undefined ||
+              decodeProject(primary).id !== JSON.parse(data).projectId
+            )
+              throw Error('A pasta pertence a outro projeto.');
+            if ((await readCopies()) !== expected) return false;
+            const directory = await recoveryDirectory(true);
+            if (!directory) throw Error('Pasta de recuperação indisponível.');
+            const handle = await directory.getFileHandle('copies.json', {
+              create: true,
+            });
+            const writer = await handle.createWritable({ mode: 'exclusive' });
+            try {
+              if (
+                (await (await handle.getFile()).text()) !== (expected ?? '')
+              ) {
+                await writer.abort();
+                return false;
+              }
+              await writer.write(data);
+              await checkAccess();
+              if (
+                (await read()) !== primary ||
+                (await (await handle.getFile()).text()) !== (expected ?? '')
+              ) {
+                await writer.abort();
+                return false;
+              }
+              await writer.close();
+              return true;
+            } catch (e) {
+              await writer.abort().catch(() => {});
+              throw e;
+            }
+          },
+        ),
+    },
     write: async (data, expected) => {
       const work = async () => {
         const old = await read();
@@ -251,6 +331,8 @@ export function inheritProjectFolder(
 }
 export const projectFolderLabel = (p: Project) => bindings.get(p)?.folder.label;
 export const projectFolderFiles = (p: Project) => bindings.get(p)?.folder.files;
+export const projectFolderRecovery = (p: Project) =>
+  bindings.get(p)?.folder.recovery;
 export function attachProjectFolder(
   p: Project,
   folder: ProjectFolder,

@@ -9,6 +9,8 @@ use std::{
 };
 use tauri_plugin_dialog::DialogExt;
 
+mod periodic_recovery;
+
 const MAIN: &str = "projeto.armstruct.json";
 const PREVIOUS: &str = ".projeto.previous";
 #[derive(Default)]
@@ -163,6 +165,36 @@ fn folder_handle(state: &Folders, token: &str) -> Result<(PathBuf, Dir), String>
     with_folder(state, token, |path, root| {
         Ok((path.clone(), root.try_clone().map_err(msg)?))
     })
+}
+
+#[tauri::command]
+pub async fn project_folder_recovery_read(
+    w: tauri::WebviewWindow,
+    state: tauri::State<'_, Folders>,
+    token: String,
+) -> Result<Option<String>, String> {
+    guard(&w)?;
+    let (path, root) = folder_handle(&state, &token)?;
+    tauri::async_runtime::spawn_blocking(move || periodic_recovery::read(&path, &root))
+        .await
+        .map_err(msg)?
+}
+
+#[tauri::command]
+pub async fn project_folder_recovery_write(
+    w: tauri::WebviewWindow,
+    state: tauri::State<'_, Folders>,
+    token: String,
+    data: String,
+    expected: Option<String>,
+) -> Result<bool, String> {
+    guard(&w)?;
+    let (path, root) = folder_handle(&state, &token)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        periodic_recovery::write(&path, &root, &data, expected.as_deref())
+    })
+    .await
+    .map_err(msg)?
 }
 
 fn linked_file(root: &Dir, relative: &str) -> Result<PathBuf, String> {
@@ -355,11 +387,129 @@ mod tests {
     use super::*;
     const A: &str = r#"{"id":"a","schema":"armadurastruct/24"}"#;
     const B: &str = r#"{"id":"a","schema":"armadurastruct/24","name":"novo"}"#;
+    const COPIES_A: &str = r#"{"format":"armstruct-periodic-recovery/1","projectId":"a","copies":[]}"#;
+    const COPIES_B: &str = r#"{"format":"armstruct-periodic-recovery/1","projectId":"a","copies":[{"id":"c1","projectId":"a","name":"novo","startedAt":1,"copiedAt":2,"raw":"{\"id\":\"a\",\"schema\":\"armadurastruct/24\"}"}]}"#;
     fn temp() -> (PathBuf, Dir) {
         let p = std::env::temp_dir().join(format!("armstruct-test-{}-{}", std::process::id(), SEQ.fetch_add(1, Ordering::SeqCst)));
         std::fs::create_dir(&p).unwrap();
         let d = Dir::open_ambient_dir(&p, ambient_authority()).unwrap();
         (p, d)
+    }
+    #[test]
+    fn recuperacao_periodica_substitui_apenas_o_inventario_observado() {
+        let (p, d) = temp();
+        write(&d, A, None).unwrap();
+        write(&d, B, Some(A)).unwrap();
+        assert_eq!(periodic_recovery::read(&p, &d).unwrap(), None);
+        assert!(!d.try_exists("recovery-v1").unwrap());
+
+        assert!(periodic_recovery::write(&p, &d, COPIES_A, None).unwrap());
+        assert!(!periodic_recovery::write(&p, &d, COPIES_B, None).unwrap());
+        assert_eq!(
+            periodic_recovery::read(&p, &d).unwrap().as_deref(),
+            Some(COPIES_A)
+        );
+        assert!(periodic_recovery::write(&p, &d, COPIES_B, Some(COPIES_A)).unwrap());
+        assert_eq!(
+            periodic_recovery::read(&p, &d).unwrap().as_deref(),
+            Some(COPIES_B)
+        );
+
+        let save = directory(&d, false).unwrap().unwrap();
+        assert_eq!(save.read_to_string(MAIN).unwrap(), B);
+        assert_eq!(save.read_to_string(PREVIOUS).unwrap(), A);
+        drop(save);
+        drop(d);
+        std::fs::remove_dir_all(p).unwrap();
+    }
+
+    #[test]
+    fn recuperacao_periodica_recusa_raiz_sem_projeto_e_preserva_arquivos_alheios() {
+        let (p, d) = temp();
+        assert!(periodic_recovery::write(&p, &d, COPIES_A, None).is_err());
+        assert!(!d.try_exists("recovery-v1").unwrap());
+        write(&d, A, None).unwrap();
+        d.create_dir("recovery-v1").unwrap();
+        let recovery = d.open_dir("recovery-v1").unwrap();
+        recovery.write("copies.json", "arquivo alheio").unwrap();
+        assert!(periodic_recovery::read(&p, &d).is_err());
+        assert!(
+            periodic_recovery::write(&p, &d, COPIES_A, Some("arquivo alheio")).is_err()
+        );
+        assert_eq!(recovery.read_to_string("copies.json").unwrap(), "arquivo alheio");
+        recovery.remove_file("copies.json").unwrap();
+        let foreign = COPIES_B.replace("\"projectId\":\"a\"", "\"projectId\":\"b\"");
+        assert!(periodic_recovery::write(&p, &d, &foreign, None).is_err());
+        assert!(!recovery.try_exists("copies.json").unwrap());
+        drop(recovery);
+        drop(d);
+        std::fs::remove_dir_all(p).unwrap();
+    }
+
+    #[test]
+    fn recuperacao_periodica_abre_o_historico_se_o_principal_for_ilegivel() {
+        let (p, d) = temp();
+        write(&d, A, None).unwrap();
+        assert!(periodic_recovery::write(&p, &d, COPIES_B, None).unwrap());
+        let save = directory(&d, false).unwrap().unwrap();
+        save.write(MAIN, "projeto interrompido").unwrap();
+        assert_eq!(
+            periodic_recovery::read(&p, &d).unwrap().as_deref(),
+            Some(COPIES_B)
+        );
+        assert!(periodic_recovery::write(&p, &d, COPIES_A, Some(COPIES_B)).is_err());
+
+        save.write(MAIN, r#"{"id":"b","schema":"armadurastruct/24"}"#).unwrap();
+        assert!(periodic_recovery::read(&p, &d).is_err());
+        drop(save);
+        drop(d);
+        std::fs::remove_dir_all(p).unwrap();
+    }
+
+    #[test]
+    fn recuperacao_periodica_usa_trava_exclusiva_que_libera_ao_fechar() {
+        let (p, d) = temp();
+        write(&d, A, None).unwrap();
+        assert!(periodic_recovery::write(&p, &d, COPIES_A, None).unwrap());
+        let recovery = d.open_dir("recovery-v1").unwrap();
+        let mut options = OpenOptions::new();
+        options.read(true).write(true);
+        let lock = recovery.open_with(".copies.lock", &options).unwrap().into_std();
+        lock.try_lock().unwrap();
+        assert!(!periodic_recovery::write(&p, &d, COPIES_B, Some(COPIES_A)).unwrap());
+        drop(lock);
+
+        recovery.write(".copies-orfao.tmp", "incompleto").unwrap();
+        assert_eq!(
+            periodic_recovery::read(&p, &d).unwrap().as_deref(),
+            Some(COPIES_A)
+        );
+        assert!(periodic_recovery::write(&p, &d, COPIES_B, Some(COPIES_A)).unwrap());
+        assert_eq!(recovery.read_to_string(".copies-orfao.tmp").unwrap(), "incompleto");
+        drop(recovery);
+        drop(d);
+        std::fs::remove_dir_all(p).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recuperacao_periodica_recusa_links_e_raiz_movida() {
+        let (p, d) = temp();
+        let (outside, external) = temp();
+        write(&d, A, None).unwrap();
+        std::os::unix::fs::symlink(&outside, p.join("recovery-v1")).unwrap();
+        assert!(periodic_recovery::write(&p, &d, COPIES_A, None).is_err());
+        assert_eq!(external.entries().unwrap().count(), 0);
+
+        let moved = p.with_extension("movida");
+        std::fs::rename(&p, &moved).unwrap();
+        std::fs::create_dir(&p).unwrap();
+        assert!(periodic_recovery::read(&p, &d).is_err());
+        drop(d);
+        drop(external);
+        std::fs::remove_dir_all(p).unwrap();
+        std::fs::remove_dir_all(moved).unwrap();
+        std::fs::remove_dir_all(outside).unwrap();
     }
     #[test]
     fn linked_project_files_require_relative_regular_files() {

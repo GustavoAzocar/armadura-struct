@@ -42,6 +42,8 @@ pub fn run() {
             project_folder::project_folder_choose_file,
             project_folder::project_folder_read_file,
             project_folder::project_folder_reveal_file,
+            project_folder::project_folder_recovery_read,
+            project_folder::project_folder_recovery_write,
             updates::updates_snapshot,
             updates::updates_check,
             updates::updates_prepare,
