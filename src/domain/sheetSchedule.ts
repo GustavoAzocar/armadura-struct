@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { Point, Project, ScheduleRow, SheetSteelSchedule } from './types';
 import { schedule, scheduleChanged } from './model';
 import { detailTitle } from './detailQuantities';
@@ -8,23 +7,11 @@ import {
   wrapPaperText,
   type PaperPrimitive,
 } from './paperText';
-export const sheetSteelScheduleSchema = z
-  .object({
-    origin: z
-      .object({
-        x: z.number().finite().min(-1e9).max(1e9),
-        y: z.number().finite().min(-1e9).max(1e9),
-      })
-      .strict(),
-    textHeight: z.number().finite().min(1.8).max(5),
-    allowancePercent: z.number().finite().min(0).max(100),
-    /** Perda das telas soldadas (%), sobre a massa aplicada; ausente = 0. */
-    meshLossPercent: z.number().finite().min(0).max(100).optional(),
-  })
-  .strict();
-export const defaultSheetSchedule = (
-  origin: Point = { x: 20, y: 270 },
-): SheetSteelSchedule => ({ origin, textHeight: 2.5, allowancePercent: 10 });
+import { sheetSteelScheduleSchema } from './sheetScheduleSchema';
+export {
+  sheetSteelScheduleSchema,
+  defaultSheetSchedule,
+} from './sheetScheduleSchema';
 /** Sheet scope is physical IDs in placed details or displayed through representations.
  * Visibility, plotting and repeated view instances never multiply or remove steel. */
 export function sheetScheduleData(p: Project, sheetId: string) {

@@ -2,7 +2,7 @@
 
 ## Não lançado
 
-- Prévia de dados do selo (#142). O Gerenciador de pranchas permite conferir dados documentais, vínculos, origens e substituições manuais em várias folhas. O rascunho fica na janela. [Uso e limites](docs/PREVIA-DE-DADOS-DO-SELO.md).
+- Preenchimento automático dos selos (#142): cadastro documental, herança, vínculos por ID e substituições manuais persistidos no formato /39; aplicação em lote com histórico atômico; tela/PDF/DXF pela mesma composição; conversão explícita de textos CAD e modelos portáteis /2. [Uso e compatibilidade](docs/PREVIA-DE-DADOS-DO-SELO.md).
 
 - Arquivo → Projeto → Fechar projeto (#173): volta a uma tela inicial **Sem projeto aberto** sem encerrar o aplicativo, com Novo, Abrir e Recentes. Alterações não salvas pedem Salvar e fechar, Fechar sem salvar ou Cancelar, reaproveitando as proteções de Projetos recentes (download no navegador não conta como gravação). Reiniciar após fechar mantém a tela inicial; a recuperação do último trabalho continua quando o aplicativo é encerrado com projeto aberto. Nenhum arquivo, pasta, backup ou recente é apagado; formato do projeto inalterado. [Uso e limites](docs/FECHAR-PROJETO.md).
 

@@ -2,19 +2,17 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { drawingLabel } from '../domain/hierarchyPresentation';
 import { composeSheet } from '../domain/paper';
 import {
-  patchProjectSealProperties,
-  patchSheetSealProperties,
-} from '../domain/sealFieldEdits';
+  applySealBatch,
+  sameSealTemplate,
+  type SealBatchEdit,
+} from '../domain/sealProject';
+import type { SealPatch } from '../domain/sealFieldEdits';
 import {
-  sheetSealBindingsSchema,
   type ProjectSealProperties,
   type SealFieldSource,
-  type SheetSealBinding,
   type SheetSealProperties,
-  type TemplateSealBinding,
 } from '../domain/sealFieldSchema';
 import { sealFieldCatalog, type SealFieldId } from '../domain/sealFields';
-import type { SheetSealContent } from '../domain/sheetSealComposition';
 import type { Project } from '../domain/types';
 import SheetTemplatePreview from './SheetTemplatePreview';
 import './SheetTemplateDialog.css';
@@ -23,6 +21,7 @@ type Props = {
   project: Project;
   initialSheetId: string;
   onClose: () => void;
+  onCommit: (next: Project, expected: Project) => boolean;
 };
 
 const projectFields = {
@@ -44,7 +43,10 @@ type SheetProperty = keyof typeof sheetFields;
 type SheetMode = 'keep' | 'inherit' | 'local' | 'empty';
 type SheetEdit = { mode: SheetMode; value?: string };
 type FieldEdit = {
-  token: SealFieldId;
+  token: string;
+  definitionEdited?: boolean;
+  sourceEdited?: boolean;
+  manualEdited?: boolean;
   source?: SealFieldSource;
   manualText?: string;
 };
@@ -58,12 +60,12 @@ const sourceLabels = {
 } as const;
 
 function sheetProperties(edits: Partial<Record<SheetProperty, SheetEdit>>) {
-  const patch: SheetSealProperties = {};
+  const patch: SealPatch<SheetSealProperties> = {};
   for (const key of Object.keys(sheetFields) as SheetProperty[]) {
     const edit = edits[key];
     if (!edit || edit.mode === 'keep') continue;
     if (key === 'revision') {
-      if (edit.mode === 'inherit') patch.revision = 'inherit';
+      patch.revision = edit.mode === 'inherit' ? 'inherit' : null;
     } else {
       patch[key] =
         edit.mode === 'inherit'
@@ -74,26 +76,14 @@ function sheetProperties(edits: Partial<Record<SheetProperty, SheetEdit>>) {
             };
     }
   }
-  return patchSheetSealProperties(undefined, patch);
-}
-
-function compatibleTemplate(
-  template: Project['sheets'][number]['paperTemplate'],
-  active: Project['sheets'][number]['paperTemplate'],
-) {
-  return (
-    !!template &&
-    !!active &&
-    template.id === active.id &&
-    template.revision === active.revision &&
-    (template === active || JSON.stringify(template) === JSON.stringify(active))
-  );
+  return patch;
 }
 
 export default function SheetSealDraftDialog({
   project,
   initialSheetId,
   onClose,
+  onCommit,
 }: Props) {
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -101,7 +91,9 @@ export default function SheetSealDraftDialog({
   const [selected, setSelected] = useState(() => new Set([initialSheetId]));
   const [documentName, setDocumentName] = useState(project.name);
   const [author, setAuthor] = useState(project.author);
-  const [projectEdits, setProjectEdits] = useState<ProjectSealProperties>({});
+  const [projectEdits, setProjectEdits] = useState<ProjectSealProperties>({
+    ...project.sealProperties,
+  });
   const [sheetEdits, setSheetEdits] = useState<
     Partial<Record<SheetProperty, SheetEdit>>
   >({});
@@ -117,6 +109,36 @@ export default function SheetSealDraftDialog({
   )?.paperTemplate;
   const sheets = base.sheets.filter((sheet) => selected.has(sheet.id));
   const stale = base !== project;
+  const committed = useRef(false);
+  const activeSheet = base.sheets.find((sheet) => sheet.id === initialSheetId);
+  const bindingValues = (fieldId: string) =>
+    sheets
+      .filter((sheet) => sameSealTemplate(sheet.paperTemplate, template))
+      .map((sheet) =>
+        sheet.sealBindings?.find(
+          (binding) =>
+            binding.templateId === template?.id && binding.fieldId === fieldId,
+        ),
+      );
+  const fieldEdit = (
+    field: NonNullable<
+      Project['sheets'][number]['paperTemplate']
+    >['fields'][number],
+  ): FieldEdit => {
+    const local =
+      bindingValues(field.id)[0] ??
+      activeSheet?.sealBindings?.find(
+        (binding) =>
+          binding.templateId === template?.id && binding.fieldId === field.id,
+      );
+    return (
+      fieldEdits.get(field.id) ?? {
+        token: field.sealBinding?.field ?? '',
+        source: local?.source,
+        manualText: local?.manualText,
+      }
+    );
+  };
 
   useEffect(() => {
     const modal = dialog.current;
@@ -146,76 +168,63 @@ export default function SheetSealDraftDialog({
     invalidate();
   };
 
+  const buildDraft = () => {
+    const edits: SealBatchEdit = {
+      sheetIds: sheets.map((sheet) => sheet.id),
+      name: documentName,
+      author,
+      projectProperties: projectEdits,
+      sheetProperties: sheetProperties(sheetEdits),
+      revision:
+        sheetEdits.revision?.mode === 'local'
+          ? (sheetEdits.revision.value ?? '')
+          : sheetEdits.revision?.mode === 'empty'
+            ? ''
+            : undefined,
+      template,
+      fields: [...fieldEdits].map(([fieldId, edit]) => ({
+        fieldId,
+        ...(edit.definitionEdited
+          ? { definition: edit.token ? { field: edit.token } : null }
+          : {}),
+        ...(edit.sourceEdited ? { source: edit.source ?? null } : {}),
+        ...(edit.manualEdited ? { manualText: edit.manualText ?? null } : {}),
+      })),
+    };
+    return applySealBatch(base, edits);
+  };
+  const report = (failure: unknown) => {
+    setPreviews([]);
+    setError(
+      failure instanceof Error
+        ? failure.message
+        : 'Confira os dados informados.',
+    );
+  };
   const preview = () => {
     if (stale || !sheets.length) return;
     try {
-      if (!documentName.trim()) throw new Error('Informe o nome do projeto.');
-      const projectProperties = patchProjectSealProperties(
-        undefined,
-        projectEdits,
-      );
-      const properties = sheetProperties(sheetEdits);
-      const definitions = new Map<string, TemplateSealBinding>();
-      const bindings: SheetSealBinding[] = [];
-      for (const [fieldId, edit] of fieldEdits) {
-        if (edit.source?.kind === 'drawing' && !edit.source.drawingId)
-          throw new Error('Escolha um desenho para o campo vinculado.');
-        definitions.set(fieldId, { field: edit.token });
-        if (
-          template &&
-          (edit.source !== undefined || edit.manualText !== undefined)
-        )
-          bindings.push({
-            templateId: template.id,
-            fieldId,
-            source: edit.source,
-            manualText: edit.manualText,
-          });
-      }
-      const localBindings = sheetSealBindingsSchema.parse(bindings);
-      const revisionMode = sheetEdits.revision?.mode;
-      const previewProject = {
-        ...base,
-        name: documentName.trim(),
-        author,
-        sheets: base.sheets.map((sheet) =>
-          selected.has(sheet.id) &&
-          (revisionMode === 'local' || revisionMode === 'empty')
-            ? {
-                ...sheet,
-                properties: {
-                  ...sheet.properties,
-                  revision:
-                    revisionMode === 'local'
-                      ? (sheetEdits.revision?.value ?? '')
-                      : '',
-                },
-              }
-            : sheet,
-        ),
-      };
-      const pages = sheets.map((sheet) => {
-        const content: SheetSealContent | undefined =
-          template && compatibleTemplate(sheet.paperTemplate, template)
-            ? {
-                templateId: template.id,
-                definitions,
-                project: projectProperties,
-                sheet: properties,
-                bindings: localBindings,
-              }
-            : undefined;
-        return composeSheet(previewProject, sheet.id, false, content);
-      });
-      setPreviews(pages);
+      const draft = buildDraft();
+      setPreviews(sheets.map((sheet) => composeSheet(draft, sheet.id)));
       setError('');
     } catch (failure) {
-      setPreviews([]);
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : 'Confira os dados informados.',
-      );
+      report(failure);
+    }
+  };
+  const apply = () => {
+    if (stale || committed.current || !sheets.length) return;
+    try {
+      const draft = buildDraft();
+      committed.current = true;
+      if (!onCommit(draft, base)) {
+        committed.current = false;
+        throw Error(
+          'O projeto mudou ou está protegido. Reabra o preenchimento do selo.',
+        );
+      }
+      onClose();
+    } catch (failure) {
+      report(failure);
     }
   };
 
@@ -233,7 +242,7 @@ export default function SheetSealDraftDialog({
       }}
     >
       <header>
-        <h2 id={id}>Prévia de dados do selo</h2>
+        <h2 id={id}>Dados do selo</h2>
       </header>
       <div className="template-dialog-scroll">
         {stale ? (
@@ -335,8 +344,13 @@ export default function SheetSealDraftDialog({
                             <option value="empty">Vazio explícito</option>
                           </select>
                         </label>
-                        {key === 'revision' &&
-                          revisionValues.size > 1 &&
+                        {(key === 'revision'
+                          ? revisionValues.size > 1
+                          : new Set(
+                              sheets.map((sheet) =>
+                                JSON.stringify(sheet.sealProperties?.[key]),
+                              ),
+                            ).size > 1) &&
                           edit.mode === 'keep' && <small>Valores mistos</small>}
                         {edit.mode === 'local' && (
                           <input
@@ -366,24 +380,43 @@ export default function SheetSealDraftDialog({
                   </p>
                 )}
                 {template?.fields.map((field) => {
-                  const edit = fieldEdits.get(field.id);
+                  const edit = fieldEdit(field);
+                  const locals = bindingValues(field.id);
+                  const mixedSource =
+                    !edit.sourceEdited &&
+                    new Set(
+                      locals.map((binding) => JSON.stringify(binding?.source)),
+                    ).size > 1;
+                  const mixedManual =
+                    !edit.manualEdited &&
+                    new Set(locals.map((binding) => binding?.manualText)).size >
+                      1;
                   return (
                     <div className="template-fields" key={field.id}>
                       <label className="template-field">
                         {'Vínculo de ' + field.label}
                         <select
-                          value={edit?.token ?? ''}
+                          value={edit.token}
                           onChange={(event) => {
                             const token = event.target.value as
                               | SealFieldId
                               | '';
-                            updateField(
-                              field.id,
-                              token ? { token } : undefined,
-                            );
+                            updateField(field.id, {
+                              ...edit,
+                              token,
+                              definitionEdited: true,
+                              source: undefined,
+                              sourceEdited: true,
+                            });
                           }}
                         >
                           <option value="">Texto estático</option>
+                          {edit.token &&
+                            !Object.hasOwn(sealFieldCatalog, edit.token) && (
+                              <option value={edit.token}>
+                                {edit.token} (desconhecido)
+                              </option>
+                            )}
                           {Object.entries(sealFieldCatalog).map(
                             ([token, item]) => (
                               <option key={token} value={token}>
@@ -393,11 +426,15 @@ export default function SheetSealDraftDialog({
                           )}
                         </select>
                       </label>
-                      {edit && (
+                      {!!edit.token && (
                         <label className="template-field">
                           {'Origem de ' + field.label}
                           <select
-                            value={edit.source?.kind ?? ''}
+                            value={
+                              mixedSource
+                                ? '__mixed__'
+                                : (edit.source?.kind ?? '')
+                            }
                             onChange={(event) => {
                               const kind = event.target.value as
                                 | SealFieldSource['kind']
@@ -408,28 +445,38 @@ export default function SheetSealDraftDialog({
                                   : kind
                                     ? { kind }
                                     : undefined;
-                              updateField(field.id, { ...edit, source });
+                              updateField(field.id, {
+                                ...edit,
+                                source,
+                                sourceEdited: true,
+                              });
                             }}
                           >
                             <option value="">Configuração da folha</option>
-                            {sealFieldCatalog[edit.token].sources.map(
-                              (kind) => (
-                                <option
-                                  key={kind}
-                                  value={kind}
-                                  disabled={
-                                    kind === 'drawing' &&
-                                    !base.hierarchy.drawings.length
-                                  }
-                                >
-                                  {sourceLabels[kind]}
-                                </option>
-                              ),
+                            {mixedSource && (
+                              <option value="__mixed__" disabled>
+                                Valores mistos (manter)
+                              </option>
                             )}
+                            {(
+                              sealFieldCatalog[edit.token as SealFieldId]
+                                ?.sources ?? []
+                            ).map((kind) => (
+                              <option
+                                key={kind}
+                                value={kind}
+                                disabled={
+                                  kind === 'drawing' &&
+                                  !base.hierarchy.drawings.length
+                                }
+                              >
+                                {sourceLabels[kind]}
+                              </option>
+                            ))}
                           </select>
                         </label>
                       )}
-                      {edit?.source?.kind === 'drawing' && (
+                      {!!edit.token && edit.source?.kind === 'drawing' && (
                         <label className="template-field">
                           {'Desenho de ' + field.label}
                           <select
@@ -441,6 +488,7 @@ export default function SheetSealDraftDialog({
                                   kind: 'drawing',
                                   drawingId: event.target.value,
                                 },
+                                sourceEdited: true,
                               })
                             }
                           >
@@ -453,14 +501,18 @@ export default function SheetSealDraftDialog({
                           </select>
                         </label>
                       )}
-                      {edit && (
+                      {!!edit.token && (
                         <label className="template-check">
                           <input
                             type="checkbox"
                             checked={edit.manualText !== undefined}
+                            ref={(input) => {
+                              if (input) input.indeterminate = mixedManual;
+                            }}
                             onChange={(event) =>
                               updateField(field.id, {
                                 ...edit,
+                                manualEdited: true,
                                 manualText: event.target.checked
                                   ? ''
                                   : undefined,
@@ -470,7 +522,7 @@ export default function SheetSealDraftDialog({
                           {'Texto manual de ' + field.label}
                         </label>
                       )}
-                      {edit?.manualText !== undefined && (
+                      {!!edit.token && edit.manualText !== undefined && (
                         <label className="template-field">
                           {'Valor manual de ' + field.label}
                           <textarea
@@ -480,10 +532,17 @@ export default function SheetSealDraftDialog({
                               updateField(field.id, {
                                 ...edit,
                                 manualText: event.target.value,
+                                manualEdited: true,
                               })
                             }
                           />
                         </label>
+                      )}
+                      {(mixedSource || mixedManual) && (
+                        <small>
+                          Valores mistos. As origens e os textos manuais são
+                          preservados até editar cada opção.
+                        </small>
                       )}
                     </div>
                   );
@@ -508,7 +567,11 @@ export default function SheetSealDraftDialog({
                     lines={page.decorations}
                   />
                   {fieldEdits.size > 0 &&
-                    !compatibleTemplate(page.sheet.paperTemplate, template) && (
+                    !sameSealTemplate(
+                      base.sheets.find((s) => s.id === page.sheet.id)
+                        ?.paperTemplate,
+                      template,
+                    ) && (
                       <p className="template-hint">
                         Os vínculos se aplicam às folhas com o mesmo modelo e
                         revisão da folha ativa.
@@ -554,8 +617,8 @@ export default function SheetSealDraftDialog({
       </div>
       <footer>
         <p className="template-hint">
-          As alterações desta prévia ficam apenas nesta janela e são descartadas
-          ao fechar.
+          Confira os valores e escolha Aplicar dados do selo para gravar em uma
+          única etapa de Desfazer. Cancelar ou Esc descarta as alterações.
         </p>
         {error && (
           <p role="alert" className="template-alert">
@@ -573,6 +636,14 @@ export default function SheetSealDraftDialog({
             disabled={stale || !sheets.length}
           >
             Conferir prévia
+          </button>
+          <button
+            type="button"
+            className="primary"
+            onClick={apply}
+            disabled={stale || !sheets.length}
+          >
+            Aplicar dados do selo
           </button>
         </div>
       </footer>

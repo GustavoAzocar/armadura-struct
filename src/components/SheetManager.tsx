@@ -97,7 +97,7 @@ export default function SheetManager({
             disabled={locked}
             onClick={() => setSealDraftOpen(true)}
           >
-            Prévia de dados do selo
+            Dados do selo
           </button>
         )}
         {sealDraftOpen && sheet && !locked && (
@@ -110,6 +110,15 @@ export default function SheetManager({
               project={p}
               initialSheetId={sheet.id}
               onClose={() => setSealDraftOpen(false)}
+              onCommit={(next, expected) =>
+                onChange((current) => {
+                  if (current !== expected)
+                    throw Error(
+                      'O projeto mudou. Reabra o preenchimento do selo.',
+                    );
+                  return next;
+                })
+              }
             />
           </Suspense>
         )}
@@ -559,6 +568,11 @@ export default function SheetManager({
               >
                 {issue.message}
               </button>
+            ))}
+            {composition.notices.map((notice, i) => (
+              <p key={`notice-${i}`} className="field-help">
+                {notice.message}
+              </p>
             ))}
             <p className="field-help">
               Não há recorte silencioso: transbordamentos bloqueiam a

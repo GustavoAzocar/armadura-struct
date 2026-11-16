@@ -197,6 +197,8 @@ export type SheetSteelSchedule = {
   meshLossPercent?: number;
 };
 export type Sheet = {
+  sealProperties?: import('./sealFieldSchema').SheetSealProperties;
+  sealBindings?: import('./sealFieldSchema').SheetSealBinding[];
   /** Revision incorporated when a template is applied explicitly. */
   paperTemplate?: import('./sheetTemplates').SheetTemplate;
   /** One live schedule per sheet, independent of drawing scales and physical steel. */
@@ -336,7 +338,9 @@ export type Project = {
   schema:
     | 'armadurastruct/35'
     | 'armadurastruct/37'
-    | typeof import('./sheetTemplates').SHEET_TEMPLATE_PROJECT_SCHEMA;
+    | typeof import('./sheetTemplates').SHEET_TEMPLATE_PROJECT_SCHEMA
+    | typeof import('./sealFieldSchema').SEAL_PROJECT_SCHEMA;
+  sealProperties?: import('./sealFieldSchema').ProjectSealProperties;
   /** Relative file names for display. The session's folder binding grants access. */
   linkedFiles?: string[];
   sheetTemplates?: import('./sheetTemplates').SheetTemplate[];

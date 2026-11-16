@@ -1,6 +1,51 @@
 import { z } from 'zod';
 import { DRAWING_METADATA_LIMITS, isValidDrawingDate } from './drawingMetadata';
 
+export const SEAL_PROJECT_SCHEMA = 'armadurastruct/39' as const;
+
+/** Inspect raw data before a reader can discard fields from an older format. */
+export function hasSealData(input: unknown): boolean {
+  if (!input || typeof input !== 'object') return false;
+  const data = input as Record<string, unknown>;
+  const templateHasBindings = (template: unknown) => {
+    if (!template || typeof template !== 'object') return false;
+    const fields = (template as { fields?: unknown }).fields;
+    return (
+      Array.isArray(fields) &&
+      fields.some(
+        (field) =>
+          field &&
+          typeof field === 'object' &&
+          (field.sealBinding !== undefined ||
+            field.fontWeight !== undefined ||
+            field.fontStyle !== undefined),
+      )
+    );
+  };
+  return (
+    data.sealProperties !== undefined ||
+    (Array.isArray(data.sheetTemplates) &&
+      data.sheetTemplates.some(templateHasBindings)) ||
+    (Array.isArray(data.sheets) &&
+      data.sheets.some(
+        (sheet) =>
+          sheet &&
+          typeof sheet === 'object' &&
+          (sheet.sealProperties !== undefined ||
+            sheet.sealBindings !== undefined ||
+            templateHasBindings(sheet.paperTemplate)),
+      ))
+  );
+}
+
+export function withSealDataVersion<T extends { schema: string }>(
+  project: T,
+): T {
+  return hasSealData(project)
+    ? { ...project, schema: SEAL_PROJECT_SCHEMA }
+    : project;
+}
+
 const singleLine = (limit: number) =>
   z
     .string()

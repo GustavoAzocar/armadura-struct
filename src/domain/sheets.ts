@@ -90,6 +90,15 @@ export function duplicateSheet(
     customSize: { ...source.customSize },
     margins: { ...source.margins },
     seal: { ...source.seal },
+    sealProperties: source.sealProperties
+      ? structuredClone(source.sealProperties)
+      : undefined,
+    sealBindings: source.sealBindings
+      ? structuredClone(source.sealBindings)
+      : undefined,
+    paperTemplate: source.paperTemplate
+      ? structuredClone(source.paperTemplate)
+      : undefined,
     ...(source.steelSchedule
       ? {
           steelSchedule: {

@@ -6,10 +6,17 @@ import type { PaperRect } from './paper';
 import { sheetSize } from './paperFormat';
 import { validateTextContent } from './textStyle';
 import { uid, type Mask, type Point, type Project, type Sheet } from './types';
+import {
+  hasSealData,
+  SEAL_PROJECT_SCHEMA,
+  templateSealBindingSchema,
+  withSealDataVersion,
+} from './sealFieldSchema';
 
 // /38 combines legacy templates (/36), linked files/cotation (/35) and bands (/37).
 export const SHEET_TEMPLATE_PROJECT_SCHEMA = 'armadurastruct/38' as const;
 const catalogVersion = 'armadurastruct.sheet-template/1';
+const linkedCatalogVersion = 'armadurastruct.sheet-template/2';
 const num = z.number().finite();
 const id = z.string().min(1).max(200);
 const point = z.object({ x: num, y: num });
@@ -44,6 +51,9 @@ const fieldSchema = z.object({
   height: num.positive().max(5000),
   align,
   rotation: num,
+  sealBinding: templateSealBindingSchema.optional(),
+  fontWeight: z.enum(['normal', 'bold']).optional(),
+  fontStyle: z.enum(['normal', 'italic']).optional(),
 });
 export type SheetTemplateField = z.infer<typeof fieldSchema>;
 export const sheetTemplateSchema = z.object({
@@ -112,9 +122,50 @@ export function fieldPrimitive(
       family: { helvetica: 'sans', times: 'serif', courier: 'mono' }[
         field.font
       ],
-      weight: 'normal',
-      style: 'normal',
+      weight: field.fontWeight ?? 'normal',
+      style: field.fontStyle ?? 'normal',
     },
+  };
+}
+
+/** Convert only the explicitly selected imported text; other CAD text stays literal. */
+export function fieldFromImportedText(
+  template: SheetTemplate,
+  index: number,
+): SheetTemplate {
+  const item = template.geometry[index];
+  if (!item?.text || item.points.length !== 1)
+    throw Error('Selecione um texto importado.');
+  const corners = paperPrimitiveBounds(item);
+  const xs = corners.map((p) => p.x),
+    ys = corners.map((p) => p.y);
+  const field: SheetTemplateField = {
+    id: uid(),
+    label: `Texto importado ${index + 1}`,
+    text: documentText(item.text),
+    box: {
+      x: Math.min(...xs),
+      y: Math.min(...ys),
+      width: Math.max(...xs) - Math.min(...xs),
+      height: Math.max(...ys) - Math.min(...ys),
+    },
+    origin: { ...item.points[0] },
+    height: item.textHeight ?? 2.5,
+    rotation: item.textRotation ?? 0,
+    align: item.textAlign ?? 'left',
+    font:
+      item.textFont?.family === 'serif'
+        ? 'times'
+        : item.textFont?.family === 'mono'
+          ? 'courier'
+          : 'helvetica',
+    fontWeight: item.textFont?.weight ?? 'normal',
+    fontStyle: item.textFont?.style ?? 'normal',
+  };
+  return {
+    ...template,
+    geometry: template.geometry.filter((_, i) => i !== index),
+    fields: [...template.fields, field],
   };
 }
 
@@ -283,15 +334,18 @@ export function saveSheetTemplate(
     throw Error('O modelo atingiu o limite de revisões.');
   if (!existing && list.length >= 1000)
     throw Error('O catálogo admite até 1.000 modelos.');
-  return {
+  return withSealDataVersion({
     ...project,
-    schema: SHEET_TEMPLATE_PROJECT_SCHEMA,
+    schema:
+      project.schema === SEAL_PROJECT_SCHEMA
+        ? SEAL_PROJECT_SCHEMA
+        : SHEET_TEMPLATE_PROJECT_SCHEMA,
     sheetTemplates: existing
       ? list.map((t) =>
           t.id === next.id ? { ...next, revision: t.revision + 1 } : t,
         )
       : [...list, next],
-  };
+  });
 }
 
 export function duplicateSheetTemplate(
@@ -364,17 +418,25 @@ export function applySheetTemplate(
     };
   });
   return changed
-    ? {
+    ? withSealDataVersion({
         ...project,
-        schema: SHEET_TEMPLATE_PROJECT_SCHEMA,
+        schema:
+          project.schema === SEAL_PROJECT_SCHEMA
+            ? SEAL_PROJECT_SCHEMA
+            : SHEET_TEMPLATE_PROJECT_SCHEMA,
         sheets,
-      }
+      })
     : project;
 }
 
 export function encodeSheetTemplate(template: SheetTemplate) {
   return JSON.stringify(
-    { schema: catalogVersion, template: validateSheetTemplate(template) },
+    {
+      schema: hasSealData({ sheetTemplates: [template] })
+        ? linkedCatalogVersion
+        : catalogVersion,
+      template: validateSheetTemplate(template),
+    },
     null,
     2,
   );
@@ -382,9 +444,18 @@ export function encodeSheetTemplate(template: SheetTemplate) {
 
 export function decodeSheetTemplate(raw: string): SheetTemplate {
   const data: unknown = JSON.parse(raw);
+  if (
+    data &&
+    typeof data === 'object' &&
+    'schema' in data &&
+    data.schema === catalogVersion &&
+    'template' in data &&
+    hasSealData({ sheetTemplates: [data.template] })
+  )
+    throw Error('Vínculos de selo exigem modelo de prancha versão 2.');
   const payload = z
     .object({
-      schema: z.literal(catalogVersion),
+      schema: z.enum([catalogVersion, linkedCatalogVersion]),
       template: sheetTemplateSchema,
     })
     .parse(data);

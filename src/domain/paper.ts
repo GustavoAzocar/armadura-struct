@@ -1,6 +1,7 @@
 import { sheetScheduleGeometry } from './sheetSchedule';
 import {
   composeTemplateSeal,
+  savedSheetSealContent,
   type ComposedSealField,
   type SheetSealContent,
 } from './sheetSealComposition';
@@ -334,6 +335,7 @@ export function composeSheet(
     ? sheetScheduleGeometry(project, sheetId, sheet.steelSchedule)
     : undefined;
   const template = sheet.paperTemplate;
+  sealContent ??= savedSheetSealContent(project, sheet);
   const sealComposition =
     template && sealContent?.templateId === template.id
       ? composeTemplateSeal(

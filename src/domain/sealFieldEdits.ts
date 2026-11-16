@@ -8,7 +8,7 @@ import {
   type SheetSealProperties,
 } from './sealFieldSchema';
 
-type SealPatch<T> = { [K in keyof T]?: T[K] | null };
+export type SealPatch<T> = { [K in keyof T]?: T[K] | null };
 
 function patchProperties<T extends object>(
   current: T | undefined,

@@ -1,27 +1,38 @@
-# Prévia de dados do selo
+# Dados e vínculos do selo
 
-Em **Pranchas**, abra uma folha com um modelo de margem e selo aplicado e escolha **Prévia de dados do selo**. Use essa janela para conferir quais dados preenchem os campos antes de definir os vínculos do projeto.
+Em **Pranchas**, abra uma folha com um modelo aplicado e escolha **Dados do selo**. Os dados podem ser conferidos antes de gravar; **Aplicar dados do selo** confirma tudo em uma única etapa de Desfazer/Refazer. **Cancelar** ou Esc descarta as alterações.
 
-1. Marque as folhas que deseja conferir. A folha ativa vem selecionada.
-2. Informe os dados do projeto, como obra, código, endereço, cliente, responsável ou data documental. Use uma data civil, sem hora.
-3. Em **Dados das folhas selecionadas**, escolha quais propriedades editar. **Manter como está** preserva o valor de cada folha. **Herdar do projeto** usa o valor global. **Valor local** usa a entrada do lote, e **Vazio explícito** deixa o campo em branco. A prévia indica quando as folhas selecionadas têm revisões diferentes.
-4. Em **Vínculos do modelo aplicado**, escolha um campo do catálogo, como **Autor (@AUTOR)** ou **Endereço (@ENDERECO)**. Um texto que contém @ continua literal até você escolher um vínculo. Os vínculos do rascunho são aplicados na prévia das folhas com a mesma revisão e o mesmo modelo incorporado.
-5. Clique em **Conferir prévia**. Cada folha mostra o selo, a origem dos campos e os avisos de composição. Use **Cancelar** ou Esc para descartar o rascunho.
+## Preencher uma ou várias folhas
 
-## Como os valores são escolhidos
+1. Selecione as folhas. A folha ativa vem marcada.
+2. Informe nome, autor e os dados documentais do projeto: obra, código, endereço, cliente, responsável e data civil, sem horário.
+3. Nas propriedades das folhas, **Manter como está** preserva cada valor. **Herdar do projeto** acompanha o cadastro global; **Valor local** fixa um valor na folha; **Vazio explícito** mantém o campo vazio. Revisões locais não alteram as outras folhas. Valores mistos são indicados e não são gravados como texto.
+4. Associe explicitamente os campos do modelo ao catálogo, como **Autor (@AUTOR)** ou **Endereço (@ENDERECO)**. Textos com @ continuam literais até essa associação. Alterações de definição criam uma revisão na biblioteca e aplicam essa revisão apenas às folhas selecionadas com o mesmo modelo incorporado. Uma revisão mais recente na biblioteca precisa ser aplicada antes de editar os vínculos de uma revisão antiga.
+5. Use **Conferir prévia** para ver os textos, suas origens e os diagnósticos. Confirme com **Aplicar dados do selo**. Só as propriedades e as opções de vínculo editadas são alteradas; origens e textos manuais diferentes nas demais folhas são preservados.
 
-- **Texto manual** tem prioridade, inclusive quando vazio. Desmarque a opção para restaurar a origem automática.
-- **Configuração da folha** usa o padrão do campo e respeita herança e valores locais. Uma origem direta, como **Projeto** ou **Desenho escolhido**, consulta somente a origem indicada. Para vincular um desenho, selecione-o na lista.
-- **Agregado da folha** consulta os desenhos colocados na prancha. Por exemplo, autores diferentes aparecem juntos e a prévia sinaliza dados ausentes. Escalas repetidas aparecem uma vez.
-- **Revisão** usa a revisão da folha por padrão. **Número da folha** e **Total de folhas** seguem a ordem e a quantidade de folhas do projeto.
-- **Peso do aço (@PESO_ACO)** mostra o total de barras da folha em kg. Com quadro de aço, usa seu percentual de acréscimo. Sem quadro, mostra peso líquido com 0%. A prévia indica RA bloqueada e desatualizada, inclusive quando o peso do selo é manual.
+A tela da prancha e os exportadores PDF/DXF leem automaticamente os vínculos salvos, usando a mesma composição. Não é preciso reabrir a janela para atualizar o selo.
 
-## Exemplo
+## Origens e precedência
 
-Para conferir o endereço em duas pranchas, marque as duas folhas, informe Rua da Estação em **Dados do projeto** e associe um campo do modelo a **Endereço (@ENDERECO)**. Use **Manter como está** nas propriedades das folhas para conferir a origem padrão do endereço. Se quiser simular uma folha com endereço em branco, deixe só essa folha marcada e escolha **Vazio explícito** para o endereço.
+- Texto manual da instância prevalece, inclusive vazio. Desmarque **Texto manual** para restaurar a origem automática. Reaplicar o modelo preserva esses valores; eles ficam identificados como manuais na conferência.
+- **Configuração da folha** respeita valor local e herança. Uma origem direta **Projeto** ou **Desenho escolhido** consulta somente essa origem. Desenhos são identificados por ID; renomeá-los ou reordená-los não troca o vínculo. Uma origem removida gera diagnóstico e não reutiliza texto antigo.
+- **Agregado da folha** considera seus desenhos sem repetir valores por vista. Autores, datas e pavimentos divergentes são listados; dados parcialmente ausentes geram aviso. Escalas são únicas e ordenadas, como `1:25 / 1:50`.
+- Revisão usa a folha por padrão. Número e total seguem a ordem de `project.sheets`, mesmo na exportação de um subconjunto.
+- Datas documentais ficam vazias quando não informadas. Data atual, horário de exportação e fuso não são fontes automáticas.
+- **Peso do aço (@PESO_ACO)** identifica o total físico de **barras da folha**, em kg, líquido (0%) ou com o acréscimo do quadro. Telas soldadas continuam no resumo próprio, com sua perda específica. Vistas repetidas não duplicam o peso e nenhuma edição documental altera geometria ou quantitativos. RA bloqueada e desatualizada continua impedindo a exportação, inclusive com peso manual.
 
-## Limites desta versão
+## Modelos e textos CAD
 
-A prévia mostra a margem e o selo. Os avisos também podem indicar problemas de vistas ou do quadro da folha. Textos longos usam a fonte e a altura do modelo, com diagnóstico quando excedem a caixa.
+No editor **Modelos de margem e selo**, cada caixa pode receber um **Campo automático do selo**. As definições acompanham o modelo exportado; IDs de desenhos e textos manuais pertencem à instância da folha e não são enviados no arquivo de modelo.
 
-Os dados editados ficam na janela e são descartados ao fechar ou trocar de projeto. O arquivo nativo, o histórico e os comandos de exportação continuam usando os campos estáticos do modelo aplicado. A associação direta de textos CAD importados e a gravação dos vínculos estão em desenvolvimento. [Modelos de margem e selo](MARGENS-E-SELOS.md)
+Um texto CAD importado continua literal. Selecione-o em **Elemento gráfico** e use **Converter texto selecionado em campo do selo** para criar sua caixa, preservando origem, fonte, altura, alinhamento e rotação. Depois escolha o campo automático. Os outros textos importados continuam intactos. A caixa pode precisar ser ampliada para acomodar o valor resolvido.
+
+Textos longos são quebrados com a fonte efetiva, sem reduzir a altura. Falta de espaço, variável desconhecida, origem quebrada ou caracteres sem reprodução literal produzem diagnósticos; erros de composição bloqueiam PDF/DXF. A saída exportada é estática; os vínculos permanecem no projeto nativo.
+
+## Arquivos e compatibilidade
+
+Dados documentais e vínculos são salvos em **armadurastruct/39**. Arquivos antigos continuam abrindo, preservando textos estáticos e sem inventar valores. Dados novos em um arquivo marcado como formato antigo são recusados. Ao salvar em 39, mantenha uma cópia caso precise abrir o projeto em um aplicativo anterior.
+
+Modelos vinculados usam **armadurastruct.sheet-template/2**; modelos estáticos de versão 1 continuam aceitos. O pacote de detalhamento permanece em **openstruct.detail/23** ou **/24**: propriedades de folha e modelos globais não são incluídos. Duplicar folhas copia suas configurações sem compartilhar objetos mutáveis e mantém os desenhos de origem; transferir detalhamentos preserva o cadastro e os vínculos locais do destino.
+
+Salvar/reabrir, recuperação automática e histórico conservam os dados. Uma janela aberta sobre um projeto substituído ou alterado não pode gravar o rascunho no novo contexto.

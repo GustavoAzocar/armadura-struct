@@ -92,10 +92,10 @@ async function openSheet(page: Page, project: Project) {
 
 async function openDraft(page: Page) {
   await page
-    .getByRole('button', { name: 'Prévia de dados do selo', exact: true })
+    .getByRole('button', { name: 'Dados do selo', exact: true })
     .click();
   return page.getByRole('dialog', {
-    name: 'Prévia de dados do selo',
+    name: 'Dados do selo',
     exact: true,
   });
 }
@@ -281,4 +281,182 @@ test('fecha a prévia pendente quando o projeto é substituído', async ({
   await expect(address(reopened)).toHaveValue('');
   await reopened.getByRole('button', { name: 'Cancelar', exact: true }).click();
   expect((await saveProject(page)).id).toBe(next.id);
+});
+
+test('aplica um lote em uma etapa de histórico e preserva os vínculos ao salvar, reabrir e recuperar', async ({
+  page,
+}) => {
+  await openSheet(page, sample());
+  const before = await saveProject(page);
+  const dialog = await openDraft(page);
+  await dialog.getByRole('checkbox', { name: 'Cortes', exact: true }).check();
+  await address(dialog).fill('Rua Persistida');
+  await dialog
+    .getByRole('combobox', {
+      name: 'Vínculo de Responsável do desenho',
+      exact: true,
+    })
+    .selectOption('@AUTOR');
+  await dialog
+    .getByRole('combobox', { name: 'Vínculo de Local da obra', exact: true })
+    .selectOption('@ENDERECO');
+  await dialog
+    .getByRole('combobox', { name: 'Autor da folha', exact: true })
+    .selectOption('local');
+  await dialog
+    .getByLabel('Valor de Autor da folha', { exact: true })
+    .fill('Eng. do lote');
+  await dialog
+    .getByRole('combobox', { name: 'Revisão da folha', exact: true })
+    .selectOption('local');
+  await dialog
+    .getByLabel('Valor de Revisão da folha', { exact: true })
+    .fill('R9');
+  // Duas confirmações síncronas ainda devem produzir uma única gravação.
+  await dialog
+    .getByRole('button', { name: 'Aplicar dados do selo', exact: true })
+    .evaluate((button) => {
+      (button as HTMLButtonElement).click();
+      (button as HTMLButtonElement).click();
+    });
+  await expect(dialog).toBeHidden();
+  const after = await saveProject(page);
+  expect(after.schema).toBe('armadurastruct/39');
+  expect(after.sealProperties?.address).toBe('Rua Persistida');
+  for (const sheet of after.sheets.slice(0, 2)) {
+    expect(sheet.properties.revision).toBe('R9');
+    expect(sheet.sealProperties?.author).toEqual({
+      mode: 'local',
+      value: 'Eng. do lote',
+    });
+    expect(sheet.paperTemplate?.fields[0].sealBinding?.field).toBe('@AUTOR');
+  }
+  expect(after.sheets[2]).toEqual(before.sheets[2]);
+  await page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Desfazer', exact: true })
+    .click();
+  expect(await saveProject(page)).toEqual(before);
+  await page
+    .locator('.quick-tools')
+    .getByRole('button', { name: 'Refazer', exact: true })
+    .click();
+  expect(await saveProject(page)).toEqual(after);
+  await loadProject(page, after);
+  await openFirstSheet(page);
+  const reopened = await openDraft(page);
+  await expect(address(reopened)).toHaveValue('Rua Persistida');
+  await reopened
+    .getByRole('button', { name: 'Conferir prévia', exact: true })
+    .click();
+  await expect(
+    reopened
+      .getByRole('img', { name: 'Prévia do selo em Folha 1', exact: true })
+      .getByText('Eng. do lote', { exact: true }),
+  ).toBeVisible();
+  await reopened.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  for (const [button, encoding] of [
+    ['Exportar todas as folhas em PDF', 'latin1'],
+    ['Exportar folha ativa em DXF', 'utf8'],
+  ] as const) {
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: button, exact: true }).click();
+    const path = await (await download).path();
+    expect(path).toBeTruthy();
+    const content = await readFile(path!, encoding);
+    expect(content).toContain('Eng. do lote');
+    expect(content).toContain('Rua Persistida');
+  }
+  await expect
+    .poll(async () =>
+      page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve) => {
+          const r = indexedDB.open('armadurastruct', 1);
+          r.onsuccess = () => resolve(r.result);
+        });
+        const raw = await new Promise<string | undefined>((resolve) => {
+          const r = db
+            .transaction('projects')
+            .objectStore('projects')
+            .get('current');
+          r.onsuccess = () => resolve(r.result);
+        });
+        db.close();
+        return raw ? JSON.parse(raw).sealProperties?.address : undefined;
+      }),
+    )
+    .toBe('Rua Persistida');
+  await page.reload();
+  await expect(page.locator('.busy-overlay')).toHaveCount(0);
+  expect((await saveProject(page)).sealProperties?.address).toBe(
+    'Rua Persistida',
+  );
+});
+
+test('restaura o vínculo automático preservando a origem escolhida depois de reabrir', async ({
+  page,
+}) => {
+  await openSheet(page, sample());
+  let dialog = await openDraft(page);
+  await dialog
+    .getByRole('combobox', {
+      name: 'Vínculo de Responsável do desenho',
+      exact: true,
+    })
+    .selectOption('@AUTOR');
+  await dialog
+    .getByRole('combobox', {
+      name: 'Origem de Responsável do desenho',
+      exact: true,
+    })
+    .selectOption('drawing');
+  await dialog
+    .getByRole('combobox', {
+      name: 'Desenho de Responsável do desenho',
+      exact: true,
+    })
+    .selectOption('origem-documental');
+  await dialog
+    .getByRole('checkbox', {
+      name: 'Texto manual de Responsável do desenho',
+      exact: true,
+    })
+    .check();
+  await dialog
+    .getByLabel('Valor manual de Responsável do desenho', { exact: true })
+    .fill('Conferido manualmente');
+  await dialog
+    .getByRole('button', { name: 'Aplicar dados do selo', exact: true })
+    .click();
+  const saved = await saveProject(page);
+  await loadProject(page, saved);
+  await openFirstSheet(page);
+  dialog = await openDraft(page);
+  await expect(
+    dialog.getByLabel('Valor manual de Responsável do desenho', {
+      exact: true,
+    }),
+  ).toHaveValue('Conferido manualmente');
+  await dialog
+    .getByRole('checkbox', {
+      name: 'Texto manual de Responsável do desenho',
+      exact: true,
+    })
+    .uncheck();
+  await dialog
+    .getByRole('button', { name: 'Conferir prévia', exact: true })
+    .click();
+  await expect(
+    dialog
+      .getByRole('img', { name: 'Prévia do selo em Folha 1', exact: true })
+      .getByText('Eng. Camila', { exact: true }),
+  ).toBeVisible();
+  await dialog
+    .getByRole('button', { name: 'Aplicar dados do selo', exact: true })
+    .click();
+  const result = await saveProject(page);
+  expect(result.sheets[0].sealBindings?.[0]).toMatchObject({
+    source: { kind: 'drawing', drawingId: 'origem-documental' },
+  });
+  expect(result.sheets[0].sealBindings?.[0].manualText).toBeUndefined();
 });

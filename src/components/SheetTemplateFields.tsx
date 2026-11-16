@@ -7,6 +7,8 @@ import type {
 import { LINE_TYPES } from '../domain/layers';
 import { sheetSize } from '../domain/paperFormat';
 import { DEFAULT_TEXT_FONT } from '../domain/textStyle';
+import { fieldFromImportedText } from '../domain/sheetTemplates';
+import { sealFieldCatalog } from '../domain/sealFields';
 import {
   uid,
   type DrawingStyle,
@@ -371,6 +373,32 @@ function FieldEditor({
         value={field.box}
         onChange={(box) => change({ box })}
       />
+      <label className="template-field">
+        <span>Campo automático do selo</span>
+        <select
+          value={field.sealBinding?.field ?? ''}
+          onChange={(event) =>
+            change({
+              sealBinding: event.target.value
+                ? { field: event.target.value }
+                : undefined,
+            })
+          }
+        >
+          <option value="">Texto estático</option>
+          {field.sealBinding &&
+            !Object.hasOwn(sealFieldCatalog, field.sealBinding.field) && (
+              <option value={field.sealBinding.field}>
+                {field.sealBinding.field} (desconhecido)
+              </option>
+            )}
+          {Object.entries(sealFieldCatalog).map(([token, item]) => (
+            <option key={token} value={token}>
+              {item.label + ' (' + token + ')'}
+            </option>
+          ))}
+        </select>
+      </label>
       <PointFields
         label="Inserção do texto"
         value={field.origin}
@@ -507,6 +535,20 @@ export function TemplateArtworkFields({
                         }
                       />
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = fieldFromImportedText(
+                          template,
+                          shapeIndex,
+                        );
+                        setFieldId(next.fields.at(-1)!.id);
+                        setShapeIndex(0);
+                        setTemplate(next);
+                      }}
+                    >
+                      Converter texto selecionado em campo do selo
+                    </button>
                     <PointFields
                       label="Inserção do texto importado"
                       value={line.points[0]}

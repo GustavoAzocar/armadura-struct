@@ -24,7 +24,7 @@ import {
 } from './maskDimensions';
 import { cadDefaultsSchema, validateCadDefaults } from './cadDefaults';
 import { validateNativeMask } from './nativeMasks';
-import { sheetSteelScheduleSchema } from './sheetSchedule';
+import { sheetSteelScheduleSchema } from './sheetScheduleSchema';
 import { pruneVisibility } from './visibilitySchema';
 import { plotSettingsSchema } from './layerSchema';
 import { primitiveSchema } from './primitiveSchema';
@@ -74,11 +74,19 @@ import {
 } from './sheetTemplates';
 
 export const DISTRIBUTION_BAND_SCHEMA = 'armadurastruct/37' as const;
+import {
+  SEAL_PROJECT_SCHEMA,
+  hasSealData,
+  projectSealPropertiesSchema,
+  sheetSealBindingsSchema,
+  sheetSealPropertiesSchema,
+} from './sealFieldSchema';
 
 export function withDistributionBandVersion(project: Project): Project {
   if (
     project.schema === DISTRIBUTION_BAND_SCHEMA ||
     project.schema === SHEET_TEMPLATE_PROJECT_SCHEMA ||
+    project.schema === SEAL_PROJECT_SCHEMA ||
     !(
       hasDistributionBand(project.bars) ||
       hasDistributionBand(project.scheduleLock?.bars)
@@ -341,12 +349,15 @@ const schema = z.object({
   symbols: z.array(symbolDefinitionSchema).max(500).optional(),
   symbolInstances: z.array(symbolInstanceSchema).max(10000).optional(),
   sheetTemplates: z.array(sheetTemplateSchema).max(1000).optional(),
+  sealProperties: projectSealPropertiesSchema.optional(),
   sheets: z
     .array(
       z.object({
         ...named,
         steelSchedule: sheetSteelScheduleSchema.optional(),
         paperTemplate: sheetTemplateSchema.optional(),
+        sealProperties: sheetSealPropertiesSchema.optional(),
+        sealBindings: sheetSealBindingsSchema.optional(),
         format: z.enum(['A0', 'A1', 'A2', 'A3', 'A4', 'custom']),
         customSize: z
           .object({
@@ -605,8 +616,12 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
+  const sealVersion = input?.schema === SEAL_PROJECT_SCHEMA;
+  if (!sealVersion && hasSealData(input))
+    throw new Error('Dados e vínculos do selo exigem formato 39.');
   // /36 is the experimental template format; /38 composes it with /35 and /37.
   const templateVersion =
+    sealVersion ||
     input?.schema === 'armadurastruct/36' ||
     input?.schema === SHEET_TEMPLATE_PROJECT_SCHEMA;
   if (
@@ -620,6 +635,7 @@ export function decodeProject(
   )
     throw new Error('Modelos de prancha exigem formato 36 (legado) ou 38.');
   const bandVersion =
+    sealVersion ||
     input?.schema === DISTRIBUTION_BAND_SCHEMA ||
     input?.schema === SHEET_TEMPLATE_PROJECT_SCHEMA;
   if (
@@ -989,11 +1005,13 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: templateVersion
-      ? SHEET_TEMPLATE_PROJECT_SCHEMA
-      : bandVersion
-        ? DISTRIBUTION_BAND_SCHEMA
-        : 'armadurastruct/35',
+    schema: sealVersion
+      ? SEAL_PROJECT_SCHEMA
+      : templateVersion
+        ? SHEET_TEMPLATE_PROJECT_SCHEMA
+        : bandVersion
+          ? DISTRIBUTION_BAND_SCHEMA
+          : 'armadurastruct/35',
     ...(linkedFiles === undefined ? {} : { linkedFiles }),
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4

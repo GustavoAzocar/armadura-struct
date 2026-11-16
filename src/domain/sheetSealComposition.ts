@@ -36,6 +36,25 @@ export type SheetSealContent = {
   bindings?: readonly SheetSealBinding[];
 };
 
+export function savedSheetSealContent(
+  project: Project,
+  sheet: Sheet,
+): SheetSealContent | undefined {
+  const template = sheet.paperTemplate;
+  if (!template) return undefined;
+  return {
+    templateId: template.id,
+    definitions: new Map(
+      template.fields.flatMap((field) =>
+        field.sealBinding ? [[field.id, field.sealBinding] as const] : [],
+      ),
+    ),
+    project: project.sealProperties,
+    sheet: sheet.sealProperties,
+    bindings: sheet.sealBindings,
+  };
+}
+
 export type ComposedSealField = {
   id: string;
   label: string;
