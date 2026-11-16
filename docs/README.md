@@ -17,6 +17,7 @@ A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON 
 
 ## Armaduras
 
+- [Barra livre por comprimento na direção do cursor](BARRA-POR-COMPRIMENTO.md)
 - [Estribos pela seção e pela faixa](ESTRIBOS.md)
 - [Estribo helicoidal](ESTRIBO-HELICOIDAL.md)
 - [Grampos de pilar S/C](GRAMPOS-PILAR.md)

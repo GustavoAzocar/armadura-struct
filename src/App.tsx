@@ -1,5 +1,10 @@
 import DetailMaskSelector from './components/DetailMaskSelector';
 import {
+  BAR_LENGTH_PROMPT,
+  barPointAtLength,
+  isBarLengthInput,
+} from './domain/barLengthInput';
+import {
   detailMaskReferences,
   setMaskReference,
   alignMaskReference,
@@ -541,7 +546,7 @@ const prompts: Record<Tool, string> = {
   'section-arc': 'Indique início, ponto intermediário e fim do arco de corte.',
   select: 'Selecione uma armadura para editar. Shift adiciona à seleção.',
   pan: 'Arraste para navegar. A roda do mouse aproxima e afasta.',
-  bar: 'Indique os vértices da barra. Enter ou botão direito conclui.',
+  bar: BAR_LENGTH_PROMPT,
   stirrup: 'Indique dois cantos opostos do estribo. Dimensões medidas no eixo.',
   'beam-clamp':
     'Posicione o meio do lado fechado do grampo de viga. Enter confirma a prévia.',
@@ -8505,8 +8510,7 @@ export default function App({
     commandEntry.current = null;
     setCommand('');
   };
-  const operationActive = !!(
-    draft.length ||
+  const auxiliaryOperationActive = !!(
     nativeKind ||
     maskCalibration ||
     maskOrigin ||
@@ -8527,6 +8531,13 @@ export default function App({
     scheduleRequest ||
     symbolPick
   );
+  const operationActive = !!draft.length || auxiliaryOperationActive;
+  const barLengthActive =
+    tool === 'bar' &&
+    workScope === 'drawing' &&
+    page === 'drawing' &&
+    !activeSheet &&
+    !auxiliaryOperationActive;
   const operationScope = useRef<WorkScope | null>(null);
   useLayoutEffect(() => {
     if (operationActive) operationScope.current ??= workScope;
@@ -8704,6 +8715,16 @@ export default function App({
           })
         : { x: 0, y: 0 };
       onPoint(add(base, { x: Number(xy[2]), y: Number(xy[3]) }));
+      return;
+    }
+    if (barLengthActive && isBarLengthInput(value)) {
+      try {
+        onPoint(
+          barPointAtLength(draft.at(-1), cad.current?.getDraftPoint?.(), value),
+        );
+      } catch (error) {
+        notify((error as Error).message);
+      }
       return;
     }
     if (!value) {
@@ -8945,21 +8966,44 @@ export default function App({
       return;
     }
     const key = eventKey(e);
-    const command = key ? shortcutMaps[workScope].keys.get(key) : undefined;
-    if (!command) return;
+    const shortcutAction = key
+      ? shortcutMaps[workScope].keys.get(key)
+      : undefined;
+    if (!shortcutAction) {
+      if (
+        barLengthActive &&
+        /^[0-9.+-]$/.test(e.key) &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        cmdInput.current
+      ) {
+        e.preventDefault();
+        if (!e.repeat) {
+          if (!command)
+            commandEntry.current = {
+              context: commandContext,
+              scope: workScope,
+            };
+          setCommand(command + e.key);
+          cmdInput.current.focus();
+        }
+      }
+      return;
+    }
     e.preventDefault();
     if (e.repeat) return;
     if (
       operationActive &&
-      command !== 'delete' &&
-      !commandsDuringOperation.has(command)
+      shortcutAction !== 'delete' &&
+      !commandsDuringOperation.has(shortcutAction)
     ) {
       notify(
         'Conclua ou cancele o comando em andamento antes de iniciar outro atalho.',
       );
       return;
     }
-    runKeyboardCommand(command);
+    runKeyboardCommand(shortcutAction);
   });
   useEffect(() => {
     const handler = (event: KeyboardEvent) => handleShortcut(event);
@@ -10646,13 +10690,17 @@ export default function App({
                     shared={transformPreview.shared}
                   />
                 )}
-                <div className="command-panel">
+                <div
+                  className={`command-panel ${barLengthActive ? 'bar-length-entry' : ''}`}
+                >
                   <div className="command-history">
                     <ChevronRight size={12} />
-                    <span>
-                      {draft.length
-                        ? `${draft.length} ponto(s) · ${prompts[tool]}`
-                        : message}
+                    <span id="command-help">
+                      {barLengthActive
+                        ? `${draft.length ? `${draft.length} ponto(s) · ` : ''}${BAR_LENGTH_PROMPT}`
+                        : draft.length
+                          ? `${draft.length} ponto(s) · ${prompts[tool]}`
+                          : message}
                     </span>
                   </div>
                   <form onSubmit={(e) => e.preventDefault()}>
@@ -10677,7 +10725,7 @@ export default function App({
                       ref={cmdInput}
                       id="command-input"
                       aria-label="Comando CAD"
-                      aria-describedby="command-scope"
+                      aria-describedby="command-scope command-help"
                       value={command}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -10695,7 +10743,11 @@ export default function App({
                         e.preventDefault();
                         if (!e.repeat) runCommand(command);
                       }}
-                      placeholder="Digite um comando ou coordenadas X,Y"
+                      placeholder={
+                        barLengthActive
+                          ? 'Comprimento (mm) ou coordenadas X,Y'
+                          : 'Digite um comando ou coordenadas X,Y'
+                      }
                       autoComplete="off"
                     />
                     <kbd>↵</kbd>

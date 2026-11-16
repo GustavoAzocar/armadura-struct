@@ -150,6 +150,7 @@ export type CadHandle = {
   fit: () => void;
   zoom: (factor: number) => void;
   getState: () => CadState;
+  getDraftPoint?: () => Point | undefined;
 };
 type Props = {
   maskSidePick?: boolean;
@@ -358,6 +359,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     cameraFrame.flush();
   };
   const [cursor, setCursor] = useState<Point | null>(null);
+  const draftPoint = useRef<Point | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (tool === 'bar') {
+      draftPoint.current = undefined;
+      setCursor(null);
+    }
+  }, [tool, props.layerContext]);
   const [snapPoint, setSnapPoint] = useState<SnapCandidate | null>(null);
   const [snapLimited, setSnapLimited] = useState(false);
   const [drag, setDrag] = useState<Pan | null>(null);
@@ -710,6 +718,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   useImperativeHandle(ref, () => ({
     fit,
     getState: () => ({ view: camera.current, overview: overview.current }),
+    getDraftPoint: () => {
+      // O Enter pode chegar antes do próximo frame de apresentação.
+      feedbackFrame.flush();
+      return tool === 'bar' ? draftPoint.current : undefined;
+    },
     zoom: (f) =>
       commitView((v) => ({
         ...v,
@@ -932,6 +945,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const feedbackFrame = useFramePublisher<PointerFeedback>((feedback) => {
     if (feedback.started !== undefined)
       recordCadWork('pointer.feedback', performance.now() - feedback.started);
+    draftPoint.current = feedback.point;
     setCursor(feedback.point);
     publishSnap(feedback.snap);
     setMarquee(marqueeInput.current);
@@ -1339,7 +1353,13 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           }
         }
       if (hit) props.onPrimitive(hit, polylineId);
-    } else onPoint(p);
+    } else {
+      if (tool === 'bar') {
+        draftPoint.current = p;
+        setCursor(p);
+      }
+      onPoint(p);
+    }
   };
   const move = (e: React.PointerEvent<SVGSVGElement>) =>
     measureCadWork('pointer.handler', () => {

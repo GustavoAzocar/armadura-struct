@@ -872,6 +872,25 @@ svg {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.bar-length-entry .command-history span {
+  white-space: normal;
+  text-overflow: clip;
+}
+@media (max-width: 800px) {
+  .command-panel.bar-length-entry {
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+  }
+  .bar-length-entry .command-history {
+    display: flex;
+    flex: 1 0 100%;
+    order: 0;
+    height: auto;
+    padding: 4px 8px;
+    border-left: 0;
+  }
+}
 .command-panel form {
   height: 35px;
   display: flex;

@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Barra livre por comprimento na direção do cursor (#211): digitação em mm pela linha de comando, alternando com cliques e coordenadas na mesma barra; direção efetiva da prévia com ORTO, distância sem novo encaixe, avisos que conservam o rascunho e histórico da barra inteira. Formato e cálculos físicos existentes preservados. [Uso e verificação](docs/BARRA-POR-COMPRIMENTO.md).
+
 - Máscaras independentes e referências por detalhamento (#213): criar/importar sem proprietário; editar no CAD existente; trocar A → B → A, ligar/desligar e manter referências adicionais durante lançamentos; selecionar origem com encaixes, prévia, zero/destino opcional e alinhamento local desfazível. Formato nativo `/41` reservado para esta entrega, sem reutilizar o `/40` da PR #215; leitores anteriores recusam os novos dados. Mantém impressão, arquivos CAD originais e quantitativos. [Uso, compatibilidade e limites de validação](docs/MASCARAS-INDEPENDENTES.md).
 
 - Preenchimento automático dos selos (#142): cadastro documental, herança, vínculos por ID e substituições manuais persistidos no formato /39; aplicação em lote com histórico atômico; tela/PDF/DXF pela mesma composição; conversão explícita de textos CAD e modelos portáteis /2. [Uso e compatibilidade](docs/PREVIA-DE-DADOS-DO-SELO.md).
