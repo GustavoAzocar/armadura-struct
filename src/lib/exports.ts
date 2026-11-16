@@ -1,3 +1,4 @@
+import type { SheetSealContent } from '../domain/sheetSealComposition';
 import { plotSettingsSchema } from '../domain/layerSchema';
 import {
   plotPrimitives,
@@ -122,6 +123,7 @@ export { drawingPrimitives as exportLines } from '../domain/drawingPrimitives';
 import type { Point, Project, TextFont } from '../domain/types';
 import {
   DEFAULT_TEXT_FONT,
+  hasReservedDxfText,
   resolveTextFont,
   type ResolvedTextFont,
 } from '../domain/textStyle';
@@ -528,6 +530,7 @@ const sheetDxfGap = 20;
 export function toSheetDxf(
   p: Project,
   sheetIds = p.sheets.map((sheet) => sheet.id),
+  sealContents?: ReadonlyMap<string, SheetSealContent>,
 ): string {
   assertExportable(p);
   const selected = new Set(sheetIds);
@@ -538,6 +541,7 @@ export function toSheetDxf(
     p,
     ordered.map((sheet) => sheet.id),
     'DXF',
+    sealContents,
   );
   const layers: DrawingLayer[] = [];
   const lines: Primitive[] = [];
@@ -578,7 +582,7 @@ export function toSheetDxf(
       );
       // TEXT is a single line. Reject reserved formatting codes rather than
       // allowing a CAD reader to reinterpret literal document text.
-      if (item.text && /[\x00-\x1f\x7f]|%%|\\U\+[\dA-F]{4}/iu.test(item.text))
+      if (item.text && hasReservedDxfText(item.text))
         throw new Error(
           `${page.sheet.name} · ${item.layer}: texto não suportado no DXF de folhas. Use texto em uma linha e o símbolo Ø para diâmetro.`,
         );
@@ -998,9 +1002,10 @@ export function helixScheduleNotes(p: Project): string[] {
 export function toSheetPdf(
   p: Project,
   sheetIds = p.sheets.map((s) => s.id),
+  sealContents?: ReadonlyMap<string, SheetSealContent>,
 ): Uint8Array {
   assertExportable(p);
-  const compositions = assertPaperExportable(p, sheetIds);
+  const compositions = assertPaperExportable(p, sheetIds, 'PDF', sealContents);
   const first = compositions[0];
   const doc = new jsPDF({
     unit: 'mm',

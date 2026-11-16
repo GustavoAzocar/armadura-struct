@@ -48,6 +48,11 @@ export function unsupportedTextChars(text: string): string[] {
   }
   return [...out];
 }
+/** DXF TEXT treats these characters as controls or markup. */
+export function hasReservedDxfText(text: string): boolean {
+  return /[\x00-\x1f\x7f]|%%|\\U\+[\dA-F]{4}/iu.test(text);
+}
+
 export function validateTextFont(font: unknown): TextFont {
   const f = font as Partial<TextFont> | undefined;
   if (

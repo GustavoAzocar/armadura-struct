@@ -405,7 +405,23 @@ test('fechar logo após editar não deixa autosave atrasado reativar o projeto',
 }) => {
   await openFile(page, 'Obra A', 'id-a');
   await page.waitForTimeout(900);
-  const before = (await recoveryKeys(page)).current;
+  await page.evaluate(() => {
+    const original = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (value, key) {
+      if (key === 'closed') {
+        // A edição pode ter sido recuperada antes do clique, em uma máquina
+        // lenta. Compare com a fotografia na mesma transação do fechamento,
+        // depois das gravações anteriores da fila, e não com o projeto vazio.
+        const snapshot = this.get('current');
+        snapshot.onsuccess = () => {
+          (window as unknown as { recoveryAtClose?: string }).recoveryAtClose =
+            snapshot.result;
+        };
+        IDBObjectStore.prototype.put = original;
+      }
+      return original.call(this, value, key);
+    };
+  });
   await makeDirty(page);
   await closeFromRibbon(page);
   await closeDialog(page)
@@ -415,8 +431,12 @@ test('fechar logo após editar não deixa autosave atrasado reativar o projeto',
   await page.waitForTimeout(1200);
   const after = await recoveryKeys(page);
   expect(after.closed).toBeDefined();
-  // A alteração descartada não foi gravada depois do fechamento.
-  expect(JSON.parse(after.current!).bars).toEqual(JSON.parse(before!).bars);
+  const atClose = await page.evaluate(
+    () => (window as unknown as { recoveryAtClose?: string }).recoveryAtClose,
+  );
+  expect(atClose).toBeDefined();
+  // Nenhuma alteração pode ser gravada depois da marca de fechamento.
+  expect(after.current).toBe(atClose);
   await page.reload();
   await expect(page.locator('.busy-overlay')).toHaveCount(0);
   await expectStartScreen(page);
