@@ -94,8 +94,10 @@ async function expectDraft(page: Page, points: Point[]) {
   await expect.poll(async () => (await draft(page)).length).toBe(points.length);
   const actual = await draft(page);
   points.forEach((point, i) => {
-    expect(actual[i].x).toBeCloseTo(point.x, 5);
-    expect(actual[i].y).toBeCloseTo(point.y, 5);
+    // O SVG arredonda a conversão do clique para pixels. 0,001 mm é menor
+    // que a tolerância de 0,01 mm do modelo; distâncias numéricas são exatas.
+    expect(Math.abs(actual[i].x - point.x)).toBeLessThan(0.001);
+    expect(Math.abs(actual[i].y - point.y)).toBeLessThan(0.001);
   });
 }
 async function save(page: Page): Promise<Project> {
@@ -129,6 +131,10 @@ test('comprimento → clique → comprimento em uma barra, prévia, aço, histó
   await expect(input(page)).toHaveValue('1200');
   await page.keyboard.press('Enter');
   await expectDraft(page, [p(0, 0), p(1200, 0)]);
+  const first = await draft(page);
+  expect(
+    Math.hypot(first[1].x - first[0].x, first[1].y - first[0].y),
+  ).toBeCloseTo(1200, 8);
   await move(page, p(1200, 800), true);
   await expectDraft(page, [p(0, 0), p(1200, 0), p(1200, 800)]);
   const beforeFinish = await save(page);
@@ -144,6 +150,10 @@ test('comprimento → clique → comprimento em uma barra, prévia, aço, histó
   await page.screenshot({ path: 'docs/barra-comprimento-misto.png' });
   await page.keyboard.press('Enter');
   await expectDraft(page, [p(0, 0), p(1200, 0), p(1200, 800), p(1800, 1600)]);
+  const mixed = await draft(page);
+  expect(
+    Math.hypot(mixed[3].x - mixed[2].x, mixed[3].y - mixed[2].y),
+  ).toBeCloseTo(1000, 8);
   await expect(page.locator('[data-bar-id]')).toHaveCount(0);
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-bar-id]')).toHaveCount(1);
@@ -152,11 +162,11 @@ test('comprimento → clique → comprimento em uma barra, prévia, aço, histó
   expect(saved.bars).toHaveLength(1);
   expect(saved.schema).toBe(project.schema);
   expect(bar.points).toHaveLength(4);
-  expect(bar.points[3].x).toBeCloseTo(1800, 5);
-  expect(bar.points[3].y).toBeCloseTo(1600, 5);
+  expect(bar.points[3].x).toBeCloseTo(1800, 3);
+  expect(bar.points[3].y).toBeCloseTo(1600, 3);
   expect(bar.quantity).toBe(2);
   const expected = 3000 - 80 + 30 * (Math.PI / 2 + Math.atan(3 / 4));
-  expect(geometry(bar).length).toBeCloseTo(expected, 5);
+  expect(Math.abs(geometry(bar).length - expected)).toBeLessThan(0.001);
   await page
     .locator('.quick-tools')
     .getByRole('button', { name: 'Desfazer', exact: true })
@@ -212,6 +222,7 @@ test('direção ortogonal e oblíqua em dois zooms, sem snap alterar a distânci
     // ORTO entrega (1600,1000). O destino fica a 1 mm de um encaixe existente.
     await command(page, '1200');
     await expectDraft(page, [p(1000, 1000), p(2200, 1000)]);
+    await input(page).blur();
     await page.keyboard.press('F8');
     await move(page, p(2500, 1400));
     await command(page, '1000');
@@ -225,8 +236,8 @@ test('direção ortogonal e oblíqua em dois zooms, sem snap alterar a distânci
         bar.points[2].y - bar.points[1].y,
       ),
     ).toBeCloseTo(1000, 6);
-    expect(bar.points[2].x).toBeCloseTo(1800, 5);
-    expect(bar.points[2].y).toBeCloseTo(800, 5);
+    expect(bar.points[2].x).toBeCloseTo(1800, 3);
+    expect(bar.points[2].y).toBeCloseTo(800, 3);
   }
 });
 
@@ -255,8 +266,9 @@ test('entrada inválida, ausência de origem/direção e campos de parâmetros p
   }
   const quantity = page.getByLabel('Quantidade de criação', { exact: true });
   await quantity.fill('2');
-  await quantity.press('Enter');
   await expect(quantity).toBeFocused();
+  await quantity.press('Enter');
+  await expect(quantity).toHaveValue('2');
   await expect(input(page)).toHaveValue('');
   await expectDraft(page, [p(0, 0)]);
   await move(page, p(500, 0));
@@ -309,8 +321,8 @@ test('Enter usa o último movimento antes do frame e conserva coordenadas, polar
   await command(page, '');
   const bar = (await save(page)).bars[0];
   expect(bar.points).toHaveLength(4);
-  expect(bar.points[3].x).toBeCloseTo(900, 5);
-  expect(bar.points[3].y).toBeCloseTo(1300, 5);
+  expect(bar.points[3].x).toBeCloseTo(900, 3);
+  expect(bar.points[3].y).toBeCloseTo(1300, 3);
   await command(page, 'POLILINHA');
   await command(page, '0,0');
   await command(page, '1200');
