@@ -14,6 +14,7 @@ export default function DetailMaskSelector({
   onChange: (id: string, action: 'show' | 'hide' | 'replace') => void;
   onOrigin: (id: string) => void;
 }) {
+  if (project.masks.length === 0) return null;
   const state = detailMaskReferences(project, detailId);
   return (
     <div
@@ -37,9 +38,6 @@ export default function DetailMaskSelector({
           Visíveis ({state.items.filter((i) => i.visible).length})
         </summary>
         <div className="detail-mask-list">
-          {project.masks.length === 0 && (
-            <p>Crie ou importe uma máscara na aba Máscaras.</p>
-          )}
           {project.masks.map((m) => (
             <div key={m.id}>
               <label>

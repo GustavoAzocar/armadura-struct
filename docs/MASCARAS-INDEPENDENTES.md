@@ -16,7 +16,7 @@ Uma máscara independente não possui entrada em `hierarchy.objectDetails`. Sua 
 
 ## Trocar a referência sem encerrar o lançamento
 
-Na aba **Armaduras**, junto da área de desenho, **Máscaras do detalhamento** oferece:
+Na aba **Armaduras**, junto da área de desenho, **Máscaras do detalhamento** aparece quando o projeto possui máscaras e oferece:
 
 - **Trocar referência atual**: escolha B para substituir A imediatamente; escolha A no mesmo campo para voltar. Há pesquisa por nome, origem e contexto, usando o seletor existente.
 - **Visíveis**: marque/desmarque cada máscara. A atual é identificada; referências adicionais permanecem ligadas quando a atual é substituída.
@@ -53,6 +53,6 @@ O ponto de referência fica em coordenadas locais (`anchor`), separado da transl
 
 `tests/maskReferences.test.ts` cobre criação/edição independente, importação DXF/DWG pelo domínio, leitura de legado, recusa de formato antigo, vínculos inconsistentes, A → B → A com referência adicional, candidatos geométricos, isolamento, atualização compartilhada, alinhamento analítico com escala 10 e rotação 37°, histórico e invariância da composição de prancha/PDF, DXF e CSV. A suíte principal local passou com **1.318 testes**.
 
-`tests/e2e/maskReferences.spec.ts` prepara quatro cenários de navegador: criação/edição/reabertura, troca durante Barra livre e tela por pontos com limpeza de encaixes, alinhamento com prévia/cancelamento/histórico e importação dos arquivos DXF/DWG reais de referência. As capturas desse spec são produzidas pelo navegador quando ele executa.
+`tests/e2e/maskReferences.spec.ts` cobre quatro cenários de navegador: criação/edição/reabertura, troca durante Barra livre e tela por pontos com limpeza de encaixes, alinhamento com prévia/cancelamento/histórico e importação dos arquivos DXF/DWG reais de referência. O CI executa esses cenários, as regressões de CAD/telas e a suíte completa de interface. As capturas são produzidas pelo próprio spec e publicadas no artefato `mask-reference-evidence`; os resultados da revisão final ficam registrados na PR.
 
-**Nenhum cenário E2E passou neste ambiente local:** o Chromium instalado encerrou antes de abrir a aplicação (`socket() failed: Operation not permitted`), e a instalação alternativa do Headless Shell recebeu um arquivo de download inválido. Os testes de interface ficam para execução no CI e conferência na etapa de revisão. O aplicativo desktop Tauri e os diálogos nativos de arquivos não foram executados; nenhuma validação de desktop é alegada. CSP, capabilities, pontes nativas e infraestrutura de arquivos vinculados não foram alteradas.
+**Nenhum cenário E2E passou neste ambiente local:** o Chromium instalado encerrou antes de abrir a aplicação (`socket() failed: Operation not permitted`), e a instalação alternativa do Headless Shell recebeu um arquivo de download inválido. A validação no navegador usa a execução do CI e suas capturas. Os jobs desktop do CI verificam Rust, os adaptadores nativos e a geração dos instaladores para Linux e Windows; a operação visual do aplicativo Tauri e dos diálogos nativos de arquivos não foi realizada. CSP, capabilities, pontes nativas e infraestrutura de arquivos vinculados não foram alteradas.

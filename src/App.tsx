@@ -5461,6 +5461,11 @@ export default function App({
   const meshByPoints = (s: WeldedMeshSession) =>
     (s.stage === 'region' && s.mode === 'points') ||
     (s.stage === 'openings' && s.openingInput === 'points');
+  function weldedMeshActiveMask(project: Project) {
+    const references = project.maskReferences?.[activeDetailId];
+    const id = references ? references.currentMaskId : drawingMaskId;
+    return id ? referenceMask(project, activeDetailId, id) : undefined;
+  }
   /**
    * Modo clique: só a máscara ativa (escolhida em Referências), com as
    * entidades visíveis e capturáveis dela; o ponto é o do clique, sem snap.
@@ -5468,20 +5473,12 @@ export default function App({
   function pickWeldedMeshClick(at: Point) {
     const s = meshSession;
     if (!s || s.stage !== 'region' || s.mode !== 'click') return;
-    const currentReference = detailMaskReferences(
-      s.base,
-      activeDetailId,
-    ).currentMaskId;
-    const mask = referenceMask(
-      s.base,
-      activeDetailId,
-      currentReference ?? drawingMaskId,
-    );
+    const mask = weldedMeshActiveMask(s.base);
     if (!mask) {
       setMeshSession({
         ...s,
         issue:
-          'Escolha a referência atual em Máscaras do detalhamento para usar o modo Clique.',
+          'Escolha a máscara ativa em Máscaras → Referências ou a referência atual em Máscaras do detalhamento para usar o modo Clique.',
       });
       return;
     }
@@ -10312,13 +10309,7 @@ export default function App({
                       const r = l ? weldedMeshPlan(l) : undefined;
                       return r?.ok ? r.layout : undefined;
                     })()}
-                    activeMask={
-                      p.masks.find(
-                        (m) =>
-                          m.id ===
-                          detailMaskReferences(p, activeDetailId).currentMaskId,
-                      )?.name
-                    }
+                    activeMask={weldedMeshActiveMask(p)?.name}
                     onCandidate={chooseWeldedMeshCandidate}
                     onIsland={(i, use) =>
                       setMeshSession((s) =>

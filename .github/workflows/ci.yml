@@ -23,8 +23,8 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: Máscaras independentes, referências e origem
-        run: npx playwright test tests/e2e/maskReferences.spec.ts
+      - name: Máscaras independentes e regressões de CAD/telas
+        run: npx playwright test tests/e2e/maskReferences.spec.ts tests/e2e/upgrade.spec.ts tests/e2e/weldedMeshEditing.spec.ts tests/e2e/weldedMeshLaunch.spec.ts
       - name: Sheet seal bindings and batch history
         run: npx playwright test tests/e2e/sheetSealDraft.spec.ts
       - name: Close project, recovery and session boundaries
