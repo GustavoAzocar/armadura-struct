@@ -1,4 +1,5 @@
 import {
+  clipboardBindingKey,
   keyLabel,
   normalizeAlias,
   normalizeKey,
@@ -181,7 +182,6 @@ export function shortcutHelp(
     .join(' · ');
 }
 
-const normalize = { keys: normalizeKey, aliases: normalizeAlias };
 export function parseAliases(raw: string): string[] | undefined {
   if (!raw.trim()) return [];
   const aliases = raw.split(',').map(normalizeAlias);
@@ -248,10 +248,14 @@ export function decodeShortcuts(raw: string | null): LoadedShortcuts {
         for (const kind of bindingKinds) {
           if (!Object.hasOwn(bindings, kind)) continue;
           const values = bindings[kind];
+          const clipboardKey = clipboardBindingKey(action, scope);
           const valid = Array.isArray(values)
-            ? values.map((value: unknown) =>
-                typeof value === 'string' ? normalize[kind](value) : undefined,
-              )
+            ? values.map((value: unknown) => {
+                if (typeof value !== 'string') return;
+                return kind === 'keys'
+                  ? normalizeKey(value, clipboardKey)
+                  : normalizeAlias(value);
+              })
             : undefined;
           if (
             !valid ||

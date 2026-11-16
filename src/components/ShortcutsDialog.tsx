@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import {
+  clipboardBindingKey,
   eventKey,
   usesBrowserZoomKey,
   keyLabel,
@@ -176,7 +177,7 @@ export default function ShortcutsDialog({
       return;
     }
     if (['Control', 'Meta', 'Shift', 'Alt'].includes(e.key)) return;
-    const key = eventKey(e.nativeEvent);
+    const key = eventKey(e.nativeEvent, clipboardBindingKey(action, scope));
     if (!key) {
       setMessage(
         'Tecla reservada ou não reconhecida. Tente outra combinação ou pressione Esc.',

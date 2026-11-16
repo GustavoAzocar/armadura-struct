@@ -24,6 +24,7 @@ A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON 
 - [Telas soldadas](TELAS-SOLDADAS.md)
 - [Seguir fôrma por uma ou várias linhas](SEGUIR-FORMA.md)
 - [Menu Armaduras — organização compacta](MENU-ARMADURAS.md)
+- [Manipular armaduras — copiar, mover, rotacionar e colar](MANIPULAR-ARMADURAS.md)
 - [AS-25 · Inserir, continuar e remover vértices](AS-25.md)
 - [AS-26 · Comprimentos, ângulos e extensão de barras](AS-26.md)
 - [Convenções de cotagem de armaduras e memória de corte](CONVENCOES-COTAGEM-ARMADURAS.md)

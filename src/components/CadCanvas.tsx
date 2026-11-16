@@ -378,7 +378,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     const down = (e: KeyboardEvent) => {
       if (
         e.code === 'Space' &&
-        e.target === document.body &&
+        (e.target === document.body || e.target === svg.current) &&
         !e.defaultPrevented &&
         !modalIsOpen() &&
         !textComposition(e)
@@ -1840,6 +1840,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         ref={svg}
         className={`cad-svg ${tool === 'pan' || drag ? 'panning' : tool === 'select' ? 'selecting' : 'drawing'}`}
         aria-label="Área de desenho CAD"
+        tabIndex={0}
         data-testid="cad-canvas"
         onPointerDown={down}
         onPointerMove={move}

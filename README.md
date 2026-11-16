@@ -20,6 +20,7 @@ Esta documentação acompanha a `master`. Recursos ainda não publicados estão 
 - [Telas soldadas](docs/TELAS-SOLDADAS.md): critérios, lançamento por contorno, pontos ou clique, edição e quadros.
 - [Encaixes CAD 2D](docs/ENCAIXES-CAD.md): centro, quadrante, interseção, perpendicular, tangente, extensão e paralelo, com F3 e ORTO.
 - [Menu Armaduras compacto](docs/MENU-ARMADURAS.md): comandos em duas linhas com ícones técnicos e parâmetros de criação em bloco próprio.
+- [Manipular armaduras](docs/MANIPULAR-ARMADURAS.md): copiar, mover e rotacionar com prévia, além de copiar e colar pelo teclado no desenho.
 - [Plugins](docs/plugins/USER-GUIDE.md): aba dedicada, inspeção de `.osplugin`, confirmação de registro desativado, catálogo configurável e inventário desktop. [Contrato e guia para desenvolvedores](docs/plugins/DEVELOPERS.md). Execução de terceiros e loja pública são etapas futuras.
 - [Projetos e documentos recentes](docs/PROJETOS-RECENTES.md): histórico local no menu Arquivo, sem autosave nem acesso permanente; reabrir pede nova seleção e respeita alterações não salvas.
 - [Fechar projeto](docs/FECHAR-PROJETO.md): volta à tela inicial sem encerrar o aplicativo, protege alterações não salvas e não reabre sozinho o projeto fechado ao reiniciar.

@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Armaduras → Manipular (#214) reúne copiar, mover e rotacionar a seleção com prévia no desenho. Ctrl+C e Ctrl+V permitem repetir cópias no detalhamento ativo. Cada confirmação é uma operação de Desfazer/Refazer. [Uso e limites](docs/MANIPULAR-ARMADURAS.md).
+
 - Máscaras independentes e referências por detalhamento (#213): criar/importar sem proprietário; editar no CAD existente; trocar A → B → A, ligar/desligar e manter referências adicionais durante lançamentos; selecionar origem com encaixes, prévia, zero/destino opcional e alinhamento local desfazível. Formato nativo `/41` reservado para esta entrega, sem reutilizar o `/40` da PR #215; leitores anteriores recusam os novos dados. Mantém impressão, arquivos CAD originais e quantitativos. [Uso, compatibilidade e limites de validação](docs/MASCARAS-INDEPENDENTES.md).
 
 - Preenchimento automático dos selos (#142): cadastro documental, herança, vínculos por ID e substituições manuais persistidos no formato /39; aplicação em lote com histórico atômico; tela/PDF/DXF pela mesma composição; conversão explícita de textos CAD e modelos portáteis /2. [Uso e compatibilidade](docs/PREVIA-DE-DADOS-DO-SELO.md).

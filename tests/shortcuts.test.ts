@@ -134,6 +134,38 @@ describe('catálogo e resolução dos atalhos', () => {
       category: 'Armaduras',
     });
   });
+  it('limita a cópia e a colagem internas à área de desenho', () => {
+    expect(maps.drawing.keys.get('Mod+C')).toBe('armature-copy-selection');
+    expect(maps.drawing.keys.get('Mod+V')).toBe('armature-paste-selection');
+    expect(maps.masks.keys.get('Mod+C')).toBeUndefined();
+    expect(maps.masks.keys.get('Mod+V')).toBeUndefined();
+    expect(normalizeKey('Ctrl+C')).toBeUndefined();
+    expect(normalizeKey('Ctrl+V')).toBeUndefined();
+    const event = {
+      key: 'c',
+      ctrlKey: true,
+      getModifierState: () => false,
+    } as unknown as KeyboardEvent;
+    expect(eventKey(event)).toBeUndefined();
+    expect(eventKey(event, true)).toBe('Mod+C');
+  });
+
+  it('restaura atalhos da seleção sem liberar teclas de clipboard em outros comandos', () => {
+    const first = defaultShortcuts();
+    const draft = setBindings(
+      first,
+      { action: 'armature-copy-selection', scope: 'drawing', kind: 'keys' },
+      ['Mod+C', 'F7'],
+    );
+    const stored = JSON.parse(serializeShortcuts(draft));
+    stored.overrides.move = { global: { keys: ['Mod+V'] } };
+    const decoded = decodeShortcuts(JSON.stringify(stored));
+    const compiled = compileShortcuts(decoded.preferences);
+    expect(decoded.warning).toBeDefined();
+    expect(compiled.drawing.keys.get('Mod+C')).toBe('armature-copy-selection');
+    expect(compiled.drawing.keys.get('F7')).toBe('armature-copy-selection');
+    expect(compiled.drawing.keys.get('Mod+V')).toBe('armature-paste-selection');
+  });
   it('desativa teclas únicas e preserva aliases e combinações', () => {
     const disabled = { ...preferences, singleKeysDisabled: true };
     const web = compileShortcuts(disabled);

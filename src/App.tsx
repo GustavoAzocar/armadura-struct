@@ -394,6 +394,7 @@ import {
   commandAvailability,
   eventKey,
   isActivationControl,
+  isArmatureClipboardAction,
   isEditingControl,
   modalIsOpen,
   normalizeAlias,
@@ -741,6 +742,12 @@ export default function App({
   } | null>(null);
   const [armatureTranslationCursor, setArmatureTranslationCursor] =
     useState<Point>();
+  const armatureClipboard = useRef<{
+    projectId: string;
+    detailId: string;
+    ids: string[];
+    anchor: Point;
+  } | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     ids: string[];
     point: Point;
@@ -1865,6 +1872,7 @@ export default function App({
     });
     if (base) {
       setDraft([base]);
+      setArmatureTranslationCursor(base);
       setMessage('Indique o ponto de destino da cópia.');
     }
   };
@@ -7672,6 +7680,37 @@ export default function App({
       setTool('select');
       return;
     }
+    if (a === 'armature-copy-selection') {
+      const error = armatureSelectionError(selected);
+      if (error) {
+        notify(error);
+        return;
+      }
+      const first = p.bars.find((bar) => bar.id === selected[0])!;
+      armatureClipboard.current = {
+        projectId: p.id,
+        detailId: activeDetailId,
+        ids: [...selected],
+        anchor: first.points.length
+          ? world(first.points[0], first)
+          : first.origin,
+      };
+      notify('Seleção de armaduras copiada.');
+      return;
+    }
+    if (a === 'armature-paste-selection') {
+      const clipboard = armatureClipboard.current;
+      if (!clipboard || clipboard.projectId !== p.id) {
+        notify('Copie uma seleção de armaduras antes de colar.');
+        return;
+      }
+      if (clipboard.detailId !== activeDetailId) {
+        notify('Volte ao detalhamento da seleção copiada para colar.');
+        return;
+      }
+      beginArmatureTranslation('copy', clipboard.ids, clipboard.anchor);
+      return;
+    }
     if (a === 'armature-copy' || a === 'armature-move') {
       beginArmatureTranslation(
         a === 'armature-copy' ? 'copy' : 'move',
@@ -8233,6 +8272,7 @@ export default function App({
     }
   };
   const afterProjectReplaced = () => {
+    armatureClipboard.current = null;
     savedBaseline.current = historyRef.current.present;
     stirrupCriteria.current = undefined;
     weldedMeshCriteria.current = undefined;
@@ -9041,9 +9081,19 @@ export default function App({
       if (!e.repeat) cmdInput.current.focus();
       return;
     }
-    const key = eventKey(e);
+    const clipboardHasCadFocus =
+      e.target instanceof SVGSVGElement &&
+      e.target.classList.contains('cad-svg') &&
+      workScope === 'drawing' &&
+      page === 'drawing' &&
+      !activeSheet;
+    const key = eventKey(e, clipboardHasCadFocus);
     const command = key ? shortcutMaps[workScope].keys.get(key) : undefined;
-    if (!command) return;
+    if (
+      !command ||
+      (isArmatureClipboardAction(command) && !clipboardHasCadFocus)
+    )
+      return;
     e.preventDefault();
     if (e.repeat) return;
     if (
@@ -12127,6 +12177,7 @@ export default function App({
                 const next = decodeProject(raw);
                 attachProjectFolder(next, folder, raw);
                 if (!commit(() => next)) return false;
+                armatureClipboard.current = null;
                 setSheetTemplateSession(null);
                 savedBaseline.current = historyRef.current.present;
                 rememberRecent({
@@ -12165,6 +12216,7 @@ export default function App({
                 );
               }
               if (!commit(() => result.project)) return false;
+              armatureClipboard.current = null;
               savedBaseline.current = folder
                 ? historyRef.current.present
                 : undefined;
