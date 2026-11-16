@@ -14,6 +14,7 @@ Esta documentação acompanha a `master`. Recursos ainda não publicados estão 
 
 ## Recursos
 
+- [Barra livre por comprimento](docs/BARRA-POR-COMPRIMENTO.md): aponte e digite a distância em mm, alternando com cliques e coordenadas na mesma barra, com ORTO, prévia e conclusão em uma operação de histórico.
 - [Estribos pela seção e pela faixa](docs/ESTRIBOS.md): critérios e lançamento com formatos retangular, circular e livre, cobrimento, ganchos e espaçamento; opção de ocultar os traços individuais preservando a faixa e o aço.
 - [Estribo helicoidal](docs/ESTRIBO-HELICOIDAL.md): passo, extremos e comprimento desenvolvido analítico.
 - [Grampos de pilar S/C](docs/GRAMPOS-PILAR.md) por centros longitudinais e [grampos de viga em U](docs/GRAMPOS_VIGA.md) com critérios, lançamento e vistas vinculadas.
