@@ -1,3 +1,4 @@
+import { referenceMasks } from './maskReferences';
 import type { Bar, Point, Project, Segment } from './types';
 import { newBar } from './model';
 import { maskPoint } from '../cad/import';
@@ -55,10 +56,11 @@ export function followEdges(p: Project, context: FollowContext): FollowEdge[] {
     (context.scopeDetailId && context.scopeDetailId !== context.detailId)
   )
     return [];
-  return p.masks
+  return referenceMasks(p, context)
     .flatMap((m) => {
       if (
-        p.hierarchy.objectDetails[m.id] !== context.detailId ||
+        (!p.maskReferences?.[context.detailId] &&
+          p.hierarchy.objectDetails[m.id] !== context.detailId) ||
         !m.visible ||
         m.opacity <= 0 ||
         objectHidden(p, context.key, m.id) ||

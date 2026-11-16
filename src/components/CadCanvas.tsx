@@ -1,3 +1,7 @@
+import {
+  referenceMasks,
+  type MaskReferenceContext,
+} from '../domain/maskReferences';
 import { modalIsOpen, textComposition } from '../domain/shortcuts';
 import { displayedBarGeometry } from '../domain/stirrupGeometry';
 import { canHideStirrupTicks } from '../domain/stirrupSchema';
@@ -72,7 +76,7 @@ import {
   vertices,
   world,
 } from '../domain/geometry';
-import { maskPrimitives } from '../cad/import';
+import { maskPoint, maskPrimitives } from '../cad/import';
 import { insideTextBox, svgTextFont } from '../domain/textStyle';
 import { paperPrimitiveBounds } from '../domain/paperText';
 import {
@@ -197,6 +201,12 @@ type Props = {
   onContextRequest: (ids: string[], point: Point, screen: Point) => void;
   commandActive?: boolean;
   layerContext?: string;
+  maskContext?: MaskReferenceContext;
+  maskOrigin?: {
+    mask: import('../domain/types').Mask;
+    local?: Point;
+    target: Point;
+  };
   project: Project;
   initialState?: CadState;
   tool: Tool;
@@ -231,15 +241,43 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     ortho,
     light,
   } = props;
-  const project = useMemo(
-    () =>
-      visibilityProjection(
-        detailEditorView(source, props.isolatedDetailId),
-        props.layerContext ?? 'model',
-        'visible',
-      ),
-    [source, props.isolatedDetailId, props.layerContext],
-  );
+  const project = useMemo(() => {
+    const ctx = props.maskContext;
+    const view = detailEditorView(source, props.isolatedDetailId);
+    const editor =
+      ctx?.editingMaskId &&
+      source.masks.some((m) => m.id === ctx.editingMaskId && m.independent) &&
+      !props.maskOrigin
+        ? {
+            ...view,
+            bars: [],
+            details: [],
+            annotations: [],
+            polylines: [],
+            symbolInstances: [],
+            weldedMeshes: [],
+          }
+        : view;
+    return visibilityProjection(
+      ctx
+        ? {
+            ...editor,
+            masks: props.maskOrigin
+              ? [props.maskOrigin.mask]
+              : referenceMasks(source, ctx),
+          }
+        : editor,
+      props.layerContext ?? 'model',
+      'visible',
+    );
+  }, [
+    source,
+    props.isolatedDetailId,
+    props.layerContext,
+    props.maskContext?.detailId,
+    props.maskContext?.editingMaskId,
+    props.maskOrigin,
+  ]);
   useEffect(
     () =>
       setCadDiagnosticScene({
@@ -917,6 +955,10 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   useLayoutEffect(() => {
     // A queued frame belongs to this immutable scene and command, never the next.
     feedbackFrame.cancel();
+    lastHit.current = null;
+    setSnapPoint(null);
+    acquiredRef.current = {};
+    setAcquired({});
     panInput.current = null;
     gripInput.current = null;
     marqueeInput.current = null;
@@ -1862,6 +1904,35 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
           transform={`translate(${size.w / 2 - view.x * view.s} ${size.h / 2 + view.y * view.s}) scale(${view.s} ${-view.s})`}
         >
           {maskContent}
+          {props.maskOrigin && (
+            <g pointerEvents="none" data-testid="mask-origin-markers">
+              <circle
+                cx={props.maskOrigin.target.x}
+                cy={props.maskOrigin.target.y}
+                r={8 / view.s}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth={2 / view.s}
+              />
+              <path
+                d={`M${props.maskOrigin.target.x - 12 / view.s},${props.maskOrigin.target.y}h${24 / view.s}M${props.maskOrigin.target.x},${props.maskOrigin.target.y - 12 / view.s}v${24 / view.s}`}
+                stroke="#ef4444"
+                strokeWidth={1 / view.s}
+              />
+              {props.maskOrigin.local && (
+                <circle
+                  cx={
+                    maskPoint(props.maskOrigin.local, props.maskOrigin.mask).x
+                  }
+                  cy={
+                    maskPoint(props.maskOrigin.local, props.maskOrigin.mask).y
+                  }
+                  r={5 / view.s}
+                  fill="#22c55e"
+                />
+              )}
+            </g>
+          )}
           {props.followInteraction && (
             <g pointerEvents="none" data-testid="follow-preview">
               <g

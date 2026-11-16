@@ -42,6 +42,7 @@ Esta documentação acompanha a `master`. Recursos ainda não publicados estão 
 - [Interação CAD por frame](docs/FLUIDEZ-INTERACAO-CAD.md): prévias vetoriais reutilizáveis, confirmação precisa da última entrada e diagnóstico local optativo, com roteiro para validar no Linux.
 - [Textos proporcionais durante o zoom](docs/TEXTOS-E-ZOOM.md), compartilhando alturas e posições entre modelo, representações e exportação, com altura de papel por vista preservada.
 - [Máscara ativa e acesso global](docs/MASCARA-ATIVA.md): seletor pesquisável por nome/origem/contexto, criação sem aço, seleção independente e desenho local nas referências DXF/DWG.
+- [Máscaras independentes e referências por detalhamento](docs/MASCARAS-INDEPENDENTES.md): criação/importação sem vínculo, troca imediata no contexto de Armaduras e alinhamento da origem por detalhe, com prévia e histórico.
 - [Máscaras nativas CAD](docs/MASCARAS-NATIVAS.md): linha, retângulo, círculo e polilinha editáveis, sem gerar aço, com controle compartilhado de referências importadas.
 - [Organização por pavimento → grupo → detalhamento](docs/ORGANIZACAO-PROJETO.md): Térreo → Vigas → V1/V2, Pilares → P1; abertura direta pelo detalhamento e nomes sugeridos. [Novo projeto](docs/NOVO-PROJETO.md) mantém prévia editável, criação rápida, rascunho isolado e substituição explícita do projeto atual.
 - [Quadro de aço vinculado à prancha](docs/QUADRO-NA-PRANCHA.md), com prévia no cursor, inserção por clique, quantitativos por folha e resumo de peso configurável, em PDF vetorial.
@@ -120,7 +121,7 @@ Abra `http://127.0.0.1:1420`. O `npm ci` copia o leitor WebAssembly para `public
 3. Use **Barra livre**, **Estribo** ou **Seguir fôrma**. As coordenadas e propriedades geométricas são em **mm**.
 4. Selecione a posição para editar aço, bitola, quantidade e geometria. Ajuste o mandril e os ganchos para o projeto.
 5. Crie rebatimentos, faixas, cotas e chamadas. O quadro é atualizado a cada alteração, a menos que esteja bloqueado para conferência.
-6. Em **Pranchas**, crie folhas, coloque desenhos e abra suas vistas com duplo clique para editar. Duplicar folhas/vistas reutiliza os dados de aço.
+6. Em **Pranchas**, crie folhas, coloque desenhos e abra suas vistas com duplo clique para editar. Duplicar folhas/vistas reutiliza os dados de aço. Com um modelo aplicado, use [Dados do selo](docs/PREVIA-DE-DADOS-DO-SELO.md) para preencher e salvar vínculos e valores em várias folhas, com Desfazer/Refazer e exportação automática.
 7. Salve o projeto e exporte os desenhos e quantitativos.
 
 Veja [o guia de comandos e convenções](docs/GUIA.md), os [contratos da composição em escala](docs/AS-05.md), o [guia de modelos de margem e selo](docs/MARGENS-E-SELOS.md) e os [contratos da atualização seletiva](docs/AS-08.md).

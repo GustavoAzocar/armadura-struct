@@ -1,3 +1,7 @@
+import {
+  canEditMaskGeometry,
+  withMaskReferenceVersion,
+} from './maskReferences';
 import { cadBinding, cadDefaults } from './cadDefaults';
 import type { Mask, Project, Point } from './types';
 import { completeOwnership, detailPath } from './hierarchy';
@@ -16,6 +20,7 @@ export type MaskDrawingContext = {
   key: string;
   detailId: string;
   scopeDetailId?: string;
+  editingMaskId?: string;
 };
 export const localDrawingLayer = (m: Mask) =>
   m.format === 'NATIVE' ? 'DESENHO' : 'AS_DESENHO_LOCAL';
@@ -25,7 +30,9 @@ export const drawingLayerId = (p: Project, m: Mask) =>
   m.layerId ??
   p.layers[0].id;
 export const maskPath = (p: Project, id: string) =>
-  detailPath(p, p.hierarchy.objectDetails[id]);
+  p.masks.find((m) => m.id === id)?.independent
+    ? 'Máscara independente do projeto'
+    : detailPath(p, p.hierarchy.objectDetails[id]);
 export function maskDrawingState(
   p: Project,
   id: string | undefined,
@@ -36,11 +43,7 @@ export function maskDrawingState(
   if (!mask) reason = 'Escolha uma máscara para desenhar.';
   else if (context.key.startsWith('sheet:'))
     reason = 'Ative a máscara para abrir seu desenho; não se desenha no papel.';
-  else if (
-    p.hierarchy.objectDetails[mask.id] !== context.detailId ||
-    (context.scopeDetailId &&
-      context.scopeDetailId !== p.hierarchy.objectDetails[mask.id])
-  )
+  else if (!canEditMaskGeometry(p, mask, context))
     reason = 'Outro detalhamento: ative a máscara para abrir seu contexto.';
   else if (
     !mask.visible ||
@@ -81,19 +84,27 @@ export function createDrawingMask(
   context: MaskDrawingContext,
 ) {
   if (
-    !p.hierarchy.details.some((d) => d.id === detailId) ||
-    detailId !== context.detailId ||
     context.key.startsWith('sheet:') ||
-    (context.scopeDetailId && context.scopeDetailId !== detailId)
+    (!detailId && !!context.scopeDetailId) ||
+    (!!detailId &&
+      (!p.hierarchy.details.some((d) => d.id === detailId) ||
+        detailId !== context.detailId ||
+        context.key.startsWith('sheet:') ||
+        (context.scopeDetailId && context.scopeDetailId !== detailId)))
   )
     throw new Error('Abra o contexto de criação antes de confirmar a máscara.');
   if (p.masks.length >= 20)
     throw new Error('Limite de 20 máscaras por projeto.');
-  const mask = newNativeMask(name, p);
+  const mask = {
+    ...newNativeMask(name, p),
+    ...(!detailId ? { independent: true as const } : {}),
+  };
   if (
     p.masks.some(
       (m) =>
-        p.hierarchy.objectDetails[m.id] === detailId &&
+        (detailId
+          ? p.hierarchy.objectDetails[m.id] === detailId
+          : m.independent) &&
         m.name.trim().toLocaleLowerCase() === mask.name.toLocaleLowerCase(),
     )
   )
@@ -101,10 +112,14 @@ export function createDrawingMask(
       'Já existe uma máscara com esse nome neste detalhamento. Use outro nome; nada foi sobrescrito.',
     );
   const project = completeOwnership(
-    { ...p, masks: [...p.masks, mask] },
-    detailId,
+    withMaskReferenceVersion({ ...p, masks: [...p.masks, mask] }),
+    detailId || context.detailId,
   );
-  const state = maskDrawingState(project, mask.id, context);
+  const state = maskDrawingState(
+    project,
+    mask.id,
+    !detailId ? { ...context, editingMaskId: mask.id } : context,
+  );
   if (!state.editable) throw new Error(state.reason);
   return { project, mask: project.masks.find((m) => m.id === mask.id)! };
 }
@@ -153,15 +168,12 @@ export function assertLocalMaskEdit(
     throw new Error(
       'A máscara mudou durante a edição. Reabra suas propriedades.',
     );
-  if (
-    p.hierarchy.objectDetails[before.id] !== context.detailId ||
-    (context.scopeDetailId && context.scopeDetailId !== context.detailId) ||
-    context.key.startsWith('sheet:')
-  )
+  if (!canEditMaskGeometry(p, before, context))
     throw new Error('Abra o desenho desta máscara antes de editá-la.');
   if (
     after.id !== before.id ||
     after.format !== before.format ||
+    after.independent !== before.independent ||
     after.sourceUnit !== before.sourceUnit
   )
     throw new Error(
