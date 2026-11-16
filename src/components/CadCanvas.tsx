@@ -360,9 +360,11 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   };
   const [cursor, setCursor] = useState<Point | null>(null);
   const draftPoint = useRef<Point | undefined>(undefined);
+  const draftPointer = useRef<Point | undefined>(undefined);
   useLayoutEffect(() => {
     if (tool === 'bar') {
       draftPoint.current = undefined;
+      draftPointer.current = undefined;
       setCursor(null);
     }
   }, [tool, props.layerContext]);
@@ -1063,6 +1065,23 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       if (immediate) publishSnap(snapFeedback.current);
       return p;
     });
+  useLayoutEffect(() => {
+    if (tool !== 'bar' || !draftPointer.current) return;
+    // ORTO/F3 e a nova origem precisam valer mesmo sem outro movimento do mouse.
+    const point = snapAt(draftPointer.current);
+    draftPoint.current = point;
+    setCursor(point);
+  }, [
+    tool,
+    ortho,
+    snap,
+    snapModes,
+    snapIndex,
+    snapBase?.x,
+    snapBase?.y,
+    props.snapContext,
+    props.snapLinear,
+  ]);
   const hitAt = (p: Point) => {
     let hit: string | undefined,
       best = 9 / camera.current.s;
@@ -1199,7 +1218,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       setDrag(panInput.current);
       return;
     }
-    const p = snapAt(fromScreen(screen));
+    const raw = fromScreen(screen);
+    if (tool === 'bar') draftPointer.current = raw;
+    const p = snapAt(raw);
     if (props.maskSidePick) {
       props.onMaskEntityPick?.(
         undefined,
@@ -1371,6 +1392,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         return;
       }
       const raw = fromScreen(screen);
+      if (tool === 'bar') draftPointer.current = raw;
       const p = props.maskSidePick ? raw : snapAt(raw, false);
       if (marqueeInput.current)
         marqueeInput.current = { ...marqueeInput.current, end: p };

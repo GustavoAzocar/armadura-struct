@@ -13,7 +13,7 @@ A instrução permanece visível durante o comando: **“Clique no próximo pont
 
 ## Direção, precisão e unidades
 
-A direção é a da prévia no plano do modelo, a partir do último vértice confirmado. A prévia já considera ORTO e os encaixes existentes. O comando lê também o último movimento pendente de apresentação, caso o Enter chegue antes do próximo frame.
+A direção é a da prévia no plano do modelo, a partir do último vértice confirmado. A prévia já considera ORTO e os encaixes existentes. Alterar ORTO, os encaixes ou a origem do próximo trecho atualiza essa direção mesmo com o mouse parado. O comando lê também o último movimento pendente de apresentação, caso o Enter chegue antes do próximo frame.
 
 A distância digitada prevalece: o novo vértice é calculado nessa direção e não sofre outro encaixe que mude o comprimento. A conta independe do zoom. Para origem `a`, ponto efetivo da prévia `c` e comprimento `L`, o novo vértice é `a + L(c − a)/‖c − a‖`.
 

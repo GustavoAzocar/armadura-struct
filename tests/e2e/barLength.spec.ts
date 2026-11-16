@@ -50,6 +50,12 @@ async function open(page: Page, project = fixture()) {
   });
   await expect(page.locator('.window-project')).toHaveText(project.name);
   await page.getByRole('tab', { name: 'Armaduras', exact: true }).click();
+  if (!project.masks.length)
+    for (let i = 0; i < 3; i++)
+      await page
+        .getByRole('button', { name: 'Afastar', exact: true })
+        .last()
+        .click();
 }
 async function toggle(page: Page, label: string, enabled: boolean) {
   const button = page
@@ -64,12 +70,18 @@ async function command(page: Page, value: string) {
   await input(page).press('Enter');
 }
 async function screen(page: Page, point: Point) {
-  return page.getByTestId('cad-canvas').evaluate((svg, point) => {
+  const at = await page.getByTestId('cad-canvas').evaluate((svg, point) => {
     const at = new DOMPoint(point.x, point.y).matrixTransform(
       (svg.querySelector('g[transform]') as SVGGElement).getScreenCTM()!,
     );
     return { x: at.x, y: at.y };
   }, point);
+  const canvas = (await page.getByTestId('cad-canvas').boundingBox())!;
+  expect(at.x).toBeGreaterThan(canvas.x);
+  expect(at.x).toBeLessThan(canvas.x + canvas.width);
+  expect(at.y).toBeGreaterThan(canvas.y);
+  expect(at.y).toBeLessThan(canvas.y + canvas.height);
+  return at;
 }
 async function move(page: Page, point: Point, click = false) {
   const at = await screen(page, point);
@@ -84,11 +96,14 @@ async function move(page: Page, point: Point, click = false) {
         ),
     );
 }
-async function draft(page: Page) {
+async function previewPoints(page: Page) {
   const path = await rubber(page).getAttribute('d');
-  return [...path!.matchAll(/[ML]([-+\d.e]+),([-+\d.e]+)/gi)]
-    .map((m) => p(Number(m[1]), Number(m[2])))
-    .slice(0, -1);
+  return [...path!.matchAll(/[ML]([-+\d.e]+),([-+\d.e]+)/gi)].map((m) =>
+    p(Number(m[1]), Number(m[2])),
+  );
+}
+async function draft(page: Page) {
+  return (await previewPoints(page)).slice(0, -1);
 }
 async function expectDraft(page: Page, points: Point[]) {
   await expect.poll(async () => (await draft(page)).length).toBe(points.length);
@@ -209,7 +224,7 @@ test('direção ortogonal e oblíqua em dois zooms, sem snap alterar a distânci
   for (const zoom of [1, 1.69]) {
     await open(page, fixture(true));
     await toggle(page, 'ENCAIXES', true);
-    await toggle(page, 'ORTO', true);
+    await toggle(page, 'ORTO', false);
     if (zoom > 1)
       for (let i = 0; i < 2; i++)
         await page
@@ -219,11 +234,19 @@ test('direção ortogonal e oblíqua em dois zooms, sem snap alterar a distânci
     await barTool(page).click();
     await move(page, p(1000, 1000), true);
     await move(page, p(1600, 1250));
+    // O mouse permanece no mesmo lugar ao ligar ORTO pelo teclado.
+    await page.keyboard.press('F8');
+    await expect
+      .poll(async () => (await previewPoints(page)).at(-1)!.y)
+      .toBeCloseTo(1000, 3);
     // ORTO entrega (1600,1000). O destino fica a 1 mm de um encaixe existente.
     await command(page, '1200');
     await expectDraft(page, [p(1000, 1000), p(2200, 1000)]);
     await input(page).blur();
     await page.keyboard.press('F8');
+    await expect
+      .poll(async () => (await previewPoints(page)).at(-1)!.y)
+      .toBeCloseTo(1250, 3);
     await move(page, p(2500, 1400));
     await command(page, '1000');
     await expectDraft(page, [p(1000, 1000), p(2200, 1000), p(2800, 1800)]);
