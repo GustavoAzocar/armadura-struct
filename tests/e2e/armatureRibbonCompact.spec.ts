@@ -11,6 +11,9 @@ const commands = {
   stirrup: 'Estribo',
   'stirrup-criteria': 'Critérios do estribo',
   repeat: 'Repetir estribo',
+  'armature-copy': 'Copiar armadura',
+  'armature-move': 'Mover armadura',
+  'armature-rotate': 'Rotacionar armadura',
   'beam-clamp': 'Grampo de viga',
   'beam-clamp-criteria': 'Critérios do grampo de viga',
   helix: 'Estribo helicoidal',
@@ -74,7 +77,7 @@ test('inventário, ícones, campos e largura: 1920/1366/1000 nos dois fundos', a
   const icons = await ribbon(page)
     .locator('.ribbon-tool svg')
     .evaluateAll((es) => es.map((e) => e.innerHTML));
-  expect(new Set(icons).size).toBe(24);
+  expect(new Set(icons).size).toBe(Object.keys(commands).length);
   const parameters = page.getByRole('group', {
     name: 'Parâmetros das próximas criações',
   });

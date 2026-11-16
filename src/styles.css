@@ -5233,6 +5233,14 @@ button.hierarchy-drawing {
 .ribbon-armatures .ribbon-content {
   position: relative;
 }
+@media (max-width: 1100px) {
+  .ribbon-armatures .ribbon-group {
+    padding-inline: 4px;
+  }
+  .ribbon-armatures .ribbon-group:first-child {
+    padding-left: 0;
+  }
+}
 .ribbon-scroll {
   position: relative;
   min-width: 0;

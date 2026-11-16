@@ -531,6 +531,15 @@ export default function Ribbon({
       },
       { name: 'Próximas criações', creation: true, items: [] },
       {
+        name: 'Manipular',
+        compact: { columns: 2 },
+        items: [
+          item('armature-copy', 'Copiar armadura', Copy),
+          item('armature-move', 'Mover armadura', Move),
+          item('armature-rotate', 'Rotacionar armadura', RotateCw),
+        ],
+      },
+      {
         name: 'Grampos de viga',
         compact: { columns: 1 },
         items: [

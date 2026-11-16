@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { createCloneSource } from '../../docs/examples/armature-clone';
 import { completeOwnership } from '../../src/domain/hierarchy';
+import { setLayerState } from '../../src/domain/layerProfiles';
 import { newBar, schedule } from '../../src/domain/model';
 import type { Project } from '../../src/domain/types';
 async function command(page: Page, value: string) {
@@ -42,6 +43,59 @@ async function undo(page: Page, name = 'Desfazer') {
     .click();
 }
 const mass = (p: Project) => schedule(p).reduce((s, r) => s + r.weight, 0);
+test('Copiar armadura pede escolha para vínculos compartilhados e protege o conjunto conectado', async ({
+  page,
+}) => {
+  const base = createCloneSource();
+  const protectedLayer = {
+    ...base.layers[0],
+    id: 'layer:PROTEGIDA',
+    name: 'PROTEGIDA',
+  };
+  const p = setLayerState(
+    completeOwnership({
+      ...base,
+      layers: [...base.layers, protectedLayer],
+      bars: [
+        ...base.bars,
+        { ...newBar('N2'), id: 'protected', layerId: protectedLayer.id },
+      ],
+      polylines: [{ ...base.polylines[0], barIds: ['original', 'protected'] }],
+    }),
+    'model',
+    protectedLayer.id,
+    { visible: true, capture: true, editable: false },
+  );
+  await load(page, p);
+  const baseline = await save(page);
+  await select(page);
+  await page.getByRole('tab', { name: 'Armaduras', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Copiar armadura', exact: true })
+    .click();
+  await command(page, '0,0');
+  await command(page, '3000,0');
+  const modal = page.getByRole('dialog', {
+    name: 'Duplicar armadura completa',
+  });
+  const shared = modal.getByLabel('Tratamento dos vínculos compartilhados');
+  const apply = modal.getByRole('button', {
+    name: 'Duplicar conjunto',
+    exact: true,
+  });
+  await expect(apply).toBeDisabled();
+  await shared.selectOption('clone-set');
+  await expect(modal.getByRole('alert')).toContainText('armaduras editáveis');
+  await expect(apply).toBeDisabled();
+  await shared.selectOption('keep');
+  await apply.click();
+  const copied = await save(page);
+  expect(copied.bars).toHaveLength(3);
+  expect(copied.polylines[1].barIds).toEqual([copied.bars[2].id, 'protected']);
+  await undo(page);
+  expect(await save(page)).toEqual(baseline);
+});
+
 test('Copiar includes every owned dependency, one undo removes the graph, and save/reopen retains independent links', async ({
   page,
 }) => {

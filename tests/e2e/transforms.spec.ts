@@ -86,6 +86,114 @@ async function rightBar(page: Page, id: string) {
 const panel = (page: Page) =>
   page.getByRole('region', { name: 'Transformação da seleção' });
 const mass = (p: Project) => schedule(p).reduce((v, r) => v + r.weight, 0);
+async function armatureCommand(page: Page, name: string) {
+  await page.getByRole('tab', { name: 'Armaduras', exact: true }).click();
+  await page.getByRole('button', { name, exact: true }).click();
+}
+async function hoverPoint(page: Page, point: { x: number; y: number }) {
+  const screen = await page.getByTestId('cad-canvas').evaluate((svg, p) => {
+    const m = svg.querySelector<SVGGElement>('g[transform]')!.getScreenCTM()!;
+    return { x: m.a * p.x + m.c * p.y + m.e, y: m.b * p.x + m.d * p.y + m.f };
+  }, point);
+  await page.mouse.move(screen.x, screen.y);
+}
+test('Armaduras move e copia um conjunto com prévia e histórico atômico', async ({
+  page,
+}) => {
+  const p = fixture();
+  await load(page, p);
+  await select(page, 'N1');
+  await select(page, 'N2', true);
+  await armatureCommand(page, 'Mover armadura');
+  await command(page, '0,0');
+  await hoverPoint(page, { x: 800, y: 600 });
+  await expect(page.getByTestId('preview-pose')).toHaveAttribute(
+    'transform',
+    /^translate\(/,
+  );
+  await command(page, '300,400');
+  const moved = await save(page);
+  expect(moved.bars.map(({ id, origin }) => ({ id, origin }))).toEqual(
+    p.bars.map(({ id, origin }) => ({
+      id,
+      origin: { x: origin.x + 300, y: origin.y + 400 },
+    })),
+  );
+  expect(mass(moved)).toBeCloseTo(mass(p), 8);
+  await armatureCommand(page, 'Copiar armadura');
+  await command(page, '0,0');
+  await command(page, '500,600');
+  const copied = await save(page);
+  expect(copied.bars.slice(0, 2)).toEqual(moved.bars);
+  expect(copied.bars.slice(2).map((b) => b.origin)).toEqual(
+    moved.bars.map(({ origin }) => ({ x: origin.x + 500, y: origin.y + 600 })),
+  );
+  expect(new Set(copied.bars.map((b) => b.id)).size).toBe(4);
+  expect(mass(copied)).toBeCloseTo(2 * mass(p), 8);
+  await command(page, 'U');
+  expect(await save(page)).toEqual(moved);
+  await command(page, 'REDO');
+  expect(await save(page)).toEqual(copied);
+  await armatureCommand(page, 'Copiar armadura');
+  await command(page, '0,0');
+  await page.keyboard.press('Escape');
+  expect(await save(page)).toEqual(copied);
+});
+
+test('Armaduras rotaciona por pontos e ângulo e rejeita seleção protegida', async ({
+  page,
+}) => {
+  const p = fixture();
+  await load(page, p);
+  await select(page, 'N1');
+  await armatureCommand(page, 'Rotacionar armadura');
+  await command(page, '0,0');
+  await command(page, '1000,0');
+  await expect(page.getByTestId('mirror-axis')).toHaveAttribute(
+    'stroke-dasharray',
+    /\d/,
+  );
+  await command(page, '0,1000');
+  await expect(page.getByTestId('transform-preview')).toBeVisible();
+  await panel(page)
+    .getByRole('button', { name: 'Aplicar transformação', exact: true })
+    .click();
+  const rotated = await save(page);
+  expect(rotated.bars[0].origin.x).toBeCloseTo(-200, 7);
+  expect(rotated.bars[0].origin.y).toBeCloseTo(400, 7);
+  await armatureCommand(page, 'Rotacionar armadura');
+  await panel(page).getByLabel('Definição do ângulo').selectOption('angle');
+  await command(page, '0,0');
+  const angle = panel(page).getByLabel('Ângulo de rotação', { exact: true });
+  await angle.fill('-90');
+  await angle.press('Tab');
+  await panel(page)
+    .getByRole('button', { name: 'Aplicar transformação', exact: true })
+    .click();
+  const restored = await save(page);
+  expect(restored.bars[0].origin.x).toBeCloseTo(400, 7);
+  expect(restored.bars[0].origin.y).toBeCloseTo(200, 7);
+  expect(mass(restored)).toBeCloseTo(mass(p), 8);
+  const protectedProject = setLayerState(p, 'model', 'layer:DESENHO', {
+    visible: true,
+    capture: true,
+    editable: false,
+  });
+  await load(page, protectedProject);
+  await select(page, 'N1');
+  await select(page, 'N2', true);
+  await armatureCommand(page, 'Rotacionar armadura');
+  await expect(
+    page
+      .getByText(
+        'A seleção deve conter somente armaduras editáveis do detalhamento ativo.',
+      )
+      .first(),
+  ).toBeVisible();
+  await expect(panel(page)).toHaveCount(0);
+  expect(await save(page)).toEqual(protectedProject);
+});
+
 test('menu contextual seleciona o alvo, transforma 37° com prévia, desfaz/refaz e preserva seleção e persistência', async ({
   page,
 }) => {

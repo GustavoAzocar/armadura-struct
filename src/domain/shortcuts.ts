@@ -75,6 +75,9 @@ export type Action =
   | 'detail-repetition'
   | 'fabrication'
   | 'clone-armature'
+  | 'armature-copy'
+  | 'armature-move'
+  | 'armature-rotate'
   | 'layers'
   | 'align-selection'
   | 'insert-vertex'
@@ -454,6 +457,33 @@ export const shortcutCatalog: Record<Action, Command> = {
     edit,
     global(['DUPLICAR', 'CLONAR', 'DUPLICARARMADURA']),
     selected,
+  ),
+  'armature-copy': command(
+    'Copiar armadura',
+    armatures,
+    {},
+    {
+      ...model,
+      ...individual,
+    },
+  ),
+  'armature-move': command(
+    'Mover armadura',
+    armatures,
+    {},
+    {
+      ...model,
+      ...individual,
+    },
+  ),
+  'armature-rotate': command(
+    'Rotacionar armadura',
+    armatures,
+    {},
+    {
+      ...model,
+      ...individual,
+    },
   ),
   polyline: command(
     'Polilinha de elementos',

@@ -734,6 +734,13 @@ export default function App({
   const calibrationConsumed = useRef(false);
   const [transformRequest, setTransformRequest] =
     useState<TransformSession | null>(null);
+  const [armatureTranslation, setArmatureTranslation] = useState<{
+    project: Project;
+    detailId: string;
+    ids: string[];
+  } | null>(null);
+  const [armatureTranslationCursor, setArmatureTranslationCursor] =
+    useState<Point>();
   const [contextMenu, setContextMenu] = useState<{
     ids: string[];
     point: Point;
@@ -1751,6 +1758,8 @@ export default function App({
     setAlignmentRequest(null);
     setVertexRequest(null);
     setTransformRequest(null);
+    setArmatureTranslation(null);
+    setArmatureTranslationCursor(undefined);
     setContextMenu(null);
     if (activeSheet && t !== 'select' && t !== 'pan') {
       notify(
@@ -1821,6 +1830,53 @@ export default function App({
     setPage('drawing');
     setMessage(prompts[t]);
   };
+  const armatureSelectionError = (ids: string[]) => {
+    if (activeSheet || page !== 'drawing' || workScope !== 'drawing')
+      return 'Abra o desenho do detalhamento para manipular armaduras.';
+    if (!ids.length) return 'Selecione armaduras para usar este comando.';
+    const invalid = ids.some((id) => {
+      const bar = p.bars.find((item) => item.id === id);
+      return (
+        !bar ||
+        p.hierarchy.objectDetails[id] !== activeDetailId ||
+        !canCaptureObject(p, documentKey, id) ||
+        !objectState(p, documentKey, bar).editable
+      );
+    });
+    return invalid
+      ? 'A seleção deve conter somente armaduras editáveis do detalhamento ativo.'
+      : undefined;
+  };
+  const beginArmatureTranslation = (
+    kind: 'move' | 'copy',
+    ids: string[],
+    base?: Point,
+  ) => {
+    const error = armatureSelectionError(ids);
+    if (error) {
+      notify(error);
+      return;
+    }
+    setTool(kind);
+    setArmatureTranslation({
+      project: p,
+      detailId: activeDetailId,
+      ids: [...ids],
+    });
+    if (base) {
+      setDraft([base]);
+      setMessage('Indique o ponto de destino da cópia.');
+    }
+  };
+  const armatureTranslationLines = useMemo(
+    () =>
+      armatureTranslation?.project === p &&
+      armatureTranslation.detailId === activeDetailId &&
+      (tool === 'move' || tool === 'copy')
+        ? objectPrimitives(p, armatureTranslation.ids)
+        : undefined,
+    [p, activeDetailId, armatureTranslation, tool],
+  );
   const endMeasure = () => {
     setMeasureSession(null);
     setToolRaw('select');
@@ -2524,6 +2580,13 @@ export default function App({
     ) {
       notify('O projeto mudou. Reinicie a transformação.');
       return;
+    }
+    if (transformRequest.armatureDetailId) {
+      const error = armatureSelectionError(transformRequest.ids);
+      if (error || transformRequest.armatureDetailId !== activeDetailId) {
+        notify(error ?? 'O detalhamento mudou. Reinicie a transformação.');
+        return;
+      }
     }
     try {
       const t = sessionTransform(transformRequest);
@@ -6738,9 +6801,23 @@ export default function App({
       return;
     }
     if (tool === 'move' || tool === 'copy') {
-      if (!selected.length) return;
+      const ids = armatureTranslation?.ids ?? selected;
+      if (armatureTranslation) {
+        const error = armatureSelectionError(ids);
+        if (
+          error ||
+          armatureTranslation.project !== historyRef.current.present ||
+          armatureTranslation.detailId !== activeDetailId
+        ) {
+          setTool('select');
+          notify(error ?? 'O desenho mudou. Reinicie a operação.');
+          return;
+        }
+      }
+      if (!ids.length) return;
       if (!draft.length) {
         setDraft([point]);
+        if (armatureTranslation) setMessage('Indique o ponto de destino.');
         return;
       }
       const delta = sub(point, draft[0]);
@@ -6749,12 +6826,11 @@ export default function App({
       if (tool === 'copy') {
         const request: CloneRequest = {
           projectId: p.id,
-          barIds: p.bars
-            .filter((b) => selected.includes(b.id))
-            .map((b) => b.id),
-          objectIds: selected.filter((id) => !p.bars.some((b) => b.id === id)),
+          barIds: p.bars.filter((b) => ids.includes(b.id)).map((b) => b.id),
+          objectIds: ids.filter((id) => !p.bars.some((b) => b.id === id)),
           delta,
           detailId: activeDetailId,
+          armatureOnly: !!armatureTranslation,
         };
         const result = executeRebarBatch(
           p,
@@ -6767,7 +6843,11 @@ export default function App({
               detailId: request.detailId,
             },
           ],
-          { units: 'mm', scopeDetailId: isolationRef.current },
+          {
+            units: 'mm',
+            scopeDetailId: isolationRef.current,
+            ...(armatureTranslation ? { layerContext: documentKey } : {}),
+          },
         );
         // projectId is a UI guard, never an API command field.
         if (!result.ok) {
@@ -6781,7 +6861,7 @@ export default function App({
         selectedIds.push(...result.receipt.createdIds);
       } else {
         const commands: RebarCommand[] = p.bars
-          .filter((b) => selected.includes(b.id))
+          .filter((b) => ids.includes(b.id))
           .map((b) => ({ type: 'bar.move', id: b.id, delta }));
         if (commands.length) {
           const result = executeRebarBatch(p, commands, {
@@ -6798,29 +6878,25 @@ export default function App({
         next = {
           ...next,
           annotations: p.annotations.map((a) =>
-            selected.includes(a.id)
+            ids.includes(a.id)
               ? { ...a, points: a.points.map((v) => add(v, delta)) }
               : a,
           ),
           polylines: p.polylines.map((a) =>
-            selected.includes(a.id)
+            ids.includes(a.id)
               ? { ...a, points: a.points.map((v) => add(v, delta)) }
               : a,
           ),
           details: p.details.map((d) =>
-            selected.includes(d.id)
-              ? { ...d, origin: add(d.origin, delta) }
-              : d,
+            ids.includes(d.id) ? { ...d, origin: add(d.origin, delta) } : d,
           ),
           masks: p.masks.map((m) =>
-            selected.includes(m.id)
-              ? { ...m, origin: add(m.origin, delta) }
-              : m,
+            ids.includes(m.id) ? { ...m, origin: add(m.origin, delta) } : m,
           ),
           ...(p.weldedMeshes
             ? {
                 weldedMeshes: p.weldedMeshes.map((l) =>
-                  selected.includes(l.id)
+                  ids.includes(l.id)
                     ? transformWeldedMesh(l, { kind: 'translate', delta })
                     : l,
                 ),
@@ -6828,8 +6904,7 @@ export default function App({
             : {}),
         };
       }
-      commit(() => next);
-      if (tool === 'copy') select(selectedIds);
+      if (commit(() => next) && tool === 'copy') select(selectedIds);
       setTool('select');
       return;
     }
@@ -7593,11 +7668,31 @@ export default function App({
       }
       return;
     }
+    if (armatureTranslation && ['undo', 'redo'].includes(a)) {
+      setTool('select');
+      return;
+    }
+    if (a === 'armature-copy' || a === 'armature-move') {
+      beginArmatureTranslation(
+        a === 'armature-copy' ? 'copy' : 'move',
+        selected,
+      );
+      return;
+    }
     if (transformRequest && ['undo', 'redo'].includes(a)) {
       setTransformRequest(null);
       return;
     }
-    if (a === 'rotate' || a === 'mirror') {
+    if (a === 'rotate' || a === 'mirror' || a === 'armature-rotate') {
+      const armatureOnly = a === 'armature-rotate';
+      if (armatureOnly) {
+        const error = armatureSelectionError(selected);
+        if (error) {
+          notify(error);
+          return;
+        }
+        setTool('select');
+      }
       setAlignmentRequest(null);
       setVertexRequest(null);
       if (activeSheet) {
@@ -7615,11 +7710,12 @@ export default function App({
       setTransformRequest({
         project: p,
         ids: [...ids],
-        kind: a === 'rotate' ? 'rotate' : 'mirror',
+        kind: a === 'mirror' ? 'mirror' : 'rotate',
         angle: 90,
-        mode: 'angle',
+        mode: armatureOnly ? 'points' : 'angle',
         stage: 'base',
         associated: true,
+        ...(armatureOnly ? { armatureDetailId: activeDetailId } : {}),
       });
       return;
     }
@@ -8507,6 +8603,7 @@ export default function App({
   };
   const operationActive = !!(
     draft.length ||
+    armatureTranslation ||
     nativeKind ||
     maskCalibration ||
     maskOrigin ||
@@ -9949,6 +10046,9 @@ export default function App({
                           },
                         ]
                       : stirrupPreview.lines) ??
+                    (draft.length && armatureTranslationCursor
+                      ? armatureTranslationLines
+                      : undefined) ??
                     offsetLines ??
                     manipLines ??
                     symbolPickLines ??
@@ -9967,7 +10067,13 @@ export default function App({
                       ? vertexPreview.points
                       : undefined
                   }
-                  previewTranslation={manipPreview.whole?.delta}
+                  previewTranslation={
+                    armatureTranslationLines &&
+                    draft[0] &&
+                    armatureTranslationCursor
+                      ? sub(armatureTranslationCursor, draft[0])
+                      : manipPreview.whole?.delta
+                  }
                   mirrorAxis={
                     maskManip?.mode === 'mirror' &&
                     maskManip.base &&
@@ -9976,7 +10082,14 @@ export default function App({
                           base: maskManip.base,
                           end: (maskManip.axisEnd ?? maskManip.cursor)!,
                         }
-                      : undefined
+                      : transformRequest?.armatureDetailId &&
+                          transformRequest.base &&
+                          transformRequest.reference
+                        ? {
+                            base: transformRequest.base,
+                            end: transformRequest.reference,
+                          }
+                        : undefined
                   }
                   previewBase={
                     vertexRequest?.mode === 'lengthen' &&
@@ -9990,13 +10103,15 @@ export default function App({
                           ],
                           vertexPreview.previewBar,
                         )
-                      : (maskOffset?.points.at(-1) ??
+                      : ((armatureTranslationLines ? draft[0] : undefined) ??
+                        maskOffset?.points.at(-1) ??
                         manipAnchor ??
                         maskCalibration?.points[0] ??
                         transformRequest?.base)
                   }
                   commandActive={
                     !!maskOrigin ||
+                    !!armatureTranslation ||
                     !!beamClampSession ||
                     !!helixSession ||
                     !!freeText ||
@@ -10120,6 +10235,8 @@ export default function App({
                   setTool={setTool}
                   onCursor={(point) => {
                     onCursor(point);
+                    if (armatureTranslationLines && draft.length)
+                      setArmatureTranslationCursor(point);
                     if (meshSession?.points.length)
                       setMeshSession((s) => (s ? { ...s, cursor: point } : s));
                     if (beamClampSession && beamClampSession.stage !== 'ready')
@@ -11635,6 +11752,9 @@ export default function App({
             project={p}
             request={cloneRequest}
             scopeDetailId={isolatedDetailId}
+            validateBars={
+              cloneRequest.armatureOnly ? armatureSelectionError : undefined
+            }
             onClose={() => setCloneRequest(null)}
             onApply={(result) => {
               if (

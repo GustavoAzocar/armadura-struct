@@ -12,17 +12,20 @@ export type CloneRequest = {
   objectIds: string[];
   delta: Point;
   detailId?: string;
+  armatureOnly?: boolean;
 };
 export default function ArmatureCloneDialog({
   project,
   request,
   scopeDetailId,
+  validateBars,
   onApply,
   onClose,
 }: {
   project: Project;
   request: CloneRequest;
   scopeDetailId?: string;
+  validateBars?: (ids: string[]) => string | undefined;
   onApply: (r: RebarBatchResult) => boolean;
   onClose: () => void;
 }) {
@@ -45,6 +48,13 @@ export default function ArmatureCloneDialog({
       return undefined;
     }
   }, [project, request]);
+  const sourceError = validateBars
+    ? validateBars(
+        shared === 'clone-set' && initial
+          ? planArmatureClone(project, { ...request, shared }).barIds
+          : request.barIds,
+      )
+    : undefined;
   const preview = useMemo(
     () =>
       executeRebarBatch(
@@ -155,11 +165,15 @@ export default function ArmatureCloneDialog({
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
           >
-            <option value="" disabled={!!scopeDetailId}>
+            <option value="" disabled={!!scopeDetailId || request.armatureOnly}>
               Conservar os desenhos de origem
             </option>
             {project.hierarchy.details
-              .filter((d) => !scopeDetailId || d.id === scopeDetailId)
+              .filter(
+                (d) =>
+                  (!scopeDetailId || d.id === scopeDetailId) &&
+                  (!request.armatureOnly || d.id === request.detailId),
+              )
               .map((d) => (
                 <option key={d.id} value={d.id}>
                   {detailPath(project, d.id)}
@@ -192,7 +206,9 @@ export default function ArmatureCloneDialog({
             </label>
           </fieldset>
         )}
-        {preview.ok ? (
+        {sourceError ? (
+          <p role="alert">{sourceError}</p>
+        ) : preview.ok ? (
           <div className="clone-preview" aria-label="Prévia da duplicação">
             <strong>
               {added.length} nova(s) armadura(s) física(s) ·{' '}
@@ -227,7 +243,7 @@ export default function ArmatureCloneDialog({
           <button onClick={onClose}>Cancelar</button>
           <button
             className="primary"
-            disabled={!preview.ok}
+            disabled={!preview.ok || !!sourceError}
             onClick={() => onApply(preview)}
           >
             Duplicar conjunto

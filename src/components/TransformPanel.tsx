@@ -17,6 +17,7 @@ export type TransformSession = {
   mode: 'angle' | 'points';
   stage: 'base' | 'reference' | 'target' | 'axis' | 'ready';
   associated: boolean;
+  armatureDetailId?: string;
 };
 export function sessionTransform(
   s: TransformSession,
