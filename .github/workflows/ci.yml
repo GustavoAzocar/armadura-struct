@@ -23,6 +23,8 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - name: Sheet seal bindings and batch history
+        run: npx playwright test tests/e2e/sheetSealDraft.spec.ts
       - name: Close project, recovery and session boundaries
         run: npx playwright test tests/e2e/closeProject.spec.ts
       - name: Slow close and keyboard focus regressions
