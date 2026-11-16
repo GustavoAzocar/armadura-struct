@@ -87,12 +87,14 @@ import {
   hasPendingFolderWrites,
   inheritProjectFolder,
   projectFolderLabel,
+  projectFolderRecovery,
   saveProjectFolder,
   createProjectInFolder,
   attachProjectFolder,
   pickProjectFolder,
   detachProject,
   PROJECT_FILE,
+  type ProjectFolder,
 } from './lib/projectFolder';
 import LinkedProjectFiles from './components/LinkedProjectFiles';
 import { linkProjectFile } from './domain/linkedProjectFiles';
@@ -101,6 +103,27 @@ import CloseProjectDialog, {
   type CloseProjectGuard,
 } from './components/CloseProjectDialog';
 import StartScreen from './components/StartScreen';
+import PeriodicRecoveryDialog from './components/PeriodicRecoveryDialog';
+import {
+  isValidCopy,
+  listFolderRecoveryCopies,
+  listLocalRecoveryCopies,
+  makeRecoveryCopy,
+  periodicRecoveryStatusLabel,
+  recoverPeriodicProject,
+  saveFolderRecoveryCopy,
+  saveLocalRecoveryCopy,
+  type RecoveryCopy,
+} from './lib/periodicRecovery';
+import {
+  createPeriodicRecoveryScheduler,
+  type PeriodicRecoveryStatus,
+} from './lib/periodicRecoveryScheduler';
+import {
+  loadPeriodicRecoverySettings,
+  RECOVERY_SETTINGS_KEY,
+  savePeriodicRecoverySettings,
+} from './lib/periodicRecoverySettings';
 import { captureRecentContext } from './lib/recentProjectSafety';
 import {
   readRecents,
@@ -552,6 +575,7 @@ const startScreenCommands = new Set<Action>([
   'new',
   'open',
   'recent',
+  'periodic-recovery',
   'shortcuts',
   'help',
   'check-updates',
@@ -998,6 +1022,143 @@ export default function App({
     [busy, setBusy] = useState(''),
     [saveState, setSaveState] = useState('Verificando recuperação local…');
   const [folderEpoch, setFolderEpoch] = useState(0);
+  const [periodicSettings, setPeriodicSettings] = useState(
+    loadPeriodicRecoverySettings,
+  );
+  const [periodicOpen, setPeriodicOpen] = useState(false);
+  const [periodicChosenFolder, setPeriodicChosenFolder] =
+    useState<ProjectFolder['recovery']>();
+  const [periodicStatus, setPeriodicStatus] = useState<PeriodicRecoveryStatus>({
+    kind: 'waiting',
+  });
+  const [periodicCopies, setPeriodicCopies] = useState<
+    (RecoveryCopy & { destination: 'folder' | 'local'; valid: boolean })[]
+  >([]);
+  const [periodicLoading, setPeriodicLoading] = useState(false);
+  const [periodicError, setPeriodicError] = useState('');
+  const periodicFolder = projectFolderRecovery(p);
+  const periodicContext = useRef<{
+    projectId: string;
+    destination?: ProjectFolder['recovery'];
+  }>({ projectId: '' });
+  const [periodicScheduler] = useState(() =>
+    createPeriodicRecoveryScheduler<Project>({
+      onStatus: setPeriodicStatus,
+      write: async (snapshot, startedAt, isCurrent) => {
+        const destination = projectFolderRecovery(snapshot);
+        const allowed = () =>
+          isCurrent() &&
+          !noProjectRef.current &&
+          !closingProject.current &&
+          historyRef.current.present.id === snapshot.id &&
+          projectFolderRecovery(historyRef.current.present) === destination;
+        if (!allowed()) return null;
+        const copy = makeRecoveryCopy(snapshot, startedAt);
+        if (destination) {
+          const result = await saveFolderRecoveryCopy(
+            destination,
+            copy,
+            allowed,
+          );
+          return result && { destination: 'folder', copiedAt: Date.now() };
+        }
+        const result = await saveLocalRecoveryCopy(copy, allowed);
+        return result && { destination: 'local', copiedAt: Date.now() };
+      },
+    }),
+  );
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === RECOVERY_SETTINGS_KEY || event.key === null)
+        setPeriodicSettings(loadPeriodicRecoverySettings());
+    };
+    const onReturn = () => {
+      if (!document.hidden) periodicScheduler.wake();
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', onReturn);
+    document.addEventListener('visibilitychange', onReturn);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onReturn);
+      document.removeEventListener('visibilitychange', onReturn);
+      periodicScheduler.suspend();
+    };
+  }, [periodicScheduler]);
+  useEffect(() => {
+    periodicScheduler.configure(periodicSettings.settings);
+  }, [periodicScheduler, periodicSettings]);
+  useEffect(() => {
+    if (!ready || noProject) {
+      periodicScheduler.suspend();
+      return;
+    }
+    const sameProject = periodicContext.current.projectId === p.id;
+    const destinationChanged =
+      sameProject && periodicContext.current.destination !== periodicFolder;
+    if (!sameProject || destinationChanged)
+      periodicContext.current = {
+        projectId: p.id,
+        destination: periodicFolder,
+      };
+    periodicScheduler.observe(periodicContext.current, p, destinationChanged);
+  }, [periodicScheduler, periodicFolder, p, ready, noProject]);
+  useEffect(() => {
+    if (!periodicOpen) return;
+    let active = true;
+    setPeriodicLoading(true);
+    setPeriodicError('');
+    void Promise.allSettled([
+      listLocalRecoveryCopies(),
+      listFolderRecoveryCopies(
+        periodicChosenFolder ?? periodicFolder,
+        periodicChosenFolder ? undefined : p.id,
+      ),
+    ]).then(([local, folder]) => {
+      if (!active) return;
+      const copies = [
+        ...(local.status === 'fulfilled'
+          ? local.value.copies.map((copy) => ({
+              ...copy,
+              destination: 'local' as const,
+            }))
+          : []),
+        ...(folder.status === 'fulfilled'
+          ? folder.value.map((copy) => ({
+              ...copy,
+              destination: 'folder' as const,
+            }))
+          : []),
+      ].sort((a, b) => b.copiedAt - a.copiedAt);
+      setPeriodicCopies(
+        copies.map((copy) => ({ ...copy, valid: isValidCopy(copy) })),
+      );
+      setPeriodicError(
+        [
+          local.status === 'rejected'
+            ? 'Não foi possível consultar as cópias locais.'
+            : local.value.unreadableProjects
+              ? 'Há históricos locais ilegíveis. Os dados foram preservados.'
+              : '',
+          folder.status === 'rejected'
+            ? 'Não foi possível consultar as cópias na pasta autorizada.'
+            : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      );
+      setPeriodicLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [
+    periodicOpen,
+    periodicChosenFolder,
+    periodicFolder,
+    p.id,
+    periodicStatus,
+  ]);
   const [folderMenuOpen, setFolderMenuOpen] = useState(false);
   const folderMenu = useRef<HTMLDetailsElement>(null);
   const [updateRequest, setUpdateRequest] = useState(0);
@@ -7184,6 +7345,10 @@ export default function App({
       setCadSettingsOpen(true);
       return;
     }
+    if (a === 'periodic-recovery') {
+      setPeriodicOpen(true);
+      return;
+    }
     if (a === 'symbols') {
       setSymbolsOpen(true);
       return;
@@ -7924,6 +8089,11 @@ export default function App({
     }
   };
   const afterProjectReplaced = () => {
+    periodicContext.current = {
+      projectId: historyRef.current.present.id,
+      destination: projectFolderRecovery(historyRef.current.present),
+    };
+    periodicScheduler.suspend();
     savedBaseline.current = historyRef.current.present;
     stirrupCriteria.current = undefined;
     weldedMeshCriteria.current = undefined;
@@ -7991,9 +8161,12 @@ export default function App({
     }
   };
   /** Resolve alterações não salvas e gravações pendentes ANTES de substituir o projeto. */
-  const confirmReplace = (): Promise<boolean> => {
+  const confirmReplace = (
+    show = setRecentGuard,
+    report = setRecentNotice,
+  ): Promise<boolean> => {
     if (hasPendingFolderWrites()) {
-      setRecentNotice(
+      report(
         'Gravação em andamento. Aguarde o resultado antes de abrir outro projeto.',
       );
       return Promise.resolve(false);
@@ -8005,13 +8178,13 @@ export default function App({
       vertexRequest ||
       scheduleRequest
     ) {
-      setRecentNotice(
+      report(
         'Conclua ou cancele o comando em andamento antes de abrir outro projeto.',
       );
       return Promise.resolve(false);
     }
-    return resolveUnsaved(setRecentGuard, (reason) =>
-      setRecentNotice(
+    return resolveUnsaved(show, (reason) =>
+      report(
         `Não foi possível salvar o projeto atual (${reason}). Nada foi substituído.`,
       ),
     );
@@ -8140,6 +8313,7 @@ export default function App({
       setBusy('Fechando projeto…');
       try {
         await closeRecovery(base.id);
+        periodicScheduler.suspend();
       } catch (e) {
         closingProject.current = false;
         setBusy('');
@@ -8164,6 +8338,27 @@ export default function App({
       () => historyRef.current.present,
       () => `${maskImportContext.current}:${isolationRef.current ?? ''}`,
     );
+  const restorePeriodicCopy = async (id: string) => {
+    const copy = periodicCopies.find((item) => item.id === id);
+    if (!copy) throw Error('A cópia não está mais disponível.');
+    if (isolationRef.current || fileOperations.current || busy)
+      throw Error('Conclua a operação do projeto atual antes de recuperar.');
+    const assertCurrent = recentContext();
+    const next = recoverPeriodicProject(copy);
+    if (
+      !noProjectRef.current &&
+      !(await confirmReplace(setCloseGuard, setPeriodicError))
+    )
+      return false;
+    assertCurrent();
+    if (!commit(() => detachProject(next))) return false;
+    afterProjectReplaced();
+    savedBaseline.current = undefined;
+    notify(
+      'Cópia recuperada. Salve-a em um destino escolhido para gravar no disco.',
+    );
+    return true;
+  };
   /** Retorna true ao abrir, false se cancelado, ou a mensagem de erro. */
   const onProjectFile = async (
     file: File,
@@ -9006,6 +9201,7 @@ export default function App({
           onNew={() => void action('new')}
           onOpen={() => void action('open')}
           onRecent={() => void action('recent')}
+          onRecovery={() => setPeriodicOpen(true)}
         />
       )}
       <Ribbon
@@ -10916,6 +11112,20 @@ export default function App({
         <span className="cursor-position" ref={cursorReadout}>
           X 0,0 · Y 0,0 · mm
         </span>
+        <span
+          className="periodic-recovery-status"
+          aria-live="polite"
+          title={
+            periodicStatus.kind === 'failed'
+              ? periodicStatus.message
+              : undefined
+          }
+        >
+          {periodicRecoveryStatusLabel(
+            periodicStatus,
+            periodicSettings.settings.enabled,
+          )}
+        </span>
         <div className="status-toggles">
           <button
             className={grid ? 'active' : ''}
@@ -11573,6 +11783,37 @@ export default function App({
           projectName={p.name}
           folderLabel={projectFolderLabel(p)}
           guard={closeGuard}
+          mode={periodicOpen ? 'recover' : 'close'}
+        />
+      )}
+      {periodicOpen && (
+        <PeriodicRecoveryDialog
+          settings={periodicSettings.settings}
+          warning={periodicSettings.warning}
+          status={periodicRecoveryStatusLabel(
+            periodicStatus,
+            periodicSettings.settings.enabled,
+          )}
+          copies={periodicCopies}
+          loading={periodicLoading}
+          error={periodicError}
+          onSave={(settings) => {
+            savePeriodicRecoverySettings(settings);
+            setPeriodicSettings({ settings });
+          }}
+          onRestore={restorePeriodicCopy}
+          onChooseFolder={
+            folderAvailable()
+              ? async () => {
+                  const folder = await pickProjectFolder();
+                  if (folder) setPeriodicChosenFolder(folder.recovery);
+                }
+              : undefined
+          }
+          onClose={() => {
+            setPeriodicChosenFolder(undefined);
+            setPeriodicOpen(false);
+          }}
         />
       )}
       {recentOpen && (
@@ -11635,6 +11876,13 @@ export default function App({
                 const next = decodeProject(raw);
                 attachProjectFolder(next, folder, raw);
                 if (!commit(() => next)) return false;
+                periodicContext.current = {
+                  projectId: next.id,
+                  destination: projectFolderRecovery(
+                    historyRef.current.present,
+                  ),
+                };
+                periodicScheduler.suspend();
                 setSheetTemplateSession(null);
                 savedBaseline.current = historyRef.current.present;
                 rememberRecent({

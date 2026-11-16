@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Cópias periódicas de recuperação (#196): preferência por dispositivo, horário e destino da última confirmação, histórico de versões e restauração protegida, preservando o salvamento principal e seu formato. [Uso e limites](docs/COPIAS-DE-RECUPERACAO.md).
+
 - Arquivo → Projeto → Fechar projeto (#173): volta a uma tela inicial **Sem projeto aberto** sem encerrar o aplicativo, com Novo, Abrir e Recentes. Alterações não salvas pedem Salvar e fechar, Fechar sem salvar ou Cancelar, reaproveitando as proteções de Projetos recentes (download no navegador não conta como gravação). Reiniciar após fechar mantém a tela inicial; a recuperação do último trabalho continua quando o aplicativo é encerrado com projeto aberto. Nenhum arquivo, pasta, backup ou recente é apagado; formato do projeto inalterado. [Uso e limites](docs/FECHAR-PROJETO.md).
 
 - Modelos reutilizáveis de margem e selo (#141/#191): biblioteca incorporada, revisões explícitas por folha, importação/calibração em mm de papel, áreas úteis e textos estáticos editáveis. Aplicação em lote com histórico atômico; PDF e novo DXF de pranchas pela mesma composição, sem alterar o DXF global ou os quantitativos. Formato nativo /38 reúne modelos, vínculos, cotagem e faixas sem traços, com leitura do experimental /36; a guarda de isolamento protege o catálogo. [Uso, compatibilidade e limites](docs/MARGENS-E-SELOS.md).

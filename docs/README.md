@@ -11,6 +11,7 @@ A master desta revisão usa `armadurastruct/35` e `openstruct.detail/23` ([JSON 
 - [Criação contextual na árvore](ARVORE-CRIACAO-CONTEXTUAL.md)
 - [Metadados documentais de cada desenho](METADADOS-DESENHO.md)
 - [Pasta do projeto e arquivos vinculados](PASTA-PROJETO.md)
+- [Cópias periódicas de recuperação](COPIAS-DE-RECUPERACAO.md)
 - [Projetos e documentos recentes](PROJETOS-RECENTES.md)
 - [Fechar projeto e tela inicial](FECHAR-PROJETO.md)
 - [AS-03 · Repetição de detalhamentos e quantitativos](AS-03.md)

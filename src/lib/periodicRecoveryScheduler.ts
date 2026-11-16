@@ -33,7 +33,7 @@ type SchedulerOptions<T> = {
 type Session<T> = {
   context: object;
   observed: T;
-  acknowledged: T;
+  acknowledged?: T;
   changedAt?: number;
   lastSaved?: SavedStatus;
 };
@@ -103,11 +103,17 @@ export function createPeriodicRecoveryScheduler<T extends object>({
   }
 
   return {
-    observe(context: object, snapshot: T) {
+    observe(context: object, snapshot: T, destinationChanged = false) {
       if (session?.context !== context) {
         clearTimer();
-        session = { context, observed: snapshot, acknowledged: snapshot };
+        session = {
+          context,
+          observed: snapshot,
+          acknowledged: destinationChanged ? undefined : snapshot,
+          changedAt: destinationChanged ? now() : undefined,
+        };
         onStatus({ kind: 'waiting' });
+        schedule();
         return;
       }
       if (session.observed === snapshot) return;

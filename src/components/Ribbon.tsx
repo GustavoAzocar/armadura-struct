@@ -300,6 +300,7 @@ export default function Ribbon({
         items: [
           item('shortcuts', 'Atalhos', KeyboardIcon),
           item('snap-modes', 'Modos de encaixe', ScanLine),
+          item('periodic-recovery', 'Salvamento e recuperação', History),
         ],
       },
     ],

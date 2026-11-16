@@ -2007,6 +2007,14 @@ svg {
   color: #cedcf2;
   font-size: 8px;
 }
+.statusbar .periodic-recovery-status {
+  min-width: 0;
+  color: #cedcf2;
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .statusbar .cursor-position {
   min-width: 186px;
   color: #d3dff0;

@@ -11,6 +11,7 @@ export const RESERVED_EXPORTS = [
   'exportacoes/configuracoes',
 ] as const;
 type FH = {
+  isSameEntry?(other: FH): Promise<boolean>;
   getFile(): Promise<File>;
   createWritable(options: { mode: 'exclusive' }): Promise<{
     write(data: string): Promise<void>;
@@ -215,13 +216,23 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
       if (!missing(e)) throw e;
     }
   };
+  let pendingInitialRecovery: FH | undefined;
   const readCopies = async () => {
     const directory = await recoveryDirectory(false);
     if (!directory) return;
     await checkNames(directory, 'copies.json');
     try {
       const handle = await directory.getFileHandle('copies.json');
-      return await (await handle.getFile()).text();
+      const raw = await (await handle.getFile()).text();
+      // Um primeiro create pode deixar um arquivo vazio antes de close().
+      // Só trate como ainda não publicado um handle reconhecido desta sessão.
+      if (
+        raw === '' &&
+        pendingInitialRecovery &&
+        (await handle.isSameEntry?.(pendingInitialRecovery))
+      )
+        return;
+      return raw;
     } catch (e) {
       if (!missing(e)) throw e;
     }
@@ -248,6 +259,7 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
             const handle = await directory.getFileHandle('copies.json', {
               create: true,
             });
+            if (expected === undefined) pendingInitialRecovery = handle;
             const writer = await handle.createWritable({ mode: 'exclusive' });
             try {
               if (
@@ -266,6 +278,7 @@ export async function pickProjectFolder(): Promise<ProjectFolder | null> {
                 return false;
               }
               await writer.close();
+              pendingInitialRecovery = undefined;
               return true;
             } catch (e) {
               await writer.abort().catch(() => {});

@@ -67,7 +67,7 @@ describe('conteúdo e retenção das cópias periódicas', () => {
     );
 
   it('planeja preservar as últimas três cópias válidas e mantém as inválidas para diagnóstico', () => {
-    const old = [copy(1), copy(2), { ...copy(3), raw: '{incompleto' }, copy(4)];
+    const old = [copy(4), { ...copy(3), raw: '{incompleto' }, copy(2), copy(1)];
     const next = planRecoveryCopy(old, copy(5));
     expect(next?.map((item) => item.id)).toEqual([
       'copia-5',
@@ -76,12 +76,15 @@ describe('conteúdo e retenção das cópias periódicas', () => {
       'copia-2',
     ]);
     expect(old).toHaveLength(4);
-    expect(() => recoverPeriodicProject(old[2])).toThrow();
+    expect(() => recoverPeriodicProject(old[1])).toThrow();
   });
 
-  it('não cria duplicata da versão mais recente nem permite uma conclusão atrasada', () => {
+  it('a ordem da rotação independe do relógio civil e conteúdo repetido não vira cópia', () => {
     const current = copy(4);
-    expect(planRecoveryCopy([current], copy(2))).toBeUndefined();
+    expect(planRecoveryCopy([current], copy(2))?.map(({ id }) => id)).toEqual([
+      'copia-2',
+      'copia-4',
+    ]);
     expect(
       planRecoveryCopy([current], { ...current, id: 'nova', startedAt: 5 }),
     ).toBeUndefined();
@@ -130,7 +133,7 @@ describe('conteúdo e retenção das cópias periódicas', () => {
     ).toEqual(['copia-4', 'copia-3', 'copia-2']);
   });
 
-  it('reavalia a versão após disputa pela pasta sem publicar a revisão mais antiga', async () => {
+  it('recusa a concorrência pela pasta sem publicar o snapshot atrasado', async () => {
     let raw: string | undefined;
     const folder = {
       read: async () => raw,
@@ -147,7 +150,7 @@ describe('conteúdo e retenção das cópias periódicas', () => {
         return folder.write(next, expected);
       },
     };
-    await expect(saveFolderRecoveryCopy(old, copy(5))).resolves.toBeNull();
+    await expect(saveFolderRecoveryCopy(old, copy(5))).rejects.toThrow('mudou');
     expect(
       (await listFolderRecoveryCopies(folder, project.id)).map(
         (item) => item.id,

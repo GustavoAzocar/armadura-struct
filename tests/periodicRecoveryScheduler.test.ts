@@ -174,6 +174,25 @@ describe('agendamento das cópias periódicas', () => {
     ]);
   });
 
+  it('trocar o destino do mesmo projeto agenda o estado atual e invalida o recibo antigo', async () => {
+    const { scheduler, write, context, statuses } = setup();
+    const slow = deferred<PeriodicRecoveryReceipt>();
+    write.mockImplementationOnce(() => slow.promise);
+    scheduler.configure({ enabled: true, minutes: 1 });
+    const current = snapshot(1);
+    scheduler.observe(context, current);
+    await advance(minute);
+    const isOld = write.mock.calls[0][2];
+    scheduler.observe({}, current, true);
+    expect(isOld()).toBe(false);
+    slow.resolve({ destination: 'folder', copiedAt: minute });
+    await advance(minute);
+    expect(write).toHaveBeenCalledTimes(2);
+    expect(statuses.filter((status) => status.kind === 'saved')).toHaveLength(
+      1,
+    );
+  });
+
   it('desativar cancela a validade da operação e reativar agenda as alterações pendentes', async () => {
     const { scheduler, write, context, statuses } = setup();
     const slow = deferred<PeriodicRecoveryReceipt>();

@@ -77,18 +77,13 @@ function rotateCopies(
   candidate: RecoveryCopy,
   validity: boolean[],
 ) {
-  const ordered = existing
-    .map((copy, index) => ({
-      copy,
-      valid: validity[index],
-    }))
-    .sort((a, b) => b.copy.startedAt - a.copy.startedAt);
+  // A ordem do inventário acompanha as transações. O relógio civil pode recuar.
+  const ordered = existing.map((copy, index) => ({
+    copy,
+    valid: validity[index],
+  }));
   const latest = ordered.find((entry) => entry.valid)?.copy;
-  if (
-    latest &&
-    (latest.startedAt >= candidate.startedAt || latest.raw === candidate.raw)
-  )
-    return;
+  if (latest?.raw === candidate.raw) return;
   let valid = 1;
   return [
     candidate,
@@ -129,7 +124,7 @@ async function planOffThread(
 function archive(snapshot: unknown, projectId: string): RecoveryCopy[] {
   if (snapshot === undefined) return [];
   if (!Array.isArray(snapshot))
-    throw Error('Histórico local de recuperação ilegível.');
+    throw Error('Histórico de recuperação ilegível.');
   const ids = new Set<string>();
   for (const copy of snapshot as RecoveryCopy[]) {
     if (
@@ -143,7 +138,7 @@ function archive(snapshot: unknown, projectId: string): RecoveryCopy[] {
       !Number.isSafeInteger(copy.copiedAt) ||
       typeof copy.raw !== 'string'
     )
-      throw Error('Histórico local de recuperação incompatível.');
+      throw Error('Histórico de recuperação incompatível.');
     ids.add(copy.id);
   }
   return snapshot as RecoveryCopy[];
@@ -180,23 +175,22 @@ export async function saveFolderRecoveryCopy(
   copy: RecoveryCopy,
   isCurrent = () => true,
 ) {
-  // Reavalie o candidato em uma corrida; a captura atrasada jamais substitui a última.
-  for (let attempt = 0; attempt < 2 && isCurrent(); attempt++) {
-    const expected = await destination.read();
-    const copies = await planOffThread(
-      readFolderCopies(expected, copy.projectId),
-      copy,
-    );
-    if (!copies || !isCurrent()) return null;
-    const confirmed = { ...copy, copiedAt: Date.now() };
-    copies[0] = confirmed;
-    const contents = JSON.stringify({
-      format: RECOVERY_ARCHIVE_FORMAT,
-      projectId: copy.projectId,
-      copies,
-    });
-    if (await destination.write(contents, expected)) return confirmed;
-  }
+  if (!isCurrent()) return null;
+  const expected = await destination.read();
+  const copies = await planOffThread(
+    readFolderCopies(expected, copy.projectId),
+    copy,
+  );
+  if (!copies || !isCurrent()) return null;
+  const confirmed = { ...copy, copiedAt: Date.now() };
+  copies[0] = confirmed;
+  const contents = JSON.stringify({
+    format: RECOVERY_ARCHIVE_FORMAT,
+    projectId: copy.projectId,
+    copies,
+  });
+  // Se outra instância publicar antes, recomece com um novo snapshot no próximo ciclo.
+  if (await destination.write(contents, expected)) return confirmed;
   if (!isCurrent()) return null;
   throw Error('O histórico na pasta mudou durante a cópia.');
 }
@@ -210,25 +204,28 @@ function openArchive() {
   });
 }
 
-export async function listLocalRecoveryCopies(): Promise<RecoveryCopy[]> {
+export async function listLocalRecoveryCopies(): Promise<{
+  copies: RecoveryCopy[];
+  unreadableProjects: number;
+}> {
   const db = await openArchive();
   try {
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(STORE);
       const request = tx.objectStore(STORE).openCursor();
       const copies: RecoveryCopy[] = [];
+      let unreadableProjects = 0;
       request.onsuccess = () => {
         const cursor = request.result;
         if (!cursor) return;
         try {
           copies.push(...archive(cursor.value, String(cursor.key)));
-          cursor.continue();
-        } catch (error) {
-          reject(error);
+        } catch {
+          unreadableProjects++;
         }
+        cursor.continue();
       };
-      tx.oncomplete = () =>
-        resolve(copies.sort((a, b) => b.copiedAt - a.copiedAt));
+      tx.oncomplete = () => resolve({ copies, unreadableProjects });
       tx.onabort = () =>
         reject(tx.error ?? Error('Falha ao consultar as cópias locais.'));
     });
@@ -303,17 +300,16 @@ export async function saveLocalRecoveryCopy(
 ) {
   const db = await openArchive();
   try {
-    for (let attempt = 0; attempt < 2 && isCurrent(); attempt++) {
-      const expected = await loadLocalArchive(db, copy.projectId);
-      const next = await planOffThread(expected, copy);
-      if (!next || !isCurrent()) return null;
-      const confirmed = { ...copy, copiedAt: Date.now() };
-      next[0] = confirmed;
-      if (
-        await replaceLocalArchive(db, copy.projectId, expected, next, isCurrent)
-      )
-        return confirmed;
-    }
+    if (!isCurrent()) return null;
+    const expected = await loadLocalArchive(db, copy.projectId);
+    const next = await planOffThread(expected, copy);
+    if (!next || !isCurrent()) return null;
+    const confirmed = { ...copy, copiedAt: Date.now() };
+    next[0] = confirmed;
+    if (
+      await replaceLocalArchive(db, copy.projectId, expected, next, isCurrent)
+    )
+      return confirmed;
     if (!isCurrent()) return null;
     throw Error('O histórico local mudou durante a cópia.');
   } finally {

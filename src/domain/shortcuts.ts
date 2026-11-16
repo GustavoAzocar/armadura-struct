@@ -7,6 +7,7 @@ export type Action =
   | 'beam-clamp-criteria'
   | 'helix-criteria'
   | 'cad-settings'
+  | 'periodic-recovery'
   | 'shortcuts'
   | 'toggle-ribbon'
   | 'mask-control'
@@ -163,6 +164,7 @@ export const shortcutCatalog: Record<Action, Command> = {
     },
   ),
   'cad-settings': command('Configurações CAD', general),
+  'periodic-recovery': command('Salvamento e recuperação', general),
   shortcuts: command('Atalhos de teclado', general),
   help: command('Guia de uso', general),
   'check-updates': command('Verificar atualizações', general),

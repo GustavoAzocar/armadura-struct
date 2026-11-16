@@ -10,11 +10,13 @@ export default function StartScreen({
   onNew,
   onOpen,
   onRecent,
+  onRecovery,
 }: {
   recentCount: number;
   onNew: () => void;
   onOpen: () => void;
   onRecent: () => void;
+  onRecovery: () => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -48,6 +50,10 @@ export default function StartScreen({
                 {recentCount}
               </span>
             )}
+          </button>
+          <button type="button" onClick={onRecovery}>
+            <History size={16} aria-hidden="true" />
+            Salvamento e recuperação
           </button>
         </div>
       </section>
