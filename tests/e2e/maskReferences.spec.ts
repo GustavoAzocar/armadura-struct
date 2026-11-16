@@ -308,6 +308,11 @@ test('alinha com escala e rotação, prévia cancelável, histórico, encaixe no
   await origin(page)
     .getByRole('button', { name: 'Pré-visualizar alinhamento' })
     .click();
+  // Reescolher o ponto já alinhado usa a pose da prévia, sem dupla transformação.
+  await clickModel(page, v(0, 0));
+  await origin(page)
+    .getByRole('button', { name: 'Pré-visualizar alinhamento' })
+    .click();
   await page.screenshot({ path: 'docs/mascara-origem-previa.png' });
   await origin(page)
     .getByRole('button', { name: 'Aplicar alinhamento' })

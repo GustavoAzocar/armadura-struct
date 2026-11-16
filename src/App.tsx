@@ -6308,11 +6308,20 @@ export default function App({
   const onPoint = (point: Point) => {
     if (maskOrigin) {
       try {
+        // O clique usa a transformação que está na tela, inclusive na prévia.
+        const displayedMask = maskOriginPreview
+          ? (referenceMask(
+              maskOriginPreview,
+              maskOrigin.detailId,
+              maskOrigin.mask.id,
+              true,
+            ) ?? maskOrigin.mask)
+          : maskOrigin.mask;
         setMaskOrigin({
           ...maskOrigin,
           ...(maskOrigin.pickingTarget
             ? { target: point, pickingTarget: false }
-            : { local: maskAnchorFromWorld(maskOrigin.mask, point) }),
+            : { local: maskAnchorFromWorld(displayedMask, point) }),
           preview: false,
         });
       } catch (e) {
