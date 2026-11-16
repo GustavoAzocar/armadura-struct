@@ -9360,6 +9360,17 @@ export default function App({
                   </div>
                 ))}
             </div>
+            {page === 'drawing' &&
+              !activeSheet &&
+              tab.toLowerCase() === 'armaduras' &&
+              !maskOrigin && (
+                <DetailMaskSelector
+                  project={p}
+                  detailId={activeDetailId}
+                  onChange={changeDetailMask}
+                  onOrigin={startMaskOrigin}
+                />
+              )}
             <button
               className={page === 'schedule' ? 'active' : ''}
               onClick={() => setPage('schedule')}
@@ -9678,14 +9689,6 @@ export default function App({
                     Cancelar desenho da máscara
                   </button>
                 </div>
-              )}
-              {tab.toLowerCase() === 'armaduras' && !maskOrigin && (
-                <DetailMaskSelector
-                  project={p}
-                  detailId={activeDetailId}
-                  onChange={changeDetailMask}
-                  onOrigin={startMaskOrigin}
-                />
               )}
               {nativeTarget?.independent &&
                 maskDrawingContext.editingMaskId &&

@@ -98,6 +98,42 @@ function fixture() {
   return { p, a, b: second.id };
 }
 
+test('seletor na barra de documentos preserva a área do CAD e permite trocar referências em janelas menores', async ({
+  page,
+}) => {
+  await load(page, fixture().p);
+  await page.getByRole('tab', { name: 'Armaduras', exact: true }).click();
+  for (const width of [1600, 1366, 1024]) {
+    await page.setViewportSize({ width, height: 768 });
+    const cad = (await page.getByTestId('cad-canvas').boundingBox())!;
+    const control = (await selector(page).boundingBox())!;
+    expect(cad.height).toBeGreaterThan(768 * 0.7);
+    expect(control.y + control.height).toBeLessThanOrEqual(cad.y + 1);
+    expect(
+      await page
+        .locator('.document-tabs')
+        .evaluate((e) => e.scrollWidth <= e.clientWidth),
+    ).toBe(true);
+    await selector(page)
+      .getByLabel('Trocar referência atual', { exact: true })
+      .selectOption('mask-B');
+    await expect(page.locator('[data-mask-id="mask-B"]')).toBeVisible();
+    await expect(page.locator('[data-mask-id="mask-A"]')).toHaveCount(0);
+    await selector(page).locator('summary').click();
+    await expect(
+      selector(page).getByLabel('Exibir B', { exact: true }),
+    ).toBeChecked();
+    await expect(
+      selector(page).getByLabel('Exibir Extra', { exact: true }),
+    ).toBeChecked();
+    await page.screenshot({ path: `docs/mascaras-seletor-${width}.png` });
+    await selector(page).locator('summary').click();
+    await selector(page)
+      .getByLabel('Trocar referência atual', { exact: true })
+      .selectOption('mask-A');
+  }
+});
+
 test('cria máscara independente, desenha, edita, desfaz/refaz e reabre sem detalhamento fictício', async ({
   page,
 }) => {

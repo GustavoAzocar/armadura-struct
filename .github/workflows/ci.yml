@@ -157,6 +157,7 @@ jobs:
             docs/mascara-independente.png
             docs/mascaras-do-detalhamento.png
             docs/mascara-origem-previa.png
+            docs/mascaras-seletor-*.png
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
