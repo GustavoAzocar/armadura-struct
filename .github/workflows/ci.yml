@@ -23,6 +23,8 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - name: Máscaras independentes e regressões de CAD/telas
+        run: npx playwright test tests/e2e/maskReferences.spec.ts tests/e2e/upgrade.spec.ts tests/e2e/weldedMeshEditing.spec.ts tests/e2e/weldedMeshLaunch.spec.ts
       - name: Sheet seal bindings and batch history
         run: npx playwright test tests/e2e/sheetSealDraft.spec.ts
       - name: Close project, recovery and session boundaries
@@ -146,6 +148,16 @@ jobs:
           name: plugins-evidence
           if-no-files-found: ignore
           path: docs/plugins-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mask-reference-evidence
+          if-no-files-found: ignore
+          path: |
+            docs/mascara-independente.png
+            docs/mascaras-do-detalhamento.png
+            docs/mascara-origem-previa.png
+            docs/mascaras-seletor-*.png
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

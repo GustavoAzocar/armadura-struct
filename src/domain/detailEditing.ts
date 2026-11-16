@@ -214,6 +214,17 @@ export function assertDetailEdit(
     !same(oldDetail?.source, newDetail?.source)
   )
     fail();
+  const beforeRefs = Object.fromEntries(
+    Object.entries(before.maskReferences ?? {}).filter(
+      ([id]) => id !== detailId,
+    ),
+  );
+  const afterRefs = Object.fromEntries(
+    Object.entries(after.maskReferences ?? {}).filter(
+      ([id]) => id !== detailId,
+    ),
+  );
+  if (!same(beforeRefs, afterRefs)) fail();
   const oldObjects = new Map(contentObjects(before).map((o) => [o.id, o]));
   const newObjects = new Map(contentObjects(after).map((o) => [o.id, o]));
   const changedSymbols = changedSymbolGeometry(before, after);

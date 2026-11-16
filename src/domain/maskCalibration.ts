@@ -1,3 +1,4 @@
+import { canEditMaskGeometry } from './maskReferences';
 import type { Mask, Point, Project } from './types';
 import { distance } from './geometry';
 import { maskPoint } from '../cad/import';
@@ -104,12 +105,7 @@ export function calibrationTarget(
     throw new Error(
       'Escolha e ative uma máscara, ou use Ajustar escala no controle da referência desejada.',
     );
-  const owner = p.hierarchy.objectDetails[mask.id];
-  if (
-    context.key.startsWith('sheet:') ||
-    owner !== context.detailId ||
-    (context.scopeDetailId && owner !== context.scopeDetailId)
-  )
+  if (!canEditMaskGeometry(p, mask, context))
     throw new Error(
       'Abra o desenho/detalhamento desta máscara antes de ajustar sua escala; a prancha não é o espaço do modelo.',
     );

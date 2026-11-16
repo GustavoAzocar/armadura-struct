@@ -5724,3 +5724,111 @@ button.hierarchy-drawing {
     justify-content: center;
   }
 }
+
+.mask-origin-panel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel, #202431);
+  border-bottom: 1px solid var(--border, #414758);
+  font-size: 12px;
+  position: relative;
+  z-index: 12;
+}
+.document-tabs .detail-mask-selector {
+  display: flex;
+  align-items: center;
+  flex: 0 1 600px;
+  max-width: 60%;
+  min-width: 0;
+  gap: 6px;
+  padding: 0 6px;
+  font-size: 10px;
+  position: relative;
+  z-index: 12;
+}
+.detail-mask-selector > b {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.detail-mask-selector .mask-selector {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+.detail-mask-selector input[type='search'] {
+  flex: 0 1 80px;
+  min-width: 60px;
+  max-width: 90px;
+  height: 22px;
+}
+.detail-mask-selector select {
+  flex: 1 1 160px;
+  min-width: 100px;
+  width: 100px;
+  max-width: none;
+  height: 22px;
+  font-size: 10px;
+}
+.detail-mask-selector details {
+  position: relative;
+}
+.detail-mask-selector summary {
+  cursor: pointer;
+  white-space: nowrap;
+}
+.detail-mask-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: min(390px, 80vw);
+  max-height: 260px;
+  overflow: auto;
+  padding: 10px;
+  background: var(--panel, #202431);
+  border: 1px solid var(--border, #414758);
+  box-shadow: 0 4px 16px #0005;
+}
+.detail-mask-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.detail-mask-list label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.detail-mask-list button {
+  white-space: nowrap;
+}
+.mask-origin-panel span {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* O painel flutuante ocupa o canvas, abaixo dos avisos de contexto. */
+.cad-command-surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+@media (max-width: 1280px) {
+  .detail-mask-selector > b {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .detail-mask-selector input[type='search'] {
+    display: none;
+  }
+}

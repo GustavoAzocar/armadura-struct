@@ -1,3 +1,4 @@
+import { canEditMaskGeometry } from './maskReferences';
 import type { Project, LayerBinding, DrawingStyle, Primitive } from './types';
 import {
   layerObjects,
@@ -76,9 +77,7 @@ export function graphicEntities(
     stylePrimitive(p, e.mask, e.ref.primitive).layerId!;
   const masks = maskCadEntities(p, ctx)
     .filter(
-      (e) =>
-        e.mask.id === activeMask &&
-        p.hierarchy.objectDetails[e.mask.id] === ctx.detailId,
+      (e) => e.mask.id === activeMask && canEditMaskGeometry(p, e.mask, ctx),
     )
     .filter((e) => layerState(p, ctx.key, primitiveLayer(e)).capture)
     .map((e) => ({

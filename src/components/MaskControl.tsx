@@ -39,6 +39,7 @@ export default function MaskControl({
   onManipulate,
   onOffset,
   onClose,
+  onOrigin,
 }: {
   project: Project;
   owner: string;
@@ -70,6 +71,7 @@ export default function MaskControl({
   /** Opens the free text editor; the text keeps its ID. */
   onEditText?: (maskId: string, entityId: string) => void;
   onClose: () => void;
+  onOrigin: (id: string) => boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
     [id, setId] = useState(initial ?? ''),
@@ -80,13 +82,17 @@ export default function MaskControl({
     [dx, setDx] = useState(0),
     [dy, setDy] = useState(0),
     [angle, setAngle] = useState(0),
-    [creationOwner, setCreationOwner] = useState(owner);
+    [creationOwner, setCreationOwner] = useState(
+      context.scopeDetailId ? owner : '',
+    );
   const submitting = useRef(false);
   const contextReady = (detailId: string) =>
     !context.key.startsWith('sheet:') &&
     detailId === owner &&
     (!context.scopeDetailId || context.scopeDetailId === detailId);
-  const creationReady = contextReady(creationOwner);
+  const creationReady = creationOwner
+    ? contextReady(creationOwner)
+    : !context.scopeDetailId && !context.key.startsWith('sheet:');
   const masks = project.masks,
     m = masks.find((m) => m.id === id),
     e = m?.primitives.find((p) => p.id === eid && p.native);
@@ -103,7 +109,11 @@ export default function MaskControl({
       return false;
     }
   };
-  const ready = !!m && contextReady(project.hierarchy.objectDetails[m.id]);
+  const ready =
+    !!m &&
+    (m.independent
+      ? context.editingMaskId === m.id && !context.scopeDetailId
+      : contextReady(project.hierarchy.objectDetails[m.id]));
   const drawState = maskDrawingState(project, m?.id, context);
   useEffect(() => {
     const old = document.activeElement as HTMLElement;
@@ -188,7 +198,9 @@ export default function MaskControl({
       <p>
         Ativa para desenhar:{' '}
         <b>{project.masks.find((m) => m.id === activeId)?.name ?? 'Nenhuma'}</b>
-        . Escolher para consultar propriedades não troca o destino.
+        . Escolher para consultar propriedades não troca o destino. Editar a
+        geometria de uma máscara compartilhada atualiza todas as referências que
+        a utilizam.
       </p>
       <MaskSelector
         project={project}
@@ -207,6 +219,13 @@ export default function MaskControl({
             </p>
           )}
           <div className="batch-actions">
+            <button
+              onClick={() => {
+                if (onOrigin(m.id)) onClose();
+              }}
+            >
+              Selecionar origem
+            </button>
             <button
               disabled={!ready}
               onClick={() => {
@@ -277,8 +296,10 @@ export default function MaskControl({
           </button>
           <p>
             {m.format} ·{' '}
-            {detailPath(project, project.hierarchy.objectDetails[m.id])} · [
-            {m.id.slice(0, 8)}]
+            {m.independent
+              ? 'Máscara independente do projeto'
+              : detailPath(project, project.hierarchy.objectDetails[m.id])}{' '}
+            · [{m.id.slice(0, 8)}]
           </p>
           <button
             onClick={() =>
@@ -319,12 +340,15 @@ export default function MaskControl({
           />
         </label>
         <label className="field">
-          Criar no detalhamento
+          Vínculo da nova máscara
           <select
             aria-label="Contexto da nova máscara"
             value={creationOwner}
             onChange={(e) => setCreationOwner(e.target.value)}
           >
+            {!context.scopeDetailId && (
+              <option value="">Sem vínculo — máscara independente</option>
+            )}
             {project.hierarchy.details.map((d) => (
               <option key={d.id} value={d.id}>
                 {detailPath(project, d.id)}

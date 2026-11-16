@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Máscaras independentes e referências por detalhamento (#213): criar/importar sem proprietário; editar no CAD existente; trocar A → B → A, ligar/desligar e manter referências adicionais durante lançamentos; selecionar origem com encaixes, prévia, zero/destino opcional e alinhamento local desfazível. Formato nativo `/41` reservado para esta entrega, sem reutilizar o `/40` da PR #215; leitores anteriores recusam os novos dados. Mantém impressão, arquivos CAD originais e quantitativos. [Uso, compatibilidade e limites de validação](docs/MASCARAS-INDEPENDENTES.md).
+
 - Preenchimento automático dos selos (#142): cadastro documental, herança, vínculos por ID e substituições manuais persistidos no formato /39; aplicação em lote com histórico atômico; tela/PDF/DXF pela mesma composição; conversão explícita de textos CAD e modelos portáteis /2. [Uso e compatibilidade](docs/PREVIA-DE-DADOS-DO-SELO.md).
 
 - Arquivo → Projeto → Fechar projeto (#173): volta a uma tela inicial **Sem projeto aberto** sem encerrar o aplicativo, com Novo, Abrir e Recentes. Alterações não salvas pedem Salvar e fechar, Fechar sem salvar ou Cancelar, reaproveitando as proteções de Projetos recentes (download no navegador não conta como gravação). Reiniciar após fechar mantém a tela inicial; a recuperação do último trabalho continua quando o aplicativo é encerrado com projeto aberto. Nenhum arquivo, pasta, backup ou recente é apagado; formato do projeto inalterado. [Uso e limites](docs/FECHAR-PROJETO.md).

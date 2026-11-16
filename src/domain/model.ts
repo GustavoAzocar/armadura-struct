@@ -1,4 +1,10 @@
 import {
+  MASK_REFERENCE_PROJECT_SCHEMA,
+  detailMaskReferencesSchema,
+  hasIndependentMaskData,
+  validateMaskReferences,
+} from './maskReferences';
+import {
   beamClampProfileSchema,
   beamClampDisplaySchema,
   beamClampCriteriaSchema,
@@ -87,6 +93,7 @@ export function withDistributionBandVersion(project: Project): Project {
     project.schema === DISTRIBUTION_BAND_SCHEMA ||
     project.schema === SHEET_TEMPLATE_PROJECT_SCHEMA ||
     project.schema === SEAL_PROJECT_SCHEMA ||
+    project.schema === MASK_REFERENCE_PROJECT_SCHEMA ||
     !(
       hasDistributionBand(project.bars) ||
       hasDistributionBand(project.scheduleLock?.bars)
@@ -494,6 +501,9 @@ const schema = z.object({
       }),
     )
     .max(10000),
+  maskReferences: z
+    .record(z.string().min(1).max(200), detailMaskReferencesSchema)
+    .optional(),
   masks: z
     .array(
       z.object({
@@ -501,6 +511,7 @@ const schema = z.object({
         id: z.string(),
         name: z.string().max(200),
         format: z.enum(['DXF', 'DWG', 'DEMO', 'NATIVE']),
+        independent: z.literal(true).optional(),
         layerDefinitions: z.array(drawingLayerSchema).max(2000).optional(),
         primitives: z.array(primitiveSchema).max(100000),
         layers: z.record(z.string(), z.boolean()),
@@ -616,7 +627,13 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const sealVersion = input?.schema === SEAL_PROJECT_SCHEMA;
+  const maskReferenceVersion = input?.schema === MASK_REFERENCE_PROJECT_SCHEMA;
+  if (!maskReferenceVersion && hasIndependentMaskData(input))
+    throw new Error(
+      'Máscaras independentes e referências por detalhamento exigem formato 41.',
+    );
+  const sealVersion =
+    maskReferenceVersion || input?.schema === SEAL_PROJECT_SCHEMA;
   if (!sealVersion && hasSealData(input))
     throw new Error('Dados e vínculos do selo exigem formato 39.');
   // /36 is the experimental template format; /38 composes it with /35 and /37.
@@ -1005,13 +1022,15 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: sealVersion
-      ? SEAL_PROJECT_SCHEMA
-      : templateVersion
-        ? SHEET_TEMPLATE_PROJECT_SCHEMA
-        : bandVersion
-          ? DISTRIBUTION_BAND_SCHEMA
-          : 'armadurastruct/35',
+    schema: maskReferenceVersion
+      ? MASK_REFERENCE_PROJECT_SCHEMA
+      : sealVersion
+        ? SEAL_PROJECT_SCHEMA
+        : templateVersion
+          ? SHEET_TEMPLATE_PROJECT_SCHEMA
+          : bandVersion
+            ? DISTRIBUTION_BAND_SCHEMA
+            : 'armadurastruct/35',
     ...(linkedFiles === undefined ? {} : { linkedFiles }),
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
@@ -1059,6 +1078,7 @@ export function decodeProject(
         `Estribo ${b.mark}: ${geometry(b).errors.join(' ') || 'família inválida'}`,
       );
   }
+  validateMaskReferences(p);
   if (p.sheetTemplates) validateSheetTemplateCatalog(p.sheetTemplates);
   for (const sheet of p.sheets) {
     if (sheet.paperTemplate) validateSheetTemplate(sheet.paperTemplate);

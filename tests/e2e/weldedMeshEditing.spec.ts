@@ -227,8 +227,12 @@ test('mover, copiar, selecionar por janela, apagar e desfazer', async ({
 
   // Janela que contém só a tela original; Delete apaga, desfazer devolve.
   await page.keyboard.press('Escape');
-  const a = await screen(page, P(500, 5500)),
+  // Começa dentro do canvas, abaixo da barra de referências do detalhamento.
+  const a = await screen(page, P(500, 5000)),
     b = await screen(page, P(7500, -500));
+  const canvas = (await page.getByTestId('cad-canvas').boundingBox())!;
+  expect(a.y).toBeGreaterThan(canvas.y);
+  expect(b.y).toBeLessThan(canvas.y + canvas.height);
   await page.mouse.move(a.x, a.y);
   await page.mouse.down();
   await page.mouse.move(b.x, b.y, { steps: 5 });

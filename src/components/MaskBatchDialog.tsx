@@ -8,6 +8,7 @@ import {
 } from '../domain/hierarchy';
 import {
   MASK_LIMIT,
+  INDEPENDENT_MASK_DESTINATION,
   PROJECT_BYTE_LIMIT,
   maskProjectBytes,
   type MaskBatchContext,
@@ -90,11 +91,23 @@ export default function MaskBatchDialog({
   const slots = MASK_LIMIT - r.base.masks.length;
   const patch = (id: string, value: Partial<Row>) =>
     setRows((old) => old.map((q) => (q.id === id ? { ...q, ...value } : q)));
-  const options = draft.hierarchy.details.map((d) => (
-    <option key={d.id} value={d.id}>
-      {detailPath(draft, d.id)} [{d.id.slice(0, 8)}]
-    </option>
-  ));
+  const options = [
+    ...(r.mode === 'import' && !r.context.scopeDetailId
+      ? [
+          <option
+            key={INDEPENDENT_MASK_DESTINATION}
+            value={INDEPENDENT_MASK_DESTINATION}
+          >
+            Sem vínculo — máscaras do projeto
+          </option>,
+        ]
+      : []),
+    ...draft.hierarchy.details.map((d) => (
+      <option key={d.id} value={d.id}>
+        {detailPath(draft, d.id)} [{d.id.slice(0, 8)}]
+      </option>
+    )),
+  ];
   useEffect(() => {
     alive.current = true;
     const previous = document.activeElement as HTMLElement,
@@ -294,9 +307,10 @@ export default function MaskBatchDialog({
           : 'Associar máscaras'}
       </h2>
       <p>
-        Referências pertencem ao detalhamento. O desenho pode aparecer em várias
-        pranchas, sem copiar a máscara ou o aço. Tudo abaixo permanece em
-        preparação até aplicar.
+        Importe sem vínculo para a lista do projeto ou escolha um destino
+        explícito. A mesma máscara pode ser exibida em vários detalhamentos, sem
+        copiar seu desenho ou o aço. Tudo abaixo permanece em preparação até
+        aplicar.
       </p>
       <div className="fields-2">
         <label className="field">
@@ -312,7 +326,11 @@ export default function MaskBatchDialog({
         </label>
         <div>
           <p className="field-help">
-            {owner ? detailPath(draft, owner) : 'Nenhum destino escolhido'}
+            {owner === INDEPENDENT_MASK_DESTINATION
+              ? 'Máscara independente do projeto'
+              : owner
+                ? detailPath(draft, owner)
+                : 'Nenhum destino escolhido'}
           </p>
           {r.mode === 'import' && (
             <button

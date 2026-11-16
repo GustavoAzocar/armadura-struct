@@ -41,6 +41,7 @@ Esta documentação acompanha a `master`. Recursos ainda não publicados estão 
 - [Interação CAD por frame](docs/FLUIDEZ-INTERACAO-CAD.md): prévias vetoriais reutilizáveis, confirmação precisa da última entrada e diagnóstico local optativo, com roteiro para validar no Linux.
 - [Textos proporcionais durante o zoom](docs/TEXTOS-E-ZOOM.md), compartilhando alturas e posições entre modelo, representações e exportação, com altura de papel por vista preservada.
 - [Máscara ativa e acesso global](docs/MASCARA-ATIVA.md): seletor pesquisável por nome/origem/contexto, criação sem aço, seleção independente e desenho local nas referências DXF/DWG.
+- [Máscaras independentes e referências por detalhamento](docs/MASCARAS-INDEPENDENTES.md): criação/importação sem vínculo, troca imediata no contexto de Armaduras e alinhamento da origem por detalhe, com prévia e histórico.
 - [Máscaras nativas CAD](docs/MASCARAS-NATIVAS.md): linha, retângulo, círculo e polilinha editáveis, sem gerar aço, com controle compartilhado de referências importadas.
 - [Organização por pavimento → grupo → detalhamento](docs/ORGANIZACAO-PROJETO.md): Térreo → Vigas → V1/V2, Pilares → P1; abertura direta pelo detalhamento e nomes sugeridos. [Novo projeto](docs/NOVO-PROJETO.md) mantém prévia editável, criação rápida, rascunho isolado e substituição explícita do projeto atual.
 - [Quadro de aço vinculado à prancha](docs/QUADRO-NA-PRANCHA.md), com prévia no cursor, inserção por clique, quantitativos por folha e resumo de peso configurável, em PDF vetorial.

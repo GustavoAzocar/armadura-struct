@@ -1,3 +1,4 @@
+import { withMaskReferenceVersion } from './maskReferences';
 import {
   completeOwnership,
   moveObjectsToDetail,
@@ -9,6 +10,7 @@ import { objectHidden } from './visibility';
 import { uid, type Mask, type Project } from './types';
 
 export const MASK_LIMIT = 20;
+export const INDEPENDENT_MASK_DESTINATION = 'project:masks';
 export const PROJECT_BYTE_LIMIT = 100 * 1024 * 1024;
 export type MaskBatchContext = { key: string; scopeDetailId?: string };
 export type MaskAssignment = { mask: Mask; detailId: string };
@@ -21,6 +23,7 @@ function destination(p: Project, id: string, context: MaskBatchContext) {
     throw new Error(
       'Abra o desenho da vista antes de importar ou associar máscaras.',
     );
+  if (id === INDEPENDENT_MASK_DESTINATION && !context.scopeDetailId) return;
   if (!p.hierarchy.details.some((d) => d.id === id))
     throw new Error('Detalhamento de destino inexistente.');
   if (context.scopeDetailId && id !== context.scopeDetailId)
@@ -92,13 +95,20 @@ export function importMaskBatch(
       throw new Error('Informe uma escala positiva.');
     if (!mask.name.trim() || mask.name.trim().length > 200)
       throw new Error('Nome da referência: informe de 1 a 200 caracteres.');
-    next.masks.push({ ...mask, name: mask.name.trim() });
-    nextHierarchy.objectDetails[mask.id] = detailId;
+    next.masks.push({
+      ...mask,
+      name: mask.name.trim(),
+      ...(detailId === INDEPENDENT_MASK_DESTINATION
+        ? { independent: true as const }
+        : {}),
+    });
+    if (detailId !== INDEPENDENT_MASK_DESTINATION)
+      nextHierarchy.objectDetails[mask.id] = detailId;
   }
   next = completeOwnership(next);
   for (const { mask, detailId } of items)
     assertMaskDestination(next, mask.id, detailId, context);
-  return validateResult(next);
+  return validateResult(withMaskReferenceVersion(next));
 }
 function drawingKey(p: Project, owner: string) {
   const d = p.hierarchy.drawings.find((d) => d.detailId === owner);
@@ -111,7 +121,10 @@ function assertMaskDestination(
   context: MaskBatchContext,
 ) {
   const mask = p.masks.find((m) => m.id === id)!;
-  for (const key of new Set([context.key, drawingKey(p, owner)])) {
+  for (const key of new Set([
+    context.key,
+    ...(owner === INDEPENDENT_MASK_DESTINATION ? [] : [drawingKey(p, owner)]),
+  ])) {
     if (!objectState(p, key, mask).editable || objectHidden(p, key, id))
       throw new Error(
         `Máscara ${mask.name}: layer/contexto protegido ou objeto oculto. Abra e libere o contexto explicitamente.`,
