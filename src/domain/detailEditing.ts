@@ -1,3 +1,4 @@
+import { assertSeriesDetailEdit } from './barSeries';
 import type { Project } from './types';
 import { changedSymbolGeometry } from './symbolRender';
 import {
@@ -207,6 +208,7 @@ export function assertDetailEdit(
     )
   )
     fail();
+  assertSeriesDetailEdit(before, after, detailId);
   const oldDetail = before.hierarchy.details.find((d) => d.id === detailId),
     newDetail = after.hierarchy.details.find((d) => d.id === detailId);
   if (

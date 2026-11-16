@@ -1,3 +1,4 @@
+import SeriesTableFields from './SeriesTableFields';
 import { setSheetSchedule } from '../domain/sheetSchedule';
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { Copy, Plus, ArrowUp, ArrowDown, X, ExternalLink } from 'lucide-react';
@@ -26,6 +27,9 @@ const SheetSealDraftDialog = lazy(() => import('./SheetSealDraftDialog'));
 type Props = {
   project: Project;
   onInsertSchedule: () => void;
+  onOpenSeries?: () => void;
+  selectedSeriesTable?: string;
+  onSelectSeriesTable?: (id?: string) => void;
   sheetId?: string;
   selectedView?: string;
   onSelectView: (id?: string) => void;
@@ -50,6 +54,9 @@ export default function SheetManager({
   onExportDxf,
   onOpenTemplates,
   onInsertSchedule,
+  onOpenSeries,
+  selectedSeriesTable,
+  onSelectSeriesTable,
 }: Props) {
   const [newName, setNewName] = useState('');
   const [sealDraftOpen, setSealDraftOpen] = useState(false);
@@ -414,7 +421,21 @@ export default function SheetManager({
                 </button>
               </>
             )}
+            {onOpenSeries && (
+              <button onClick={onOpenSeries}>
+                Séries variáveis e tabelas de comprimentos
+              </button>
+            )}
           </fieldset>
+        )}
+        {sheet && !locked && (
+          <SeriesTableFields
+            project={p}
+            sheet={sheet}
+            selected={selectedSeriesTable}
+            onSelect={(id) => onSelectSeriesTable?.(id)}
+            onChange={onChange}
+          />
         )}
         {sheet && (
           <>

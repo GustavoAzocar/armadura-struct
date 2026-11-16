@@ -522,6 +522,7 @@ function paperPrimitives(page: PaperComposition): Primitive[] {
     ...page.decorations,
     ...page.views.flatMap((view) => view.lines),
     ...(page.schedule?.lines ?? []),
+    ...page.seriesTables.flatMap((t) => t.lines),
   ];
 }
 

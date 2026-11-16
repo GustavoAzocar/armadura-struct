@@ -336,10 +336,7 @@ export function saveSheetTemplate(
     throw Error('O catálogo admite até 1.000 modelos.');
   return withSealDataVersion({
     ...project,
-    schema:
-      project.schema === SEAL_PROJECT_SCHEMA
-        ? SEAL_PROJECT_SCHEMA
-        : SHEET_TEMPLATE_PROJECT_SCHEMA,
+    schema: templateSchema(project),
     sheetTemplates: existing
       ? list.map((t) =>
           t.id === next.id ? { ...next, revision: t.revision + 1 } : t,
@@ -420,15 +417,19 @@ export function applySheetTemplate(
   return changed
     ? withSealDataVersion({
         ...project,
-        schema:
-          project.schema === SEAL_PROJECT_SCHEMA
-            ? SEAL_PROJECT_SCHEMA
-            : SHEET_TEMPLATE_PROJECT_SCHEMA,
+        schema: templateSchema(project),
         sheets,
       })
     : project;
 }
 
+/** Mantém 39/40 (que já incluem modelos); os demais passam a 38. */
+function templateSchema(project: Project): Project['schema'] {
+  return project.schema === SEAL_PROJECT_SCHEMA ||
+    project.schema === 'armadurastruct/40'
+    ? project.schema
+    : SHEET_TEMPLATE_PROJECT_SCHEMA;
+}
 export function encodeSheetTemplate(template: SheetTemplate) {
   return JSON.stringify(
     {

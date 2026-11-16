@@ -203,6 +203,8 @@ export type Sheet = {
   paperTemplate?: import('./sheetTemplates').SheetTemplate;
   /** One live schedule per sheet, independent of drawing scales and physical steel. */
   steelSchedule?: SheetSteelSchedule;
+  /** Paper tables of variable series; presentation only, never extra steel. */
+  seriesTables?: import('./barSeriesSchema').SeriesTable[];
   id: string;
   name: string;
   format: SheetFormat;
@@ -339,7 +341,8 @@ export type Project = {
     | 'armadurastruct/35'
     | 'armadurastruct/37'
     | typeof import('./sheetTemplates').SHEET_TEMPLATE_PROJECT_SCHEMA
-    | typeof import('./sealFieldSchema').SEAL_PROJECT_SCHEMA;
+    | typeof import('./sealFieldSchema').SEAL_PROJECT_SCHEMA
+    | typeof import('./barSeriesSchema').BAR_SERIES_PROJECT_SCHEMA;
   sealProperties?: import('./sealFieldSchema').ProjectSealProperties;
   /** Relative file names for display. The session's folder binding grants access. */
   linkedFiles?: string[];
@@ -367,6 +370,8 @@ export type Project = {
   notes: string;
   bars: Bar[];
   fabricationPositions?: FabricationPosition[];
+  /** Physical variable series: variants are real bars with stable IDs (format 40). */
+  barSeries?: import('./barSeriesSchema').BarSeries[];
   details: Detail[];
   masks: Mask[];
   annotations: Annotation[];

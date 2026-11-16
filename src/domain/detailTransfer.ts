@@ -1,3 +1,4 @@
+import { reconcileBarSeries } from './barSeries';
 import { cloneDrawingMetadata } from './drawingMetadata';
 import {
   applyCatalogImport,
@@ -956,7 +957,7 @@ export function previewDetailTransfer(
     }
     if (plan.issues.length === 0)
       plan.project = decodeProject(
-        JSON.stringify(withDistributionBandVersion(next)),
+        JSON.stringify(withDistributionBandVersion(reconcileBarSeries(next))),
       );
   } catch (error) {
     plan.issues.push(

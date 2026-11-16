@@ -25,6 +25,13 @@ import {
 import { cadDefaultsSchema, validateCadDefaults } from './cadDefaults';
 import { validateNativeMask } from './nativeMasks';
 import { sheetSteelScheduleSchema } from './sheetScheduleSchema';
+import {
+  BAR_SERIES_PROJECT_SCHEMA,
+  barSeriesListSchema,
+  hasBarSeriesData,
+  seriesTablesSchema,
+  validateBarSeries,
+} from './barSeriesSchema';
 import { pruneVisibility } from './visibilitySchema';
 import { plotSettingsSchema } from './layerSchema';
 import { primitiveSchema } from './primitiveSchema';
@@ -87,6 +94,7 @@ export function withDistributionBandVersion(project: Project): Project {
     project.schema === DISTRIBUTION_BAND_SCHEMA ||
     project.schema === SHEET_TEMPLATE_PROJECT_SCHEMA ||
     project.schema === SEAL_PROJECT_SCHEMA ||
+    project.schema === BAR_SERIES_PROJECT_SCHEMA ||
     !(
       hasDistributionBand(project.bars) ||
       hasDistributionBand(project.scheduleLock?.bars)
@@ -355,6 +363,7 @@ const schema = z.object({
       z.object({
         ...named,
         steelSchedule: sheetSteelScheduleSchema.optional(),
+        seriesTables: seriesTablesSchema.optional(),
         paperTemplate: sheetTemplateSchema.optional(),
         sealProperties: sheetSealPropertiesSchema.optional(),
         sealBindings: sheetSealBindingsSchema.optional(),
@@ -399,6 +408,7 @@ const schema = z.object({
     .array(fabricationPositionSchema)
     .max(10000)
     .optional(),
+  barSeries: barSeriesListSchema.optional(),
   polylines: z
     .array(
       z.object({
@@ -616,7 +626,13 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const sealVersion = input?.schema === SEAL_PROJECT_SCHEMA;
+  // /40 acrescenta séries variáveis e suas tabelas aos recursos do /39.
+  const seriesVersion = input?.schema === BAR_SERIES_PROJECT_SCHEMA;
+  if (!seriesVersion && hasBarSeriesData(input))
+    throw new Error(
+      'Séries variáveis e tabelas de comprimentos exigem formato 40.',
+    );
+  const sealVersion = seriesVersion || input?.schema === SEAL_PROJECT_SCHEMA;
   if (!sealVersion && hasSealData(input))
     throw new Error('Dados e vínculos do selo exigem formato 39.');
   // /36 is the experimental template format; /38 composes it with /35 and /37.
@@ -1005,13 +1021,15 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: sealVersion
-      ? SEAL_PROJECT_SCHEMA
-      : templateVersion
-        ? SHEET_TEMPLATE_PROJECT_SCHEMA
-        : bandVersion
-          ? DISTRIBUTION_BAND_SCHEMA
-          : 'armadurastruct/35',
+    schema: seriesVersion
+      ? BAR_SERIES_PROJECT_SCHEMA
+      : sealVersion
+        ? SEAL_PROJECT_SCHEMA
+        : templateVersion
+          ? SHEET_TEMPLATE_PROJECT_SCHEMA
+          : bandVersion
+            ? DISTRIBUTION_BAND_SCHEMA
+            : 'armadurastruct/35',
     ...(linkedFiles === undefined ? {} : { linkedFiles }),
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
@@ -1069,6 +1087,8 @@ export function decodeProject(
     throw new Error('IDs de armadura duplicados.');
   p = { ...p, fabricationPositions: fabricationPositions(p) };
   validateFabrication(p);
+  // Vínculos série → variante → armadura: inconsistências são recusadas.
+  validateBarSeries(p);
   if (p.scheduleLock) {
     validateFabrication({
       bars: p.scheduleLock.bars,

@@ -55,6 +55,7 @@ export type Action =
   | 'csv'
   | 'csv-scoped'
   | 'insert-sheet-schedule'
+  | 'bar-series'
   | 'schedule'
   | 'help'
   | 'join'
@@ -396,6 +397,7 @@ export const shortcutCatalog: Record<Action, Command> = {
   ),
   fabrication: command('Posições de fabricação', armatures, {}, isolated),
   schedule: command('Quadro de aço', armatures, global(['Q'])),
+  'bar-series': command('Séries variáveis', armatures, global(['SERIES'])),
   'insert-sheet-schedule': command(
     'Inserir quadro na prancha',
     armatures,

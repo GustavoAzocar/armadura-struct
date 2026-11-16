@@ -107,6 +107,15 @@ export function duplicateSheet(
           },
         }
       : {}),
+    // Cópia de apresentação: novas tabelas apontando para as mesmas séries.
+    ...(source.seriesTables
+      ? {
+          seriesTables: source.seriesTables.map((t) => ({
+            ...structuredClone(t),
+            id: uid(),
+          })),
+        }
+      : {}),
   };
   const originalViews = p.hierarchy.placements.filter((v) => v.sheetId === id);
   const copies = originalViews.map((v) => ({

@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Séries variáveis e tabela de comprimentos individuais (#145, AS-77): entidade física de série com variantes que são armaduras reais (IDs estáveis, estação, estado exato/estimado, origem e total declarado), consulta determinística compartilhada pela RA, tabela e saídas, agrupamento só por regras de fabricação, tabela na prancha com prévia, blocos/continuações, subtotais e total da série, PDF/DXF de pranchas e lista por variante no CSV por escopo. Registros exatos por variante para adaptadores de fabricação, com bloqueio de estimativas. Formato nativo /40 (reserva a confirmar com o mantenedor), lendo 1–39 sem conversão implícita; pacote de detalhamento inalterado e recusa explícita de séries. [Uso, convenções e limites](docs/TABELA-DE-COMPRIMENTOS-VARIAVEIS.md).
+
 - Preenchimento automático dos selos (#142): cadastro documental, herança, vínculos por ID e substituições manuais persistidos no formato /39; aplicação em lote com histórico atômico; tela/PDF/DXF pela mesma composição; conversão explícita de textos CAD e modelos portáteis /2. [Uso e compatibilidade](docs/PREVIA-DE-DADOS-DO-SELO.md).
 
 - Arquivo → Projeto → Fechar projeto (#173): volta a uma tela inicial **Sem projeto aberto** sem encerrar o aplicativo, com Novo, Abrir e Recentes. Alterações não salvas pedem Salvar e fechar, Fechar sem salvar ou Cancelar, reaproveitando as proteções de Projetos recentes (download no navegador não conta como gravação). Reiniciar após fechar mantém a tela inicial; a recuperação do último trabalho continua quando o aplicativo é encerrado com projeto aberto. Nenhum arquivo, pasta, backup ou recente é apagado; formato do projeto inalterado. [Uso e limites](docs/FECHAR-PROJETO.md).

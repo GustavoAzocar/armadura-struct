@@ -1,6 +1,8 @@
 import { sheetScheduleGeometry } from '../domain/sheetSchedule';
 import { svgTextFont } from '../domain/textStyle';
-import { sheetScheduleIssues } from '../domain/paper';
+import { seriesTableIssues, sheetScheduleIssues } from '../domain/paper';
+import { seriesTableGeometry } from '../domain/seriesTableGeometry';
+import type { SeriesTable } from '../domain/barSeriesSchema';
 import { plotPrimitives } from '../domain/plotting';
 import type { SheetSteelSchedule } from '../domain/types';
 import { dashArray } from '../domain/layers';
@@ -29,6 +31,13 @@ const paperPoint = (p: Point): Point => ({
   y: Number(p.y.toFixed(2)),
 });
 type Props = {
+  /** Tabela de série aguardando o clique de inserção (origem ignorada). */
+  seriesPlacement?: SeriesTable;
+  onPlaceSeries?: (origin: Point) => void;
+  onCancelSeries?: () => void;
+  selectedSeriesTable?: string;
+  onSelectSeriesTable?: (id: string) => void;
+  onMoveSeriesBlock?: (id: string, block: number, origin: Point) => void;
   schedulePlacement?: Omit<SheetSteelSchedule, 'origin'>;
   selectedSchedule?: boolean;
   onSelectSchedule: () => void;
@@ -49,6 +58,12 @@ type Props = {
 export default forwardRef<CadHandle, Props>(function SheetCanvas(
   {
     project,
+    seriesPlacement,
+    onPlaceSeries,
+    onCancelSeries,
+    selectedSeriesTable,
+    onSelectSeriesTable,
+    onMoveSeriesBlock,
     schedulePlacement,
     selectedSchedule,
     onSelectSchedule,
@@ -81,6 +96,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
     id?: string;
     origin?: Point;
     schedule?: boolean;
+    series?: { id: string; block: number };
     delta: Point;
   } | null>(null);
   const placements = project.hierarchy.placements.filter(
@@ -108,6 +124,23 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         : [],
     [scheduleGhost, project],
   );
+  const seriesGhost = useMemo(() => {
+    if (!seriesPlacement) return undefined;
+    try {
+      const g = seriesTableGeometry(project, sheet.id, {
+        ...seriesPlacement,
+        origin: { x: 0, y: 0 },
+        blockOrigins: undefined,
+      });
+      return {
+        geometry: g,
+        lines: plotPrimitives(project, g.lines, 'paper', 'paper'),
+      };
+    } catch {
+      return undefined;
+    }
+  }, [project, sheet.id, seriesPlacement]);
+  const placing = !!schedulePlacement || !!seriesPlacement;
   const ghostOrigin = scheduleCursor ?? {
     x: sheet.margins.left + 5,
     y: paper.height - sheet.margins.top - 5,
@@ -118,6 +151,18 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         frame: scheduleGhost.frame.map((p) => ({
           x: p.x + ghostOrigin.x,
           y: p.y + ghostOrigin.y,
+        })),
+      })
+    : [];
+  const seriesGhostIssues = seriesGhost
+    ? seriesTableIssues(sheet, {
+        ...seriesGhost.geometry,
+        blocks: seriesGhost.geometry.blocks.map((b) => ({
+          ...b,
+          frame: b.frame.map((p) => ({
+            x: p.x + ghostOrigin.x,
+            y: p.y + ghostOrigin.y,
+          })),
         })),
       })
     : [];
@@ -190,6 +235,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         onContextMenu={(e) => {
           e.preventDefault();
           if (schedulePlacement) onCancelSchedule();
+          if (seriesPlacement) onCancelSeries?.();
         }}
         onWheel={(e) => {
           const at = screenPoint(e),
@@ -206,6 +252,16 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
         onPointerDown={(e) => {
           if (e.button !== 0 && e.button !== 1) return;
           e.preventDefault();
+          if (seriesPlacement && e.button === 0) {
+            const at = screenPoint(e);
+            onPlaceSeries?.(
+              paperPoint({
+                x: view.x + (at.x - size.w / 2) / view.s,
+                y: view.y - (at.y - size.h / 2) / view.s,
+              }),
+            );
+            return;
+          }
           if (schedulePlacement && e.button === 0) {
             const at = screenPoint(e);
             onPlaceSchedule(
@@ -235,11 +291,36 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
             !pan &&
             e.button === 0 &&
             !!(e.target as Element).closest('[data-sheet-schedule]');
+          const seriesHit =
+            !pan && e.button === 0
+              ? (e.target as Element).closest('[data-series-table]')
+              : null;
+          const series = seriesHit
+            ? {
+                id: seriesHit.getAttribute('data-series-table')!,
+                block: Number(seriesHit.getAttribute('data-series-block')),
+              }
+            : undefined;
           const placement = placements.find((v) => v.id === id);
           lastViewHit.current = id;
           if (e.button === 0 && !pan) {
-            if (isSchedule) onSelectSchedule();
+            if (series) onSelectSeriesTable?.(series.id);
+            else if (isSchedule) onSelectSchedule();
             else onSelect(id);
+          }
+          if (series) {
+            const block = composition.seriesTables
+              .find((t) => t.table.id === series.id)
+              ?.blocks.find((b) => b.index === series.block);
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setDrag({
+              start: screenPoint(e),
+              camera: view,
+              origin: block?.origin,
+              series,
+              delta: { x: 0, y: 0 },
+            });
+            return;
           }
           if (id || isSchedule || pan || e.button === 1) {
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -256,7 +337,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
           }
         }}
         onPointerMove={(e) => {
-          if (schedulePlacement) {
+          if (placing) {
             const at = screenPoint(e);
             setScheduleCursor({
               x: view.x + (at.x - size.w / 2) / view.s,
@@ -269,7 +350,7 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
               x: (at.x - drag.start.x) / drag.camera.s,
               y: -(at.y - drag.start.y) / drag.camera.s,
             };
-          if (!drag.id && !drag.schedule)
+          if (!drag.id && !drag.schedule && !drag.series)
             setView({
               ...drag.camera,
               x: drag.camera.x - delta.x,
@@ -278,6 +359,22 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
           else setDrag({ ...drag, delta });
         }}
         onPointerUp={() => {
+          if (
+            drag?.series &&
+            drag.origin &&
+            Math.hypot(drag.delta.x, drag.delta.y) > 0.01
+          ) {
+            onMoveSeriesBlock?.(
+              drag.series.id,
+              drag.series.block,
+              paperPoint({
+                x: drag.origin.x + drag.delta.x,
+                y: drag.origin.y + drag.delta.y,
+              }),
+            );
+            setDrag(null);
+            return;
+          }
           if (
             (drag?.id || drag?.schedule) &&
             drag.origin &&
@@ -296,8 +393,10 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
           if (
             pan ||
             preview ||
-            schedulePlacement ||
-            (e.target as Element).closest('[data-sheet-schedule]')
+            placing ||
+            (e.target as Element).closest(
+              '[data-sheet-schedule],[data-series-table]',
+            )
           )
             return;
           const id =
@@ -319,18 +418,20 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
             height={paper.height}
           />
           <PaperLines lines={composition.decorations} />
-          {!placements.length && !sheet.steelSchedule && (
-            <text
-              x={paper.width / 2}
-              y={-paper.height / 2}
-              transform="scale(1 -1)"
-              textAnchor="middle"
-              fontSize="5"
-              fill="#7b8498"
-            >
-              Folha vazia · coloque um desenho pelo gerenciador
-            </text>
-          )}
+          {!placements.length &&
+            !sheet.steelSchedule &&
+            !composition.seriesTables.length && (
+              <text
+                x={paper.width / 2}
+                y={-paper.height / 2}
+                transform="scale(1 -1)"
+                textAnchor="middle"
+                fontSize="5"
+                fill="#7b8498"
+              >
+                Folha vazia · coloque um desenho pelo gerenciador
+              </text>
+            )}
           {composition.views.map(({ placement: v, lines, frame, hidden }) => {
             const delta = drag?.id === v.id ? drag.delta : { x: 0, y: 0 };
             const invalid = composition.issues.some((i) => i.viewId === v.id);
@@ -377,6 +478,55 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
               </g>
             </g>
           )}
+          {composition.seriesTables.map((t) =>
+            t.blocks.map((block) => {
+              const moving =
+                drag?.series?.id === t.table.id &&
+                drag.series.block === block.index;
+              return (
+                <g
+                  key={`${t.table.id}:${block.index}`}
+                  data-series-table={t.table.id}
+                  data-series-block={block.index}
+                  data-testid="sheet-series-table"
+                  className={
+                    selectedSeriesTable === t.table.id ? 'selected' : ''
+                  }
+                  transform={`translate(${moving ? drag.delta.x : 0} ${moving ? drag.delta.y : 0})`}
+                >
+                  <title>
+                    {`Tabela de comprimentos da série ${t.data.name}${block.count > 1 ? ` · bloco ${block.index + 1}/${block.count}` : ''} · arraste para mover`}
+                  </title>
+                  <polygon
+                    className="sheet-schedule-hit"
+                    points={block.frame.map((p) => `${p.x},${p.y}`).join(' ')}
+                  />
+                  <g pointerEvents="none">
+                    <PaperLines lines={block.lines} />
+                  </g>
+                </g>
+              );
+            }),
+          )}
+          {seriesGhost && (
+            <g
+              data-testid="sheet-series-preview"
+              pointerEvents="none"
+              opacity="0.7"
+              transform={`translate(${ghostOrigin.x} ${ghostOrigin.y})`}
+            >
+              {seriesGhost.geometry.blocks.map((b) => (
+                <polygon
+                  key={b.index}
+                  fill="none"
+                  stroke={seriesGhostIssues.length ? '#ef4444' : '#a855f7'}
+                  strokeWidth="0.4"
+                  points={b.frame.map((p) => `${p.x},${p.y}`).join(' ')}
+                />
+              ))}
+              <PaperLines lines={seriesGhost.lines} />
+            </g>
+          )}
           {scheduleGhost && (
             <g
               data-testid="sheet-schedule-preview"
@@ -397,6 +547,15 @@ export default forwardRef<CadHandle, Props>(function SheetCanvas(
           )}
         </g>
       </svg>
+      {seriesPlacement && (
+        <div className="sheet-schedule-hint" role="status">
+          {!seriesGhost
+            ? 'A série desta tabela não existe mais. Esc cancela.'
+            : seriesGhostIssues.length
+              ? seriesGhostIssues.map((i) => i.message).join(' ')
+              : 'Clique para inserir a tabela pelo canto superior esquerdo · Esc cancela.'}
+        </div>
+      )}
       {schedulePlacement && (
         <div className="sheet-schedule-hint" role="status">
           {ghostIssues.length
