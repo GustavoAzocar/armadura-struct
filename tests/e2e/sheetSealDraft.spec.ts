@@ -359,6 +359,8 @@ test('aplica um lote em uma etapa de histórico e preserva os vínculos ao salva
     ['Exportar todas as folhas em PDF', 'latin1'],
     ['Exportar folha ativa em DXF', 'utf8'],
   ] as const) {
+    if (button.endsWith('DXF'))
+      page.once('dialog', (dialog) => dialog.accept());
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: button, exact: true }).click();
     const path = await (await download).path();
@@ -429,11 +431,15 @@ test('restaura o vínculo automático preservando a origem escolhida depois de r
     .getByRole('button', { name: 'Aplicar dados do selo', exact: true })
     .click();
   const saved = await saveProject(page);
+  expect(saved.sheets[0].sealBindings?.[0].manualText).toBe(
+    'Conferido manualmente',
+  );
   await loadProject(page, saved);
   await openFirstSheet(page);
   dialog = await openDraft(page);
   await expect(
-    dialog.getByLabel('Valor manual de Responsável do desenho', {
+    dialog.getByRole('textbox', {
+      name: 'Valor manual de Responsável do desenho',
       exact: true,
     }),
   ).toHaveValue('Conferido manualmente');
