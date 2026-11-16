@@ -2,6 +2,11 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { emptyProject } from '../../src/domain/model';
 import type { Project } from '../../src/domain/types';
+import type { RecoveryCopy } from '../../src/lib/periodicRecovery';
+import {
+  installDirectoryMock,
+  type DirectoryMock,
+} from '../fixtures/projectDirectory';
 
 const recovery = (page: Page) =>
   page.getByRole('dialog', { name: 'Salvamento e recuperação', exact: true });
@@ -235,4 +240,133 @@ test('quarta cópia local gira as três versões e uma falha preserva o inventá
     dialog.getByRole('button', { name: 'Recuperar cópia' }),
   ).toHaveCount(3);
   await expect(dialog.locator(`time[datetime="${oldest}"]`)).toHaveCount(0);
+});
+
+test('a reautorização concilia as três gerações mais recentes após fallback local', async ({
+  page,
+}) => {
+  await page.evaluate(installDirectoryMock);
+  const mainPath = 'save-v1/projeto.armstruct.json';
+  const historyPath = 'recovery-v1/copies.json';
+  const readFolder = () =>
+    page.evaluate(() => {
+      const folder = (window as unknown as { folderMock: DirectoryMock })
+        .folderMock;
+      return {
+        files: Object.fromEntries(folder.roots.A.files),
+        writes: folder.writes.length,
+      };
+    });
+  const copiesInFolder = async (): Promise<RecoveryCopy[]> => {
+    const raw = (await readFolder()).files[historyPath];
+    return raw ? JSON.parse(raw).copies : [];
+  };
+  const copiedBarCounts = async () =>
+    (await copiesInFolder()).map(
+      (copy) => (JSON.parse(copy.raw) as Project).bars.length,
+    );
+  const setDenied = (denied: boolean) =>
+    page.evaluate((value) => {
+      (window as unknown as { folderMock: DirectoryMock }).folderMock.denied =
+        value;
+    }, denied);
+  const associateFolder = async () => {
+    const dismiss = page.getByRole('button', {
+      name: 'Fechar aviso',
+      exact: true,
+    });
+    if (await dismiss.isVisible()) await dismiss.click();
+    await page
+      .locator('.folder-menu')
+      .getByText('Arquivos do projeto', { exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: 'Localizar/associar pasta', exact: true })
+      .click();
+    await expect(
+      page.getByText('Salvo na pasta do projeto', { exact: true }),
+    ).toBeVisible();
+  };
+
+  await openFixture(page);
+  await associateFolder();
+  await openRecovery(page);
+  const dialog = recovery(page);
+  await dialog.getByRole('combobox', { name: 'Intervalo' }).selectOption('1');
+  await dialog.getByRole('button', { name: 'Salvar preferências' }).click();
+
+  for (let edit = 1; edit <= 3; edit++) {
+    await addBar(page, 300 * (edit - 1));
+    await page.clock.fastForward(61_000);
+    await expect.poll(async () => (await copiedBarCounts())[0]).toBe(edit);
+  }
+  await expect.poll(copiedBarCounts).toEqual([3, 2, 1]);
+  const lastFolderCopy = (await copiesInFolder())[0];
+  const beforeDenial = await readFolder();
+  expect(
+    (JSON.parse(beforeDenial.files[mainPath]) as Project).bars,
+  ).toHaveLength(3);
+
+  await setDenied(true);
+  await page.clock.setSystemTime(new Date(lastFolderCopy.copiedAt - 3_600_000));
+  const status = page.locator('.periodic-recovery-status');
+  for (const offset of [900, 1200]) {
+    const prior = await status.textContent();
+    await addBar(page, offset);
+    await page.clock.fastForward(61_000);
+    await expect(status).not.toHaveText(prior!);
+    await expect(status).toContainText('somente local');
+  }
+  expect(await readFolder()).toEqual(beforeDenial);
+  await openRecovery(page);
+  await expect(
+    dialog.getByRole('listitem').filter({ hasText: 'Armazenamento local' }),
+  ).toHaveCount(2);
+  await expect(
+    dialog.getByText(
+      'Não foi possível consultar as cópias na pasta autorizada.',
+      {
+        exact: true,
+      },
+    ),
+  ).toBeVisible();
+
+  // Consultar um histórico precisa permitir sua leitura sem associar a pasta.
+  await setDenied(false);
+  await dialog.getByRole('button', { name: 'Consultar pasta…' }).click();
+  await expect(
+    dialog
+      .getByRole('listitem')
+      .filter({ hasText: 'Pasta do projeto' })
+      .first(),
+  ).toBeVisible();
+  expect(await readFolder()).toEqual(beforeDenial);
+  await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+
+  await associateFolder();
+  await expect.poll(copiedBarCounts).toEqual([5, 4, 3]);
+  const reconciled = await copiesInFolder();
+  expect(reconciled[2].id).toBe(lastFolderCopy.id);
+  expect(reconciled.map((copy) => copy.projectId)).toEqual(
+    Array(3).fill(lastFolderCopy.projectId),
+  );
+  const primary = (await readFolder()).files[mainPath];
+  expect((JSON.parse(primary) as Project).bars).toHaveLength(5);
+
+  await page.clock.fastForward(1_000);
+  await expect(
+    page.getByText('Salvo na pasta do projeto', { exact: true }),
+  ).toBeVisible();
+  await openRecovery(page);
+  const restore = dialog.getByRole('button', { name: 'Recuperar cópia' });
+  await expect(restore).toHaveCount(3);
+  await expect(
+    dialog.getByRole('listitem').filter({ hasText: 'Armazenamento local' }),
+  ).toHaveCount(0);
+  await restore.last().click();
+  await expect(dialog).toHaveCount(0);
+  await page.clock.fastForward(1_000);
+  await expect(autosaveStatus(page)).toBeVisible();
+  expect((await saveProjectCopy(page)).bars).toHaveLength(3);
+  expect((await readFolder()).files[mainPath]).toBe(primary);
 });

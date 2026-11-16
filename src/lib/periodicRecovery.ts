@@ -1,7 +1,10 @@
 import { decodeProject } from '../domain/model';
 import type { Project } from '../domain/types';
 import type { ProjectFolder } from './projectFolder';
-import type { PeriodicRecoveryStatus } from './periodicRecoveryScheduler';
+import type {
+  PeriodicRecoveryReceipt,
+  PeriodicRecoveryStatus,
+} from './periodicRecoveryScheduler';
 
 export const RECOVERY_COPY_LIMIT = 3;
 
@@ -27,8 +30,33 @@ export type RecoveryCopy = {
   name: string;
   startedAt: number;
   copiedAt: number;
+  orderAt?: number;
+  afterFolderOrder?: number;
   raw: string;
 };
+
+const orderOf = (copy: RecoveryCopy) => copy.orderAt ?? copy.copiedAt;
+
+function markCopy(
+  copy: RecoveryCopy,
+  previous: RecoveryCopy[],
+  folderOrder?: number,
+) {
+  const copiedAt = Date.now();
+  const lastOrder = previous.reduce(
+    (latest, item) => Math.max(latest, orderOf(item)),
+    folderOrder ?? 0,
+  );
+  return {
+    ...copy,
+    copiedAt,
+    orderAt: Math.max(
+      copiedAt,
+      Math.min(Number.MAX_SAFE_INTEGER, lastOrder + 1),
+    ),
+    afterFolderOrder: folderOrder,
+  };
+}
 
 export function makeRecoveryCopy(
   project: Project,
@@ -97,25 +125,27 @@ async function planOffThread(
   existing: RecoveryCopy[],
   candidate: RecoveryCopy,
 ) {
-  if (typeof Worker === 'undefined')
-    return planRecoveryCopy(existing, candidate);
+  const [valid, ...flags] = await validateCopies([candidate, ...existing]);
+  if (!valid) throw Error('A nova cópia não passou pelo leitor do projeto.');
+  return rotateCopies(existing, candidate, flags);
+}
+
+async function validateCopies(copies: RecoveryCopy[]) {
+  if (typeof Worker === 'undefined') return copies.map(isValidCopy);
   const worker = new Worker(
     new URL('./periodicRecovery.worker.ts', import.meta.url),
     { type: 'module' },
   );
   try {
-    const flags = await new Promise<boolean[]>((resolve, reject) => {
+    return await new Promise<boolean[]>((resolve, reject) => {
       worker.onmessage = (event: MessageEvent<boolean[]>) =>
         resolve(event.data);
       worker.onerror = () =>
         reject(Error('Falha ao validar as cópias de recuperação.'));
       worker.onmessageerror = () =>
         reject(Error('Resposta de validação ilegível.'));
-      worker.postMessage([candidate, ...existing]);
+      worker.postMessage(copies);
     });
-    if (!flags[0])
-      throw Error('A nova cópia não passou pelo leitor do projeto.');
-    return rotateCopies(existing, candidate, flags.slice(1));
   } finally {
     worker.terminate();
   }
@@ -136,6 +166,9 @@ function archive(snapshot: unknown, projectId: string): RecoveryCopy[] {
       typeof copy.name !== 'string' ||
       !Number.isSafeInteger(copy.startedAt) ||
       !Number.isSafeInteger(copy.copiedAt) ||
+      (copy.orderAt !== undefined && !Number.isSafeInteger(copy.orderAt)) ||
+      (copy.afterFolderOrder !== undefined &&
+        !Number.isSafeInteger(copy.afterFolderOrder)) ||
       typeof copy.raw !== 'string'
     )
       throw Error('Histórico de recuperação incompatível.');
@@ -147,6 +180,13 @@ function archive(snapshot: unknown, projectId: string): RecoveryCopy[] {
 const DB_NAME = 'armadurastruct-periodic-recovery';
 const STORE = 'projects';
 const RECOVERY_ARCHIVE_FORMAT = 'armstruct-periodic-recovery/1';
+type FolderRecoveryArchive = NonNullable<ProjectFolder['recovery']>;
+
+class RecoveryArchiveConflict extends Error {}
+
+function folderContents(projectId: string, copies: RecoveryCopy[]) {
+  return JSON.stringify({ format: RECOVERY_ARCHIVE_FORMAT, projectId, copies });
+}
 
 function readFolderCopies(raw: string | undefined, projectId?: string) {
   if (raw === undefined) return [];
@@ -177,22 +217,18 @@ export async function saveFolderRecoveryCopy(
 ) {
   if (!isCurrent()) return null;
   const expected = await destination.read();
-  const copies = await planOffThread(
-    readFolderCopies(expected, copy.projectId),
-    copy,
-  );
+  const existing = readFolderCopies(expected, copy.projectId);
+  const copies = await planOffThread(existing, copy);
   if (!copies || !isCurrent()) return null;
-  const confirmed = { ...copy, copiedAt: Date.now() };
+  const confirmed = markCopy(copy, existing);
   copies[0] = confirmed;
-  const contents = JSON.stringify({
-    format: RECOVERY_ARCHIVE_FORMAT,
-    projectId: copy.projectId,
-    copies,
-  });
+  const contents = folderContents(copy.projectId, copies);
   // Se outra instância publicar antes, recomece com um novo snapshot no próximo ciclo.
   if (await destination.write(contents, expected)) return confirmed;
   if (!isCurrent()) return null;
-  throw Error('O histórico na pasta mudou durante a cópia.');
+  throw new RecoveryArchiveConflict(
+    'O histórico na pasta mudou durante a cópia.',
+  );
 }
 
 function openArchive() {
@@ -219,7 +255,9 @@ export async function listLocalRecoveryCopies(): Promise<{
         const cursor = request.result;
         if (!cursor) return;
         try {
-          copies.push(...archive(cursor.value, String(cursor.key)));
+          // A ordem observada na pasta é metadado separado da lista de projetos.
+          if (typeof cursor.key === 'string')
+            copies.push(...archive(cursor.value, cursor.key));
         } catch {
           unreadableProjects++;
         }
@@ -275,6 +313,8 @@ function replaceLocalArchive(
               copy.raw !== observed.raw ||
               copy.startedAt !== observed.startedAt ||
               copy.copiedAt !== observed.copiedAt ||
+              copy.orderAt !== observed.orderAt ||
+              copy.afterFolderOrder !== observed.afterFolderOrder ||
               copy.name !== observed.name
             );
           })
@@ -293,26 +333,285 @@ function replaceLocalArchive(
   });
 }
 
-/** Validação no worker e comparação/rotação na mesma transação de escrita. */
-export async function saveLocalRecoveryCopy(
-  copy: RecoveryCopy,
-  isCurrent = () => true,
-) {
+async function withLocalArchive<T>(run: (db: IDBDatabase) => Promise<T>) {
   const db = await openArchive();
   try {
-    if (!isCurrent()) return null;
-    const expected = await loadLocalArchive(db, copy.projectId);
-    const next = await planOffThread(expected, copy);
-    if (!next || !isCurrent()) return null;
-    const confirmed = { ...copy, copiedAt: Date.now() };
-    next[0] = confirmed;
-    if (
-      await replaceLocalArchive(db, copy.projectId, expected, next, isCurrent)
-    )
-      return confirmed;
-    if (!isCurrent()) return null;
-    throw Error('O histórico local mudou durante a cópia.');
+    return await run(db);
   } finally {
     db.close();
   }
+}
+
+export type LocalRecoveryArchive = {
+  read(projectId: string): Promise<RecoveryCopy[]>;
+  replace(
+    projectId: string,
+    expected: RecoveryCopy[],
+    next: RecoveryCopy[],
+    isCurrent: () => boolean,
+  ): Promise<boolean>;
+  readFolderOrder(projectId: string): Promise<number | undefined>;
+  rememberFolderOrder(projectId: string, order: number): Promise<void>;
+};
+
+function folderOrderMetadata(
+  db: IDBDatabase,
+  projectId: string,
+  incoming?: number,
+) {
+  return new Promise<number | undefined>((resolve, reject) => {
+    const tx = db.transaction(
+      STORE,
+      incoming === undefined ? 'readonly' : 'readwrite',
+    );
+    const store = tx.objectStore(STORE);
+    const key = ['folder-order', projectId];
+    const request = store.get(key);
+    let order: number | undefined;
+    request.onsuccess = () => {
+      if (Number.isSafeInteger(request.result)) order = request.result;
+      if (incoming !== undefined && (order === undefined || incoming > order)) {
+        store.put(incoming, key);
+        order = incoming;
+      }
+    };
+    tx.oncomplete = () => resolve(order);
+    tx.onabort = () =>
+      reject(tx.error ?? Error('Falha ao registrar a ordem das cópias.'));
+  });
+}
+
+const indexedDbArchive: LocalRecoveryArchive = {
+  read: (projectId) =>
+    withLocalArchive((db) => loadLocalArchive(db, projectId)),
+  replace: (projectId, expected, next, isCurrent) =>
+    withLocalArchive((db) =>
+      replaceLocalArchive(db, projectId, expected, next, isCurrent),
+    ),
+  readFolderOrder: (projectId) =>
+    withLocalArchive((db) => folderOrderMetadata(db, projectId)),
+  rememberFolderOrder: async (projectId, order) => {
+    await withLocalArchive((db) => folderOrderMetadata(db, projectId, order));
+  },
+};
+
+type RecoveryOptions = {
+  isCurrent?: () => boolean;
+  local?: LocalRecoveryArchive;
+};
+
+/** Validação no worker e comparação/rotação na mesma transação de escrita. */
+async function saveLocalRecoveryCopy(
+  copy: RecoveryCopy,
+  local: LocalRecoveryArchive,
+  isCurrent: () => boolean,
+) {
+  if (!isCurrent()) return null;
+  const expected = await local.read(copy.projectId);
+  const next = await planOffThread(expected, copy);
+  if (!next || !isCurrent()) return null;
+  const folderOrder = await local
+    .readFolderOrder(copy.projectId)
+    .catch(() => undefined);
+  if (!isCurrent()) return null;
+  const confirmed = markCopy(copy, expected, folderOrder);
+  next[0] = confirmed;
+  if (await local.replace(copy.projectId, expected, next, isCurrent))
+    return confirmed;
+  if (!isCurrent()) return null;
+  throw new RecoveryArchiveConflict('O histórico local mudou durante a cópia.');
+}
+
+function mergeOrderedCopies(folder: RecoveryCopy[], local: RecoveryCopy[]) {
+  const unique = new Map<string, RecoveryCopy>();
+  let f = 0;
+  let l = 0;
+  // Dentro de cada destino a ordem das transações sobrevive a recuos do relógio.
+  while (f < folder.length || l < local.length) {
+    const fromFolder = folder[f];
+    const fromLocal = local[l];
+    const copy =
+      fromLocal && (!fromFolder || orderOf(fromLocal) >= orderOf(fromFolder))
+        ? local[l++]
+        : folder[f++];
+    const previous = unique.get(copy.id);
+    if (previous && previous.raw !== copy.raw)
+      throw Error(
+        'Dois conteúdos diferentes usam a mesma identificação de cópia.',
+      );
+    if (!previous) unique.set(copy.id, copy);
+  }
+  return [...unique.values()];
+}
+
+const message = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+
+async function withRecoveryLock<T>(
+  projectId: string,
+  work: () => Promise<T>,
+): Promise<T> {
+  if (typeof navigator !== 'undefined' && navigator.locks?.request)
+    return await navigator.locks.request(
+      'armstruct-periodic-recovery:' + projectId,
+      work,
+    );
+  return work();
+}
+
+async function publishToFolder(
+  projectId: string,
+  destination: FolderRecoveryArchive,
+  local: LocalRecoveryArchive,
+  isCurrent: () => boolean,
+  candidate?: RecoveryCopy,
+): Promise<PeriodicRecoveryReceipt | null> {
+  if (!isCurrent()) return null;
+  let localBefore: RecoveryCopy[];
+  try {
+    localBefore = await local.read(projectId);
+  } catch (error) {
+    if (!candidate) throw error;
+    const saved = await saveFolderRecoveryCopy(
+      destination,
+      candidate,
+      isCurrent,
+    );
+    return (
+      saved && {
+        destination: 'folder',
+        copiedAt: Date.now(),
+        notice:
+          'Não foi possível consultar o histórico local para conciliar as cópias.',
+      }
+    );
+  }
+  if (!localBefore.length) {
+    const saved =
+      candidate &&
+      (await saveFolderRecoveryCopy(destination, candidate, isCurrent));
+    if (!saved) return null;
+    const copiedAt = Date.now();
+    await local.rememberFolderOrder(projectId, orderOf(saved)).catch(() => {});
+    return { destination: 'folder', copiedAt };
+  }
+  const expected = await destination.read();
+  const folderBefore = readFolderCopies(expected, projectId);
+  const flags = await validateCopies([
+    ...folderBefore,
+    ...localBefore,
+    ...(candidate ? [candidate] : []),
+  ]);
+  if (candidate && !flags.at(-1))
+    throw Error('A nova cópia não passou pelo leitor do projeto.');
+  const validFolder = folderBefore.filter((_, i) => flags[i]);
+  const validLocal = localBefore.filter(
+    (_, i) => flags[folderBefore.length + i],
+  );
+  if (!validLocal.length && !candidate) return null;
+
+  const invalidFolder = folderBefore.filter((_, i) => !flags[i]);
+  const valid = mergeOrderedCopies(validFolder, validLocal);
+  if (candidate && valid[0]?.raw !== candidate.raw)
+    valid.unshift(markCopy(candidate, valid));
+  const copies = [...valid.slice(0, RECOVERY_COPY_LIMIT), ...invalidFolder];
+  if (new Set(copies.map((copy) => copy.id)).size !== copies.length)
+    throw Error(
+      'Há cópias legíveis e inválidas com a mesma identificação; os históricos foram preservados.',
+    );
+  if (!isCurrent()) return null;
+  const contents = folderContents(projectId, copies);
+  if (!(await destination.write(contents, expected)))
+    throw new RecoveryArchiveConflict(
+      'O histórico na pasta mudou durante a conciliação.',
+    );
+  if (validLocal.length && (await destination.read()) !== contents)
+    throw new RecoveryArchiveConflict(
+      'Não foi possível confirmar as cópias na pasta. O histórico local foi preservado.',
+    );
+
+  const copiedAt = Date.now();
+  await local
+    .rememberFolderOrder(projectId, orderOf(copies[0]))
+    .catch(() => {});
+  const copiedIds = new Set(copies.map((copy) => copy.id));
+  const keepLocal = localBefore.filter(
+    (copy, i) =>
+      !flags[folderBefore.length + i] ||
+      (copy.afterFolderOrder === undefined &&
+        !copiedIds.has(copy.id) &&
+        // Sem ordem observada, um horário anterior pode vir de um recuo do relógio.
+        validFolder.some((item) => orderOf(item) >= orderOf(copy))),
+  );
+  if (keepLocal.length !== localBefore.length && isCurrent()) {
+    try {
+      if (!(await local.replace(projectId, localBefore, keepLocal, isCurrent)))
+        throw Error('O histórico local mudou.');
+    } catch {
+      return {
+        destination: 'folder',
+        copiedAt,
+        notice:
+          'Cópias confirmadas na pasta. O histórico local foi preservado e será conciliado novamente.',
+      };
+    }
+  }
+  return {
+    destination: 'folder',
+    copiedAt,
+    notice: keepLocal.some((copy) => validLocal.includes(copy))
+      ? 'O histórico local inclui versões cuja ordem não foi comprovada. Essas versões foram preservadas.'
+      : undefined,
+  };
+}
+
+export function reconcilePeriodicRecovery(
+  projectId: string,
+  folder: FolderRecoveryArchive,
+  { local = indexedDbArchive, isCurrent = () => true }: RecoveryOptions = {},
+) {
+  return withRecoveryLock(projectId, () =>
+    publishToFolder(projectId, folder, local, isCurrent),
+  );
+}
+
+export function savePeriodicRecovery(
+  copy: RecoveryCopy,
+  folder: ProjectFolder['recovery'],
+  { local = indexedDbArchive, isCurrent = () => true }: RecoveryOptions = {},
+): Promise<PeriodicRecoveryReceipt | null> {
+  return withRecoveryLock(copy.projectId, async () => {
+    let folderFailure: string | undefined;
+    if (folder && isCurrent()) {
+      try {
+        return await publishToFolder(
+          copy.projectId,
+          folder,
+          local,
+          isCurrent,
+          copy,
+        );
+      } catch (error) {
+        if (error instanceof RecoveryArchiveConflict) throw error;
+        folderFailure = message(error);
+      }
+    }
+    try {
+      const saved = await saveLocalRecoveryCopy(copy, local, isCurrent);
+      return (
+        saved && {
+          destination: 'local',
+          copiedAt: Date.now(),
+          notice: folderFailure
+            ? `Pasta indisponível. Cópia confirmada somente no armazenamento local. ${folderFailure}`
+            : undefined,
+        }
+      );
+    } catch (error) {
+      if (!folderFailure) throw error;
+      throw Error(
+        `${folderFailure} Falha no armazenamento local: ${message(error)}`,
+      );
+    }
+  });
 }

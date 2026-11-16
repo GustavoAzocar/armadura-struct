@@ -111,8 +111,8 @@ import {
   makeRecoveryCopy,
   periodicRecoveryStatusLabel,
   recoverPeriodicProject,
-  saveFolderRecoveryCopy,
-  saveLocalRecoveryCopy,
+  reconcilePeriodicRecovery,
+  savePeriodicRecovery,
   type RecoveryCopy,
 } from './lib/periodicRecovery';
 import {
@@ -1053,17 +1053,13 @@ export default function App({
           historyRef.current.present.id === snapshot.id &&
           projectFolderRecovery(historyRef.current.present) === destination;
         if (!allowed()) return null;
-        const copy = makeRecoveryCopy(snapshot, startedAt);
-        if (destination) {
-          const result = await saveFolderRecoveryCopy(
-            destination,
-            copy,
-            allowed,
-          );
-          return result && { destination: 'folder', copiedAt: Date.now() };
-        }
-        const result = await saveLocalRecoveryCopy(copy, allowed);
-        return result && { destination: 'local', copiedAt: Date.now() };
+        return savePeriodicRecovery(
+          makeRecoveryCopy(snapshot, startedAt),
+          destination,
+          {
+            isCurrent: allowed,
+          },
+        );
       },
     }),
   );
@@ -1103,6 +1099,33 @@ export default function App({
       };
     periodicScheduler.observe(periodicContext.current, p, destinationChanged);
   }, [periodicScheduler, periodicFolder, p, ready, noProject]);
+  const periodicEnabled = periodicSettings.settings.enabled;
+  useEffect(() => {
+    if (!ready || noProject || !periodicEnabled || !periodicFolder) return;
+    let active = true;
+    const isCurrent = () =>
+      active &&
+      !closingProject.current &&
+      !noProjectRef.current &&
+      historyRef.current.present.id === p.id &&
+      projectFolderRecovery(historyRef.current.present) === periodicFolder;
+    void reconcilePeriodicRecovery(p.id, periodicFolder, { isCurrent }).then(
+      (result) => {
+        if (result && isCurrent())
+          setPeriodicStatus({ kind: 'saved', ...result });
+      },
+      (error: unknown) => {
+        if (isCurrent())
+          setPeriodicStatus({
+            kind: 'failed',
+            message: error instanceof Error ? error.message : String(error),
+          });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [ready, noProject, p.id, periodicEnabled, periodicFolder]);
   useEffect(() => {
     if (!periodicOpen) return;
     let active = true;
@@ -1129,9 +1152,25 @@ export default function App({
               destination: 'folder' as const,
             }))
           : []),
-      ].sort((a, b) => b.copiedAt - a.copiedAt);
+      ].sort((a, b) => (b.orderAt ?? b.copiedAt) - (a.orderAt ?? a.copiedAt));
       setPeriodicCopies(
-        copies.map((copy) => ({ ...copy, valid: isValidCopy(copy) })),
+        copies
+          .filter(
+            (copy) =>
+              copy.destination === 'folder' ||
+              !copies.some(
+                (other) =>
+                  other.destination === 'folder' &&
+                  other.id === copy.id &&
+                  other.projectId === copy.projectId &&
+                  other.raw === copy.raw,
+              ),
+          )
+          .map((copy) => ({
+            ...copy,
+            id: copy.destination + ':' + copy.id,
+            valid: isValidCopy(copy),
+          })),
       );
       setPeriodicError(
         [
@@ -11118,7 +11157,9 @@ export default function App({
           title={
             periodicStatus.kind === 'failed'
               ? periodicStatus.message
-              : undefined
+              : periodicStatus.kind === 'saved'
+                ? periodicStatus.notice
+                : undefined
           }
         >
           {periodicRecoveryStatusLabel(
@@ -11789,7 +11830,17 @@ export default function App({
       {periodicOpen && (
         <PeriodicRecoveryDialog
           settings={periodicSettings.settings}
-          warning={periodicSettings.warning}
+          warning={[
+            periodicSettings.warning,
+            periodicEnabled && periodicStatus.kind === 'saved'
+              ? periodicStatus.notice
+              : undefined,
+            periodicEnabled && periodicStatus.kind === 'failed'
+              ? periodicStatus.message
+              : undefined,
+          ]
+            .filter(Boolean)
+            .join(' ')}
           status={periodicRecoveryStatusLabel(
             periodicStatus,
             periodicSettings.settings.enabled,

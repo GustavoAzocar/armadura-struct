@@ -17,7 +17,13 @@ Uma cópia inválida aparece para diagnóstico. Somente as versões que passam p
 
 ## Onde as cópias são armazenadas
 
-Na pasta autorizada, a aplicação usa o inventário `recovery-v1/copies.json`, separado do arquivo principal em `save-v1`. Os ambientes e documentos sem pasta vinculada usam o IndexedDB local. O inventário mantém as três versões válidas mais recentes do projeto no destino. A gravação nova e a rotação são publicadas juntas. Cópias inválidas são preservadas para inspeção.
+Na pasta autorizada, a aplicação prioriza o inventário `recovery-v1/copies.json`, separado do arquivo principal em `save-v1`. Projetos sem pasta vinculada usam o IndexedDB local. Se a pasta ficar inacessível ou falhar na gravação, a próxima cópia pode ser confirmada no IndexedDB, e o aplicativo identifica o estado **somente local**.
+
+Enquanto a pasta estiver inacessível, o aplicativo mantém até três versões válidas no histórico local e preserva as cópias que já estão na pasta. Nesse período, o total físico pode passar de três.
+
+Com as cópias periódicas ativadas, use **Localizar/associar pasta** para retomar a gravação na pasta. O aplicativo reúne os dois históricos do projeto, seleciona as três gerações válidas mais recentes e confirma a gravação na pasta antes de retirar do IndexedDB as versões transferidas ou superadas. A ordem acompanha as gravações e usa como referência a última geração registrada na pasta. Isso evita confundir uma cópia nova com uma antiga se o relógio do sistema voltar durante a indisponibilidade. Se a pasta falhar, o histórico mudar ou a ordem de versões locais que ficariam de fora não puder ser comprovada, essas cópias locais são preservadas. Cópias inválidas e arquivos alheios são mantidos para inspeção.
+
+O comando **Consultar pasta…** abre somente a lista. A conciliação usa uma pasta vinculada ao projeto, com autorização de escrita vigente.
 
 Limpar os dados do site ou remover o perfil do aplicativo pode apagar o histórico local. Excluir a pasta de um projeto pode apagar as cópias que ficam nela. Preserve arquivos importantes em um meio independente. As cópias recuperam gravações confirmadas durante a execução. A proteção contra falha física ou perda de energia depende do armazenamento e do sistema operacional.
 

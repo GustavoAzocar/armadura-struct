@@ -2,7 +2,7 @@
 
 ## Não lançado
 
-- Cópias periódicas de recuperação (#196): preferência por dispositivo, horário e destino da última confirmação, histórico de versões e restauração protegida, preservando o salvamento principal e seu formato. [Uso e limites](docs/COPIAS-DE-RECUPERACAO.md).
+- Cópias periódicas de recuperação (#196): preferência por dispositivo, horário e destino da última confirmação, histórico e restauração protegida. Usa armazenamento local quando a pasta fica indisponível e concilia as três versões mais recentes depois que o acesso é restabelecido. Preserva o salvamento principal e seu formato. [Uso e limites](docs/COPIAS-DE-RECUPERACAO.md).
 
 - Arquivo → Projeto → Fechar projeto (#173): volta a uma tela inicial **Sem projeto aberto** sem encerrar o aplicativo, com Novo, Abrir e Recentes. Alterações não salvas pedem Salvar e fechar, Fechar sem salvar ou Cancelar, reaproveitando as proteções de Projetos recentes (download no navegador não conta como gravação). Reiniciar após fechar mantém a tela inicial; a recuperação do último trabalho continua quando o aplicativo é encerrado com projeto aberto. Nenhum arquivo, pasta, backup ou recente é apagado; formato do projeto inalterado. [Uso e limites](docs/FECHAR-PROJETO.md).
 
