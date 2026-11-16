@@ -337,8 +337,8 @@ export function saveSheetTemplate(
   return withSealDataVersion({
     ...project,
     schema:
-      project.schema === SEAL_PROJECT_SCHEMA
-        ? SEAL_PROJECT_SCHEMA
+      Number(project.schema.split('/')[1]) >= 39
+        ? project.schema
         : SHEET_TEMPLATE_PROJECT_SCHEMA,
     sheetTemplates: existing
       ? list.map((t) =>
@@ -421,8 +421,8 @@ export function applySheetTemplate(
     ? withSealDataVersion({
         ...project,
         schema:
-          project.schema === SEAL_PROJECT_SCHEMA
-            ? SEAL_PROJECT_SCHEMA
+          Number(project.schema.split('/')[1]) >= 39
+            ? project.schema
             : SHEET_TEMPLATE_PROJECT_SCHEMA,
         sheets,
       })

@@ -401,7 +401,9 @@ export function contourMeasureCandidates(
 ): MaskCadEntity[] {
   return maskCadEntities(p, ctx).filter(
     (e) =>
-      p.hierarchy.objectDetails[e.mask.id] === ctx.detailId &&
+      (ctx.editingMaskId === e.mask.id ||
+        p.maskReferences?.[ctx.detailId] !== undefined ||
+        p.hierarchy.objectDetails[e.mask.id] === ctx.detailId) &&
       !e.ref.primitive.text,
   );
 }

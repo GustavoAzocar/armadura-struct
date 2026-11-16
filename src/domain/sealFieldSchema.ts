@@ -41,7 +41,7 @@ export function hasSealData(input: unknown): boolean {
 export function withSealDataVersion<T extends { schema: string }>(
   project: T,
 ): T {
-  return hasSealData(project)
+  return hasSealData(project) && Number(project.schema.split('/')[1]) < 39
     ? { ...project, schema: SEAL_PROJECT_SCHEMA }
     : project;
 }

@@ -1,3 +1,7 @@
+import {
+  reconcileMaskReferences,
+  validateMaskReferences,
+} from './maskReferences';
 import { pruneVisibility } from './visibilitySchema';
 import { completeLayers } from './layers';
 import { armatureReferences } from './armatureReferences';
@@ -86,11 +90,16 @@ export function completeOwnership(
   const objects = contentObjects(project),
     live = new Set(objects.map((o) => o.id));
   const owners = Object.fromEntries(
-    Object.entries(h.objectDetails).filter(([id]) => live.has(id)),
+    Object.entries(h.objectDetails).filter(
+      ([id]) =>
+        live.has(id) &&
+        !project.masks.some((m) => m.id === id && m.independent),
+    ),
   );
   const valid = new Set(h.details.map((d) => d.id));
   // Physical bars first, then annotations/representations may inherit their owner.
   for (const object of objects) {
+    if ('independent' in object && object.independent) continue;
     if (Object.hasOwn(owners, object.id)) {
       if (!valid.has(owners[object.id]))
         throw new Error('Objeto associado a detalhamento inexistente.');
@@ -105,11 +114,13 @@ export function completeOwnership(
     Object.entries(h.objectOrigins).filter(([id]) => live.has(id)),
   );
   const bars = project.bars.map(recalculateBarQuantity);
-  return reconcileFabrication({
-    ...project,
-    bars: bars.every((b, i) => b === project.bars[i]) ? project.bars : bars,
-    hierarchy: { ...h, objectDetails: owners, objectOrigins },
-  });
+  return reconcileMaskReferences(
+    reconcileFabrication({
+      ...project,
+      bars: bars.every((b, i) => b === project.bars[i]) ? project.bars : bars,
+      hierarchy: { ...h, objectDetails: owners, objectOrigins },
+    }),
+  );
 }
 
 export function hierarchyName(name: string) {
@@ -303,6 +314,10 @@ export function moveObjectsToDetail(
         'A transferência mudaria a quantidade efetiva. Configure o mesmo fator de repetição no destino antes de mover posições físicas.',
       );
   }
+  if (project.masks.some((m) => ids.has(m.id) && m.independent))
+    throw new Error(
+      'Use Máscaras do detalhamento para exibir uma máscara independente, sem transferir sua propriedade.',
+    );
   if (!objectIds.every((id) => objects.some((o) => o.id === id)))
     throw new Error('Objeto inexistente.');
   // Rebatimentos and linked callouts accompany their physical bar, without a geometric transform.
@@ -378,11 +393,17 @@ export function validateHierarchy(project: Project) {
     )
   )
     throw new Error('Vínculo de hierarquia inexistente.');
+  validateMaskReferences(project);
+  const independent = new Set(
+    project.masks.filter((m) => m.independent).map((m) => m.id),
+  );
   const objects = new Set(contentObjects(project).map((o) => o.id));
   if (Object.keys(h.objectOrigins).some((id) => !objects.has(id)))
     throw new Error('Origem de objeto sem objeto local correspondente.');
   if (
-    [...objects].some((id) => !details.has(h.objectDetails[id])) ||
+    [...objects].some(
+      (id) => !independent.has(id) && !details.has(h.objectDetails[id]),
+    ) ||
     Object.keys(h.objectDetails).some((id) => !objects.has(id))
   )
     throw new Error('Associação de objeto ao detalhamento inválida.');

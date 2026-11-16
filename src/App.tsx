@@ -1,3 +1,12 @@
+import DetailMaskSelector from './components/DetailMaskSelector';
+import {
+  detailMaskReferences,
+  setMaskReference,
+  alignMaskReference,
+  maskAnchorFromWorld,
+  referenceMask,
+  canEditMaskGeometry,
+} from './domain/maskReferences';
 import AppUpdates from './components/AppUpdates';
 import ObjectSnapDialog from './components/ObjectSnapDialog';
 import { defaultSnapModes, type SnapModes } from './domain/objectSnaps';
@@ -774,6 +783,15 @@ export default function App({
   const sessions = useRef(new Map<string, DocumentSession>());
   const sessionsProject = useRef('');
   const [maskControl, setMaskControl] = useState(false);
+  const [maskOrigin, setMaskOrigin] = useState<{
+    project: Project;
+    mask: Mask;
+    detailId: string;
+    local?: Point;
+    target: Point;
+    preview: boolean;
+    pickingTarget?: boolean;
+  } | null>(null);
   const [cadSettingsOpen, setCadSettingsOpen] = useState(false);
   const [symbolsOpen, setSymbolsOpen] = useState(false);
   const quickDefaultsRef = useRef<string>('');
@@ -1373,6 +1391,8 @@ export default function App({
     key: documentKey,
     detailId: activeDetailId,
     scopeDetailId: isolatedDetailId,
+    editingMaskId:
+      tab === 'Máscaras' && drawingMaskId ? drawingMaskId : undefined,
   };
   const drawingMaskState = maskDrawingState(
     p,
@@ -1658,6 +1678,9 @@ export default function App({
     }
     const current = historyRef.current.present;
     const scope = isolationRef.current;
+    if (tab !== 'Máscaras' && current.maskReferences?.[activeDetailId]) {
+      ids = ids.filter((id) => !current.masks.some((m) => m.id === id));
+    }
     if (
       scope &&
       ids.some((id) => current.hierarchy.objectDetails[id] !== scope)
@@ -1680,6 +1703,22 @@ export default function App({
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    if (
+      maskDrawingContext.editingMaskId &&
+      nativeTarget?.independent &&
+      [
+        'dimension-aligned',
+        'dimension-orthogonal',
+        'leader',
+        'section',
+        'section-arc',
+      ].includes(t)
+    ) {
+      notify(
+        'Anotações pertencem aos detalhamentos. Exiba esta máscara como referência em Armaduras para cotar ou anotar.',
+      );
+      return;
+    }
     setSymbolPick(null);
     setFreeText(null);
     setStirrupSession(null);
@@ -1704,6 +1743,7 @@ export default function App({
     setMaskManip(null);
     setMaskCad(null);
     setMaskCalibration(null);
+    setMaskOrigin(null);
     nativeSession.current = null;
     setNativeKind(undefined);
     setNativeCursor(undefined);
@@ -2208,7 +2248,10 @@ export default function App({
     }
     if (
       request.edges.some(
-        (e) => !availableFollowEdges.some((current) => current.key === e.key),
+        (e) =>
+          !request.project.masks.some(
+            (m) => m.id === e.maskId && m.primitives[e.primitiveIndex],
+          ),
       )
     ) {
       notify(
@@ -2521,6 +2564,15 @@ export default function App({
   const nativeContext = useRef({ project: p.id, document: documentKey });
   const openMaskContext = (detailId: string) => {
     const current = historyRef.current.present;
+    if (detailId === 'project:masks') {
+      if (isolationRef.current || activeSheet) {
+        notify('Abra o modelo geral para editar uma máscara independente.');
+        return false;
+      }
+      setTab('Máscaras');
+      return true;
+    }
+
     const drawing = current.hierarchy.drawings.find(
       (d) => d.detailId === detailId,
     );
@@ -4228,7 +4280,14 @@ export default function App({
       notify('Máscara inexistente.');
       return false;
     }
-    if (!openMaskContext(current.hierarchy.objectDetails[id])) return false;
+    if (
+      !openMaskContext(
+        target.independent
+          ? 'project:masks'
+          : current.hierarchy.objectDetails[id],
+      )
+    )
+      return false;
     nativeSession.current = null;
     setNativeKind(undefined);
     setNativeCursor(undefined);
@@ -4240,6 +4299,132 @@ export default function App({
     );
     return true;
   };
+  // Só esta transação de apresentação atualiza as bases dos lançamentos.
+  // Mudanças de conteúdo continuam invalidando suas fotografias imutáveis.
+  const changeDetailMask = (
+    id: string,
+    action: 'show' | 'hide' | 'replace',
+  ) => {
+    const before = historyRef.current.present;
+    if (
+      activeSheet ||
+      !commit((current) =>
+        setMaskReference(current, activeDetailId, id, action),
+      )
+    )
+      return;
+    const next = historyRef.current.present;
+    const baseSession = <T extends { base: Project }>(
+      session: T | null,
+    ): T | null =>
+      session?.base === before ? { ...session, base: next } : session;
+    const dialogSession = <
+      T extends { base: Project; resume?: { base: Project } },
+    >(
+      session: T | null,
+    ): T | null =>
+      session?.base === before
+        ? {
+            ...session,
+            base: next,
+            ...(session.resume
+              ? { resume: { ...session.resume, base: next } }
+              : {}),
+          }
+        : session;
+    setStirrupSession(baseSession);
+    setStirrupDialog(dialogSession);
+    setBeamClampSession(baseSession);
+    setBeamClampDialog(dialogSession);
+    setHelixSession(baseSession);
+    setHelixDialog(dialogSession);
+    setMeshSession((session) => {
+      if (!session || session.base !== before) return session;
+      // Contornos/pontos confirmados são estáticos. Candidatos de clique
+      // da referência oculta deixam de ser oferecidos.
+      const hidden =
+        session.click &&
+        !detailMaskReferences(next, activeDetailId).items.some(
+          (i) => i.maskId === session.click!.maskId && i.visible,
+        );
+      const confirmedOpenings =
+        hidden && session.click
+          ? session.click.islands[session.click.index]
+              .filter((_, i) => session.click!.chosen[i])
+              .map((outline) => ({ outline }))
+          : [];
+      return {
+        ...session,
+        base: next,
+        ...(hidden
+          ? {
+              click: undefined,
+              openings: [...session.openings, ...confirmedOpenings],
+            }
+          : {}),
+      };
+    });
+    setFollowRequest((session) =>
+      session?.project === before ? { ...session, project: next } : session,
+    );
+    setMeasureSession((session) =>
+      session?.project === before
+        ? { ...session, project: next, cursor: undefined, contour: undefined }
+        : session,
+    );
+    setSnapCommand((n) => n + 1);
+  };
+  const startMaskOrigin = (id: string) => {
+    const current = historyRef.current.present;
+    const mask =
+      referenceMask(current, activeDetailId, id) ??
+      current.masks.find((m) => m.id === id);
+    if (
+      !mask ||
+      activeSheet ||
+      (isolationRef.current && isolationRef.current !== activeDetailId)
+    )
+      return false;
+    setTool('select');
+    setMaskControl(false);
+    setMaskReceipt(null);
+    setSelectedRaw([]);
+    setMaskId(null);
+    setMaskOrigin({
+      project: current,
+      mask,
+      detailId: activeDetailId,
+      target: { x: 0, y: 0 },
+      preview: false,
+    });
+    setMessage(
+      'Selecionar origem: clique no ponto da máscara, com os encaixes. Depois confira a prévia antes de aplicar.',
+    );
+    return true;
+  };
+  const maskOriginPreview = useMemo(() => {
+    if (!maskOrigin?.local || !maskOrigin.preview) return undefined;
+    try {
+      return alignMaskReference(
+        maskOrigin.project,
+        maskOrigin.detailId,
+        maskOrigin.mask.id,
+        maskOrigin.local,
+        maskOrigin.target,
+      );
+    } catch {
+      return undefined;
+    }
+  }, [maskOrigin]);
+  useEffect(() => {
+    if (
+      maskOrigin &&
+      (maskOrigin.project !== p ||
+        maskOrigin.detailId !== activeDetailId ||
+        activeSheet)
+    )
+      setMaskOrigin(null);
+  }, [p, activeDetailId, documentKey]);
   useEffect(() => {
     if (
       nativeKind &&
@@ -5283,12 +5468,20 @@ export default function App({
   function pickWeldedMeshClick(at: Point) {
     const s = meshSession;
     if (!s || s.stage !== 'region' || s.mode !== 'click') return;
-    const mask = s.base.masks.find((m) => m.id === drawingMaskId);
+    const currentReference = detailMaskReferences(
+      s.base,
+      activeDetailId,
+    ).currentMaskId;
+    const mask = referenceMask(
+      s.base,
+      activeDetailId,
+      currentReference ?? drawingMaskId,
+    );
     if (!mask) {
       setMeshSession({
         ...s,
         issue:
-          'Escolha a máscara ativa em Máscaras → Referências para usar o modo Clique.',
+          'Escolha a referência atual em Máscaras do detalhamento para usar o modo Clique.',
       });
       return;
     }
@@ -6113,6 +6306,20 @@ export default function App({
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (maskOrigin) {
+      try {
+        setMaskOrigin({
+          ...maskOrigin,
+          ...(maskOrigin.pickingTarget
+            ? { target: point, pickingTarget: false }
+            : { local: maskAnchorFromWorld(maskOrigin.mask, point) }),
+          preview: false,
+        });
+      } catch (e) {
+        notify((e as Error).message);
+      }
+      return;
+    }
     if (meshSession) {
       weldedMeshPoint(point);
       return;
@@ -8296,6 +8503,7 @@ export default function App({
     draft.length ||
     nativeKind ||
     maskCalibration ||
+    maskOrigin ||
     maskCad ||
     maskOffset ||
     maskManip ||
@@ -8667,6 +8875,11 @@ export default function App({
         notify(
           'Etapa/prévia descartada. Cortes/prolongamentos já confirmados permanecem; use Desfazer para revertê-los.',
         );
+        return;
+      }
+      if (maskOrigin) {
+        setMaskOrigin(null);
+        cmdInput.current?.blur();
         return;
       }
       if (maskCalibration) {
@@ -9460,13 +9673,118 @@ export default function App({
                   </button>
                 </div>
               )}
+              {tab.toLowerCase() === 'armaduras' && !maskOrigin && (
+                <DetailMaskSelector
+                  project={p}
+                  detailId={activeDetailId}
+                  onChange={changeDetailMask}
+                  onOrigin={startMaskOrigin}
+                />
+              )}
+              {nativeTarget?.independent &&
+                maskDrawingContext.editingMaskId &&
+                !maskOrigin && (
+                  <div className="context-bar" role="note">
+                    Editando máscara independente: <b>{nativeTarget?.name}</b> ·
+                    As referências desta máscara verão as alterações.
+                  </div>
+                )}
+              {maskOrigin && (
+                <section
+                  className="mask-origin-panel"
+                  aria-label="Selecionar origem da máscara"
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <b>Origem de {maskOrigin.mask.name}</b>
+                  <span>
+                    {maskOrigin.pickingTarget
+                      ? 'Clique no destino do alinhamento.'
+                      : maskOrigin.local
+                        ? `Ponto local: ${format(maskOrigin.local.x, 2)}, ${format(maskOrigin.local.y, 2)}`
+                        : 'Clique no ponto da máscara com os encaixes.'}{' '}
+                    · Destino: ({format(maskOrigin.target.x, 2)},{' '}
+                    {format(maskOrigin.target.y, 2)}) mm
+                  </span>
+                  <button
+                    onClick={() =>
+                      setMaskOrigin({
+                        ...maskOrigin,
+                        pickingTarget: true,
+                        preview: false,
+                      })
+                    }
+                  >
+                    Selecionar destino
+                  </button>
+                  <button
+                    onClick={() =>
+                      setMaskOrigin({
+                        ...maskOrigin,
+                        target: { x: 0, y: 0 },
+                        pickingTarget: false,
+                        preview: false,
+                      })
+                    }
+                  >
+                    Destino (0,0)
+                  </button>
+                  <button
+                    disabled={!maskOrigin.local || maskOrigin.pickingTarget}
+                    onClick={() =>
+                      setMaskOrigin({ ...maskOrigin, preview: true })
+                    }
+                  >
+                    Pré-visualizar alinhamento
+                  </button>
+                  <button
+                    disabled={!maskOriginPreview}
+                    onClick={() => {
+                      if (
+                        !maskOriginPreview ||
+                        historyRef.current.present !== maskOrigin.project
+                      )
+                        return;
+                      if (commit(() => maskOriginPreview)) {
+                        setMaskOrigin(null);
+                        notify(
+                          'Origem alinhada neste detalhamento. Geometria, outras referências e armaduras preservadas.',
+                        );
+                      }
+                    }}
+                  >
+                    Aplicar alinhamento
+                  </button>
+                  <button onClick={() => setMaskOrigin(null)}>
+                    Cancelar alinhamento
+                  </button>
+                </section>
+              )}
               <CadCanvas
+                maskContext={maskDrawingContext}
+                maskOrigin={
+                  maskOrigin
+                    ? {
+                        mask: maskOriginPreview
+                          ? (referenceMask(
+                              maskOriginPreview,
+                              activeDetailId,
+                              maskOrigin.mask.id,
+                              true,
+                            ) ?? maskOrigin.mask)
+                          : maskOrigin.mask,
+                        local: maskOrigin.local,
+                        target: maskOrigin.target,
+                      }
+                    : undefined
+                }
                 followInteraction={
                   tool === 'follow' && followRequest
                     ? {
                         mode: followRequest.mode,
                         available: availableFollowEdges,
-                        selected: followRequest.edges,
+                        selected: followRequest.edges.filter((e) =>
+                          availableFollowEdges.some((v) => v.key === e.key),
+                        ),
                         chain: followResult.chain,
                         preview: followResult.preview,
                         sidePoint: followRequest.sidePoint,
@@ -9572,7 +9890,13 @@ export default function App({
                 onFollowEdge={pickFollowEdge}
                 nativeDrawing={!!nativeKind}
                 onNativePick={(maskId, entityId) => {
-                  if (p.hierarchy.objectDetails[maskId] !== activeDetailId) {
+                  if (
+                    !canEditMaskGeometry(
+                      p,
+                      p.masks.find((m) => m.id === maskId)!,
+                      maskDrawingContext,
+                    )
+                  ) {
                     notify(
                       'Ative o detalhamento desta máscara na aba Projeto antes de editar suas entidades.',
                     );
@@ -9662,6 +9986,7 @@ export default function App({
                       transformRequest?.base)
                 }
                 commandActive={
+                  !!maskOrigin ||
                   !!beamClampSession ||
                   !!helixSession ||
                   !!freeText ||
@@ -9686,7 +10011,7 @@ export default function App({
                 key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
                 initialState={sessions.current.get(documentKey)?.camera}
                 ref={cad}
-                project={matchPreview.plan?.project ?? p}
+                project={maskOriginPreview ?? matchPreview.plan?.project ?? p}
                 isolatedDetailId={isolatedDetailId}
                 onEditDetail={beginDetailEdit}
                 tool={
@@ -9700,6 +10025,7 @@ export default function App({
                   maskManip ||
                   maskCad ||
                   maskCalibration ||
+                  maskOrigin ||
                   transformRequest ||
                   vertexRequest ||
                   alignmentRequest
@@ -9750,7 +10076,7 @@ export default function App({
                 snap={snap}
                 snapModes={snapModes}
                 snapBase={vertexRequest ? null : transformRequest?.base}
-                snapContext={`${snapCommand}:${nativeKind ?? tool}:${maskManip?.mode ?? ''}`}
+                snapContext={`${snapCommand}:${nativeKind ?? tool}:${maskManip?.mode ?? ''}:${JSON.stringify(p.maskReferences?.[activeDetailId] ?? null)}`}
                 snapLinear={
                   nativeKind
                     ? nativeKind === 'line' || nativeKind === 'polyline'
@@ -9967,7 +10293,13 @@ export default function App({
                     const r = l ? weldedMeshPlan(l) : undefined;
                     return r?.ok ? r.layout : undefined;
                   })()}
-                  activeMask={p.masks.find((m) => m.id === drawingMaskId)?.name}
+                  activeMask={
+                    p.masks.find(
+                      (m) =>
+                        m.id ===
+                        detailMaskReferences(p, activeDetailId).currentMaskId,
+                    )?.name
+                  }
                   onCandidate={chooseWeldedMeshCandidate}
                   onIsland={(i, use) =>
                     setMeshSession((s) =>
@@ -11376,10 +11708,13 @@ export default function App({
         <MaskBatchResults
           project={p}
           receipt={maskReceipt}
+          onOrigin={startMaskOrigin}
           onClose={() => setMaskReceipt(null)}
           onOpen={(owner, id) => {
             if (!openMaskContext(owner)) return;
             setMaskReceipt(null);
+            if (p.masks.find((m) => m.id === id)?.independent)
+              setDrawingMaskChoice({ projectId: p.id, id });
             setSelectedRaw([]);
             setMaskId(id);
             setSidebarOpen(true);
@@ -11406,12 +11741,20 @@ export default function App({
           onManipulate={startMaskManip}
           onCadEdit={startMaskCad}
           onCalibrate={startMaskCalibration}
+          onOrigin={startMaskOrigin}
           onBatch={(mode) => startMaskBatch(mode)}
           onClose={() => setMaskControl(false)}
           onSelect={(id) => {
             const current = historyRef.current.present,
               m = current.masks.find((m) => m.id === id);
-            if (!m || !openMaskContext(current.hierarchy.objectDetails[id]))
+            if (
+              !m ||
+              !openMaskContext(
+                m.independent
+                  ? 'project:masks'
+                  : current.hierarchy.objectDetails[id],
+              )
+            )
               return false;
             setSelectedRaw([]);
             setMaskId(id);
@@ -11440,7 +11783,7 @@ export default function App({
             setMaskId(null);
             setNativeEntity(undefined);
             notify(
-              `Máscara criada e ativa: ${created.mask.name} · ${detailPath(created.project, owner)}. Escolha a ferramenta para desenhar.`,
+              `Máscara criada e ativa: ${created.mask.name} · ${owner ? detailPath(created.project, owner) : 'independente do projeto'}. Escolha a ferramenta para desenhar.`,
             );
             return created.mask;
           }}
@@ -11477,8 +11820,10 @@ export default function App({
             }
             if (
               !current.masks.some((m) => m.id === id) ||
-              current.hierarchy.objectDetails[id] !== activeDetailId ||
-              !editable(id) ||
+              (!target?.independent &&
+                current.hierarchy.objectDetails[id] !== activeDetailId) ||
+              (!target?.independent && !editable(id)) ||
+              (target?.independent && !!isolationRef.current) ||
               activeSheet
             )
               return false;

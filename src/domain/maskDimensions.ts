@@ -1,3 +1,4 @@
+import { referenceMask } from './maskReferences';
 import { stylePrimitive } from './layers';
 import { layerState } from './layerProfiles';
 import { z } from 'zod';
@@ -92,7 +93,9 @@ export function captureMaskReference(
         e.ref.primitive.layerId ??
           stylePrimitive(p, e.mask, e.ref.primitive).layerId!,
       ).capture &&
-      p.hierarchy.objectDetails[e.mask.id] === ctx.detailId,
+      (ctx.editingMaskId === e.mask.id ||
+        !!p.maskReferences?.[ctx.detailId] ||
+        p.hierarchy.objectDetails[e.mask.id] === ctx.detailId),
   );
   const hit = hitMaskCadEntity(all, at, 1e-4);
   if (!hit) return;
@@ -110,7 +113,10 @@ export function dimensionReferenceIssue(
   a: Annotation,
 ): string | undefined {
   for (const r of a.maskReferences ?? []) {
-    const m = p.masks.find((m) => m.id === r.maskId);
+    const owner = p.hierarchy.objectDetails[a.id];
+    const m = p.maskReferences?.[owner]
+      ? referenceMask(p, owner, r.maskId)
+      : p.masks.find((m) => m.id === r.maskId);
     const q =
       m &&
       (r.entityId
@@ -119,7 +125,7 @@ export function dimensionReferenceIssue(
     if (
       !m ||
       !q ||
-      p.hierarchy.objectDetails[m.id] !== p.hierarchy.objectDetails[a.id]
+      (!p.maskReferences?.[owner] && p.hierarchy.objectDetails[m.id] !== owner)
     )
       return 'Referência de máscara ausente ou em outro detalhamento. Cota estática: revise as referências.';
     const at = maskPoint(r.local, m),

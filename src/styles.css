@@ -5724,3 +5724,67 @@ button.hierarchy-drawing {
     justify-content: center;
   }
 }
+
+.detail-mask-selector,
+.mask-origin-panel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel, #202431);
+  border-bottom: 1px solid var(--border, #414758);
+  font-size: 12px;
+  position: relative;
+  z-index: 12;
+}
+.detail-mask-selector .mask-selector {
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+}
+.detail-mask-selector input[type='search'] {
+  width: 90px;
+}
+.detail-mask-selector select {
+  max-width: min(350px, 50vw);
+}
+.detail-mask-selector details {
+  position: relative;
+}
+.detail-mask-selector summary {
+  cursor: pointer;
+  white-space: nowrap;
+}
+.detail-mask-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: min(390px, 80vw);
+  max-height: 260px;
+  overflow: auto;
+  padding: 10px;
+  background: var(--panel, #202431);
+  border: 1px solid var(--border, #414758);
+  box-shadow: 0 4px 16px #0005;
+}
+.detail-mask-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.detail-mask-list label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.detail-mask-list button {
+  white-space: nowrap;
+}
+.mask-origin-panel span {
+  flex: 1;
+  min-width: 180px;
+}
