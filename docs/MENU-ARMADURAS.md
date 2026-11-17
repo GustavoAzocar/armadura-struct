@@ -8,7 +8,7 @@ A faixa usa os mesmos botões compactos e a mesma ajuda de Máscaras. Os comando
 - **Próximas criações:** bloco independente, com Quantidade/Bitola e Espaçamento/Cobrimento em duas linhas. Não depende da posição de Estribo na lista de botões.
 - **Grampos de viga:** lançamento e critérios próprios, preservando a entrega já integrada.
 - **Gerar / converter:** Rebater armadura, Converter polilinha, Seguir fôrma e Interpretar CAD em armadura.
-- **Poligonais / traspasse**, **Faixas de armadura** e **Relação do aço:** mesmos comandos e restrições. Bloquear/Desbloquear RA mantém nome e ícone dinâmicos.
+- **Poligonais / traspasse**, **Faixas de armadura** e **Relação do aço:** mesmos comandos e restrições. Bloquear/Desbloquear RA mantém nome e ícone dinâmicos. **Relação do aço** recebeu também **Séries variáveis** ([tabela de comprimentos individuais](TABELA-DE-COMPRIMENTOS-VARIAVEIS.md)).
 
 Os quatro parâmetros configuram próximas criações e não editam peças existentes. **Critérios de estribo já definidos continuam tendo precedência.** A ajuda do bloco explicita essa distinção; esta mudança não sincroniza os dois estados. Unidades continuam em mm, incluindo a bitola, e limites, precisão, opções e valores válidos fora da lista padrão são preservados. Quantidade com vários dígitos e valores decimais usam o `NumberField` existente, com confirmação por Enter/saída do campo e cancelamento por Esc.
 

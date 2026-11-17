@@ -164,6 +164,13 @@ export const InsertScheduleIcon = icon(
     <path d="M13 21H3V3h17v9M3 8h17M8 3v18M3 14h9M18 14v8m-4-4h8" />
   </>,
 );
+export const BarSeriesIcon = icon(
+  'series',
+  <>
+    <path d="M3 21V15M7 21V12M11 21V9M15 21V6M19 21V3" />
+    <path d="M2 21h20" />
+  </>,
+);
 export const RenumberIcon = icon(
   'renumber',
   <>

@@ -146,6 +146,28 @@ export {
 } from './domain/sheetSchedule';
 export type { SheetSteelSchedule } from './domain/types';
 export {
+  createBarSeries,
+  updateBarSeries,
+  addSeriesVariants,
+  removeSeriesVariant,
+  moveSeriesVariant,
+  deleteBarSeries,
+  seriesTableData,
+  splitSeriesRows,
+  setSeriesTable,
+  seriesFabricationRecords,
+  BAR_SERIES_PROJECT_SCHEMA,
+  defaultSeriesTable,
+} from './domain/barSeries';
+export type {
+  BarSeries,
+  SeriesTable,
+  SeriesTableData,
+  SeriesTableRow,
+  SeriesFabricationRecord,
+} from './domain/barSeries';
+export { seriesTableGeometry } from './domain/seriesTableGeometry';
+export {
   resolveScopes,
   buildScopedSchedule,
   scopeAllowance,

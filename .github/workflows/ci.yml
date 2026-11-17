@@ -23,6 +23,18 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - name: Séries variáveis, composição de formatos e exportações reais
+        run: npx playwright test tests/e2e/barSeries.spec.ts tests/e2e/armatureRibbonCompact.spec.ts tests/e2e/sheetSchedule.spec.ts tests/e2e/scopedCsv.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: series-length-evidence
+          if-no-files-found: ignore
+          path: |
+            docs/series-length-*.png
+            docs/series-length-output.pdf
+            docs/series-length-output.dxf
+            docs/series-length-output.csv
       - name: Barra livre por comprimento, foco e frames de entrada
         run: npx playwright test tests/e2e/barLength.spec.ts tests/e2e/shortcuts.spec.ts tests/e2e/cadInputFrames.spec.ts
       - name: Máscaras independentes e regressões de CAD/telas

@@ -267,6 +267,7 @@ import {
   freeTextWorldPoint,
   isFreeText,
 } from './domain/freeText';
+import { reconcileBarSeries } from './domain/barSeries';
 import SheetSchedulePanel, {
   type SheetScheduleRequest,
 } from './components/SheetSchedulePanel';
@@ -376,6 +377,13 @@ const ArmatureCloneDialog = lazy(
 import type { CloneRequest } from './components/ArmatureCloneDialog';
 const NumberingDialog = lazy(() => import('./components/NumberingDialog'));
 const FabricationDialog = lazy(() => import('./components/FabricationDialog'));
+const BarSeriesDialog = lazy(() => import('./components/BarSeriesDialog'));
+import type { SeriesTableOptions } from './components/BarSeriesDialog';
+import { SeriesPlacementPanel } from './components/SeriesTableFields';
+import { setSeriesTable } from './domain/barSeries';
+import { defaultSeriesTable, type SeriesTable } from './domain/barSeriesSchema';
+import { seriesTableGeometry } from './domain/seriesTableGeometry';
+import { seriesTableIssues } from './domain/paper';
 const DetailRepetitionDialog = lazy(
   () => import('./components/DetailRepetitionDialog'),
 );
@@ -750,6 +758,9 @@ export default function App({
   const [cloneRequest, setCloneRequest] = useState<CloneRequest | null>(null);
   const [numberingOpen, setNumberingOpen] = useState(false);
   const [fabricationOpen, setFabricationOpen] = useState(false);
+  const [seriesOpen, setSeriesOpen] = useState<{ seriesId?: string } | null>(
+    null,
+  );
   const [repetitionDetailId, setRepetitionDetailId] = useState<string>();
   const detailRequest = useRef<{
     mode: 'insert' | 'replace';
@@ -849,14 +860,44 @@ export default function App({
   const [selectedSchedule, setSelectedSchedule] = useState(false);
   const [scheduleRequest, setScheduleRequest] =
     useState<SheetScheduleRequest | null>(null);
+  const [selectedSeriesTable, setSelectedSeriesTable] = useState<string>();
+  /** Inserção da tabela de uma série: só grava no clique de confirmação. */
+  const [seriesRequest, setSeriesRequest] = useState<{
+    projectId: string;
+    source: Project;
+    sheetId: string;
+    seriesId: string;
+    tableId: string;
+    options: SeriesTableOptions;
+  } | null>(null);
   useEffect(() => {
     setSelectedSchedule(false);
+    setSelectedSeriesTable(undefined);
     setScheduleRequest((s) =>
       s && s.projectId === p.id && documentKey === `sheet:${s.sheetId}`
         ? s
         : null,
     );
+    setSeriesRequest((s) =>
+      s && s.projectId === p.id && documentKey === `sheet:${s.sheetId}`
+        ? s
+        : null,
+    );
   }, [p.id, documentKey]);
+  useEffect(() => {
+    // Qualquer alteração concorrente invalida a fotografia usada na prévia.
+    if (
+      seriesRequest &&
+      (seriesRequest.source !== p ||
+        !(p.barSeries ?? []).some((s) => s.id === seriesRequest.seriesId) ||
+        !p.sheets.some((s) => s.id === seriesRequest.sheetId))
+    ) {
+      setSeriesRequest(null);
+      notify(
+        'Inserção da tabela cancelada: o projeto foi alterado. Confira a série e tente novamente.',
+      );
+    }
+  }, [p, seriesRequest]);
   const visibilityKey =
     activeSheet && selectedView ? `view:${selectedView}` : documentKey;
   const currentVisibility = visibilityState(p, visibilityKey);
@@ -1541,7 +1582,7 @@ export default function App({
           next.hierarchy.details.some((d) => d.id === activeDetailId)
             ? activeDetailId
             : next.hierarchy.details[0].id);
-        const complete = completeOwnership(next, target);
+        const complete = reconcileBarSeries(completeOwnership(next, target));
         inheritProjectFolder(h.present, next, complete);
         if (
           next.id === h.present.id &&
@@ -7449,15 +7490,22 @@ export default function App({
       return;
     }
     if (
-      (alignmentRequest || vertexRequest || scheduleRequest) &&
+      (alignmentRequest || vertexRequest || scheduleRequest || seriesRequest) &&
       ['undo', 'redo'].includes(a)
     ) {
       setScheduleRequest(null);
+      setSeriesRequest(null);
       setAlignmentRequest(null);
       setVertexRequest(null);
       return;
     }
+    if (a === 'bar-series') {
+      setSeriesRequest(null);
+      setSeriesOpen({});
+      return;
+    }
     if (a === 'insert-sheet-schedule') {
+      setSeriesRequest(null);
       if (isolationRef.current) {
         notify(
           'Conclua a edição isolada antes de inserir o quadro na prancha.',
@@ -7795,6 +7843,14 @@ export default function App({
       return;
     }
     if (activeSheet && a === 'delete') {
+      if (selectedSeriesTable) {
+        commitLayout((p) =>
+          setSeriesTable(p, activeSheet.id, selectedSeriesTable, undefined),
+        );
+        setSelectedSeriesTable(undefined);
+        notify('Tabela retirada da folha; a série e o aço permanecem.');
+        return;
+      }
       if (selectedSchedule) {
         commitLayout((p) => setSheetSchedule(p, activeSheet.id, undefined));
         setSelectedSchedule(false);
@@ -8221,7 +8277,8 @@ export default function App({
       transformRequest ||
       alignmentRequest ||
       vertexRequest ||
-      scheduleRequest
+      scheduleRequest ||
+      seriesRequest
     ) {
       setRecentNotice(
         'Conclua ou cancele o comando em andamento antes de abrir outro projeto.',
@@ -8529,6 +8586,7 @@ export default function App({
     vertexRequest ||
     alignmentRequest ||
     scheduleRequest ||
+    seriesRequest ||
     symbolPick
   );
   const operationActive = !!draft.length || auxiliaryOperationActive;
@@ -8546,7 +8604,10 @@ export default function App({
   const runKeyboardCommand = (a: Action) => {
     const reason = commandAvailability(a, {
       selected:
-        selected.length || (maskId || selectedView || selectedSchedule ? 1 : 0),
+        selected.length ||
+        (maskId || selectedView || selectedSchedule || selectedSeriesTable
+          ? 1
+          : 0),
       isolated: !!isolatedDetailId,
       groupSelected: groupSelection,
       canUndo,
@@ -8789,10 +8850,12 @@ export default function App({
       cadInterpretation ||
       repetitionDetailId ||
       fabricationOpen ||
+      seriesOpen ||
       numberingOpen
     ) {
       if (e.key === 'Escape') {
         e.preventDefault();
+        setSeriesOpen(null);
         setDetailTransfer(null);
         detailRequest.current = null;
         setCadInterpretation(null);
@@ -8916,8 +8979,14 @@ export default function App({
         notify('Ajuste de escala cancelado.');
         return;
       }
-      if (vertexRequest || alignmentRequest || scheduleRequest) {
+      if (
+        vertexRequest ||
+        alignmentRequest ||
+        scheduleRequest ||
+        seriesRequest
+      ) {
         setScheduleRequest(null);
+        setSeriesRequest(null);
         setVertexRequest(null);
         setAlignmentRequest(null);
         return;
@@ -9547,6 +9616,30 @@ export default function App({
               onCancel={() => setDrawingProperties(null)}
             />
           )}
+          {seriesRequest && activeSheet && (
+            <SeriesPlacementPanel
+              project={p}
+              value={seriesRequest}
+              onSheet={(id) => {
+                switchDocument(`sheet:${id}`);
+                setPageRaw('drawing');
+                const existing = p.sheets
+                  .find((s) => s.id === id)
+                  ?.seriesTables?.find(
+                    (t) => t.seriesId === seriesRequest.seriesId,
+                  );
+                setSeriesRequest({
+                  ...seriesRequest,
+                  sheetId: id,
+                  tableId: existing?.id ?? uid(),
+                });
+              }}
+              onChange={(options) =>
+                setSeriesRequest({ ...seriesRequest, options })
+              }
+              onCancel={() => setSeriesRequest(null)}
+            />
+          )}
           {scheduleRequest && activeSheet && (
             <SheetSchedulePanel
               project={p}
@@ -9585,6 +9678,96 @@ export default function App({
               initialState={sessions.current.get(documentKey)?.camera}
               selectedView={selectedView}
               selectedSchedule={selectedSchedule}
+              seriesPlacement={
+                seriesRequest?.sheetId === activeSheet.id &&
+                seriesRequest.projectId === p.id
+                  ? {
+                      ...defaultSeriesTable(
+                        seriesRequest.tableId,
+                        seriesRequest.seriesId,
+                      ),
+                      ...seriesRequest.options,
+                    }
+                  : undefined
+              }
+              onCancelSeries={() => setSeriesRequest(null)}
+              onPlaceSeries={(origin) => {
+                if (
+                  !seriesRequest ||
+                  seriesRequest.source !== historyRef.current.present ||
+                  seriesRequest.projectId !== p.id ||
+                  seriesRequest.sheetId !== activeSheet.id
+                )
+                  return;
+                try {
+                  const table: SeriesTable = {
+                    ...defaultSeriesTable(
+                      seriesRequest.tableId,
+                      seriesRequest.seriesId,
+                      origin,
+                    ),
+                    ...seriesRequest.options,
+                    origin,
+                  };
+                  if (!table.rowsPerBlock) delete table.rowsPerBlock;
+                  const issues = seriesTableIssues(
+                    activeSheet,
+                    seriesTableGeometry(p, activeSheet.id, table),
+                  );
+                  if (issues.length) {
+                    notify(issues.map((i) => i.message).join(' '));
+                    return;
+                  }
+                  const request = seriesRequest;
+                  // Limpa antes de gravar: clique/Enter repetido não duplica.
+                  setSeriesRequest(null);
+                  if (
+                    commitLayout((q) =>
+                      setSeriesTable(q, activeSheet.id, request.tableId, table),
+                    )
+                  ) {
+                    setSelectedView(undefined);
+                    setSelectedSchedule(false);
+                    setSelectedSeriesTable(request.tableId);
+                    notify(
+                      'Tabela de comprimentos inserida e vinculada à série. Ela não acrescenta aço.',
+                    );
+                  }
+                } catch (e) {
+                  notify((e as Error).message);
+                }
+              }}
+              selectedSeriesTable={selectedSeriesTable}
+              onSelectSeriesTable={(id) => {
+                setSelectedView(undefined);
+                setSelectedSchedule(false);
+                setSelectedSeriesTable(id);
+                setSidebarTab('sheets');
+              }}
+              onMoveSeriesBlock={(id, block, origin) => {
+                const table = activeSheet.seriesTables?.find(
+                  (t) => t.id === id,
+                );
+                if (!table) return;
+                commitLayout((q) => {
+                  if (block === 0)
+                    return setSeriesTable(q, activeSheet.id, id, {
+                      ...table,
+                      origin,
+                    });
+                  const blocks = seriesTableGeometry(
+                    q,
+                    activeSheet.id,
+                    table,
+                  ).blocks.slice(1);
+                  const blockOrigins = blocks.map((b) => b.origin);
+                  blockOrigins[block - 1] = origin;
+                  return setSeriesTable(q, activeSheet.id, id, {
+                    ...table,
+                    blockOrigins,
+                  });
+                });
+              }}
               schedulePlacement={
                 scheduleRequest?.sheetId === activeSheet.id
                   ? scheduleRequest.options
@@ -9592,6 +9775,7 @@ export default function App({
               }
               onSelectSchedule={() => {
                 setSelectedView(undefined);
+                setSelectedSeriesTable(undefined);
                 setSelectedSchedule(true);
                 setSidebarTab('sheets');
               }}
@@ -9639,6 +9823,7 @@ export default function App({
               pan={tool === 'pan'}
               onSelect={(id) => {
                 setSelectedSchedule(false);
+                setSelectedSeriesTable(undefined);
                 setSelectedView(id);
                 setSidebarTab('sheets');
               }}
@@ -10825,6 +11010,13 @@ export default function App({
                 sheetId={activeSheet?.id}
                 selectedView={selectedView}
                 onInsertSchedule={() => action('insert-sheet-schedule')}
+                onOpenSeries={() => action('bar-series')}
+                selectedSeriesTable={selectedSeriesTable}
+                onSelectSeriesTable={(id) => {
+                  setSelectedView(undefined);
+                  setSelectedSchedule(false);
+                  setSelectedSeriesTable(id);
+                }}
                 onSelectView={(id) => {
                   setSelectedSchedule(false);
                   setSelectedView(id);
@@ -11463,6 +11655,108 @@ export default function App({
           />
         </Suspense>
       )}
+      {seriesOpen && (
+        <Suspense
+          fallback={<div className="busy-overlay">Abrindo séries…</div>}
+        >
+          <BarSeriesDialog
+            project={p}
+            selectedBarIds={selected}
+            initialSeriesId={seriesOpen.seriesId}
+            canInsert={p.sheets.length > 0 && !isolationRef.current}
+            onClose={() => setSeriesOpen(null)}
+            onCommit={(change, message) => {
+              if (!commit(change)) return false;
+              notify(message);
+              return true;
+            }}
+            onLocate={(barId) => {
+              const current = historyRef.current.present;
+              const owner = current.hierarchy.objectDetails[barId];
+              if (isolationRef.current && owner !== isolationRef.current) {
+                notify('A armadura pertence a outro detalhamento isolado.');
+                return;
+              }
+              setSeriesOpen(null);
+              if (activeSheet) switchDocument('model');
+              setPageRaw('drawing');
+              if (owner) activateDetail(owner);
+              setSelectedRaw([barId]);
+              setMaskId(null);
+              notify(
+                'Variante selecionada no desenho. Edite a própria armadura no painel de propriedades.',
+              );
+            }}
+            onInsert={(seriesId, options) => {
+              if (isolationRef.current) {
+                notify(
+                  'Conclua a edição isolada antes de alterar a documentação da prancha.',
+                );
+                return;
+              }
+              const current = historyRef.current.present;
+              const series = (current.barSeries ?? []).find(
+                (s) => s.id === seriesId,
+              );
+              if (!series) return;
+              const members = new Set([
+                ...series.variants.map((v) => v.barId),
+                ...(series.representativeBarId
+                  ? [series.representativeBarId]
+                  : []),
+              ]);
+              const documented = current.sheets.find((s) =>
+                current.hierarchy.placements.some(
+                  (v) =>
+                    v.sheetId === s.id &&
+                    [...members].some(
+                      (id) =>
+                        current.hierarchy.objectDetails[id] ===
+                        current.hierarchy.drawings.find(
+                          (d) => d.id === v.drawingId,
+                        )?.detailId,
+                    ),
+                ),
+              );
+              const target =
+                current.sheets.find((s) => s.id === activeSheet?.id) ??
+                documented ??
+                current.sheets[0];
+              if (!target) {
+                notify(
+                  'Crie uma prancha no gerenciador para inserir a tabela.',
+                );
+                return;
+              }
+              setSeriesOpen(null);
+              setScheduleRequest(null);
+              setTool('select');
+              setDraft([]);
+              switchDocument(`sheet:${target.id}`);
+              setPageRaw('drawing');
+              setSelectedView(undefined);
+              setSelectedSchedule(false);
+              setSidebarTab('sheets');
+              const existing = target.seriesTables?.find(
+                (t) => t.seriesId === seriesId,
+              );
+              setSeriesRequest({
+                projectId: current.id,
+                source: current,
+                sheetId: target.id,
+                seriesId,
+                tableId: existing?.id ?? uid(),
+                options,
+              });
+              notify(
+                existing
+                  ? `Clique em ${target.name} para reposicionar a tabela da série ${series.name}.`
+                  : `Mova o cursor e clique em ${target.name} para inserir a tabela da série ${series.name}.`,
+              );
+            }}
+          />
+        </Suspense>
+      )}
       {fabricationOpen && (
         <Suspense
           fallback={<div className="busy-overlay">Comparando posições…</div>}
@@ -11960,6 +12254,7 @@ export default function App({
               alignmentRequest ||
               vertexRequest ||
               scheduleRequest ||
+              seriesRequest ||
               maskBatch ||
               detailTransfer ||
               cadInterpretation ||
@@ -12032,7 +12327,8 @@ export default function App({
                 transformRequest ||
                 alignmentRequest ||
                 vertexRequest ||
-                scheduleRequest
+                scheduleRequest ||
+                seriesRequest
               )
             }
             onClose={() => setModal(null)}
@@ -12129,6 +12425,8 @@ export default function App({
               setLayersOpen(false);
               setVisibilityOpen(false);
               setFabricationOpen(false);
+              setSeriesOpen(null);
+              setSeriesRequest(null);
               setNumberingOpen(false);
               setRepetitionDetailId(undefined);
               sessions.current.clear();

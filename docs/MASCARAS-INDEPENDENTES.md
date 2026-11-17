@@ -43,7 +43,7 @@ O ponto de referência fica em coordenadas locais (`anchor`), separado da transl
 
 ## Formato e exportação
 
-- O formato **`armadurastruct/41`** guarda máscaras independentes e `Project.maskReferences[detailId]`, com a referência atual e uma lista de IDs, visibilidade, origem e ponto local opcional. O `/40` está reservado pela PR #215; esta branch não implementa nem aceita esse contrato de séries. A composição das duas contribuições exige a integração dos respectivos leitores antes da mesclagem.
+- O formato **`armadurastruct/41`** guarda máscaras independentes e `Project.maskReferences[detailId]`, com a referência atual e uma lista de IDs, visibilidade, origem e ponto local opcional. O `/40` guarda as séries variáveis da PR #215. A composição dos dois recursos usa `/43`, preservando a leitura dos projetos individuais `/40` e `/41` e recusando a composição sob um cabeçalho antigo. O `/42` permanece reservado à PR #218; a variante `/41` da PR #217 ainda exige integração própria.
 - Projetos anteriores continuam abrindo sem novos vínculos e com a aparência anterior. O formato 41 reúne também os recursos anteriores da master, incluindo o selo `/39`. Dados novos sob cabeçalho anterior são recusados com a indicação de que exigem o formato 41. Modelos de prancha, selos e faixas não rebaixam esse formato.
 - Mantenha uma cópia antes de salvar para alternar entre versões do aplicativo: leitores anteriores recusam o formato 41.
 - As novas referências são de tela. Elas não são acrescentadas automaticamente a prancha/PDF/DXF. Máscaras vinculadas antigas mantêm a política anterior e a posição de exportação anterior. CSV, comprimento, quantidade e peso não recebem contribuições de máscaras.

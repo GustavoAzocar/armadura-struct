@@ -1,4 +1,8 @@
 import {
+  hasUnsupportedSealProperties,
+  SERIES_MASK_PROJECT_SCHEMA,
+} from './projectSchema';
+import {
   MASK_REFERENCE_PROJECT_SCHEMA,
   detailMaskReferencesSchema,
   hasIndependentMaskData,
@@ -31,6 +35,13 @@ import {
 import { cadDefaultsSchema, validateCadDefaults } from './cadDefaults';
 import { validateNativeMask } from './nativeMasks';
 import { sheetSteelScheduleSchema } from './sheetScheduleSchema';
+import {
+  BAR_SERIES_PROJECT_SCHEMA,
+  barSeriesListSchema,
+  hasBarSeriesData,
+  seriesTablesSchema,
+  validateBarSeries,
+} from './barSeriesSchema';
 import { pruneVisibility } from './visibilitySchema';
 import { plotSettingsSchema } from './layerSchema';
 import { primitiveSchema } from './primitiveSchema';
@@ -93,6 +104,8 @@ export function withDistributionBandVersion(project: Project): Project {
     project.schema === DISTRIBUTION_BAND_SCHEMA ||
     project.schema === SHEET_TEMPLATE_PROJECT_SCHEMA ||
     project.schema === SEAL_PROJECT_SCHEMA ||
+    project.schema === SERIES_MASK_PROJECT_SCHEMA ||
+    project.schema === BAR_SERIES_PROJECT_SCHEMA ||
     project.schema === MASK_REFERENCE_PROJECT_SCHEMA ||
     !(
       hasDistributionBand(project.bars) ||
@@ -362,6 +375,7 @@ const schema = z.object({
       z.object({
         ...named,
         steelSchedule: sheetSteelScheduleSchema.optional(),
+        seriesTables: seriesTablesSchema.optional(),
         paperTemplate: sheetTemplateSchema.optional(),
         sealProperties: sheetSealPropertiesSchema.optional(),
         sealBindings: sheetSealBindingsSchema.optional(),
@@ -406,6 +420,7 @@ const schema = z.object({
     .array(fabricationPositionSchema)
     .max(10000)
     .optional(),
+  barSeries: barSeriesListSchema.optional(),
   polylines: z
     .array(
       z.object({
@@ -627,13 +642,28 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
-  const maskReferenceVersion = input?.schema === MASK_REFERENCE_PROJECT_SCHEMA;
+  if (hasUnsupportedSealProperties(input))
+    throw new Error(
+      'Propriedades personalizadas do selo (PR #217) ainda não são suportadas nesta versão. Os dados não foram carregados nem descartados.',
+    );
+  // /40 = séries; /41 = máscaras; /43 reúne os dois contratos.
+  const composedVersion = input?.schema === SERIES_MASK_PROJECT_SCHEMA;
+  const seriesVersion =
+    composedVersion || input?.schema === BAR_SERIES_PROJECT_SCHEMA;
+  if (!seriesVersion && hasBarSeriesData(input))
+    throw new Error(
+      'Séries variáveis e tabelas de comprimentos exigem formato 40 ou 43.',
+    );
+  const maskReferenceVersion =
+    composedVersion || input?.schema === MASK_REFERENCE_PROJECT_SCHEMA;
   if (!maskReferenceVersion && hasIndependentMaskData(input))
     throw new Error(
-      'Máscaras independentes e referências por detalhamento exigem formato 41.',
+      'Máscaras independentes e referências por detalhamento exigem formato 41 ou 43.',
     );
   const sealVersion =
-    maskReferenceVersion || input?.schema === SEAL_PROJECT_SCHEMA;
+    seriesVersion ||
+    maskReferenceVersion ||
+    input?.schema === SEAL_PROJECT_SCHEMA;
   if (!sealVersion && hasSealData(input))
     throw new Error('Dados e vínculos do selo exigem formato 39.');
   // /36 is the experimental template format; /38 composes it with /35 and /37.
@@ -1022,15 +1052,19 @@ export function decodeProject(
   let p: Project = {
     ...parsed,
     id,
-    schema: maskReferenceVersion
-      ? MASK_REFERENCE_PROJECT_SCHEMA
-      : sealVersion
-        ? SEAL_PROJECT_SCHEMA
-        : templateVersion
-          ? SHEET_TEMPLATE_PROJECT_SCHEMA
-          : bandVersion
-            ? DISTRIBUTION_BAND_SCHEMA
-            : 'armadurastruct/35',
+    schema: composedVersion
+      ? SERIES_MASK_PROJECT_SCHEMA
+      : seriesVersion
+        ? BAR_SERIES_PROJECT_SCHEMA
+        : maskReferenceVersion
+          ? MASK_REFERENCE_PROJECT_SCHEMA
+          : sealVersion
+            ? SEAL_PROJECT_SCHEMA
+            : templateVersion
+              ? SHEET_TEMPLATE_PROJECT_SCHEMA
+              : bandVersion
+                ? DISTRIBUTION_BAND_SCHEMA
+                : 'armadurastruct/35',
     ...(linkedFiles === undefined ? {} : { linkedFiles }),
     layers: parsed.layers ?? defaultLayers(),
     sheets: v4
@@ -1089,6 +1123,8 @@ export function decodeProject(
     throw new Error('IDs de armadura duplicados.');
   p = { ...p, fabricationPositions: fabricationPositions(p) };
   validateFabrication(p);
+  // Vínculos série → variante → armadura: inconsistências são recusadas.
+  validateBarSeries(p);
   if (p.scheduleLock) {
     validateFabrication({
       bars: p.scheduleLock.bars,

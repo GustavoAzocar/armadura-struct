@@ -30,6 +30,7 @@ const commands = {
   'lock-schedule': 'Bloquear RA',
   schedule: 'Quadro de aço',
   'insert-sheet-schedule': 'Inserir quadro na prancha',
+  'bar-series': 'Séries variáveis',
   renumber: 'Renumerar',
 };
 const ribbon = (page: Page) => page.locator('.ribbon');
@@ -74,7 +75,7 @@ test('inventário, ícones, campos e largura: 1920/1366/1000 nos dois fundos', a
   const icons = await ribbon(page)
     .locator('.ribbon-tool svg')
     .evaluateAll((es) => es.map((e) => e.innerHTML));
-  expect(new Set(icons).size).toBe(24);
+  expect(new Set(icons).size).toBe(25);
   const parameters = page.getByRole('group', {
     name: 'Parâmetros das próximas criações',
   });
