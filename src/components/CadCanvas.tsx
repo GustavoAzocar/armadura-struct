@@ -151,6 +151,7 @@ export type CadHandle = {
   zoom: (factor: number) => void;
   getState: () => CadState;
   getDraftPoint?: () => Point | undefined;
+  focus?: () => void;
 };
 type Props = {
   maskSidePick?: boolean;
@@ -189,6 +190,8 @@ type Props = {
   nativeDrawing?: boolean;
   onNativePick?: (maskId: string, entityId: string) => void;
   extraSnapPoints?: Point[];
+  /** Identidade da sessão que pode confirmar a distância na direção da prévia. */
+  directionalTranslation?: object;
   previewLines?: Primitive[];
   /** Preview geometry is retained in its original pose during whole-mask move. */
   previewTranslation?: Point;
@@ -361,13 +364,20 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
   const [cursor, setCursor] = useState<Point | null>(null);
   const draftPoint = useRef<Point | undefined>(undefined);
   const draftPointer = useRef<Point | undefined>(undefined);
+  const tracksDraftDirection = tool === 'bar' || !!props.directionalTranslation;
   useLayoutEffect(() => {
-    if (tool === 'bar') {
+    if (tracksDraftDirection) {
+      feedbackFrame.cancel();
       draftPoint.current = undefined;
       draftPointer.current = undefined;
       setCursor(null);
     }
-  }, [tool, props.layerContext]);
+  }, [
+    tool,
+    tracksDraftDirection,
+    props.directionalTranslation,
+    props.layerContext,
+  ]);
   const [snapPoint, setSnapPoint] = useState<SnapCandidate | null>(null);
   const [snapLimited, setSnapLimited] = useState(false);
   const [drag, setDrag] = useState<Pan | null>(null);
@@ -723,8 +733,9 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
     getDraftPoint: () => {
       // O Enter pode chegar antes do próximo frame de apresentação.
       feedbackFrame.flush();
-      return tool === 'bar' ? draftPoint.current : undefined;
+      return tracksDraftDirection ? draftPoint.current : undefined;
     },
+    focus: () => svg.current?.focus({ preventScroll: true }),
     zoom: (f) =>
       commitView((v) => ({
         ...v,
@@ -1066,13 +1077,16 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       return p;
     });
   useLayoutEffect(() => {
-    if (tool !== 'bar' || !draftPointer.current) return;
+    if (!tracksDraftDirection || !draftPointer.current) return;
     // ORTO/F3 e a nova origem precisam valer mesmo sem outro movimento do mouse.
     const point = snapAt(draftPointer.current);
     draftPoint.current = point;
     setCursor(point);
+    if (props.directionalTranslation) props.onCursor(point);
   }, [
     tool,
+    tracksDraftDirection,
+    props.directionalTranslation,
     ortho,
     snap,
     snapModes,
@@ -1219,7 +1233,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
       return;
     }
     const raw = fromScreen(screen);
-    if (tool === 'bar') draftPointer.current = raw;
+    if (tracksDraftDirection) draftPointer.current = raw;
     const p = snapAt(raw);
     if (props.maskSidePick) {
       props.onMaskEntityPick?.(
@@ -1375,7 +1389,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         }
       if (hit) props.onPrimitive(hit, polylineId);
     } else {
-      if (tool === 'bar') {
+      if (tracksDraftDirection) {
         draftPoint.current = p;
         setCursor(p);
       }
@@ -1392,7 +1406,7 @@ export default forwardRef<CadHandle, Props>(function CadCanvas(props, ref) {
         return;
       }
       const raw = fromScreen(screen);
-      if (tool === 'bar') draftPointer.current = raw;
+      if (tracksDraftDirection) draftPointer.current = raw;
       const p = props.maskSidePick ? raw : snapAt(raw, false);
       if (marqueeInput.current)
         marqueeInput.current = { ...marqueeInput.current, end: p };

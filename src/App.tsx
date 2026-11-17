@@ -6871,7 +6871,10 @@ export default function App({
       if (!ids.length) return;
       if (!draft.length) {
         setDraft([point]);
-        if (armatureTranslation) setMessage('Indique o ponto de destino.');
+        if (armatureTranslation)
+          setMessage(
+            'Clique no destino ou aponte e digite o deslocamento (mm).',
+          );
         return;
       }
       const delta = sub(point, draft[0]);
@@ -8733,6 +8736,13 @@ export default function App({
     page === 'drawing' &&
     !activeSheet &&
     !auxiliaryOperationActive;
+  const armatureDistanceActive =
+    !!armatureTranslation &&
+    (tool === 'move' || tool === 'copy') &&
+    workScope === 'drawing' &&
+    page === 'drawing' &&
+    !activeSheet;
+  const directionalDistanceActive = barLengthActive || armatureDistanceActive;
   const operationScope = useRef<WorkScope | null>(null);
   useLayoutEffect(() => {
     if (operationActive) operationScope.current ??= workScope;
@@ -8915,11 +8925,20 @@ export default function App({
       onPoint(add(base, { x: Number(xy[2]), y: Number(xy[3]) }));
       return;
     }
-    if (barLengthActive && isBarLengthInput(value)) {
+    if (directionalDistanceActive && isBarLengthInput(value)) {
+      const base = draft.at(-1);
+      if (armatureDistanceActive && !base) {
+        notify('Indique o ponto base antes de digitar o deslocamento.');
+        return;
+      }
       try {
-        onPoint(
-          barPointAtLength(draft.at(-1), cad.current?.getDraftPoint?.(), value),
+        const target = barPointAtLength(
+          base,
+          cad.current?.getDraftPoint?.(),
+          value,
         );
+        onPoint(target);
+        if (armatureDistanceActive) cad.current?.focus?.();
       } catch (error) {
         notify((error as Error).message);
       }
@@ -9183,7 +9202,7 @@ export default function App({
       : undefined;
     if (!shortcutAction) {
       if (
-        barLengthActive &&
+        directionalDistanceActive &&
         /^[0-9.+-]$/.test(e.key) &&
         !e.ctrlKey &&
         !e.metaKey &&
@@ -10273,6 +10292,11 @@ export default function App({
                   }
                   onFollowEdge={pickFollowEdge}
                   nativeDrawing={!!nativeKind}
+                  directionalTranslation={
+                    tool === 'move' || tool === 'copy'
+                      ? (armatureTranslation ?? undefined)
+                      : undefined
+                  }
                   onNativePick={(maskId, entityId) => {
                     if (
                       !canEditMaskGeometry(
@@ -11041,16 +11065,18 @@ export default function App({
                   />
                 )}
                 <div
-                  className={`command-panel ${barLengthActive ? 'bar-length-entry' : ''}`}
+                  className={`command-panel ${directionalDistanceActive ? 'bar-length-entry' : ''}`}
                 >
                   <div className="command-history">
                     <ChevronRight size={12} />
                     <span id="command-help">
                       {barLengthActive
                         ? `${draft.length ? `${draft.length} ponto(s) · ` : ''}${BAR_LENGTH_PROMPT}`
-                        : draft.length
-                          ? `${draft.length} ponto(s) · ${prompts[tool]}`
-                          : message}
+                        : armatureDistanceActive && draft.length
+                          ? 'Clique no destino ou aponte e digite o deslocamento (mm).'
+                          : draft.length
+                            ? `${draft.length} ponto(s) · ${prompts[tool]}`
+                            : message}
                     </span>
                   </div>
                   <form onSubmit={(e) => e.preventDefault()}>
@@ -11096,7 +11122,9 @@ export default function App({
                       placeholder={
                         barLengthActive
                           ? 'Comprimento (mm) ou coordenadas X,Y'
-                          : 'Digite um comando ou coordenadas X,Y'
+                          : armatureDistanceActive
+                            ? 'Deslocamento (mm) ou coordenadas X,Y'
+                            : 'Digite um comando ou coordenadas X,Y'
                       }
                       autoComplete="off"
                     />

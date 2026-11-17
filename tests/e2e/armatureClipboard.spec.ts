@@ -150,6 +150,45 @@ test('campos mantêm Ctrl+C/Ctrl+V de texto e reabrir o projeto descarta o clipb
   await expect(canvas(page).locator('[data-bar-id]')).toHaveCount(2);
 });
 
+test('colar por distância devolve o foco ao desenho e permite colar outra vez', async ({
+  page,
+}) => {
+  const project = fixture();
+  await page.goto('/');
+  await open(page, project);
+  const ortho = page
+    .locator('.status-toggles button')
+    .filter({ hasText: 'ORTO' });
+  if ((await ortho.getAttribute('class')) !== 'active') await ortho.click();
+  const at = await screenPoint(page, { x: 450, y: 0 });
+  await page.mouse.click(at.x, at.y);
+  await page.keyboard.press('Control+c');
+
+  for (const [direction, length, copies] of [
+    [{ x: 450, y: 100 }, '1200', 1],
+    [{ x: 100, y: 700 }, '800', 2],
+  ] as const) {
+    await page.keyboard.press('Control+v');
+    await expect(preview(page)).toBeVisible();
+    const target = await screenPoint(page, direction);
+    await page.mouse.move(target.x, target.y);
+    await page.keyboard.type(length);
+    const field = page.getByRole('textbox', { name: 'Comando CAD' });
+    await expect(field).toHaveValue(length);
+    await field.press('Enter');
+    await expect(preview(page)).toHaveCount(0);
+    await expect(canvas(page)).toBeFocused();
+    await expect(canvas(page).locator('[data-bar-id]')).toHaveCount(2 + copies);
+  }
+
+  const placed = await save(page);
+  expect(placed.bars.slice(0, 2)).toEqual(project.bars);
+  expect(placed.bars.slice(2).map((bar) => bar.origin)).toEqual([
+    { x: 1200, y: 0 },
+    { x: 0, y: 800 },
+  ]);
+});
+
 test('o desenho focado ainda aceita pan temporário com Espaço', async ({
   page,
 }) => {

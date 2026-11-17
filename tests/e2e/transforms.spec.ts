@@ -86,6 +86,13 @@ async function rightBar(page: Page, id: string) {
 const panel = (page: Page) =>
   page.getByRole('region', { name: 'Transformação da seleção' });
 const mass = (p: Project) => schedule(p).reduce((v, r) => v + r.weight, 0);
+async function setCadToggle(page: Page, label: string, enabled: boolean) {
+  const button = page
+    .locator('.status-toggles button')
+    .filter({ hasText: label });
+  if (((await button.getAttribute('class')) === 'active') !== enabled)
+    await button.click();
+}
 async function armatureCommand(page: Page, name: string) {
   await page.getByRole('tab', { name: 'Armaduras', exact: true }).click();
   await page.getByRole('button', { name, exact: true }).click();
@@ -97,6 +104,83 @@ async function hoverPoint(page: Page, point: { x: number; y: number }) {
   }, point);
   await page.mouse.move(screen.x, screen.y);
 }
+
+test('Mover armadura aceita distância decimal na direção da prévia e rejeita zero sem confirmar', async ({
+  page,
+}) => {
+  const project = fixture();
+  await load(page, project);
+  await setCadToggle(page, 'ENCAIXES', false);
+  await setCadToggle(page, 'ORTO', false);
+  await select(page, 'N1');
+  await select(page, 'N2', true);
+  await armatureCommand(page, 'Mover armadura');
+  await command(page, '0,0');
+  await hoverPoint(page, { x: 800, y: 600 });
+
+  const pose = page.getByTestId('preview-pose');
+  await expect(pose).toHaveAttribute('transform', /^translate\(/);
+  const [x, y] = (await pose.getAttribute('transform'))!
+    .slice('translate('.length, -1)
+    .split(' ')
+    .map(Number);
+  const direction = { x, y };
+  expect(direction.x).toBeGreaterThan(0);
+  expect(direction.y).toBeGreaterThan(0);
+  await command(page, '0');
+  await expect(pose).toHaveAttribute('transform', /^translate\(/);
+
+  const length = 1250.5;
+  const input = page.getByRole('textbox', { name: 'Comando CAD' });
+  await page.getByTestId('cad-canvas').focus();
+  await page.keyboard.type(String(length));
+  await expect(input).toHaveValue(String(length));
+  await page.keyboard.press('Enter');
+
+  const moved = await save(page);
+  const directionLength = Math.hypot(direction.x, direction.y);
+  expect(moved.bars).toHaveLength(project.bars.length);
+  for (const [index, bar] of project.bars.entries()) {
+    const result = moved.bars[index];
+    const dx = result.origin.x - bar.origin.x;
+    const dy = result.origin.y - bar.origin.y;
+    expect(result.id).toBe(bar.id);
+    expect(Math.hypot(dx, dy)).toBeCloseTo(length, 7);
+    expect(dx).toBeCloseTo((direction.x / directionLength) * length, 7);
+    expect(dy).toBeCloseTo((direction.y / directionLength) * length, 7);
+  }
+  await command(page, 'U');
+  expect((await save(page)).bars).toEqual(project.bars);
+});
+
+test('Copiar armadura usa distância exata e respeita ORTO na direção indicada', async ({
+  page,
+}) => {
+  const project = fixture();
+  await load(page, project);
+  await setCadToggle(page, 'ENCAIXES', false);
+  await setCadToggle(page, 'ORTO', true);
+  await select(page, 'N1');
+  await select(page, 'N2', true);
+  await armatureCommand(page, 'Copiar armadura');
+  await command(page, '0,0');
+  await hoverPoint(page, { x: 800, y: 200 });
+  await expect(page.getByTestId('preview-pose')).toHaveAttribute(
+    'transform',
+    /^translate\([^ ]+ 0\)$/,
+  );
+  await command(page, '1200');
+
+  const copied = await save(page);
+  expect(copied.bars).toHaveLength(4);
+  expect(copied.bars.slice(0, 2)).toEqual(project.bars);
+  expect(new Set(copied.bars.map((bar) => bar.id)).size).toBe(4);
+  expect(copied.bars.slice(2).map((bar) => bar.origin)).toEqual(
+    project.bars.map(({ origin }) => ({ x: origin.x + 1200, y: origin.y })),
+  );
+  expect(mass(copied)).toBeCloseTo(2 * mass(project), 8);
+});
+
 test('Armaduras move e copia um conjunto com prévia e histórico atômico', async ({
   page,
 }) => {

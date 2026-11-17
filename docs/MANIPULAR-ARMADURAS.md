@@ -8,11 +8,13 @@ No desenho, selecione uma ou mais armaduras físicas editáveis do detalhamento 
 
 Use os encaixes do desenho ao indicar pontos. **Esc** cancela a operação em andamento. Cada operação confirmada ocupa uma entrada no histórico de **Desfazer/Refazer**.
 
+Para **copiar ou mover por distância**, indique o ponto base, aponte o cursor na direção desejada e digite a distância em milímetros. Pressione **Enter** para confirmar. A direção segue a prévia, inclusive com ORTO ou encaixes ativos. A distância digitada prevalece sobre um encaixe próximo ao destino. Para informar os dois componentes do deslocamento diretamente, use coordenadas relativas, como `@300,400`.
+
 ## Copiar e colar pelo teclado
 
 1. Com foco no desenho e uma seleção válida, pressione **Ctrl+C** para guardar a seleção para cópia.
 2. Pressione **Ctrl+V** e mova o cursor para posicionar a prévia. O primeiro vértice da primeira armadura selecionada serve de ponto base.
-3. Clique no destino para confirmar. Pressione **Ctrl+V** novamente para colocar outra cópia. **Esc** cancela a colocação atual.
+3. Clique no destino ou confirme um deslocamento digitado. Pressione **Ctrl+V** novamente para colocar outra cópia. **Esc** cancela a colocação atual.
 
 A cópia pelo teclado está disponível no mesmo projeto e detalhamento. Nos campos de edição e na linha de comando, os atalhos continuam usando a área de transferência do sistema.
 

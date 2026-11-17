@@ -2,7 +2,7 @@
 
 ## Não lançado
 
-- Armaduras → Manipular (#214) reúne copiar, mover e rotacionar a seleção com prévia no desenho. Ctrl+C e Ctrl+V permitem repetir cópias no detalhamento ativo. Cada confirmação é uma operação de Desfazer/Refazer. [Uso e limites](docs/MANIPULAR-ARMADURAS.md).
+- Armaduras → Manipular (#214) reúne copiar, mover e rotacionar a seleção com prévia no desenho. Copiar e mover aceitam deslocamento digitado na direção da prévia. Ctrl+C e Ctrl+V permitem repetir cópias no detalhamento ativo. Cada confirmação é uma operação de Desfazer/Refazer. [Uso e limites](docs/MANIPULAR-ARMADURAS.md).
 
 - Séries variáveis e tabela de comprimentos individuais (#145, AS-77): entidade física de série com variantes que são armaduras reais (IDs estáveis, estação, estado exato/estimado, origem e total declarado), consulta determinística compartilhada pela RA, tabela e saídas, agrupamento só por regras de fabricação, tabela na prancha com prévia, ocultar/mostrar, blocos/continuações, subtotais e total da série, PDF/DXF de pranchas e lista por variante no CSV por escopo. Registros exatos por variante para adaptadores de fabricação, com bloqueio de estimativas. Formato nativo /40 para séries e /43 para a composição com máscaras independentes /41 (sem ocupar /42, reservado à PR #218), com leitura dos contratos anteriores sem conversão implícita; pacote de detalhamento inalterado e recusa explícita de séries. [Uso, convenções e limites](docs/TABELA-DE-COMPRIMENTOS-VARIAVEIS.md).
 
