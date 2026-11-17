@@ -1,4 +1,7 @@
-import { SERIES_MASK_PROJECT_SCHEMA } from './projectSchema';
+import {
+  hasUnsupportedSealProperties,
+  SERIES_MASK_PROJECT_SCHEMA,
+} from './projectSchema';
 import {
   MASK_REFERENCE_PROJECT_SCHEMA,
   detailMaskReferencesSchema,
@@ -639,6 +642,10 @@ export function decodeProject(
   options: { allowOrphanReferences?: boolean } = {},
 ): Project {
   const input = JSON.parse(raw);
+  if (hasUnsupportedSealProperties(input))
+    throw new Error(
+      'Propriedades personalizadas do selo (PR #217) ainda não são suportadas nesta versão. Os dados não foram carregados nem descartados.',
+    );
   // /40 = séries; /41 = máscaras; /43 reúne os dois contratos.
   const composedVersion = input?.schema === SERIES_MASK_PROJECT_SCHEMA;
   const seriesVersion =

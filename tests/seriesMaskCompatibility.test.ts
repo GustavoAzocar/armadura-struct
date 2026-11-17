@@ -56,6 +56,24 @@ const series = (p: ReturnType<typeof base>) =>
     .project;
 
 describe('compatibilidade de séries /40 e máscaras /41, composição /43', () => {
+  it.each(['armadurastruct/41', 'armadurastruct/43'] as const)(
+    'recusa explicitamente os dados da outra variante de %s, sem descarte silencioso',
+    (schema) => {
+      for (const extra of [
+        { sealPropertyDefinitions: [] },
+        { sealPropertyValues: { identificador: 'Preservar' } },
+        {
+          sheets: base().sheets.map((s) => ({
+            ...s,
+            sealPropertyValues: { identificador: 'Preservar' },
+          })),
+        },
+      ])
+        expect(() =>
+          decodeProject(JSON.stringify({ ...base(), ...extra, schema })),
+        ).toThrow(/Propriedades personalizadas.*#217/);
+    },
+  );
   it.each(['série primeiro', 'máscara primeiro'] as const)(
     '%s: compõe e reabre sem perder vínculos nem alterar aço',
     (order) => {

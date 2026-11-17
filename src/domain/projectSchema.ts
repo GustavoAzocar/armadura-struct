@@ -5,6 +5,23 @@
  */
 export const SERIES_MASK_PROJECT_SCHEMA = 'armadurastruct/43' as const;
 
+/** /41 também existe na PR #217; não descarte seus campos ao ler máscaras. */
+export function hasUnsupportedSealProperties(input: unknown): boolean {
+  if (!input || typeof input !== 'object') return false;
+  const data = input as Record<string, unknown>;
+  return (
+    data.sealPropertyDefinitions !== undefined ||
+    data.sealPropertyValues !== undefined ||
+    (Array.isArray(data.sheets) &&
+      data.sheets.some(
+        (sheet) =>
+          sheet &&
+          typeof sheet === 'object' &&
+          (sheet as Record<string, unknown>).sealPropertyValues !== undefined,
+      ))
+  );
+}
+
 /** Conserva a versão após retirar recursos; nunca rebaixa a composição. */
 export function withSeriesMaskVersion<T extends { schema: string }>(
   project: T,

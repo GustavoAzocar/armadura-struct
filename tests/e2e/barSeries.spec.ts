@@ -215,7 +215,9 @@ test('consulta 24 variantes, divide em blocos, insere na prancha sem alterar aç
     if (encoding === 'utf8') {
       const texts = new DxfParser()
         .parseSync(content)!
-        .entities.filter((e) => e.type === 'TEXT' && e.layer === 'TABELA_SERIE')
+        .entities.filter(
+          (e) => e.type === 'TEXT' && e.layer === 'PRANCHA_001_TABELA_SERIE',
+        )
         .map((e) => (e as ITextEntity).text);
       expect(texts.filter((t) => /^N30\.\d+$/.test(t))).toHaveLength(24);
       expect(texts.filter((t) => t.startsWith('Total da série'))).toHaveLength(
