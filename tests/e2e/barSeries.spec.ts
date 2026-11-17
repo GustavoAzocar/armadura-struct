@@ -1,11 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import DxfParser, { type ITextEntity } from 'dxf-parser';
 import { emptyProject, newBar, schedule } from '../../src/domain/model';
 import { completeOwnership } from '../../src/domain/hierarchy';
 import { placeDrawing, updatePlacement } from '../../src/domain/sheets';
 import { alignPlacement } from '../../src/domain/paper';
 import { createBarSeries, seriesTableData } from '../../src/domain/barSeries';
 import type { Project } from '../../src/domain/types';
+import {
+  createDrawingMask,
+  appendMaskShape,
+} from '../../src/domain/maskDrawing';
+import { setMaskReference } from '../../src/domain/maskReferences';
 
 /** 24 barras retas reais (1.000 a 2.150 mm) numa série exata, desenho na folha. */
 function fixture() {
@@ -28,6 +34,20 @@ function fixture() {
     name: 'N30',
   });
   p = series.project;
+  const ctx = { key: 'model', detailId: p.hierarchy.details[0].id };
+  const mask = createDrawingMask(p, 'Fôrma independente', '', ctx);
+  p = appendMaskShape(
+    mask.project,
+    mask.mask.id,
+    'line',
+    [
+      { x: 0, y: 0 },
+      { x: 3000, y: 0 },
+    ],
+    { ...ctx, editingMaskId: mask.mask.id },
+    mask.mask,
+  );
+  p = setMaskReference(p, ctx.detailId, mask.mask.id, 'replace');
   const placed = placeDrawing(p, p.sheets[0].id, p.hierarchy.drawings[0].id);
   p = updatePlacement(placed.project, placed.id, {
     origin: { x: 150, y: 15 },
@@ -156,7 +176,9 @@ test('consulta 24 variantes, divide em blocos, insere na prancha sem alterar aç
     path: 'docs/series-length-table.png',
   });
   let saved = await save(page);
-  expect(saved.schema).toBe('armadurastruct/40');
+  expect(saved.schema).toBe('armadurastruct/43');
+  expect(saved.maskReferences).toEqual(project.maskReferences);
+  expect(saved.masks).toEqual(project.masks);
   expect(saved.sheets[0].seriesTables).toHaveLength(1);
   expect(saved.sheets[0].seriesTables![0]).toMatchObject({
     seriesId,
@@ -164,6 +186,75 @@ test('consulta 24 variantes, divide em blocos, insere na prancha sem alterar aç
   });
   expect(saved.bars).toEqual(project.bars);
   expect(mass(saved)).toBeCloseTo(mass(project), 10);
+
+  // Reabertura da composição /43 e arquivos reais: 24 variantes completas.
+  await load(page, saved);
+  await page.getByRole('tab', { name: 'Pranchas', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Abrir Folha 1', exact: true })
+    .click();
+  await expect(page.getByTestId('sheet-series-table')).toHaveCount(3);
+  for (const [button, encoding, filename] of [
+    [
+      'Exportar todas as folhas em PDF',
+      'latin1',
+      'docs/series-length-output.pdf',
+    ],
+    ['Exportar folha ativa em DXF', 'utf8', 'docs/series-length-output.dxf'],
+  ] as const) {
+    if (button.endsWith('DXF')) page.once('dialog', (d) => d.accept());
+    const event = page.waitForEvent('download');
+    await page.getByRole('button', { name: button, exact: true }).click();
+    const bytes = readFileSync((await (await event).path())!);
+    writeFileSync(filename, bytes);
+    const content = bytes.toString(encoding);
+    for (let i = 1; i <= 24; i++) expect(content).toContain(`N30.${i}`);
+    // Soma independente: 24×1000 + 50×(0+...+23) = 37800 mm.
+    expect(content).toContain('37,80');
+    expect(content).toContain('Total da s');
+    if (encoding === 'utf8') {
+      const texts = new DxfParser()
+        .parseSync(content)!
+        .entities.filter((e) => e.type === 'TEXT' && e.layer === 'TABELA_SERIE')
+        .map((e) => (e as ITextEntity).text);
+      expect(texts.filter((t) => /^N30\.\d+$/.test(t))).toHaveLength(24);
+      expect(texts.filter((t) => t.startsWith('Total da série'))).toHaveLength(
+        1,
+      );
+    }
+  }
+  await page.getByRole('tab', { name: 'Arquivo', exact: true }).click();
+  await page
+    .locator('.ribbon-content')
+    .getByRole('button', { name: 'CSV por escopo', exact: true })
+    .click();
+  const csv = page.getByRole('dialog', {
+    name: 'Exportar relação do aço (CSV)',
+  });
+  await csv.getByLabel('Quadro detalhado', { exact: true }).uncheck();
+  await csv.getByLabel('Resumo do aço', { exact: true }).uncheck();
+  await csv
+    .getByLabel('Lista por variante (séries variáveis)', { exact: true })
+    .check();
+  const event = page.waitForEvent('download');
+  await csv.getByRole('button', { name: 'Exportar CSV', exact: true }).click();
+  const content = readFileSync((await (await event).path())!, 'utf8');
+  writeFileSync('docs/series-length-output.csv', content);
+  expect(content.trim().split('\r\n')).toHaveLength(25);
+  for (const variant of project.barSeries![0].variants)
+    expect(content).toContain(variant.id);
+  await expect(csv).toHaveCount(0);
+
+  // O teste do histórico usa a sessão que contém a inserção original.
+  await load(page, project);
+  dialog = await openSeries(page);
+  await dialog.getByLabel('Linhas por bloco').fill('8');
+  await dialog
+    .getByRole('button', { name: 'Inserir tabela na prancha', exact: true })
+    .click();
+  at = await point(page, 15, 170);
+  await page.mouse.click(at.x, at.y);
+  await expect(page.getByTestId('sheet-series-table')).toHaveCount(3);
 
   // Arrastar o segundo bloco grava só a origem da continuação.
   const block = page.getByTestId('sheet-series-table').nth(1);

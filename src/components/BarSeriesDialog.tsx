@@ -96,6 +96,8 @@ export default function BarSeriesDialog({
     data && options.columns.dimensions
       ? data.dimensions.filter((d) => d.variable)
       : [];
+  const mixedReference = dims.some((d) => d.reference === 'por variante');
+  const mixedSteel = !!data && data.steels.length > 1;
   const constants = data?.dimensions.filter(
     (d) => !d.variable || !options.columns.dimensions,
   );
@@ -394,6 +396,9 @@ export default function BarSeriesDialog({
                 ? ` em ${blocks.length} blocos`
                 : ''}{' '}
               · {CUT_POLICY_LABEL}.
+              {options.columns.dimensions && data.dimensions.length > 0
+                ? ` Referência das cotas: ${data.dimensions[0].reference}.`
+                : ''}
               {constants?.length
                 ? ` Cotas constantes (${constants[0].reference}): ${constants
                     .map((d) =>
@@ -413,6 +418,8 @@ export default function BarSeriesDialog({
                   <tr>
                     <th>Var.</th>
                     <th>Pos.</th>
+                    {mixedSteel && <th>Aço / Ø (mm)</th>}
+                    {mixedReference && <th>Referência das cotas</th>}
                     {dims.map((d) => (
                       <th key={d.label}>{d.label} (cm)</th>
                     ))}
@@ -434,6 +441,8 @@ export default function BarSeriesDialog({
                       count={data.rows.length}
                       dims={dims.map((d) => data.dimensions.indexOf(d))}
                       columns={options.columns}
+                      mixedReference={mixedReference}
+                      mixedSteel={mixedSteel}
                       picked={picked === r.key}
                       blockStart={
                         !!blocks &&
@@ -468,6 +477,8 @@ export default function BarSeriesDialog({
                 <tfoot>
                   <tr>
                     <th colSpan={2}>Total da série</th>
+                    {mixedSteel && <td />}
+                    {mixedReference && <td />}
                     {dims.map((d) => (
                       <td key={d.label} />
                     ))}
@@ -533,6 +544,8 @@ function SeriesRow({
   count,
   dims,
   columns,
+  mixedReference,
+  mixedSteel,
   picked,
   blockStart,
   canReorder,
@@ -546,6 +559,8 @@ function SeriesRow({
   count: number;
   dims: number[];
   columns: SeriesTable['columns'];
+  mixedReference: boolean;
+  mixedSteel: boolean;
   picked: boolean;
   blockStart: boolean;
   canReorder: boolean;
@@ -567,6 +582,12 @@ function SeriesRow({
         {r.errors.length > 0 && <small> · REVISAR</small>}
       </td>
       <td>{r.marks.join('/')}</td>
+      {mixedSteel && (
+        <td>
+          {r.steel} / {number(r.diameter, 1)}
+        </td>
+      )}
+      {mixedReference && <td>{r.dimensionReference}</td>}
       {dims.map((k) => (
         <td key={k}>
           {r.dimensions[k] === undefined

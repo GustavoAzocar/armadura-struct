@@ -7,11 +7,13 @@ export default function MaskBatchResults({
   receipt,
   onOpen,
   onClose,
+  onOrigin,
 }: {
   project: Project;
   receipt: MaskBatchReceipt;
   onOpen: (owner: string, id: string) => void;
   onClose: () => void;
+  onOrigin?: (id: string) => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -31,7 +33,9 @@ export default function MaskBatchResults({
   }, []);
   const groups = new Map<string, string[]>();
   for (const id of receipt.ids) {
-    const owner = project.hierarchy.objectDetails[id];
+    const owner = project.masks.find((m) => m.id === id)?.independent
+      ? 'project:masks'
+      : project.hierarchy.objectDetails[id];
     if (owner) groups.set(owner, [...(groups.get(owner) ?? []), id]);
   }
   return (
@@ -55,10 +59,23 @@ export default function MaskBatchResults({
       {[...groups].map(([owner, ids]) => (
         <div key={owner}>
           <p>
-            {detailPath(project, owner)} · {ids.length} referência(s)
+            {owner === 'project:masks'
+              ? 'Máscaras independentes do projeto'
+              : detailPath(project, owner)}{' '}
+            · {ids.length} referência(s)
           </p>
+          {onOrigin &&
+            ids.map((id) => (
+              <button key={id} onClick={() => onOrigin(id)}>
+                Selecionar origem:{' '}
+                {project.masks.find((m) => m.id === id)?.name}
+              </button>
+            ))}
           <button onClick={() => onOpen(owner, ids[0])}>
-            Abrir resultado: {detailPath(project, owner)}
+            Abrir resultado:{' '}
+            {owner === 'project:masks'
+              ? 'Máscaras independentes do projeto'
+              : detailPath(project, owner)}
           </button>
         </div>
       ))}

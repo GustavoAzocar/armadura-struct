@@ -390,6 +390,7 @@ export function composeSheet(
     : undefined;
   const seriesTables: SeriesTableGeometry[] = [];
   for (const t of sheet.seriesTables ?? []) {
+    if (t.visible === false) continue;
     try {
       seriesTables.push(seriesTableGeometry(project, sheetId, t));
     } catch (error) {

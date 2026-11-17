@@ -274,6 +274,8 @@ export type TextFont = {
   style: 'normal' | 'italic';
 };
 export type Mask = LayerBinding & {
+  /** Biblioteca do projeto, sem detalhamento proprietário. */
+  independent?: true;
   id: string;
   name: string;
   format: 'DXF' | 'DWG' | 'DEMO' | 'NATIVE';
@@ -342,7 +344,13 @@ export type Project = {
     | 'armadurastruct/37'
     | typeof import('./sheetTemplates').SHEET_TEMPLATE_PROJECT_SCHEMA
     | typeof import('./sealFieldSchema').SEAL_PROJECT_SCHEMA
-    | typeof import('./barSeriesSchema').BAR_SERIES_PROJECT_SCHEMA;
+    | typeof import('./barSeriesSchema').BAR_SERIES_PROJECT_SCHEMA
+    | typeof import('./projectSchema').SERIES_MASK_PROJECT_SCHEMA
+    | typeof import('./maskReferences').MASK_REFERENCE_PROJECT_SCHEMA;
+  maskReferences?: Record<
+    string,
+    import('./maskReferences').DetailMaskReferences
+  >;
   sealProperties?: import('./sealFieldSchema').ProjectSealProperties;
   /** Relative file names for display. The session's folder binding grants access. */
   linkedFiles?: string[];

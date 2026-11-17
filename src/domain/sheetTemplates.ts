@@ -8,7 +8,6 @@ import { validateTextContent } from './textStyle';
 import { uid, type Mask, type Point, type Project, type Sheet } from './types';
 import {
   hasSealData,
-  SEAL_PROJECT_SCHEMA,
   templateSealBindingSchema,
   withSealDataVersion,
 } from './sealFieldSchema';
@@ -423,10 +422,9 @@ export function applySheetTemplate(
     : project;
 }
 
-/** Mantém 39/40 (que já incluem modelos); os demais passam a 38. */
+/** Preserva os formatos posteriores, que já incluem modelos de prancha. */
 function templateSchema(project: Project): Project['schema'] {
-  return project.schema === SEAL_PROJECT_SCHEMA ||
-    project.schema === 'armadurastruct/40'
+  return Number(project.schema.split('/')[1]) >= 39
     ? project.schema
     : SHEET_TEMPLATE_PROJECT_SCHEMA;
 }

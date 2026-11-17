@@ -125,7 +125,10 @@ export function drawingPrimitives(
   options: { minTextHeight?: number } = {},
 ): Primitive[] {
   const h = options.minTextHeight ?? 40;
-  const lines = [...p.masks, ...symbolRenderMasks(p)].flatMap((m) =>
+  const lines = [
+    ...p.masks.filter((m) => !m.independent),
+    ...symbolRenderMasks(p),
+  ].flatMap((m) =>
     maskPrimitives(m).map((l) => stylePrimitive(references, m, l)),
   );
   lines.push(

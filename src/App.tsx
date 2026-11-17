@@ -1,3 +1,17 @@
+import DetailMaskSelector from './components/DetailMaskSelector';
+import {
+  BAR_LENGTH_PROMPT,
+  barPointAtLength,
+  isBarLengthInput,
+} from './domain/barLengthInput';
+import {
+  detailMaskReferences,
+  setMaskReference,
+  alignMaskReference,
+  maskAnchorFromWorld,
+  referenceMask,
+  canEditMaskGeometry,
+} from './domain/maskReferences';
 import AppUpdates from './components/AppUpdates';
 import ObjectSnapDialog from './components/ObjectSnapDialog';
 import { defaultSnapModes, type SnapModes } from './domain/objectSnaps';
@@ -540,7 +554,7 @@ const prompts: Record<Tool, string> = {
   'section-arc': 'Indique início, ponto intermediário e fim do arco de corte.',
   select: 'Selecione uma armadura para editar. Shift adiciona à seleção.',
   pan: 'Arraste para navegar. A roda do mouse aproxima e afasta.',
-  bar: 'Indique os vértices da barra. Enter ou botão direito conclui.',
+  bar: BAR_LENGTH_PROMPT,
   stirrup: 'Indique dois cantos opostos do estribo. Dimensões medidas no eixo.',
   'beam-clamp':
     'Posicione o meio do lado fechado do grampo de viga. Enter confirma a prévia.',
@@ -785,6 +799,15 @@ export default function App({
   const sessions = useRef(new Map<string, DocumentSession>());
   const sessionsProject = useRef('');
   const [maskControl, setMaskControl] = useState(false);
+  const [maskOrigin, setMaskOrigin] = useState<{
+    project: Project;
+    mask: Mask;
+    detailId: string;
+    local?: Point;
+    target: Point;
+    preview: boolean;
+    pickingTarget?: boolean;
+  } | null>(null);
   const [cadSettingsOpen, setCadSettingsOpen] = useState(false);
   const [symbolsOpen, setSymbolsOpen] = useState(false);
   const quickDefaultsRef = useRef<string>('');
@@ -841,6 +864,7 @@ export default function App({
   /** Inserção da tabela de uma série: só grava no clique de confirmação. */
   const [seriesRequest, setSeriesRequest] = useState<{
     projectId: string;
+    source: Project;
     sheetId: string;
     seriesId: string;
     tableId: string;
@@ -861,15 +885,16 @@ export default function App({
     );
   }, [p.id, documentKey]);
   useEffect(() => {
-    // Perda da série ou da folha durante a prévia: cancela sem gravar nada.
+    // Qualquer alteração concorrente invalida a fotografia usada na prévia.
     if (
       seriesRequest &&
-      (!(p.barSeries ?? []).some((s) => s.id === seriesRequest.seriesId) ||
+      (seriesRequest.source !== p ||
+        !(p.barSeries ?? []).some((s) => s.id === seriesRequest.seriesId) ||
         !p.sheets.some((s) => s.id === seriesRequest.sheetId))
     ) {
       setSeriesRequest(null);
       notify(
-        'Inserção da tabela cancelada: a série ou a folha não existe mais.',
+        'Inserção da tabela cancelada: o projeto foi alterado. Confira a série e tente novamente.',
       );
     }
   }, [p, seriesRequest]);
@@ -1412,6 +1437,8 @@ export default function App({
     key: documentKey,
     detailId: activeDetailId,
     scopeDetailId: isolatedDetailId,
+    editingMaskId:
+      tab === 'Máscaras' && drawingMaskId ? drawingMaskId : undefined,
   };
   const drawingMaskState = maskDrawingState(
     p,
@@ -1697,6 +1724,9 @@ export default function App({
     }
     const current = historyRef.current.present;
     const scope = isolationRef.current;
+    if (tab !== 'Máscaras' && current.maskReferences?.[activeDetailId]) {
+      ids = ids.filter((id) => !current.masks.some((m) => m.id === id));
+    }
     if (
       scope &&
       ids.some((id) => current.hierarchy.objectDetails[id] !== scope)
@@ -1719,6 +1749,22 @@ export default function App({
     if (ids.length) setSidebarTab('properties');
   };
   const setTool = (t: Tool) => {
+    if (
+      maskDrawingContext.editingMaskId &&
+      nativeTarget?.independent &&
+      [
+        'dimension-aligned',
+        'dimension-orthogonal',
+        'leader',
+        'section',
+        'section-arc',
+      ].includes(t)
+    ) {
+      notify(
+        'Anotações pertencem aos detalhamentos. Exiba esta máscara como referência em Armaduras para cotar ou anotar.',
+      );
+      return;
+    }
     setSymbolPick(null);
     setFreeText(null);
     setStirrupSession(null);
@@ -1743,6 +1789,7 @@ export default function App({
     setMaskManip(null);
     setMaskCad(null);
     setMaskCalibration(null);
+    setMaskOrigin(null);
     nativeSession.current = null;
     setNativeKind(undefined);
     setNativeCursor(undefined);
@@ -2247,7 +2294,10 @@ export default function App({
     }
     if (
       request.edges.some(
-        (e) => !availableFollowEdges.some((current) => current.key === e.key),
+        (e) =>
+          !request.project.masks.some(
+            (m) => m.id === e.maskId && m.primitives[e.primitiveIndex],
+          ),
       )
     ) {
       notify(
@@ -2560,6 +2610,15 @@ export default function App({
   const nativeContext = useRef({ project: p.id, document: documentKey });
   const openMaskContext = (detailId: string) => {
     const current = historyRef.current.present;
+    if (detailId === 'project:masks') {
+      if (isolationRef.current || activeSheet) {
+        notify('Abra o modelo geral para editar uma máscara independente.');
+        return false;
+      }
+      setTab('Máscaras');
+      return true;
+    }
+
     const drawing = current.hierarchy.drawings.find(
       (d) => d.detailId === detailId,
     );
@@ -4267,7 +4326,14 @@ export default function App({
       notify('Máscara inexistente.');
       return false;
     }
-    if (!openMaskContext(current.hierarchy.objectDetails[id])) return false;
+    if (
+      !openMaskContext(
+        target.independent
+          ? 'project:masks'
+          : current.hierarchy.objectDetails[id],
+      )
+    )
+      return false;
     nativeSession.current = null;
     setNativeKind(undefined);
     setNativeCursor(undefined);
@@ -4279,6 +4345,132 @@ export default function App({
     );
     return true;
   };
+  // Só esta transação de apresentação atualiza as bases dos lançamentos.
+  // Mudanças de conteúdo continuam invalidando suas fotografias imutáveis.
+  const changeDetailMask = (
+    id: string,
+    action: 'show' | 'hide' | 'replace',
+  ) => {
+    const before = historyRef.current.present;
+    if (
+      activeSheet ||
+      !commit((current) =>
+        setMaskReference(current, activeDetailId, id, action),
+      )
+    )
+      return;
+    const next = historyRef.current.present;
+    const baseSession = <T extends { base: Project }>(
+      session: T | null,
+    ): T | null =>
+      session?.base === before ? { ...session, base: next } : session;
+    const dialogSession = <
+      T extends { base: Project; resume?: { base: Project } },
+    >(
+      session: T | null,
+    ): T | null =>
+      session?.base === before
+        ? {
+            ...session,
+            base: next,
+            ...(session.resume
+              ? { resume: { ...session.resume, base: next } }
+              : {}),
+          }
+        : session;
+    setStirrupSession(baseSession);
+    setStirrupDialog(dialogSession);
+    setBeamClampSession(baseSession);
+    setBeamClampDialog(dialogSession);
+    setHelixSession(baseSession);
+    setHelixDialog(dialogSession);
+    setMeshSession((session) => {
+      if (!session || session.base !== before) return session;
+      // Contornos/pontos confirmados são estáticos. Candidatos de clique
+      // da referência oculta deixam de ser oferecidos.
+      const hidden =
+        session.click &&
+        !detailMaskReferences(next, activeDetailId).items.some(
+          (i) => i.maskId === session.click!.maskId && i.visible,
+        );
+      const confirmedOpenings =
+        hidden && session.click
+          ? session.click.islands[session.click.index]
+              .filter((_, i) => session.click!.chosen[i])
+              .map((outline) => ({ outline }))
+          : [];
+      return {
+        ...session,
+        base: next,
+        ...(hidden
+          ? {
+              click: undefined,
+              openings: [...session.openings, ...confirmedOpenings],
+            }
+          : {}),
+      };
+    });
+    setFollowRequest((session) =>
+      session?.project === before ? { ...session, project: next } : session,
+    );
+    setMeasureSession((session) =>
+      session?.project === before
+        ? { ...session, project: next, cursor: undefined, contour: undefined }
+        : session,
+    );
+    setSnapCommand((n) => n + 1);
+  };
+  const startMaskOrigin = (id: string) => {
+    const current = historyRef.current.present;
+    const mask =
+      referenceMask(current, activeDetailId, id) ??
+      current.masks.find((m) => m.id === id);
+    if (
+      !mask ||
+      activeSheet ||
+      (isolationRef.current && isolationRef.current !== activeDetailId)
+    )
+      return false;
+    setTool('select');
+    setMaskControl(false);
+    setMaskReceipt(null);
+    setSelectedRaw([]);
+    setMaskId(null);
+    setMaskOrigin({
+      project: current,
+      mask,
+      detailId: activeDetailId,
+      target: { x: 0, y: 0 },
+      preview: false,
+    });
+    setMessage(
+      'Selecionar origem: clique no ponto da máscara, com os encaixes. Depois confira a prévia antes de aplicar.',
+    );
+    return true;
+  };
+  const maskOriginPreview = useMemo(() => {
+    if (!maskOrigin?.local || !maskOrigin.preview) return undefined;
+    try {
+      return alignMaskReference(
+        maskOrigin.project,
+        maskOrigin.detailId,
+        maskOrigin.mask.id,
+        maskOrigin.local,
+        maskOrigin.target,
+      );
+    } catch {
+      return undefined;
+    }
+  }, [maskOrigin]);
+  useEffect(() => {
+    if (
+      maskOrigin &&
+      (maskOrigin.project !== p ||
+        maskOrigin.detailId !== activeDetailId ||
+        activeSheet)
+    )
+      setMaskOrigin(null);
+  }, [p, activeDetailId, documentKey]);
   useEffect(() => {
     if (
       nativeKind &&
@@ -5315,6 +5507,11 @@ export default function App({
   const meshByPoints = (s: WeldedMeshSession) =>
     (s.stage === 'region' && s.mode === 'points') ||
     (s.stage === 'openings' && s.openingInput === 'points');
+  function weldedMeshActiveMask(project: Project) {
+    const references = project.maskReferences?.[activeDetailId];
+    const id = references ? references.currentMaskId : drawingMaskId;
+    return id ? referenceMask(project, activeDetailId, id) : undefined;
+  }
   /**
    * Modo clique: só a máscara ativa (escolhida em Referências), com as
    * entidades visíveis e capturáveis dela; o ponto é o do clique, sem snap.
@@ -5322,12 +5519,12 @@ export default function App({
   function pickWeldedMeshClick(at: Point) {
     const s = meshSession;
     if (!s || s.stage !== 'region' || s.mode !== 'click') return;
-    const mask = s.base.masks.find((m) => m.id === drawingMaskId);
+    const mask = weldedMeshActiveMask(s.base);
     if (!mask) {
       setMeshSession({
         ...s,
         issue:
-          'Escolha a máscara ativa em Máscaras → Referências para usar o modo Clique.',
+          'Escolha a máscara ativa em Máscaras → Referências ou a referência atual em Máscaras do detalhamento para usar o modo Clique.',
       });
       return;
     }
@@ -6152,6 +6349,29 @@ export default function App({
     } else setDraft([]);
   };
   const onPoint = (point: Point) => {
+    if (maskOrigin) {
+      try {
+        // O clique usa a transformação que está na tela, inclusive na prévia.
+        const displayedMask = maskOriginPreview
+          ? (referenceMask(
+              maskOriginPreview,
+              maskOrigin.detailId,
+              maskOrigin.mask.id,
+              true,
+            ) ?? maskOrigin.mask)
+          : maskOrigin.mask;
+        setMaskOrigin({
+          ...maskOrigin,
+          ...(maskOrigin.pickingTarget
+            ? { target: point, pickingTarget: false }
+            : { local: maskAnchorFromWorld(displayedMask, point) }),
+          preview: false,
+        });
+      } catch (e) {
+        notify((e as Error).message);
+      }
+      return;
+    }
     if (meshSession) {
       weldedMeshPoint(point);
       return;
@@ -8347,10 +8567,10 @@ export default function App({
     commandEntry.current = null;
     setCommand('');
   };
-  const operationActive = !!(
-    draft.length ||
+  const auxiliaryOperationActive = !!(
     nativeKind ||
     maskCalibration ||
+    maskOrigin ||
     maskCad ||
     maskOffset ||
     maskManip ||
@@ -8369,6 +8589,13 @@ export default function App({
     seriesRequest ||
     symbolPick
   );
+  const operationActive = !!draft.length || auxiliaryOperationActive;
+  const barLengthActive =
+    tool === 'bar' &&
+    workScope === 'drawing' &&
+    page === 'drawing' &&
+    !activeSheet &&
+    !auxiliaryOperationActive;
   const operationScope = useRef<WorkScope | null>(null);
   useLayoutEffect(() => {
     if (operationActive) operationScope.current ??= workScope;
@@ -8551,6 +8778,16 @@ export default function App({
       onPoint(add(base, { x: Number(xy[2]), y: Number(xy[3]) }));
       return;
     }
+    if (barLengthActive && isBarLengthInput(value)) {
+      try {
+        onPoint(
+          barPointAtLength(draft.at(-1), cad.current?.getDraftPoint?.(), value),
+        );
+      } catch (error) {
+        notify((error as Error).message);
+      }
+      return;
+    }
     if (!value) {
       finish();
       return;
@@ -8730,6 +8967,11 @@ export default function App({
         );
         return;
       }
+      if (maskOrigin) {
+        setMaskOrigin(null);
+        cmdInput.current?.blur();
+        return;
+      }
       if (maskCalibration) {
         setMaskCalibration(null);
         setToolRaw('select');
@@ -8793,21 +9035,44 @@ export default function App({
       return;
     }
     const key = eventKey(e);
-    const command = key ? shortcutMaps[workScope].keys.get(key) : undefined;
-    if (!command) return;
+    const shortcutAction = key
+      ? shortcutMaps[workScope].keys.get(key)
+      : undefined;
+    if (!shortcutAction) {
+      if (
+        barLengthActive &&
+        /^[0-9.+-]$/.test(e.key) &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        cmdInput.current
+      ) {
+        e.preventDefault();
+        if (!e.repeat) {
+          if (!command)
+            commandEntry.current = {
+              context: commandContext,
+              scope: workScope,
+            };
+          setCommand(command + e.key);
+          cmdInput.current.focus();
+        }
+      }
+      return;
+    }
     e.preventDefault();
     if (e.repeat) return;
     if (
       operationActive &&
-      command !== 'delete' &&
-      !commandsDuringOperation.has(command)
+      shortcutAction !== 'delete' &&
+      !commandsDuringOperation.has(shortcutAction)
     ) {
       notify(
         'Conclua ou cancele o comando em andamento antes de iniciar outro atalho.',
       );
       return;
     }
-    runKeyboardCommand(command);
+    runKeyboardCommand(shortcutAction);
   });
   useEffect(() => {
     const handler = (event: KeyboardEvent) => handleShortcut(event);
@@ -9208,6 +9473,17 @@ export default function App({
                   </div>
                 ))}
             </div>
+            {page === 'drawing' &&
+              !activeSheet &&
+              tab.toLowerCase() === 'armaduras' &&
+              !maskOrigin && (
+                <DetailMaskSelector
+                  project={p}
+                  detailId={activeDetailId}
+                  onChange={changeDetailMask}
+                  onOrigin={startMaskOrigin}
+                />
+              )}
             <button
               className={page === 'schedule' ? 'active' : ''}
               onClick={() => setPage('schedule')}
@@ -9418,6 +9694,7 @@ export default function App({
               onPlaceSeries={(origin) => {
                 if (
                   !seriesRequest ||
+                  seriesRequest.source !== historyRef.current.present ||
                   seriesRequest.projectId !== p.id ||
                   seriesRequest.sheetId !== activeSheet.id
                 )
@@ -9642,888 +9919,1025 @@ export default function App({
                   </button>
                 </div>
               )}
-              <CadCanvas
-                followInteraction={
-                  tool === 'follow' && followRequest
-                    ? {
-                        mode: followRequest.mode,
-                        available: availableFollowEdges,
-                        selected: followRequest.edges,
-                        chain: followResult.chain,
-                        preview: followResult.preview,
-                        sidePoint: followRequest.sidePoint,
+              {nativeTarget?.independent &&
+                maskDrawingContext.editingMaskId &&
+                !maskOrigin && (
+                  <div className="context-bar" role="note">
+                    Editando máscara independente: <b>{nativeTarget?.name}</b> ·
+                    As referências desta máscara verão as alterações.
+                  </div>
+                )}
+              {maskOrigin && (
+                <section
+                  className="mask-origin-panel"
+                  aria-label="Selecionar origem da máscara"
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <b>Origem de {maskOrigin.mask.name}</b>
+                  <span>
+                    {maskOrigin.pickingTarget
+                      ? 'Clique no destino do alinhamento.'
+                      : maskOrigin.local
+                        ? `Ponto local: ${format(maskOrigin.local.x, 2)}, ${format(maskOrigin.local.y, 2)}`
+                        : 'Clique no ponto da máscara com os encaixes.'}{' '}
+                    · Destino: ({format(maskOrigin.target.x, 2)},{' '}
+                    {format(maskOrigin.target.y, 2)}) mm
+                  </span>
+                  <button
+                    onClick={() =>
+                      setMaskOrigin({
+                        ...maskOrigin,
+                        pickingTarget: true,
+                        preview: false,
+                      })
+                    }
+                  >
+                    Selecionar destino
+                  </button>
+                  <button
+                    onClick={() =>
+                      setMaskOrigin({
+                        ...maskOrigin,
+                        target: { x: 0, y: 0 },
+                        pickingTarget: false,
+                        preview: false,
+                      })
+                    }
+                  >
+                    Destino (0,0)
+                  </button>
+                  <button
+                    disabled={!maskOrigin.local || maskOrigin.pickingTarget}
+                    onClick={() =>
+                      setMaskOrigin({ ...maskOrigin, preview: true })
+                    }
+                  >
+                    Pré-visualizar alinhamento
+                  </button>
+                  <button
+                    disabled={!maskOriginPreview}
+                    onClick={() => {
+                      if (
+                        !maskOriginPreview ||
+                        historyRef.current.present !== maskOrigin.project
+                      )
+                        return;
+                      if (commit(() => maskOriginPreview)) {
+                        setMaskOrigin(null);
+                        notify(
+                          'Origem alinhada neste detalhamento. Geometria, outras referências e armaduras preservadas.',
+                        );
                       }
-                    : undefined
-                }
-                maskSidePick={meshClicking || maskOffset?.stage === 'side'}
-                maskEditing={
-                  meshPicking
-                    ? {
-                        entities: meshEntities,
-                        targetMaskId: '',
-                        stage: 'limits',
-                      }
-                    : match && match.stage !== 'properties'
+                    }}
+                  >
+                    Aplicar alinhamento
+                  </button>
+                  <button onClick={() => setMaskOrigin(null)}>
+                    Cancelar alinhamento
+                  </button>
+                </section>
+              )}
+              <div className="cad-command-surface">
+                <CadCanvas
+                  maskContext={maskDrawingContext}
+                  maskOrigin={
+                    maskOrigin
                       ? {
-                          entities: maskCadEntities(p, maskDrawingContext),
-                          targetMaskId: drawingMaskId,
-                          stage: 'targets',
+                          mask: maskOriginPreview
+                            ? (referenceMask(
+                                maskOriginPreview,
+                                activeDetailId,
+                                maskOrigin.mask.id,
+                                true,
+                              ) ?? maskOrigin.mask)
+                            : maskOrigin.mask,
+                          local: maskOrigin.local,
+                          target: maskOrigin.target,
                         }
-                      : maskOffset?.stage === 'entity'
+                      : undefined
+                  }
+                  followInteraction={
+                    tool === 'follow' && followRequest
+                      ? {
+                          mode: followRequest.mode,
+                          available: availableFollowEdges,
+                          selected: followRequest.edges.filter((e) =>
+                            availableFollowEdges.some((v) => v.key === e.key),
+                          ),
+                          chain: followResult.chain,
+                          preview: followResult.preview,
+                          sidePoint: followRequest.sidePoint,
+                        }
+                      : undefined
+                  }
+                  maskSidePick={meshClicking || maskOffset?.stage === 'side'}
+                  maskEditing={
+                    meshPicking
+                      ? {
+                          entities: meshEntities,
+                          targetMaskId: '',
+                          stage: 'limits',
+                        }
+                      : match && match.stage !== 'properties'
                         ? {
-                            entities: offsetEntities,
-                            targetMaskId: maskOffset.maskId,
+                            entities: maskCadEntities(p, maskDrawingContext),
+                            targetMaskId: drawingMaskId,
                             stage: 'targets',
                           }
-                        : measureSession?.mode === 'contour'
+                        : maskOffset?.stage === 'entity'
                           ? {
-                              entities: contourEntities,
-                              targetMaskId: '',
-                              stage: 'limits',
+                              entities: offsetEntities,
+                              targetMaskId: maskOffset.maskId,
+                              stage: 'targets',
                             }
-                          : maskManip?.stage === 'selection' &&
-                              (maskManip.mode !== 'rotate' ||
-                                maskManip.scope !== 'mask')
+                          : measureSession?.mode === 'contour'
                             ? {
-                                entities: manipEntities,
-                                targetMaskId: maskManip.maskId,
-                                stage: 'targets',
+                                entities: contourEntities,
+                                targetMaskId: '',
+                                stage: 'limits',
                               }
-                            : maskCad
+                            : maskManip?.stage === 'selection' &&
+                                (maskManip.mode !== 'rotate' ||
+                                  maskManip.scope !== 'mask')
                               ? {
-                                  entities: cadMaskEntities,
-                                  targetMaskId: maskCad.maskId,
-                                  all: maskCad.all,
-                                  stage: maskCad.stage,
-                                  selectedTarget: maskCad.selectedTarget,
+                                  entities: manipEntities,
+                                  targetMaskId: maskManip.maskId,
+                                  stage: 'targets',
                                 }
-                              : undefined
-                }
-                onMaskEntityPick={
-                  meshClicking
-                    ? (_ref, at) => pickWeldedMeshClick(at)
-                    : meshPicking
-                      ? (ref) => pickWeldedMeshEntity(ref)
-                      : match
-                        ? (ref) => {
-                            if (ref) pickMatch(ref.key);
-                          }
-                        : measureSession?.mode === 'contour'
-                          ? (ref) => pickContour(ref)
-                          : maskOffset
-                            ? (ref, at, tolerance) =>
-                                offsetPoint(at, ref, tolerance)
-                            : maskManip
-                              ? (ref) => toggleManipEntity(ref)
-                              : pickMaskCad
-                }
-                onMaskEntityHover={(ref, at, tolerance) =>
-                  maskOffset?.stage === 'side'
-                    ? setMaskOffset((s) =>
-                        s
-                          ? {
-                              ...s,
-                              cursor: at,
-                              pickTolerance: tolerance,
-                              issue: undefined,
-                            }
-                          : s,
-                      )
-                    : setMaskCad((s) =>
-                        s
-                          ? {
-                              ...s,
-                              hover: ref ? { ref, at } : undefined,
-                              issue: undefined,
-                            }
-                          : s,
-                      )
-                }
-                maskCadOverlay={
-                  offsetOverlay ??
-                  manipOverlay ??
-                  contourOverlay ??
-                  maskCadOverlay
-                }
-                highlightedMaskId={
-                  maskOffset?.maskId ??
-                  maskManip?.maskId ??
-                  maskCad?.maskId ??
-                  maskCalibration?.mask.id
-                }
-                onFollowEdge={pickFollowEdge}
-                nativeDrawing={!!nativeKind}
-                onNativePick={(maskId, entityId) => {
-                  if (p.hierarchy.objectDetails[maskId] !== activeDetailId) {
-                    notify(
-                      'Ative o detalhamento desta máscara na aba Projeto antes de editar suas entidades.',
-                    );
-                    return;
+                              : maskCad
+                                ? {
+                                    entities: cadMaskEntities,
+                                    targetMaskId: maskCad.maskId,
+                                    all: maskCad.all,
+                                    stage: maskCad.stage,
+                                    selectedTarget: maskCad.selectedTarget,
+                                  }
+                                : undefined
                   }
-                  if (
-                    isFreeText(
-                      p.masks
-                        .find((m) => m.id === maskId)
-                        ?.primitives.find((q) => q.id === entityId),
-                    )
-                  ) {
-                    startFreeText({ maskId, entityId });
-                    return;
+                  onMaskEntityPick={
+                    meshClicking
+                      ? (_ref, at) => pickWeldedMeshClick(at)
+                      : meshPicking
+                        ? (ref) => pickWeldedMeshEntity(ref)
+                        : match
+                          ? (ref) => {
+                              if (ref) pickMatch(ref.key);
+                            }
+                          : measureSession?.mode === 'contour'
+                            ? (ref) => pickContour(ref)
+                            : maskOffset
+                              ? (ref, at, tolerance) =>
+                                  offsetPoint(at, ref, tolerance)
+                              : maskManip
+                                ? (ref) => toggleManipEntity(ref)
+                                : pickMaskCad
                   }
-                  setSelectedRaw([]);
-                  setMaskId(maskId);
-                  setNativeEntity(entityId);
-                  setTool('select');
-                  setMaskControl(true);
-                }}
-                dimensionPresentation={
-                  measureSession?.previewPresentation ??
-                  measureSession?.presentation
-                }
-                previewLines={
-                  meshLines ??
-                  beamClampPreview.lines ??
-                  helixPreview.lines ??
-                  (stirrupSession?.stage === 'shape'
-                    ? [
-                        {
-                          layer: 'ARMADURAS',
-                          points: [
-                            ...stirrupSession.points,
-                            ...(stirrupSession.cursor
-                              ? [stirrupSession.cursor]
-                              : []),
-                          ],
-                        },
-                      ]
-                    : stirrupPreview.lines) ??
-                  offsetLines ??
-                  manipLines ??
-                  symbolPickLines ??
-                  freeTextState.lines ??
-                  calibrationLines ??
-                  nativePreview ??
-                  (vertexRequest
-                    ? vertexPreview.lines
-                    : alignmentRequest
-                      ? alignmentPreview.lines
-                      : transformPreview.lines)
-                }
-                extraSnapPoints={
-                  vertexRequest &&
-                  canCaptureObject(p, documentKey, vertexRequest.id)
-                    ? vertexPreview.points
-                    : undefined
-                }
-                previewTranslation={manipPreview.whole?.delta}
-                mirrorAxis={
-                  maskManip?.mode === 'mirror' &&
-                  maskManip.base &&
-                  (maskManip.axisEnd ?? maskManip.cursor)
-                    ? {
-                        base: maskManip.base,
-                        end: (maskManip.axisEnd ?? maskManip.cursor)!,
-                      }
-                    : undefined
-                }
-                previewBase={
-                  vertexRequest?.mode === 'lengthen' &&
-                  vertexPreview.previewBar &&
-                  !vertexPreview.error
-                    ? world(
-                        vertexPreview.previewBar.points[
-                          vertexRequest.end === 'start'
-                            ? 0
-                            : vertexPreview.previewBar.points.length - 1
-                        ],
-                        vertexPreview.previewBar,
+                  onMaskEntityHover={(ref, at, tolerance) =>
+                    maskOffset?.stage === 'side'
+                      ? setMaskOffset((s) =>
+                          s
+                            ? {
+                                ...s,
+                                cursor: at,
+                                pickTolerance: tolerance,
+                                issue: undefined,
+                              }
+                            : s,
+                        )
+                      : setMaskCad((s) =>
+                          s
+                            ? {
+                                ...s,
+                                hover: ref ? { ref, at } : undefined,
+                                issue: undefined,
+                              }
+                            : s,
+                        )
+                  }
+                  maskCadOverlay={
+                    offsetOverlay ??
+                    manipOverlay ??
+                    contourOverlay ??
+                    maskCadOverlay
+                  }
+                  highlightedMaskId={
+                    maskOffset?.maskId ??
+                    maskManip?.maskId ??
+                    maskCad?.maskId ??
+                    maskCalibration?.mask.id
+                  }
+                  onFollowEdge={pickFollowEdge}
+                  nativeDrawing={!!nativeKind}
+                  onNativePick={(maskId, entityId) => {
+                    if (
+                      !canEditMaskGeometry(
+                        p,
+                        p.masks.find((m) => m.id === maskId)!,
+                        maskDrawingContext,
                       )
-                    : (maskOffset?.points.at(-1) ??
-                      manipAnchor ??
-                      maskCalibration?.points[0] ??
-                      transformRequest?.base)
-                }
-                commandActive={
-                  !!beamClampSession ||
-                  !!helixSession ||
-                  !!freeText ||
-                  !!symbolPick ||
-                  !!stirrupSession ||
-                  !!measureSession ||
-                  !!match ||
-                  !!maskOffset ||
-                  !!maskManip ||
-                  !!maskCad ||
-                  !!maskCalibration ||
-                  !!transformRequest ||
-                  !!vertexRequest ||
-                  !!alignmentRequest
-                }
-                onContextRequest={(ids, point, screen) => {
-                  setContextMenu({ ids, point, screen });
-                  if (ids.length === 1 && p.masks.some((m) => m.id === ids[0]))
-                    setMaskId(ids[0]);
-                }}
-                layerContext={documentKey}
-                key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
-                initialState={sessions.current.get(documentKey)?.camera}
-                ref={cad}
-                project={matchPreview.plan?.project ?? p}
-                isolatedDetailId={isolatedDetailId}
-                onEditDetail={beginDetailEdit}
-                tool={
-                  beamClampSession ||
-                  helixSession ||
-                  freeText ||
-                  symbolPick ||
-                  stirrupSession ||
-                  match ||
-                  maskOffset ||
-                  maskManip ||
-                  maskCad ||
-                  maskCalibration ||
-                  transformRequest ||
-                  vertexRequest ||
-                  alignmentRequest
-                    ? 'measure'
-                    : tool
-                }
-                selected={selected}
-                setSelected={select}
-                onPoint={onPoint}
-                onPrimitive={follow}
-                onFinish={finish}
-                onBarChange={editBar}
-                draft={
-                  beamClampSession
-                    ? beamClampSession.stage === 'direction' &&
-                      beamClampSession.insertion
-                      ? [beamClampSession.insertion]
-                      : beamClampSession.stage === 'range-end' &&
-                          beamClampSession.start
-                        ? [beamClampSession.start]
-                        : []
-                    : helixSession
-                      ? helixSession.stage === 'end' && helixSession.start
-                        ? [helixSession.start]
-                        : []
-                      : stirrupSession
-                        ? stirrupSession.stage === 'shape'
-                          ? stirrupSession.points
-                          : stirrupSession.stage === 'range-end' &&
-                              stirrupSession.start
-                            ? [stirrupSession.start]
-                            : []
-                        : maskOffset?.stage === 'measure'
-                          ? maskOffset.points
-                          : maskManip
-                            ? manipAnchor
-                              ? [manipAnchor]
-                              : []
-                            : maskCalibration
-                              ? maskCalibration.points.length === 1
-                                ? maskCalibration.points
-                                : []
-                              : vertexRequest && vertexPreview.anchor
-                                ? [vertexPreview.anchor]
-                                : draft
-                }
-                grid={grid}
-                snap={snap}
-                snapModes={snapModes}
-                snapBase={vertexRequest ? null : transformRequest?.base}
-                snapContext={`${snapCommand}:${nativeKind ?? tool}:${maskManip?.mode ?? ''}`}
-                snapLinear={
-                  nativeKind
-                    ? nativeKind === 'line' || nativeKind === 'polyline'
-                    : !beamClampSession &&
-                      !helixSession &&
-                      !stirrupSession &&
-                      !maskOffset &&
-                      !maskManip &&
-                      !transformRequest &&
-                      !vertexRequest &&
-                      !alignmentRequest &&
-                      !freeText &&
-                      !symbolPick &&
-                      !match &&
-                      !maskCad &&
-                      [
-                        'bar',
-                        'polyline',
-                        'measure',
-                        'section',
-                        'leader',
-                        'dimension-aligned',
-                        'dimension-orthogonal',
-                      ].includes(tool)
-                }
-                ortho={ortho && vertexRequest?.mode !== 'lengthen'}
-                light={light}
-                setTool={setTool}
-                onCursor={(point) => {
-                  onCursor(point);
-                  if (meshSession?.points.length)
-                    setMeshSession((s) => (s ? { ...s, cursor: point } : s));
-                  if (beamClampSession && beamClampSession.stage !== 'ready')
-                    setBeamClampSession((s) =>
-                      s ? { ...s, cursor: point } : s,
-                    );
-                  if (
-                    helixSession?.stage === 'end' ||
-                    (helixSession?.stage === 'start' &&
-                      helixSession.mode === 'numeric')
-                  )
-                    setHelixSession((s) => (s ? { ...s, cursor: point } : s));
-                  if (stirrupSession && stirrupSession.stage !== 'ready')
-                    setStirrupSession((s) =>
-                      s ? { ...s, cursor: point, error: undefined } : s,
-                    );
-                  if (measureSession)
-                    setMeasureSession((s) => (s ? { ...s, cursor: point } : s));
-                  if (symbolPick?.kind === 'place')
-                    setSymbolPick((s) => (s ? { ...s, cursor: point } : s));
-                  if (freeText?.stage === 'point')
-                    setFreeText((s) => (s ? { ...s, cursor: point } : s));
-                  if (maskManip?.stage === 'target')
-                    setMaskManip((s) =>
-                      s?.stage === 'target'
-                        ? {
-                            ...s,
-                            cursor: point,
-                            issue: s.mode === 'rotate' ? s.issue : undefined,
-                          }
-                        : s,
-                    );
-                  if (nativeKind) setNativeCursor(point);
-                  if (
+                    ) {
+                      notify(
+                        'Ative o detalhamento desta máscara na aba Projeto antes de editar suas entidades.',
+                      );
+                      return;
+                    }
+                    if (
+                      isFreeText(
+                        p.masks
+                          .find((m) => m.id === maskId)
+                          ?.primitives.find((q) => q.id === entityId),
+                      )
+                    ) {
+                      startFreeText({ maskId, entityId });
+                      return;
+                    }
+                    setSelectedRaw([]);
+                    setMaskId(maskId);
+                    setNativeEntity(entityId);
+                    setTool('select');
+                    setMaskControl(true);
+                  }}
+                  dimensionPresentation={
+                    measureSession?.previewPresentation ??
+                    measureSession?.presentation
+                  }
+                  previewLines={
+                    meshLines ??
+                    beamClampPreview.lines ??
+                    helixPreview.lines ??
+                    (stirrupSession?.stage === 'shape'
+                      ? [
+                          {
+                            layer: 'ARMADURAS',
+                            points: [
+                              ...stirrupSession.points,
+                              ...(stirrupSession.cursor
+                                ? [stirrupSession.cursor]
+                                : []),
+                            ],
+                          },
+                        ]
+                      : stirrupPreview.lines) ??
+                    offsetLines ??
+                    manipLines ??
+                    symbolPickLines ??
+                    freeTextState.lines ??
+                    calibrationLines ??
+                    nativePreview ??
+                    (vertexRequest
+                      ? vertexPreview.lines
+                      : alignmentRequest
+                        ? alignmentPreview.lines
+                        : transformPreview.lines)
+                  }
+                  extraSnapPoints={
                     vertexRequest &&
-                    (!dimensionalMode(vertexRequest.mode) ||
-                      vertexRequest.dimensions?.picking)
-                  )
-                    setVertexRequest((s) =>
-                      s ? { ...s, cursor: point, issue: undefined } : s,
-                    );
-                  if (transformRequest)
-                    setTransformRequest((s) =>
-                      s && ['axis', 'target'].includes(s.stage)
-                        ? { ...s, cursor: point }
-                        : s,
-                    );
-                }}
-                showDimensions={dimensions}
-              />
-              {helixSession && (
-                <HelixLaunchPanel
-                  session={helixSession}
-                  bar={helixPreview.bar}
-                  error={helixPreview.error}
-                  onConfirm={confirmHelix}
-                  onBack={backHelix}
-                  onCancel={cancelHelix}
-                  onCriteria={reopenHelixCriteria}
-                  onMode={(mode) =>
-                    setHelixSession((s) => {
-                      if (!s) return s;
-                      const next = {
-                        ...s,
-                        mode,
-                        // Keep the drawn direction when switching to numeric.
-                        angle:
-                          mode === 'numeric' && s.start && s.end
-                            ? (Math.atan2(
-                                s.end.y - s.start.y,
-                                s.end.x - s.start.x,
-                              ) *
-                                180) /
-                              Math.PI
-                            : s.angle,
-                        end: undefined,
-                        cursor: undefined,
-                        error: undefined,
-                      };
-                      return { ...next, stage: helixPlacementStage(next) };
-                    })
+                    canCaptureObject(p, documentKey, vertexRequest.id)
+                      ? vertexPreview.points
+                      : undefined
                   }
-                  onAngle={(angle) =>
-                    setHelixSession((s) =>
-                      s ? { ...s, angle, error: undefined } : s,
+                  previewTranslation={manipPreview.whole?.delta}
+                  mirrorAxis={
+                    maskManip?.mode === 'mirror' &&
+                    maskManip.base &&
+                    (maskManip.axisEnd ?? maskManip.cursor)
+                      ? {
+                          base: maskManip.base,
+                          end: (maskManip.axisEnd ?? maskManip.cursor)!,
+                        }
+                      : undefined
+                  }
+                  previewBase={
+                    vertexRequest?.mode === 'lengthen' &&
+                    vertexPreview.previewBar &&
+                    !vertexPreview.error
+                      ? world(
+                          vertexPreview.previewBar.points[
+                            vertexRequest.end === 'start'
+                              ? 0
+                              : vertexPreview.previewBar.points.length - 1
+                          ],
+                          vertexPreview.previewBar,
+                        )
+                      : (maskOffset?.points.at(-1) ??
+                        manipAnchor ??
+                        maskCalibration?.points[0] ??
+                        transformRequest?.base)
+                  }
+                  commandActive={
+                    !!maskOrigin ||
+                    !!beamClampSession ||
+                    !!helixSession ||
+                    !!freeText ||
+                    !!symbolPick ||
+                    !!stirrupSession ||
+                    !!measureSession ||
+                    !!match ||
+                    !!maskOffset ||
+                    !!maskManip ||
+                    !!maskCad ||
+                    !!maskCalibration ||
+                    !!transformRequest ||
+                    !!vertexRequest ||
+                    !!alignmentRequest
+                  }
+                  onContextRequest={(ids, point, screen) => {
+                    setContextMenu({ ids, point, screen });
+                    if (
+                      ids.length === 1 &&
+                      p.masks.some((m) => m.id === ids[0])
                     )
-                  }
-                  onLabel={() => {
-                    const s = helixSession;
-                    if (!s.start) {
-                      notify('Indique primeiro o eixo da hélice.');
-                      return;
-                    }
-                    setHelixSession({
-                      ...s,
-                      stage: 'label',
-                      error: undefined,
-                      cursor: undefined,
-                    });
+                      setMaskId(ids[0]);
                   }}
-                />
-              )}
-              {beamClampSession && (
-                <BeamClampLaunchPanel
-                  session={beamClampSession}
-                  bar={beamClampPreview.bar}
-                  error={beamClampPreview.error}
-                  onConfirm={confirmBeamClamp}
-                  onBack={backBeamClamp}
-                  onCancel={cancelBeamClamp}
-                  onCriteria={reopenBeamClampCriteria}
-                  onDirection={() => {
-                    const s = beamClampSession;
-                    if (!s.insertion) {
-                      notify('Posicione primeiro o meio do lado fechado do U.');
-                      return;
-                    }
-                    setBeamClampSession({
-                      ...s,
-                      stage: 'direction',
-                      error: undefined,
-                      cursor: undefined,
-                    });
+                  layerContext={documentKey}
+                  key={`${p.id}:${sessionsProject.current === p.id ? 'ready' : 'loading'}:${documentKey}`}
+                  initialState={sessions.current.get(documentKey)?.camera}
+                  ref={cad}
+                  project={maskOriginPreview ?? matchPreview.plan?.project ?? p}
+                  isolatedDetailId={isolatedDetailId}
+                  onEditDetail={beginDetailEdit}
+                  tool={
+                    beamClampSession ||
+                    helixSession ||
+                    freeText ||
+                    symbolPick ||
+                    stirrupSession ||
+                    match ||
+                    maskOffset ||
+                    maskManip ||
+                    maskCad ||
+                    maskCalibration ||
+                    maskOrigin ||
+                    transformRequest ||
+                    vertexRequest ||
+                    alignmentRequest
+                      ? 'measure'
+                      : tool
+                  }
+                  selected={selected}
+                  setSelected={select}
+                  onPoint={onPoint}
+                  onPrimitive={follow}
+                  onFinish={finish}
+                  onBarChange={editBar}
+                  draft={
+                    beamClampSession
+                      ? beamClampSession.stage === 'direction' &&
+                        beamClampSession.insertion
+                        ? [beamClampSession.insertion]
+                        : beamClampSession.stage === 'range-end' &&
+                            beamClampSession.start
+                          ? [beamClampSession.start]
+                          : []
+                      : helixSession
+                        ? helixSession.stage === 'end' && helixSession.start
+                          ? [helixSession.start]
+                          : []
+                        : stirrupSession
+                          ? stirrupSession.stage === 'shape'
+                            ? stirrupSession.points
+                            : stirrupSession.stage === 'range-end' &&
+                                stirrupSession.start
+                              ? [stirrupSession.start]
+                              : []
+                          : maskOffset?.stage === 'measure'
+                            ? maskOffset.points
+                            : maskManip
+                              ? manipAnchor
+                                ? [manipAnchor]
+                                : []
+                              : maskCalibration
+                                ? maskCalibration.points.length === 1
+                                  ? maskCalibration.points
+                                  : []
+                                : vertexRequest && vertexPreview.anchor
+                                  ? [vertexPreview.anchor]
+                                  : draft
+                  }
+                  grid={grid}
+                  snap={snap}
+                  snapModes={snapModes}
+                  snapBase={vertexRequest ? null : transformRequest?.base}
+                  snapContext={`${snapCommand}:${nativeKind ?? tool}:${maskManip?.mode ?? ''}:${JSON.stringify(p.maskReferences?.[activeDetailId] ?? null)}`}
+                  snapLinear={
+                    nativeKind
+                      ? nativeKind === 'line' || nativeKind === 'polyline'
+                      : !beamClampSession &&
+                        !helixSession &&
+                        !stirrupSession &&
+                        !maskOffset &&
+                        !maskManip &&
+                        !transformRequest &&
+                        !vertexRequest &&
+                        !alignmentRequest &&
+                        !freeText &&
+                        !symbolPick &&
+                        !match &&
+                        !maskCad &&
+                        [
+                          'bar',
+                          'polyline',
+                          'measure',
+                          'section',
+                          'leader',
+                          'dimension-aligned',
+                          'dimension-orthogonal',
+                        ].includes(tool)
+                  }
+                  ortho={ortho && vertexRequest?.mode !== 'lengthen'}
+                  light={light}
+                  setTool={setTool}
+                  onCursor={(point) => {
+                    onCursor(point);
+                    if (meshSession?.points.length)
+                      setMeshSession((s) => (s ? { ...s, cursor: point } : s));
+                    if (beamClampSession && beamClampSession.stage !== 'ready')
+                      setBeamClampSession((s) =>
+                        s ? { ...s, cursor: point } : s,
+                      );
+                    if (
+                      helixSession?.stage === 'end' ||
+                      (helixSession?.stage === 'start' &&
+                        helixSession.mode === 'numeric')
+                    )
+                      setHelixSession((s) => (s ? { ...s, cursor: point } : s));
+                    if (stirrupSession && stirrupSession.stage !== 'ready')
+                      setStirrupSession((s) =>
+                        s ? { ...s, cursor: point, error: undefined } : s,
+                      );
+                    if (measureSession)
+                      setMeasureSession((s) =>
+                        s ? { ...s, cursor: point } : s,
+                      );
+                    if (symbolPick?.kind === 'place')
+                      setSymbolPick((s) => (s ? { ...s, cursor: point } : s));
+                    if (freeText?.stage === 'point')
+                      setFreeText((s) => (s ? { ...s, cursor: point } : s));
+                    if (maskManip?.stage === 'target')
+                      setMaskManip((s) =>
+                        s?.stage === 'target'
+                          ? {
+                              ...s,
+                              cursor: point,
+                              issue: s.mode === 'rotate' ? s.issue : undefined,
+                            }
+                          : s,
+                      );
+                    if (nativeKind) setNativeCursor(point);
+                    if (
+                      vertexRequest &&
+                      (!dimensionalMode(vertexRequest.mode) ||
+                        vertexRequest.dimensions?.picking)
+                    )
+                      setVertexRequest((s) =>
+                        s ? { ...s, cursor: point, issue: undefined } : s,
+                      );
+                    if (transformRequest)
+                      setTransformRequest((s) =>
+                        s && ['axis', 'target'].includes(s.stage)
+                          ? { ...s, cursor: point }
+                          : s,
+                      );
                   }}
-                  onFlip={() =>
-                    setBeamClampSession((s) =>
-                      s
-                        ? {
-                            ...s,
-                            c: {
-                              ...s.c,
-                              view: {
-                                ...s.c.view,
-                                closedSide:
-                                  s.c.view.closedSide === 'left'
-                                    ? 'right'
-                                    : 'left',
-                              },
-                            },
-                          }
-                        : s,
-                    )
-                  }
-                  onLabel={() => {
-                    const s = beamClampSession;
-                    if (!s.insertion) {
-                      notify('Posicione primeiro o grampo.');
-                      return;
-                    }
-                    setBeamClampSession({
-                      ...s,
-                      stage: 'label',
-                      error: undefined,
-                      cursor: undefined,
-                    });
-                  }}
+                  showDimensions={dimensions}
                 />
-              )}
-              {stirrupSession && (
-                <StirrupLaunchPanel
-                  session={stirrupSession}
-                  bar={stirrupPreview.bar}
-                  error={stirrupPreview.error}
-                  onConfirm={confirmStirrup}
-                  onCriteria={() => {
-                    setStirrupDialog({
-                      ...stirrupSession,
-                      resume: stirrupSession,
-                    });
-                    setStirrupSession(null);
-                  }}
-                  onBack={backStirrup}
-                  onCancel={cancelStirrup}
-                />
-              )}
-              {meshSession && (
-                <WeldedMeshLaunchPanel
-                  session={meshSession}
-                  preview={meshPreview}
-                  before={(() => {
-                    const l =
-                      meshSession.editId &&
-                      p.weldedMeshes?.find((m) => m.id === meshSession.editId);
-                    const r = l ? weldedMeshPlan(l) : undefined;
-                    return r?.ok ? r.layout : undefined;
-                  })()}
-                  activeMask={p.masks.find((m) => m.id === drawingMaskId)?.name}
-                  onCandidate={chooseWeldedMeshCandidate}
-                  onIsland={(i, use) =>
-                    setMeshSession((s) =>
-                      s?.click
-                        ? {
-                            ...s,
-                            click: {
-                              ...s.click,
-                              chosen: s.click.chosen.map((v, j) =>
-                                j === i ? use : v,
-                              ),
-                            },
-                            confirmed: false,
-                          }
-                        : s,
-                    )
-                  }
-                  onAnchorPick={() =>
-                    setMeshSession((s) =>
-                      s
-                        ? { ...s, anchorPick: !s.anchorPick, issue: undefined }
-                        : s,
-                    )
-                  }
-                  onClearAnchor={() =>
-                    setMeshSession((s) =>
-                      s ? { ...s, anchor: undefined, anchorPick: false } : s,
-                    )
-                  }
-                  onMode={(mode) =>
-                    setMeshSession((s) =>
-                      s
-                        ? {
-                            ...s,
-                            mode,
-                            points: [],
-                            cursor: undefined,
-                            issue: undefined,
-                          }
-                        : s,
-                    )
-                  }
-                  onOpeningInput={(openingInput) =>
-                    setMeshSession((s) =>
-                      s
-                        ? { ...s, openingInput, points: [], issue: undefined }
-                        : s,
-                    )
-                  }
-                  onCriteria={openWeldedMeshCriteria}
-                  onRemoveOpening={(i) =>
-                    setMeshSession((s) =>
-                      s
-                        ? {
-                            ...s,
-                            openings: s.openings.filter((_, j) => j !== i),
-                            confirmed: false,
-                          }
-                        : s,
-                    )
-                  }
-                  onConfirmGaps={(confirmed) =>
-                    setMeshSession((s) => (s ? { ...s, confirmed } : s))
-                  }
-                  onNext={nextWeldedMesh}
-                  onBack={backWeldedMesh}
-                  onCancel={cancelWeldedMesh}
-                  onConfirm={confirmWeldedMesh}
-                />
-              )}
-              {measureSession && (
-                <MeasureDimensionPanel
-                  session={measureSession}
-                  tool={tool}
-                  points={draft}
-                  onMode={setMeasureMode}
-                  onPresentation={(v) => {
-                    measurePresentation.current = {
-                      unit: v.unit,
-                      precision: v.precision,
-                    };
-                    setMeasureSession((s) =>
-                      s ? { ...s, presentation: v } : s,
-                    );
-                  }}
-                  onEditingPresentation={(
-                    editingPresentation,
-                    previewPresentation,
-                  ) =>
-                    setMeasureSession((s) =>
-                      s
-                        ? { ...s, editingPresentation, previewPresentation }
-                        : s,
-                    )
-                  }
-                  onEnd={endMeasure}
-                />
-              )}
-              {!!staleDimensions.length && (
-                <div className="mask-dimension-warning" role="alert">
-                  {staleDimensions.length} cota(s) estática(s) com referência de
-                  máscara alterada/ausente. Revise as referências;
-                  canvas/PDF/DXF identificam essas cotas.
-                </div>
-              )}
-              {match && (
-                <MatchPropertiesPanel
-                  session={match}
-                  entities={matchEntities}
-                  plan={matchPreview.plan}
-                  error={matchPreview.error}
-                  onChange={(value) => {
-                    matchConsumed.current = false;
-                    setMatch({ ...match, ...value });
-                  }}
-                  onApply={applyMatch}
-                  onEnd={endMatch}
-                />
-              )}
-              {freeText && (
-                <FreeTextPanel
-                  session={freeText}
-                  error={freeTextState.error}
-                  onFields={(fields) =>
-                    setFreeText((s) =>
-                      s ? { ...s, fields, issue: undefined } : s,
-                    )
-                  }
-                  onConfirm={confirmFreeText}
-                  onRepick={() =>
-                    setFreeText((s) =>
-                      s
-                        ? {
-                            ...s,
-                            stage: 'point',
-                            repicking: true,
-                            issue: undefined,
-                          }
-                        : s,
-                    )
-                  }
-                  onBack={backFreeText}
-                  onEnd={() => endFreeText()}
-                />
-              )}
-              {maskOffset && (
-                <MaskOffsetPanel
-                  session={maskOffset}
-                  entities={offsetEntities}
-                  preview={offsetPreview}
-                  onInput={(input) =>
-                    setMaskOffset((v) =>
-                      v ? { ...v, input, issue: undefined } : v,
-                    )
-                  }
-                  onDistance={confirmOffsetDistance}
-                  onMeasure={() =>
-                    setMaskOffset((v) =>
-                      v
-                        ? {
-                            ...v,
-                            stage: 'measure',
-                            points: [],
-                            issue: undefined,
-                          }
-                        : v,
-                    )
-                  }
-                  onTarget={pickOffsetTarget}
-                  onRestart={() =>
-                    setMaskOffset((v) =>
-                      v
-                        ? {
-                            ...v,
-                            stage: 'distance',
-                            target: undefined,
-                            cursor: undefined,
-                            points: [],
-                            issue: undefined,
-                          }
-                        : v,
-                    )
-                  }
-                  onEnd={endMaskOffset}
-                />
-              )}
-              {maskManip && (
-                <MaskManipPanel
-                  session={maskManip}
-                  entities={manipEntities}
-                  onToggle={toggleManipEntity}
-                  onConfirm={finishManip}
-                  onCancel={endMaskManip}
-                  error={manipPreview.error}
-                  previewAngle={
-                    manipPreview.plan?.transform?.kind === 'rotate'
-                      ? manipPreview.plan.transform.angle
-                      : maskManip.angle
-                  }
-                  onAngle={acceptManipAngle}
-                  onReference={startManipReference}
-                  onChangeAngle={() =>
-                    setMaskManip((s) =>
-                      s
-                        ? {
-                            ...s,
-                            stage: 'target',
-                            angle: undefined,
-                            cursor: undefined,
-                            issue: undefined,
-                          }
-                        : s,
-                    )
-                  }
-                  onRemoveSource={(value) =>
-                    setMaskManip((s) => (s ? { ...s, removeSource: value } : s))
-                  }
-                  hiddenFollowers={manipPreview.whole?.hidden}
-                  onScope={(scope) =>
-                    setMaskManip((s) => {
-                      if (
-                        !s ||
-                        (s.mode !== 'move' && s.mode !== 'rotate') ||
-                        s.stage !== 'selection'
-                      )
-                        return s;
-                      try {
-                        if (s.mode === 'move' && scope === 'mask')
-                          previewWholeMaskMove(s.project, s.maskId, s.context, {
-                            x: 0,
-                            y: 0,
-                          });
-                        // Switching reach never carries entities into the whole-mask target.
-                        return { ...s, scope, refs: [], issue: undefined };
-                      } catch (e) {
-                        return { ...s, issue: (e as Error).message };
-                      }
-                    })
-                  }
-                />
-              )}
-              {maskCad && (
-                <MaskCadPanel
-                  session={maskCad}
-                  entities={cadMaskEntities}
-                  preview={maskCadPreview}
-                  onToggle={toggleMaskCadLimit}
-                  onStage={confirmMaskCadLimits}
-                  onRestart={() =>
-                    setMaskCad((s) =>
-                      s
-                        ? {
-                            ...s,
-                            stage: 'limits',
-                            all: false,
-                            hover: undefined,
-                            issue: undefined,
-                          }
-                        : s,
-                    )
-                  }
-                  onTarget={(key) =>
-                    setMaskCad((s) =>
-                      s
-                        ? {
-                            ...s,
-                            selectedTarget: key || undefined,
-                            hover: undefined,
-                            issue: undefined,
-                          }
-                        : s,
-                    )
-                  }
-                  onEnd={endMaskCad}
-                />
-              )}
-              {maskCalibration && (
-                <MaskCalibrationPanel
-                  value={maskCalibration}
-                  preview={calibrationPreview}
-                  onInput={(input) =>
-                    setMaskCalibration((s) =>
-                      s ? { ...s, input, issue: undefined } : s,
-                    )
-                  }
-                  onApply={() => applyCalibration()}
-                  onCancel={() => {
-                    setMaskCalibration(null);
-                    setToolRaw('select');
-                  }}
-                  onRepick={() =>
-                    setMaskCalibration((s) =>
-                      s ? { ...s, points: [], input: '', issue: undefined } : s,
-                    )
-                  }
-                />
-              )}
-              {vertexRequest && (
-                <VertexPanel
-                  value={vertexRequest}
-                  onChange={setVertexRequest}
-                  count={vertexPreview.points.length}
-                  onApply={applyVertex}
-                  onCancel={() => setVertexRequest(null)}
-                  error={vertexPreview.error}
-                  warnings={vertexPreview.warnings}
-                  previewBar={vertexPreview.previewBar}
-                  canApply={vertexPreview.canApply}
-                />
-              )}
-              {transformRequest && (
-                <TransformPanel
-                  value={transformRequest}
-                  onChange={setTransformRequest}
-                  onApply={applyTransform}
-                  onCancel={() => setTransformRequest(null)}
-                  error={transformPreview.error}
-                  shared={transformPreview.shared}
-                />
-              )}
-              <div className="command-panel">
-                <div className="command-history">
-                  <ChevronRight size={12} />
-                  <span>
-                    {draft.length
-                      ? `${draft.length} ponto(s) · ${prompts[tool]}`
-                      : message}
-                  </span>
-                </div>
-                <form onSubmit={(e) => e.preventDefault()}>
-                  <Terminal size={15} />
-                  <label htmlFor="command-input">Comando</label>
-                  <span
-                    id="command-scope"
-                    className="command-scope"
-                    aria-live="polite"
-                  >
-                    {
-                      scopeLabels[
-                        (command && commandEntry.current?.scope) || workScope
-                      ]
-                    }
-                    {command &&
-                      (commandEntry.current?.context !== commandContext ||
-                        commandEntry.current.stale) &&
-                      ' · contexto mudou'}
-                  </span>
-                  <input
-                    ref={cmdInput}
-                    id="command-input"
-                    aria-label="Comando CAD"
-                    aria-describedby="command-scope"
-                    value={command}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (!value) commandEntry.current = null;
-                      else if (!command)
-                        commandEntry.current = {
-                          context: commandContext,
-                          scope: workScope,
+                {helixSession && (
+                  <HelixLaunchPanel
+                    session={helixSession}
+                    bar={helixPreview.bar}
+                    error={helixPreview.error}
+                    onConfirm={confirmHelix}
+                    onBack={backHelix}
+                    onCancel={cancelHelix}
+                    onCriteria={reopenHelixCriteria}
+                    onMode={(mode) =>
+                      setHelixSession((s) => {
+                        if (!s) return s;
+                        const next = {
+                          ...s,
+                          mode,
+                          // Keep the drawn direction when switching to numeric.
+                          angle:
+                            mode === 'numeric' && s.start && s.end
+                              ? (Math.atan2(
+                                  s.end.y - s.start.y,
+                                  s.end.x - s.start.x,
+                                ) *
+                                  180) /
+                                Math.PI
+                              : s.angle,
+                          end: undefined,
+                          cursor: undefined,
+                          error: undefined,
                         };
-                      setCommand(value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter' || textComposition(e.nativeEvent))
+                        return { ...next, stage: helixPlacementStage(next) };
+                      })
+                    }
+                    onAngle={(angle) =>
+                      setHelixSession((s) =>
+                        s ? { ...s, angle, error: undefined } : s,
+                      )
+                    }
+                    onLabel={() => {
+                      const s = helixSession;
+                      if (!s.start) {
+                        notify('Indique primeiro o eixo da hélice.');
                         return;
-                      e.preventDefault();
-                      if (!e.repeat) runCommand(command);
+                      }
+                      setHelixSession({
+                        ...s,
+                        stage: 'label',
+                        error: undefined,
+                        cursor: undefined,
+                      });
                     }}
-                    placeholder="Digite um comando ou coordenadas X,Y"
-                    autoComplete="off"
                   />
-                  <kbd>↵</kbd>
-                </form>
+                )}
+                {beamClampSession && (
+                  <BeamClampLaunchPanel
+                    session={beamClampSession}
+                    bar={beamClampPreview.bar}
+                    error={beamClampPreview.error}
+                    onConfirm={confirmBeamClamp}
+                    onBack={backBeamClamp}
+                    onCancel={cancelBeamClamp}
+                    onCriteria={reopenBeamClampCriteria}
+                    onDirection={() => {
+                      const s = beamClampSession;
+                      if (!s.insertion) {
+                        notify(
+                          'Posicione primeiro o meio do lado fechado do U.',
+                        );
+                        return;
+                      }
+                      setBeamClampSession({
+                        ...s,
+                        stage: 'direction',
+                        error: undefined,
+                        cursor: undefined,
+                      });
+                    }}
+                    onFlip={() =>
+                      setBeamClampSession((s) =>
+                        s
+                          ? {
+                              ...s,
+                              c: {
+                                ...s.c,
+                                view: {
+                                  ...s.c.view,
+                                  closedSide:
+                                    s.c.view.closedSide === 'left'
+                                      ? 'right'
+                                      : 'left',
+                                },
+                              },
+                            }
+                          : s,
+                      )
+                    }
+                    onLabel={() => {
+                      const s = beamClampSession;
+                      if (!s.insertion) {
+                        notify('Posicione primeiro o grampo.');
+                        return;
+                      }
+                      setBeamClampSession({
+                        ...s,
+                        stage: 'label',
+                        error: undefined,
+                        cursor: undefined,
+                      });
+                    }}
+                  />
+                )}
+                {stirrupSession && (
+                  <StirrupLaunchPanel
+                    session={stirrupSession}
+                    bar={stirrupPreview.bar}
+                    error={stirrupPreview.error}
+                    onConfirm={confirmStirrup}
+                    onCriteria={() => {
+                      setStirrupDialog({
+                        ...stirrupSession,
+                        resume: stirrupSession,
+                      });
+                      setStirrupSession(null);
+                    }}
+                    onBack={backStirrup}
+                    onCancel={cancelStirrup}
+                  />
+                )}
+                {meshSession && (
+                  <WeldedMeshLaunchPanel
+                    session={meshSession}
+                    preview={meshPreview}
+                    before={(() => {
+                      const l =
+                        meshSession.editId &&
+                        p.weldedMeshes?.find(
+                          (m) => m.id === meshSession.editId,
+                        );
+                      const r = l ? weldedMeshPlan(l) : undefined;
+                      return r?.ok ? r.layout : undefined;
+                    })()}
+                    activeMask={weldedMeshActiveMask(p)?.name}
+                    onCandidate={chooseWeldedMeshCandidate}
+                    onIsland={(i, use) =>
+                      setMeshSession((s) =>
+                        s?.click
+                          ? {
+                              ...s,
+                              click: {
+                                ...s.click,
+                                chosen: s.click.chosen.map((v, j) =>
+                                  j === i ? use : v,
+                                ),
+                              },
+                              confirmed: false,
+                            }
+                          : s,
+                      )
+                    }
+                    onAnchorPick={() =>
+                      setMeshSession((s) =>
+                        s
+                          ? {
+                              ...s,
+                              anchorPick: !s.anchorPick,
+                              issue: undefined,
+                            }
+                          : s,
+                      )
+                    }
+                    onClearAnchor={() =>
+                      setMeshSession((s) =>
+                        s ? { ...s, anchor: undefined, anchorPick: false } : s,
+                      )
+                    }
+                    onMode={(mode) =>
+                      setMeshSession((s) =>
+                        s
+                          ? {
+                              ...s,
+                              mode,
+                              points: [],
+                              cursor: undefined,
+                              issue: undefined,
+                            }
+                          : s,
+                      )
+                    }
+                    onOpeningInput={(openingInput) =>
+                      setMeshSession((s) =>
+                        s
+                          ? { ...s, openingInput, points: [], issue: undefined }
+                          : s,
+                      )
+                    }
+                    onCriteria={openWeldedMeshCriteria}
+                    onRemoveOpening={(i) =>
+                      setMeshSession((s) =>
+                        s
+                          ? {
+                              ...s,
+                              openings: s.openings.filter((_, j) => j !== i),
+                              confirmed: false,
+                            }
+                          : s,
+                      )
+                    }
+                    onConfirmGaps={(confirmed) =>
+                      setMeshSession((s) => (s ? { ...s, confirmed } : s))
+                    }
+                    onNext={nextWeldedMesh}
+                    onBack={backWeldedMesh}
+                    onCancel={cancelWeldedMesh}
+                    onConfirm={confirmWeldedMesh}
+                  />
+                )}
+                {measureSession && (
+                  <MeasureDimensionPanel
+                    session={measureSession}
+                    tool={tool}
+                    points={draft}
+                    onMode={setMeasureMode}
+                    onPresentation={(v) => {
+                      measurePresentation.current = {
+                        unit: v.unit,
+                        precision: v.precision,
+                      };
+                      setMeasureSession((s) =>
+                        s ? { ...s, presentation: v } : s,
+                      );
+                    }}
+                    onEditingPresentation={(
+                      editingPresentation,
+                      previewPresentation,
+                    ) =>
+                      setMeasureSession((s) =>
+                        s
+                          ? { ...s, editingPresentation, previewPresentation }
+                          : s,
+                      )
+                    }
+                    onEnd={endMeasure}
+                  />
+                )}
+                {!!staleDimensions.length && (
+                  <div className="mask-dimension-warning" role="alert">
+                    {staleDimensions.length} cota(s) estática(s) com referência
+                    de máscara alterada/ausente. Revise as referências;
+                    canvas/PDF/DXF identificam essas cotas.
+                  </div>
+                )}
+                {match && (
+                  <MatchPropertiesPanel
+                    session={match}
+                    entities={matchEntities}
+                    plan={matchPreview.plan}
+                    error={matchPreview.error}
+                    onChange={(value) => {
+                      matchConsumed.current = false;
+                      setMatch({ ...match, ...value });
+                    }}
+                    onApply={applyMatch}
+                    onEnd={endMatch}
+                  />
+                )}
+                {freeText && (
+                  <FreeTextPanel
+                    session={freeText}
+                    error={freeTextState.error}
+                    onFields={(fields) =>
+                      setFreeText((s) =>
+                        s ? { ...s, fields, issue: undefined } : s,
+                      )
+                    }
+                    onConfirm={confirmFreeText}
+                    onRepick={() =>
+                      setFreeText((s) =>
+                        s
+                          ? {
+                              ...s,
+                              stage: 'point',
+                              repicking: true,
+                              issue: undefined,
+                            }
+                          : s,
+                      )
+                    }
+                    onBack={backFreeText}
+                    onEnd={() => endFreeText()}
+                  />
+                )}
+                {maskOffset && (
+                  <MaskOffsetPanel
+                    session={maskOffset}
+                    entities={offsetEntities}
+                    preview={offsetPreview}
+                    onInput={(input) =>
+                      setMaskOffset((v) =>
+                        v ? { ...v, input, issue: undefined } : v,
+                      )
+                    }
+                    onDistance={confirmOffsetDistance}
+                    onMeasure={() =>
+                      setMaskOffset((v) =>
+                        v
+                          ? {
+                              ...v,
+                              stage: 'measure',
+                              points: [],
+                              issue: undefined,
+                            }
+                          : v,
+                      )
+                    }
+                    onTarget={pickOffsetTarget}
+                    onRestart={() =>
+                      setMaskOffset((v) =>
+                        v
+                          ? {
+                              ...v,
+                              stage: 'distance',
+                              target: undefined,
+                              cursor: undefined,
+                              points: [],
+                              issue: undefined,
+                            }
+                          : v,
+                      )
+                    }
+                    onEnd={endMaskOffset}
+                  />
+                )}
+                {maskManip && (
+                  <MaskManipPanel
+                    session={maskManip}
+                    entities={manipEntities}
+                    onToggle={toggleManipEntity}
+                    onConfirm={finishManip}
+                    onCancel={endMaskManip}
+                    error={manipPreview.error}
+                    previewAngle={
+                      manipPreview.plan?.transform?.kind === 'rotate'
+                        ? manipPreview.plan.transform.angle
+                        : maskManip.angle
+                    }
+                    onAngle={acceptManipAngle}
+                    onReference={startManipReference}
+                    onChangeAngle={() =>
+                      setMaskManip((s) =>
+                        s
+                          ? {
+                              ...s,
+                              stage: 'target',
+                              angle: undefined,
+                              cursor: undefined,
+                              issue: undefined,
+                            }
+                          : s,
+                      )
+                    }
+                    onRemoveSource={(value) =>
+                      setMaskManip((s) =>
+                        s ? { ...s, removeSource: value } : s,
+                      )
+                    }
+                    hiddenFollowers={manipPreview.whole?.hidden}
+                    onScope={(scope) =>
+                      setMaskManip((s) => {
+                        if (
+                          !s ||
+                          (s.mode !== 'move' && s.mode !== 'rotate') ||
+                          s.stage !== 'selection'
+                        )
+                          return s;
+                        try {
+                          if (s.mode === 'move' && scope === 'mask')
+                            previewWholeMaskMove(
+                              s.project,
+                              s.maskId,
+                              s.context,
+                              {
+                                x: 0,
+                                y: 0,
+                              },
+                            );
+                          // Switching reach never carries entities into the whole-mask target.
+                          return { ...s, scope, refs: [], issue: undefined };
+                        } catch (e) {
+                          return { ...s, issue: (e as Error).message };
+                        }
+                      })
+                    }
+                  />
+                )}
+                {maskCad && (
+                  <MaskCadPanel
+                    session={maskCad}
+                    entities={cadMaskEntities}
+                    preview={maskCadPreview}
+                    onToggle={toggleMaskCadLimit}
+                    onStage={confirmMaskCadLimits}
+                    onRestart={() =>
+                      setMaskCad((s) =>
+                        s
+                          ? {
+                              ...s,
+                              stage: 'limits',
+                              all: false,
+                              hover: undefined,
+                              issue: undefined,
+                            }
+                          : s,
+                      )
+                    }
+                    onTarget={(key) =>
+                      setMaskCad((s) =>
+                        s
+                          ? {
+                              ...s,
+                              selectedTarget: key || undefined,
+                              hover: undefined,
+                              issue: undefined,
+                            }
+                          : s,
+                      )
+                    }
+                    onEnd={endMaskCad}
+                  />
+                )}
+                {maskCalibration && (
+                  <MaskCalibrationPanel
+                    value={maskCalibration}
+                    preview={calibrationPreview}
+                    onInput={(input) =>
+                      setMaskCalibration((s) =>
+                        s ? { ...s, input, issue: undefined } : s,
+                      )
+                    }
+                    onApply={() => applyCalibration()}
+                    onCancel={() => {
+                      setMaskCalibration(null);
+                      setToolRaw('select');
+                    }}
+                    onRepick={() =>
+                      setMaskCalibration((s) =>
+                        s
+                          ? { ...s, points: [], input: '', issue: undefined }
+                          : s,
+                      )
+                    }
+                  />
+                )}
+                {vertexRequest && (
+                  <VertexPanel
+                    value={vertexRequest}
+                    onChange={setVertexRequest}
+                    count={vertexPreview.points.length}
+                    onApply={applyVertex}
+                    onCancel={() => setVertexRequest(null)}
+                    error={vertexPreview.error}
+                    warnings={vertexPreview.warnings}
+                    previewBar={vertexPreview.previewBar}
+                    canApply={vertexPreview.canApply}
+                  />
+                )}
+                {transformRequest && (
+                  <TransformPanel
+                    value={transformRequest}
+                    onChange={setTransformRequest}
+                    onApply={applyTransform}
+                    onCancel={() => setTransformRequest(null)}
+                    error={transformPreview.error}
+                    shared={transformPreview.shared}
+                  />
+                )}
+                <div
+                  className={`command-panel ${barLengthActive ? 'bar-length-entry' : ''}`}
+                >
+                  <div className="command-history">
+                    <ChevronRight size={12} />
+                    <span id="command-help">
+                      {barLengthActive
+                        ? `${draft.length ? `${draft.length} ponto(s) · ` : ''}${BAR_LENGTH_PROMPT}`
+                        : draft.length
+                          ? `${draft.length} ponto(s) · ${prompts[tool]}`
+                          : message}
+                    </span>
+                  </div>
+                  <form onSubmit={(e) => e.preventDefault()}>
+                    <Terminal size={15} />
+                    <label htmlFor="command-input">Comando</label>
+                    <span
+                      id="command-scope"
+                      className="command-scope"
+                      aria-live="polite"
+                    >
+                      {
+                        scopeLabels[
+                          (command && commandEntry.current?.scope) || workScope
+                        ]
+                      }
+                      {command &&
+                        (commandEntry.current?.context !== commandContext ||
+                          commandEntry.current.stale) &&
+                        ' · contexto mudou'}
+                    </span>
+                    <input
+                      ref={cmdInput}
+                      id="command-input"
+                      aria-label="Comando CAD"
+                      aria-describedby="command-scope command-help"
+                      value={command}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (!value) commandEntry.current = null;
+                        else if (!command)
+                          commandEntry.current = {
+                            context: commandContext,
+                            scope: workScope,
+                          };
+                        setCommand(value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter' || textComposition(e.nativeEvent))
+                          return;
+                        e.preventDefault();
+                        if (!e.repeat) runCommand(command);
+                      }}
+                      placeholder={
+                        barLengthActive
+                          ? 'Comprimento (mm) ou coordenadas X,Y'
+                          : 'Digite um comando ou coordenadas X,Y'
+                      }
+                      autoComplete="off"
+                    />
+                    <kbd>↵</kbd>
+                  </form>
+                </div>
               </div>
             </>
           ) : (
@@ -11328,6 +11742,7 @@ export default function App({
               );
               setSeriesRequest({
                 projectId: current.id,
+                source: current,
                 sheetId: target.id,
                 seriesId,
                 tableId: existing?.id ?? uid(),
@@ -11666,10 +12081,13 @@ export default function App({
         <MaskBatchResults
           project={p}
           receipt={maskReceipt}
+          onOrigin={startMaskOrigin}
           onClose={() => setMaskReceipt(null)}
           onOpen={(owner, id) => {
             if (!openMaskContext(owner)) return;
             setMaskReceipt(null);
+            if (p.masks.find((m) => m.id === id)?.independent)
+              setDrawingMaskChoice({ projectId: p.id, id });
             setSelectedRaw([]);
             setMaskId(id);
             setSidebarOpen(true);
@@ -11696,12 +12114,20 @@ export default function App({
           onManipulate={startMaskManip}
           onCadEdit={startMaskCad}
           onCalibrate={startMaskCalibration}
+          onOrigin={startMaskOrigin}
           onBatch={(mode) => startMaskBatch(mode)}
           onClose={() => setMaskControl(false)}
           onSelect={(id) => {
             const current = historyRef.current.present,
               m = current.masks.find((m) => m.id === id);
-            if (!m || !openMaskContext(current.hierarchy.objectDetails[id]))
+            if (
+              !m ||
+              !openMaskContext(
+                m.independent
+                  ? 'project:masks'
+                  : current.hierarchy.objectDetails[id],
+              )
+            )
               return false;
             setSelectedRaw([]);
             setMaskId(id);
@@ -11730,7 +12156,7 @@ export default function App({
             setMaskId(null);
             setNativeEntity(undefined);
             notify(
-              `Máscara criada e ativa: ${created.mask.name} · ${detailPath(created.project, owner)}. Escolha a ferramenta para desenhar.`,
+              `Máscara criada e ativa: ${created.mask.name} · ${owner ? detailPath(created.project, owner) : 'independente do projeto'}. Escolha a ferramenta para desenhar.`,
             );
             return created.mask;
           }}
@@ -11767,8 +12193,10 @@ export default function App({
             }
             if (
               !current.masks.some((m) => m.id === id) ||
-              current.hierarchy.objectDetails[id] !== activeDetailId ||
-              !editable(id) ||
+              (!target?.independent &&
+                current.hierarchy.objectDetails[id] !== activeDetailId) ||
+              (!target?.independent && !editable(id)) ||
+              (target?.independent && !!isolationRef.current) ||
               activeSheet
             )
               return false;

@@ -41,8 +41,7 @@ export function hasSealData(input: unknown): boolean {
 export function withSealDataVersion<T extends { schema: string }>(
   project: T,
 ): T {
-  // O formato 40 (séries variáveis) já contém os recursos do 39.
-  return hasSealData(project) && project.schema !== 'armadurastruct/40'
+  return hasSealData(project) && Number(project.schema.split('/')[1]) < 39
     ? { ...project, schema: SEAL_PROJECT_SCHEMA }
     : project;
 }

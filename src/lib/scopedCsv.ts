@@ -623,7 +623,7 @@ export function variantsCsv(
           r.representative ? 'Sim (variável/representativo)' : 'Não',
           r.steel,
           n(r.diameter, 1),
-          t.dimensions[0]?.reference ?? '',
+          r.dimensionReference,
           t.dimensions
             .map((d, i) => {
               const v = r.dimensions[i];

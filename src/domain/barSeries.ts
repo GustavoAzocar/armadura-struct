@@ -1,10 +1,10 @@
 import { barDevelopment } from './barDevelopment';
 import { barDimensions } from './barDimensions';
 import {
-  BAR_SERIES_PROJECT_SCHEMA,
   seriesMembers,
   seriesTableSchema,
   validateBarSeries,
+  withBarSeriesVersion,
   type BarSeries,
   type BarSeriesProvenance,
   type SeriesTable,
@@ -43,10 +43,7 @@ export {
 
 const DIMENSION_GRID = 0.01; // mm: comparação de cotas entre variantes
 
-const withSchema = (p: Project): Project =>
-  p.schema === BAR_SERIES_PROJECT_SCHEMA
-    ? p
-    : { ...p, schema: BAR_SERIES_PROJECT_SCHEMA };
+const withSchema = (p: Project): Project => withBarSeriesVersion(p);
 
 /** Série que contém a armadura (como variante ou representante), se houver. */
 export function seriesOfBar(p: Project, barId: string) {
@@ -391,7 +388,7 @@ export function copyBarSeries(
 export type SeriesDimension = {
   /** Letra de cota (a, b, c…), na ordem dos trechos da forma. */
   label: string;
-  reference: 'eixo' | 'face externa';
+  reference: 'eixo' | 'face externa' | 'por variante';
   variable: boolean;
   /** mm, quando a cota é igual em todas as variantes. */
   constant?: number;
@@ -418,6 +415,7 @@ export type SeriesTableRow = {
   positionIds: string[];
   steel: string;
   diameter: number;
+  dimensionReference: 'eixo' | 'face externa';
   /** Cotas por letra, em mm; ausente quando a forma não oferece a cota. */
   dimensions: (number | undefined)[];
   baseQuantity: number;
@@ -468,7 +466,7 @@ export const CUT_POLICY_LABEL =
   'Corte = desenvolvimento geométrico do eixo, sem acréscimos ou descontos';
 
 function dimensionsOf(bar: Bar): {
-  reference: SeriesDimension['reference'];
+  reference: SeriesTableRow['dimensionReference'];
   values: number[];
 } {
   const d = barDimensions(bar);
@@ -517,6 +515,7 @@ export function seriesTableData(
     grouping?: SeriesTable['grouping'];
   } = {},
 ): SeriesTableData {
+  validateBarSeries(p);
   const series = (p.barSeries ?? []).find((s) => s.id === seriesId);
   if (!series) throw new Error('Série inexistente.');
   const grouping = options.grouping ?? 'variant';
@@ -568,17 +567,24 @@ export function seriesTableData(
   ];
   const count = Math.max(0, ...items.map((i) => i.dims.values.length));
   const sameCount = items.every((i) => i.dims.values.length === count);
+  const sameReference = items.every(
+    (i) => i.dims.reference === items[0]?.dims.reference,
+  );
   const dimensions: SeriesDimension[] = Array.from(
     { length: count },
     (_, k) => {
       const values = items.map((i) => i.dims.values[k]);
       const constant =
-        sameCount && values.every((v) => sameValue(v, values[0]))
+        sameCount &&
+        sameReference &&
+        values.every((v) => sameValue(v, values[0]))
           ? values[0]
           : undefined;
       return {
         label: letter(k),
-        reference: items[0]?.dims.reference ?? 'eixo',
+        reference: sameReference
+          ? (items[0]?.dims.reference ?? 'eixo')
+          : 'por variante',
         variable: constant === undefined,
         ...(constant !== undefined ? { constant } : {}),
       };
@@ -639,6 +645,7 @@ export function seriesTableData(
       ],
       steel: first.bar.steel,
       diameter: first.bar.diameter,
+      dimensionReference: first.dims.reference,
       dimensions: Array.from({ length: count }, (_, k) => first.dims.values[k]),
       baseQuantity: sources.reduce((n, s) => n + s.baseQuantity, 0),
       multiplier: same(sources.map((s) => s.multiplier)),
@@ -669,7 +676,11 @@ export function seriesTableData(
     const bySignature = new Map<string, Item[]>();
     for (const item of variantItems) {
       const signature = fabricationSignature(item.bar);
-      const key = signature ?? `unique:${item.variantId}`;
+      // A mesma peça pode ter cotagem gráfica distinta. Não misture medidas
+      // de eixo e face externa numa única linha, ainda que o aço seja igual.
+      const key = signature
+        ? `${signature}:${item.dims.reference}`
+        : `unique:${item.variantId}`;
       const list = bySignature.get(key);
       if (list) list.push(item);
       else {

@@ -42,6 +42,14 @@ export default function SeriesTableFields({
               Série {series?.name ?? '(ausente)'}
               {t.rowsPerBlock ? ` · ${t.rowsPerBlock} linhas/bloco` : ''}
             </summary>
+            <label className="transfer-checkbox">
+              <input
+                type="checkbox"
+                checked={t.visible !== false}
+                onChange={(e) => update(t, { visible: e.target.checked })}
+              />
+              Mostrar tabela da série {series?.name}
+            </label>
             <NumberField
               label="Tabela X"
               value={t.origin.x}

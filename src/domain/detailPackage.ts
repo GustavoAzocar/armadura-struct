@@ -859,6 +859,10 @@ export function readDetailPackage(raw: unknown): {
   )
     throw new Error('Estribos helicoidais exigem pacote openstruct.detail/22.');
   const pack = detailPackageSchema.parse(input);
+  if (pack.objects.masks.some((m) => m.independent))
+    throw new Error(
+      'Máscaras independentes devem ser transportadas pelo arquivo de projeto; o pacote de detalhamento ainda não suporta esse recurso.',
+    );
   const compatibleSchema =
     pack.schema === BAND_DETAIL_PACKAGE_SCHEMA
       ? DETAIL_PACKAGE_SCHEMA
@@ -945,6 +949,10 @@ export function createDetailPackage(
   const f = project.hierarchy.floors.find((f) => f.id === e?.floorId);
   if (!d || !e || !f)
     throw new Error('Escolha um detalhamento existente para exportar.');
+  if (project.maskReferences?.[detailId]?.items.length)
+    throw new Error(
+      'O pacote OpenStruct ainda não transporta referências de máscaras por detalhamento. Use o arquivo de projeto para preservar essas referências.',
+    );
   const owns = (id: string) => project.hierarchy.objectDetails[id] === detailId;
   if ((project.symbolInstances ?? []).some((o) => owns(o.id)))
     throw new Error(

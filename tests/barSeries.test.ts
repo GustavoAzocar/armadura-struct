@@ -511,6 +511,84 @@ describe('estimativa, bloqueio da RA e fabricação', () => {
 });
 
 describe('tabela na prancha: escopo e apresentação', () => {
+  it('não atribui a cotas externas a referência do eixo, inclusive ao agrupar e exportar', () => {
+    const a = {
+      ...straight('a', 'N1', 1000),
+      points: [
+        { x: 0, y: 0 },
+        { x: 1000, y: 0 },
+        { x: 1000, y: 500 },
+      ],
+      dimensionConvention: 'axis' as const,
+    };
+    const b = {
+      ...a,
+      id: 'b',
+      mark: 'N2',
+      dimensionConvention: 'external' as const,
+    };
+    const made = createBarSeries(base([a, b]), {
+      barIds: ['a', 'b'],
+      name: 'N5',
+    });
+    const data = seriesTableData(made.project, made.id, {
+      grouping: 'fabrication',
+    });
+    expect(data.rows).toHaveLength(2);
+    expect(data.rows.map((r) => r.dimensionReference)).toEqual([
+      'eixo',
+      'face externa',
+    ]);
+    expect(
+      data.dimensions.every(
+        (d) => d.reference === 'por variante' && d.variable,
+      ),
+    ).toBe(true);
+    // Mesma geometria física, duas peças: cotagem externa não altera corte.
+    expect(data.rows[0].cutLength).toBe(data.rows[1].cutLength);
+    expect(data.totals.length * 1000).toBeCloseTo(
+      2 * data.rows[0].cutLength,
+      8,
+    );
+    const sheet = onSheet(made.project, made.id);
+    const texts = seriesTableGeometry(
+      sheet.project,
+      sheet.sheetId,
+      sheet.table,
+    ).lines.map((l) => l.text);
+    expect(texts).toContain('REF.');
+    expect(texts).toContain('eixo');
+    expect(texts).toContain('face externa');
+    const csv = planScopedCsv(
+      made.project,
+      { kind: 'project' },
+      { ...defaultCsvExportOptions(), variants: true },
+    );
+    expect(csv.files[0].content).toContain('"eixo"');
+    expect(csv.files[0].content).toContain('"face externa"');
+  });
+
+  it('identifica aço e bitola por linha quando a seleção reúne materiais distintos', () => {
+    const p = base([
+      straight('a', 'N1', 1000),
+      { ...straight('b', 'N2', 1250), steel: 'CA-60', diameter: 5 },
+    ]);
+    const made = createBarSeries(p, { barIds: ['a', 'b'] });
+    const sheet = onSheet(made.project, made.id);
+    const texts = seriesTableGeometry(
+      sheet.project,
+      sheet.sheetId,
+      sheet.table,
+    ).lines.map((l) => l.text);
+    expect(texts).toContain('AÇO / Ø');
+    expect(texts).toContain('CA-60 / 5,0');
+    const expected = ((1.25 * Math.PI * (5 / 1000) ** 2) / 4) * 7850;
+    expect(seriesTableData(made.project, made.id).rows[1].weight).toBeCloseTo(
+      expected,
+      10,
+    );
+  });
+
   it('duplicar, mover, retirar ou ocultar a tabela não altera aço; vistas repetidas contam uma vez', () => {
     const { project, id } = threeBars([1, 2, 3]);
     const sheet = onSheet(project, id);
@@ -530,6 +608,22 @@ describe('tabela na prancha: escopo e apresentação', () => {
     expect(tables).toHaveLength(2);
     expect(tables[0].data.totals).toEqual(tables[1].data.totals);
     expect(tables[0].data.totals.pieces).toBe(6);
+    const hidden = setSeriesTable(sheet.project, sheet.sheetId, 't1', {
+      ...sheet.table,
+      visible: false,
+    });
+    expect(composeSheet(hidden, sheet.sheetId).seriesTables).toEqual([]);
+    expect(schedule(hidden)).toEqual(schedule(sheet.project));
+    expect(
+      decodeProject(JSON.stringify(hidden)).sheets[0].seriesTables![0].visible,
+    ).toBe(false);
+    const shown = setSeriesTable(hidden, sheet.sheetId, 't1', {
+      ...sheet.table,
+      visible: true,
+    });
+    expect(
+      composeSheet(shown, sheet.sheetId).seriesTables[0].data.totals.pieces,
+    ).toBe(6);
     const removed = setSeriesTable(again, sheet.sheetId, 't2', undefined);
     expect(removed.bars).toEqual(again.bars);
     expect(schedule(removed)).toEqual(schedule(sheet.project));

@@ -80,6 +80,28 @@ export function seriesTableColumns(
       value: (r) => r.marks.join('/'),
       align: 'left',
     },
+    ...(data.steels.length > 1
+      ? [
+          {
+            title: 'AÇO / Ø',
+            unit: '(mm)',
+            min: 20,
+            value: (r: SeriesTableRow) => `${r.steel} / ${n1(r.diameter)}`,
+            align: 'left' as const,
+          },
+        ]
+      : []),
+    ...(dims.some((d) => d.reference === 'por variante')
+      ? [
+          {
+            title: 'REF.',
+            unit: '',
+            min: 18,
+            value: (r: SeriesTableRow) => r.dimensionReference,
+            align: 'left' as const,
+          },
+        ]
+      : []),
     ...dims.map((d) => ({
       title: d.label,
       unit: '(cm)',
@@ -225,6 +247,8 @@ export function seriesTableGeometry(
       y -= rh;
     }
     paragraph(summary);
+    if (table.columns.dimensions && data.dimensions.length)
+      paragraph(`Referência das cotas: ${data.dimensions[0].reference}.`);
     if (constants.length)
       paragraph(
         `Cotas constantes (${constants[0].reference}): ${constants

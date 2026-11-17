@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Point, Project } from './types';
+import { withSeriesMaskVersion } from './projectSchema';
 
 /**
  * Formato do projeto que acrescenta séries variáveis e tabelas de comprimentos.
@@ -55,6 +56,8 @@ export type SeriesTableColumns = {
 export type SeriesTable = {
   id: string;
   seriesId: string;
+  /** Ausente = visível; ocultar só afeta a apresentação. */
+  visible?: boolean;
   /** Canto superior esquerdo do primeiro bloco, em mm de papel. */
   origin: Point;
   textHeight: number;
@@ -112,6 +115,7 @@ export const seriesTableSchema = z
   .object({
     id: identity,
     seriesId: identity,
+    visible: z.boolean().optional(),
     origin: paperPoint,
     textHeight: z.number().finite().min(1.8).max(5),
     rowsPerBlock: z.number().int().min(1).max(1000).optional(),
@@ -162,7 +166,7 @@ export function withBarSeriesVersion<T extends { schema: string }>(
   project: T,
 ): T {
   return hasBarSeriesData(project)
-    ? { ...project, schema: BAR_SERIES_PROJECT_SCHEMA }
+    ? withSeriesMaskVersion(project, BAR_SERIES_PROJECT_SCHEMA)
     : project;
 }
 

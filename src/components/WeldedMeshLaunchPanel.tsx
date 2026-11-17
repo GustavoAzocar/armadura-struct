@@ -107,7 +107,7 @@ export default function WeldedMeshLaunchPanel({
         : s.mode === 'click'
           ? activeMask
             ? `Clique dentro da região, na máscara ativa (${activeMask}). Linhas que se cruzam também delimitam.`
-            : 'Escolha a máscara ativa em Máscaras → Referências para usar o modo Clique.'
+            : 'Escolha a máscara ativa em Máscaras → Referências ou a referência atual em Máscaras do detalhamento para usar o modo Clique.'
           : `Clique os vértices do contorno (${s.points.length} ponto(s)). Enter fecha; Backspace remove o último.`
       : s.stage === 'openings'
         ? byPoints

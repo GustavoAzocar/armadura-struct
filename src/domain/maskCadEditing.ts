@@ -1,3 +1,4 @@
+import { canEditMaskGeometry, referenceMasks } from './maskReferences';
 import {
   uid,
   type Mask,
@@ -78,10 +79,8 @@ export function maskCadEntities(
   context: MaskDrawingContext,
 ): MaskCadEntity[] {
   if (context.key.startsWith('sheet:')) return [];
-  return p.masks.flatMap((m) => {
+  return referenceMasks(p, context).flatMap((m) => {
     if (
-      (context.scopeDetailId &&
-        p.hierarchy.objectDetails[m.id] !== context.scopeDetailId) ||
       !m.visible ||
       m.opacity === 0 ||
       objectHidden(p, context.key, m.id) ||
@@ -106,6 +105,7 @@ export function maskCadEntities(
         mask: m,
         label: `${m.name} · ${index + 1} · ${q.text !== undefined ? 'texto' : (q.native?.kind ?? (q.closed ? 'contorno' : 'polilinha'))} · [${q.id?.slice(0, 8) ?? index + 1}]`,
         editable:
+          canEditMaskGeometry(p, m, context) &&
           objectState(p, context.key, m).editable &&
           (!q.layerId || layerState(p, context.key, q.layerId).editable),
       };
@@ -128,12 +128,7 @@ export function maskEditTarget(
     throw new Error(
       'Escolha uma máscara ativa; armaduras e seleção residual não são alvos destes comandos.',
     );
-  if (
-    context.key.startsWith('sheet:') ||
-    p.hierarchy.objectDetails[m.id] !== context.detailId ||
-    (context.scopeDetailId &&
-      p.hierarchy.objectDetails[m.id] !== context.scopeDetailId)
-  )
+  if (!canEditMaskGeometry(p, m, context))
     throw new Error(
       'Abra o desenho/detalhamento da máscara ativa; não se edita geometria no papel.',
     );

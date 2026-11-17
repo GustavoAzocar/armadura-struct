@@ -23,20 +23,22 @@ Não há edição de números isolados na tabela. **Localizar** seleciona a pró
 
 Cada linha mostra:
 
-| Coluna               | Conteúdo                                                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Var. / Pos.          | Subidentificação na série e posição de fabricação (o ID estável fica na consulta e no CSV)                              |
-| Cotas (cm)           | Cotas que variam entre as variantes; as constantes aparecem uma vez, com a referência de medição (eixo ou face externa) |
-| Quant.               | Quantidade efetiva = base × multiplicador da armadura × repetição do detalhamento, aplicada uma única vez               |
-| Base×M×R             | Fórmula da quantidade (opcional)                                                                                        |
-| C. desenvolvido (cm) | Desenvolvimento geométrico do eixo da própria peça, com dobras, arcos e ganchos (opcional)                              |
-| C. corte (cm)        | Comprimento individual de corte                                                                                         |
-| C. total (m)         | Subtotal = soma das contribuições da RA (quantidade efetiva × comprimento físico)                                       |
-| Peso (kg)            | Peso teórico, sem reserva (opcional)                                                                                    |
+| Coluna               | Conteúdo                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Var. / Pos.          | Subidentificação na série e posição de fabricação (o ID estável fica na consulta e no CSV)                                                              |
+| Cotas (cm)           | Cotas que variam entre as variantes; as constantes aparecem uma vez; a referência de medição (eixo ou face externa) é explícita, por linha quando mista |
+| Quant.               | Quantidade efetiva = base × multiplicador da armadura × repetição do detalhamento, aplicada uma única vez                                               |
+| Base×M×R             | Fórmula da quantidade (opcional)                                                                                                                        |
+| C. desenvolvido (cm) | Desenvolvimento geométrico do eixo da própria peça, com dobras, arcos e ganchos (opcional)                                                              |
+| C. corte (cm)        | Comprimento individual de corte                                                                                                                         |
+| C. total (m)         | Subtotal = soma das contribuições da RA (quantidade efetiva × comprimento físico)                                                                       |
+| Peso (kg)            | Peso teórico, sem reserva (opcional)                                                                                                                    |
 
 **Política de corte:** corte = desenvolvimento geométrico do eixo, sem acréscimos nem descontos implícitos (mesma política da [memória de corte](CONVENCOES-COTAGEM-ARMADURAS.md)). Os valores são arredondados apenas na apresentação; totais usam a precisão completa. A reserva de peso do quadro de aço não altera cortes nem número de peças.
 
 Exemplos verificados nos testes: barras de 1.000/1.250/1.500 mm, uma peça cada, somam **3.750 mm**; com duas repetições, **6 peças e 7.500 mm**; multiplicador 2 e repetição 3, **18 peças e 22.500 mm**. Com quantidades 1/2/3, **6 peças e 8.000 mm**; com multiplicador 2 e repetição 3, **36 peças e 48.000 mm**.
+
+Em séries com aços ou bitolas diferentes, a tabela e a consulta identificam o material por linha. Peças com cotagem por eixo e por face externa mantêm linhas separadas para não misturar referências.
 
 ### Agrupar variantes equivalentes
 
@@ -53,14 +55,14 @@ A opção **Agrupar equivalentes** junta apenas variantes com a mesma assinatura
 
 1. Na consulta, escolha as colunas opcionais, o agrupamento e **Linhas por bloco** (0 = bloco único).
 2. **Inserir tabela na prancha** abre a folha que documenta a série (ou a ativa) com a prévia no cursor. O painel mostra o destino e o escopo e permite trocar a folha, a altura do texto e a divisão.
-3. Clique pelo **canto superior esquerdo**. Esc, botão direito ou **Cancelar** descartam a prévia sem gravar. Desfazer, troca de projeto/folha e exclusão da série também cancelam.
+3. Clique pelo **canto superior esquerdo**. Esc, botão direito ou **Cancelar** descartam a prévia sem gravar. Desfazer, troca de projeto/folha, exclusão da série e alterações concorrentes do documento também cancelam.
 
 ![Tabela de 24 variantes dividida em três blocos de oito](series-length-table.png)
 
 - Cada bloco repete título, série, unidades, cabeçalho e avisos, e indica **Bloco 1/3 - continua** / **Continuação 2/3**. O subtotal de cada bloco é distinto do **Total da série**, que aparece só no último bloco, sem somar totais repetidos.
 - As continuações ficam à direita do bloco anterior; arraste qualquer bloco para posicioná-lo. **Reorganizar continuações automaticamente** volta ao arranjo inicial.
 - O texto tem altura em mm de papel (1,8 a 5 mm), independente das escalas das vistas. Bloco fora da área útil ou sobre o selo é recusado; não há recorte, redução silenciosa de fonte nem perda de linhas. Se não couber, divida em mais blocos ou mova-os.
-- Repetir o comando para a mesma série na mesma folha **reposiciona** a tabela existente; cliques repetidos não duplicam. Selecione um bloco e pressione Delete, ou use **Retirar tabela da folha** no gerenciador, para retirar só a apresentação. Duplicar o layout copia a tabela apontando para a mesma série.
+- Repetir o comando para a mesma série na mesma folha **reposiciona** a tabela existente; cliques repetidos não duplicam. No gerenciador, **Mostrar tabela da série** oculta/mostra todos os blocos sem apagar a configuração; tabelas ocultas não entram no PDF/DXF. Selecione um bloco e pressione Delete, ou use **Retirar tabela da folha** no gerenciador, para retirar só a apresentação. Duplicar o layout copia a tabela apontando para a mesma série.
 - Inserir, mover, dividir, ocultar ou retirar a tabela não altera aço. Várias vistas da mesma série contam uma vez; a tabela segue o mesmo escopo do [quadro de aço da folha](QUADRO-NA-PRANCHA.md) e não traz variantes de outras folhas.
 - Com a RA bloqueada e desatualizada, a tabela informa o estado e a inserção/exportação exigem **Atualizar RA** ou **Desbloquear RA**; não se combina tabela atual com resumo congelado.
 
@@ -72,8 +74,8 @@ A opção **Agrupar equivalentes** junta apenas variantes com a mesma assinatura
 
 ## Persistência e compatibilidade
 
-- O projeto passa a **`armadurastruct/40`** quando existe uma série ou uma tabela de série. O formato reúne todos os recursos do 39. Arquivos 1–39 continuam abrindo com as mesmas barras e totais, sem conversão implícita para série; um arquivo com séries sob cabeçalho anterior é **recusado** com a mensagem "exigem formato 40". Mantenha uma cópia antes de salvar em formato novo. O número 40 deve ser confirmado com o mantenedor, conforme as [regras de formato](CONTRIBUTING.md#alterações-de-formato).
-- `Project.barSeries[]`: `id`, `name`, `status`, `provenance`, `variants[]` (`id`, `barId`, `station`), `expectedVariants?`, `representativeBarId?`. `Sheet.seriesTables[]`: `id`, `seriesId`, `origin`, `textHeight`, `rowsPerBlock?`, `blockOrigins?`, `grouping`, `columns`. Não há geometria nem quantitativo duplicados.
+- Séries sem máscaras independentes usam **`armadurastruct/40`**; máscaras sem séries conservam **`/41`**. Ao combinar os dois recursos, o projeto passa a **`/43`**, em qualquer ordem. O `/42` permanece reservado à PR #218; a variante `/41` da PR #217 ainda exige integração separada. Selos, modelos, vínculos e exclusão de recursos não rebaixam a composição. Os contratos anteriores continuam abrindo sem inventar séries nem alterar aço. Dados novos sob cabeçalho incompatível são recusados, inclusive a composição adulterada para `/40` ou `/41`. Mantenha uma cópia antes de salvar em formato novo.
+- `Project.barSeries[]`: `id`, `name`, `status`, `provenance`, `variants[]` (`id`, `barId`, `station`), `expectedVariants?`, `representativeBarId?`. `Sheet.seriesTables[]`: `id`, `seriesId`, `origin`, `textHeight`, `rowsPerBlock?`, `blockOrigins?`, `grouping`, `columns`, `visible?`. Não há geometria nem quantitativo duplicados.
 - Vínculos inexistentes, IDs repetidos, estação duplicada ou armadura em duas séries são recusados ao abrir.
 - Excluir armaduras reconcilia a série (variante retirada, série incompleta) e retira tabelas de séries esvaziadas, sem linhas órfãs.
 - **Cópia física** (Duplicar armadura) da série inteira cria uma nova série com novos IDs apontando para as novas peças; cópia parcial gera peças independentes. **Cópia de apresentação** (duplicar layout) aponta para as mesmas peças.
