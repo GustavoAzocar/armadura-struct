@@ -1,3 +1,4 @@
+import { copyBarSeries } from './barSeries';
 import { remapDimensionMasks } from './maskDimensions';
 import { previewRenumber, type RenumberOptions } from './numbering';
 export { quantityForSpacing } from './detailQuantities';
@@ -570,6 +571,8 @@ export function cloneArmatureGraph(p: Project, options: ArmatureCloneOptions) {
       },
     },
   });
+  // Série inteira copiada: nova série com novos IDs; parcial: peças avulsas.
+  next = copyBarSeries(p, next, idMap);
   if (options.position === 'equivalent')
     for (const position of fabricationPositions(p)) {
       const added = position.barIds.filter((id) => physical.has(id)).map(remap);

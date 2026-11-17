@@ -33,6 +33,7 @@ const commands = {
   'lock-schedule': 'Bloquear RA',
   schedule: 'Quadro de aço',
   'insert-sheet-schedule': 'Inserir quadro na prancha',
+  'bar-series': 'Séries variáveis',
   renumber: 'Renumerar',
 };
 const ribbon = (page: Page) => page.locator('.ribbon');

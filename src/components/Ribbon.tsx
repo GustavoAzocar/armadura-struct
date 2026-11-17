@@ -624,6 +624,7 @@ export default function Ribbon({
             'Inserir quadro na prancha',
             RebarIcons.InsertScheduleIcon,
           ),
+          item('bar-series', 'Séries variáveis', RebarIcons.BarSeriesIcon),
           item('renumber', 'Renumerar', RebarIcons.RenumberIcon),
         ],
       },

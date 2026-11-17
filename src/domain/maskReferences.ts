@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Mask, Point, Project } from './types';
 import { maskPoint } from '../cad/import';
 import { localMaskPoint } from './nativeMasks';
+import { withSeriesMaskVersion } from './projectSchema';
 
 // /40 está reservado pela PR #215 (séries variáveis).
 export const MASK_REFERENCE_PROJECT_SCHEMA = 'armadurastruct/41' as const;
@@ -42,7 +43,7 @@ export function hasIndependentMaskData(input: unknown): boolean {
 }
 export function withMaskReferenceVersion(p: Project): Project {
   return hasIndependentMaskData(p)
-    ? { ...p, schema: MASK_REFERENCE_PROJECT_SCHEMA }
+    ? withSeriesMaskVersion(p, MASK_REFERENCE_PROJECT_SCHEMA)
     : p;
 }
 export function validateMaskReferences(p: Project) {

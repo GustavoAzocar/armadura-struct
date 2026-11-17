@@ -14,6 +14,7 @@ Esta documentação acompanha a `master`. Recursos ainda não publicados estão 
 
 ## Recursos
 
+- [Barra livre por comprimento](docs/BARRA-POR-COMPRIMENTO.md): aponte e digite a distância em mm, alternando com cliques e coordenadas na mesma barra, com ORTO, prévia e conclusão em uma operação de histórico.
 - [Estribos pela seção e pela faixa](docs/ESTRIBOS.md): critérios e lançamento com formatos retangular, circular e livre, cobrimento, ganchos e espaçamento; opção de ocultar os traços individuais preservando a faixa e o aço.
 - [Estribo helicoidal](docs/ESTRIBO-HELICOIDAL.md): passo, extremos e comprimento desenvolvido analítico.
 - [Grampos de pilar S/C](docs/GRAMPOS-PILAR.md) por centros longitudinais e [grampos de viga em U](docs/GRAMPOS_VIGA.md) com critérios, lançamento e vistas vinculadas.
@@ -46,6 +47,7 @@ Esta documentação acompanha a `master`. Recursos ainda não publicados estão 
 - [Máscaras nativas CAD](docs/MASCARAS-NATIVAS.md): linha, retângulo, círculo e polilinha editáveis, sem gerar aço, com controle compartilhado de referências importadas.
 - [Organização por pavimento → grupo → detalhamento](docs/ORGANIZACAO-PROJETO.md): Térreo → Vigas → V1/V2, Pilares → P1; abertura direta pelo detalhamento e nomes sugeridos. [Novo projeto](docs/NOVO-PROJETO.md) mantém prévia editável, criação rápida, rascunho isolado e substituição explícita do projeto atual.
 - [Quadro de aço vinculado à prancha](docs/QUADRO-NA-PRANCHA.md), com prévia no cursor, inserção por clique, quantitativos por folha e resumo de peso configurável, em PDF vetorial.
+- [Séries variáveis e tabela de comprimentos individuais](docs/TABELA-DE-COMPRIMENTOS-VARIAVEIS.md): variantes reais com IDs estáveis, quantidade efetiva e corte por peça, tabela na prancha dividida em blocos com subtotais e total da série, e lista por variante no CSV, sem acrescentar aço.
 - [CSV da relação do aço por escopo](docs/CSV-POR-ESCOPO.md): projeto, pranchas ou elementos, quadro e/ou resumo, arquivos separados ou consolidados (ZIP), total físico pela união dos IDs e acréscimo explícito por escopo, sem alterar o projeto.
 - [Alinhamento por bordas, centros e referência](docs/AS-23.md) de objetos, conjuntos e vistas, com afastamento uniforme, escolha do conjunto fixo, prévia e histórico.
 - [Inserção, continuação e remoção de vértices](docs/AS-25.md) de barras/polilinhas existentes, com prévia, validação de dobras e atualização de inserções e quantitativos.

@@ -1,5 +1,9 @@
 import { sheetScheduleGeometry } from './sheetSchedule';
 import {
+  seriesTableGeometry,
+  type SeriesTableGeometry,
+} from './seriesTableGeometry';
+import {
   composeTemplateSeal,
   savedSheetSealContent,
   type ComposedSealField,
@@ -47,6 +51,8 @@ export type PaperComposition = {
   seal?: PaperRect;
   decorations: PaperPrimitive[];
   schedule?: ReturnType<typeof sheetScheduleGeometry>;
+  /** Tabelas de comprimentos de séries variáveis (apresentação). */
+  seriesTables: SeriesTableGeometry[];
   views: PaperView[];
   issues: PaperIssue[];
   notices: PaperIssue[];
@@ -317,6 +323,54 @@ export function sheetScheduleIssues(
     });
   return issues;
 }
+/** Mesmas regras do quadro: área útil, selo, RA, geometria e alfabeto do PDF. */
+export function seriesTableIssues(
+  sheet: Sheet,
+  table: SeriesTableGeometry,
+): PaperIssue[] {
+  const issues: PaperIssue[] = [];
+  const name = `Tabela da série ${table.data.name}`;
+  const useful = usefulArea(sheet),
+    seal = sealArea(sheet);
+  for (const block of table.blocks) {
+    const label =
+      block.count > 1
+        ? `${name} (bloco ${block.index + 1}/${block.count})`
+        : name;
+    if (!contained(block.frame, useful))
+      issues.push({
+        code: 'series-table-paper-overflow',
+        message: `${label} fora da área útil. Mova-a, divida em blocos/continuações ou ajuste o texto.`,
+      });
+    if (seal && overlaps(block.frame, rectPoints(seal)))
+      issues.push({
+        code: 'series-table-seal-overlap',
+        message: `${label} sobre a reserva do selo. Escolha outra posição.`,
+      });
+  }
+  if (!table.data.rows.length)
+    issues.push({
+      code: 'series-table-out-of-scope',
+      message: `${name}: nenhuma variante está documentada nesta folha. Coloque o desenho da série ou retire a tabela.`,
+    });
+  if (table.data.status.stale)
+    issues.push({
+      code: 'series-table-stale',
+      message:
+        'RA bloqueada e desatualizada. Atualize ou desbloqueie a RA antes de inserir/exportar a tabela.',
+    });
+  if (table.data.status.review)
+    issues.push({
+      code: 'series-table-geometry',
+      message: `${name}: corrija as geometrias inválidas das variantes.`,
+    });
+  if (table.lines.some((l) => l.text && /[^\x20-\xff]/.test(paperText(l.text))))
+    issues.push({
+      code: 'series-table-text-encoding',
+      message: `${name}: texto fora do alfabeto latino suportado pelo PDF.`,
+    });
+  return issues;
+}
 export function composeSheet(
   project: Project,
   sheetId: string,
@@ -334,6 +388,21 @@ export function composeSheet(
   const schedule = sheet.steelSchedule
     ? sheetScheduleGeometry(project, sheetId, sheet.steelSchedule)
     : undefined;
+  const seriesTables: SeriesTableGeometry[] = [];
+  for (const t of sheet.seriesTables ?? []) {
+    if (t.visible === false) continue;
+    try {
+      seriesTables.push(seriesTableGeometry(project, sheetId, t));
+    } catch (error) {
+      issues.push({
+        code: 'series-table-error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível compor a tabela da série.',
+      });
+    }
+  }
   const template = sheet.paperTemplate;
   sealContent ??= savedSheetSealContent(project, sheet);
   const sealComposition =
@@ -488,6 +557,12 @@ export function composeSheet(
     issues.push(...sheetScheduleIssues(sheet, schedule));
     schedule.lines = plotPrimitives(project, schedule.lines, 'paper', 'paper');
   }
+  for (const table of seriesTables) {
+    issues.push(...seriesTableIssues(sheet, table));
+    for (const block of table.blocks)
+      block.lines = plotPrimitives(project, block.lines, 'paper', 'paper');
+    table.lines = table.blocks.flatMap((b) => b.lines);
+  }
   if (
     [...decorations, ...views.flatMap((v) => v.lines)].some(
       (l) => l.text && /[^\x20-\xff]/.test(l.text),
@@ -506,6 +581,7 @@ export function composeSheet(
     decorations: plotPrimitives(project, decorations, 'paper', 'paper'),
     views,
     schedule,
+    seriesTables,
     issues,
     notices: sealComposition?.notices ?? [],
     sealFields: sealComposition?.fields,

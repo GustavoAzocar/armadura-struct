@@ -8,7 +8,6 @@ import { validateTextContent } from './textStyle';
 import { uid, type Mask, type Point, type Project, type Sheet } from './types';
 import {
   hasSealData,
-  SEAL_PROJECT_SCHEMA,
   templateSealBindingSchema,
   withSealDataVersion,
 } from './sealFieldSchema';
@@ -336,10 +335,7 @@ export function saveSheetTemplate(
     throw Error('O catálogo admite até 1.000 modelos.');
   return withSealDataVersion({
     ...project,
-    schema:
-      Number(project.schema.split('/')[1]) >= 39
-        ? project.schema
-        : SHEET_TEMPLATE_PROJECT_SCHEMA,
+    schema: templateSchema(project),
     sheetTemplates: existing
       ? list.map((t) =>
           t.id === next.id ? { ...next, revision: t.revision + 1 } : t,
@@ -420,15 +416,18 @@ export function applySheetTemplate(
   return changed
     ? withSealDataVersion({
         ...project,
-        schema:
-          Number(project.schema.split('/')[1]) >= 39
-            ? project.schema
-            : SHEET_TEMPLATE_PROJECT_SCHEMA,
+        schema: templateSchema(project),
         sheets,
       })
     : project;
 }
 
+/** Preserva os formatos posteriores, que já incluem modelos de prancha. */
+function templateSchema(project: Project): Project['schema'] {
+  return Number(project.schema.split('/')[1]) >= 39
+    ? project.schema
+    : SHEET_TEMPLATE_PROJECT_SCHEMA;
+}
 export function encodeSheetTemplate(template: SheetTemplate) {
   return JSON.stringify(
     {

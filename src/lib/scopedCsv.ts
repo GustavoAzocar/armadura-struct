@@ -13,6 +13,12 @@ import {
   type ScopeKind,
 } from '../domain/scheduleScopes';
 import { assertExportable } from './exports';
+import {
+  CUT_POLICY_LABEL,
+  seriesTableData,
+  type SeriesTableData,
+} from '../domain/barSeries';
+import { seriesMembers } from '../domain/barSeriesSchema';
 import { csvField } from './csv';
 import { safeName } from './files';
 
@@ -32,6 +38,13 @@ export type CsvExportOptions = {
   allowance: AllowancePolicy;
   /** Perda das telas soldadas (mesmos modos do acréscimo); padrão 0%. */
   meshLoss?: AllowancePolicy;
+  /**
+   * Lista por variante das séries variáveis (arquivo próprio). Ausente/falso
+   * mantém exatamente os arquivos anteriores.
+   */
+  variants?: boolean;
+  /** Agrupamento da lista por variante; padrão uma linha por variante. */
+  variantGrouping?: 'variant' | 'fabrication';
 };
 export const defaultCsvExportOptions = (): CsvExportOptions => ({
   detailed: true,
@@ -101,7 +114,7 @@ export function planScopedCsv(
     scopes: [],
     files: [],
   });
-  if (!options.detailed && !options.summary)
+  if (!options.detailed && !options.summary && !options.variants)
     issues.push('Escolha o quadro detalhado, o resumo do aço ou ambos.');
   try {
     // Mesmos bloqueios da exportação global: RA desatualizada e geometria inválida.
@@ -166,8 +179,41 @@ export function planScopedCsv(
     options.layout === 'consolidated' || all.length === 1
       ? [{ slug: selectionSlug(selection), data: all }]
       : all.map((d) => ({ slug: scopeSlug(d, all), data: [d] }));
+  const seriesByScope = new Map(
+    all.map((d) => [
+      d,
+      options.variants ? scopeSeries(p, d, options.variantGrouping) : [],
+    ]),
+  );
+  if (options.variants) {
+    if (![...seriesByScope.values()].some((list) => list.length))
+      warnings.push(
+        'Nenhuma série variável nos escopos selecionados: a lista por variante não foi gerada.',
+      );
+    const flagged = new Set<string>();
+    for (const list of seriesByScope.values())
+      for (const t of list)
+        if (
+          !flagged.has(t.series.id) &&
+          (t.status.estimated || t.status.incomplete || t.status.review)
+        ) {
+          flagged.add(t.series.id);
+          warnings.push(`Série ${t.name}: ${t.notes.join(' ')}`);
+        }
+  }
   for (const g of groups) {
     const hasMeshes = g.data.some((d) => d.meshes.rows.length);
+    if (options.variants && g.data.some((d) => seriesByScope.get(d)?.length))
+      add(
+        `${project}_${g.slug}_variantes.csv`,
+        variantsCsv(
+          g.data.map((d) => ({
+            scope: d,
+            series: seriesByScope.get(d) ?? [],
+          })),
+          options,
+        ),
+      );
     // Quadro de barras como antes; um grupo só com telas não ganha arquivo vazio.
     if (options.detailed && (!hasMeshes || g.data.some((d) => d.rows.length)))
       add(`${project}_${g.slug}_quadro.csv`, detailedCsv(p, g.data, options));
@@ -490,6 +536,115 @@ export function meshCsv(data: ScopeData[], o: CsvExportOptions) {
         [...r.warnings, ...r.errors].join(' | '),
       ]);
     }
+  return serializeCsv(rows);
+}
+
+/** Séries com variantes no escopo, pela mesma consulta da tabela. */
+function scopeSeries(
+  p: Project,
+  d: ScopeData,
+  grouping: CsvExportOptions['variantGrouping'],
+): SeriesTableData[] {
+  const ids = new Set(d.scope.barIds);
+  return (p.barSeries ?? [])
+    .filter((s) => seriesMembers(s).some((id) => ids.has(id)))
+    .map((s) => seriesTableData(p, s.id, { scopeBarIds: ids, grouping }));
+}
+/**
+ * Lista por variante: IDs, identificação, cotas com unidade, quantidade
+ * efetiva, corte individual, subtotal, estado exato/estimado e origem. Os
+ * valores vêm da consulta de domínio, nunca da tabela gráfica.
+ */
+export function variantsCsv(
+  data: { scope: ScopeData; series: SeriesTableData[] }[],
+  o: CsvExportOptions,
+) {
+  const u = o.detailedLength,
+    fromMm = u === 'cm' ? 0.1 : 0.001,
+    fromM = u === 'cm' ? 100 : 1,
+    ld = lengthDigits(u, o.precision),
+    n = (v: number, d: number) =>
+      Number.isFinite(v) ? numberText(v, d, o.decimal) : '';
+  const header = [
+    ...SCOPE_HEADERS,
+    'Série',
+    'ID da série',
+    'Estado',
+    'Origem da série',
+    'Avisos da série',
+    'Sequência',
+    'Subidentificação',
+    'IDs das variantes',
+    'IDs físicos das armaduras',
+    'Posição',
+    'IDs das posições de fabricação',
+    'Representante médio',
+    'Aço',
+    'Bitola (mm)',
+    'Referência das cotas',
+    `Cotas (${u})`,
+    'Quantidade base',
+    'Multiplicador da armadura',
+    'Repetições do detalhamento',
+    'Quantidade efetiva',
+    'Fórmula da quantidade',
+    `C. desenvolvido (${u})`,
+    `C. de corte individual (${u})`,
+    'Política de corte',
+    `Subtotal (${u})`,
+    'Peso teórico (kg)',
+    'Origens (JSON)',
+  ];
+  const rows: unknown[][] = [header];
+  for (const { scope, series } of data)
+    for (const t of series)
+      for (const r of t.rows)
+        rows.push([
+          ...scopeCells(scope),
+          t.name,
+          t.series.id,
+          t.status.estimated
+            ? 'Estimado'
+            : t.status.incomplete
+              ? 'Incompleto'
+              : t.status.review
+                ? 'Revisar'
+                : 'Exato',
+          t.series.provenance.kind === 'manual'
+            ? 'Manual'
+            : `Gerador: ${t.series.provenance.source}`,
+          t.notes.join(' | '),
+          r.sequences.join(','),
+          r.subId,
+          r.variantIds.join(' | '),
+          r.barIds.join(' | '),
+          r.marks.join('/'),
+          r.positionIds.join(' | '),
+          r.representative ? 'Sim (variável/representativo)' : 'Não',
+          r.steel,
+          n(r.diameter, 1),
+          r.dimensionReference,
+          t.dimensions
+            .map((d, i) => {
+              const v = r.dimensions[i];
+              return v === undefined ? '' : `${d.label}=${n(v * fromMm, ld)}`;
+            })
+            .filter(Boolean)
+            .join('; '),
+          r.baseQuantity,
+          r.multiplier ?? r.sources.map((s) => s.multiplier).join('/'),
+          r.repetitions ?? r.sources.map((s) => s.repetitions).join('/'),
+          r.quantity,
+          r.formula,
+          n(r.developedLength * fromMm, ld),
+          n(r.cutLength * fromMm, ld),
+          r.representative
+            ? 'Comprimento médio do representante (estimativa)'
+            : CUT_POLICY_LABEL,
+          n(r.subtotalLength * fromM, ld),
+          n(r.weight, weightDigits(o.precision)),
+          JSON.stringify(r.sources),
+        ]);
   return serializeCsv(rows);
 }
 

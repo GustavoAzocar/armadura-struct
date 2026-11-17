@@ -285,6 +285,35 @@ export default function CsvExportDialog({
             />
             Resumo do aço
           </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={!!o.variants}
+              onChange={(e) => set({ variants: e.target.checked })}
+            />
+            Lista por variante (séries variáveis)
+          </label>
+          {o.variants && (
+            <label className="field">
+              <span>Linhas da lista</span>
+              <select
+                aria-label="Agrupamento da lista por variante"
+                value={o.variantGrouping ?? 'variant'}
+                onChange={(e) =>
+                  set({
+                    variantGrouping: e.target.value as
+                      | 'variant'
+                      | 'fabrication',
+                  })
+                }
+              >
+                <option value="variant">Uma linha por variante</option>
+                <option value="fabrication">
+                  Agrupar equivalentes (regras de fabricação)
+                </option>
+              </select>
+            </label>
+          )}
           <label className="field">
             <span>Vários escopos</span>
             <select

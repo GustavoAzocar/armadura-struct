@@ -10,6 +10,7 @@ import { validateLayers, dashArray } from '../domain/layers';
 import type { DrawingLayer, Primitive } from '../domain/types';
 import { quantitySourceLabel } from '../domain/detailQuantities';
 import { jsPDF } from 'jspdf';
+import { validateBarSeries } from '../domain/barSeriesSchema';
 import { csvField } from './csv';
 import { bounds, format } from '../domain/geometry';
 import {
@@ -134,6 +135,7 @@ import {
   type PaperComposition,
 } from '../domain/paper';
 export function assertExportable(p: Project) {
+  validateBarSeries(p);
   validateLayers(p);
   if (p.plotting) plotSettingsSchema.parse(p.plotting);
   const annotationIssue = p.annotations.map(annotationError).find(Boolean);
@@ -522,6 +524,7 @@ function paperPrimitives(page: PaperComposition): Primitive[] {
     ...page.decorations,
     ...page.views.flatMap((view) => view.lines),
     ...(page.schedule?.lines ?? []),
+    ...page.seriesTables.flatMap((t) => t.lines),
   ];
 }
 

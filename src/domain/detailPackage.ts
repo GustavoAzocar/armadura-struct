@@ -1,3 +1,4 @@
+import { seriesMembers } from './barSeriesSchema';
 import { scaleBeamClampProfile, scaleBeamClampView } from './beamClampSchema';
 import { hasDistributionBand, scaleStirrupProfile } from './stirrupSchema';
 import { scaleHelixDisplay, scaleHelixProfile } from './helixSchema';
@@ -956,6 +957,14 @@ export function createDetailPackage(
   if ((project.symbolInstances ?? []).some((o) => owns(o.id)))
     throw new Error(
       'O detalhamento contém instâncias de símbolo, que o pacote OpenStruct ainda não transporta. Desvincule-as em cópias independentes ou remova-as antes de exportar.',
+    );
+  if (
+    (project.barSeries ?? []).some((s) =>
+      seriesMembers(s).some((id) => owns(id)),
+    )
+  )
+    throw new Error(
+      'O detalhamento contém séries variáveis, que o pacote OpenStruct ainda não transporta. Desfaça a série (as armaduras permanecem) ou exporte o projeto completo.',
     );
   const objects = {
     bars: project.bars.filter((o) => owns(o.id)),
